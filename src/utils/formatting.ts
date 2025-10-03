@@ -1,0 +1,9 @@
+export const formatDate = (date: Date): string => {
+    return date.toLocaleDateString('pt-BR');
+};
+
+export const formatTime = (minutes: number): string => {
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    return `${hours}h${remainingMinutes.toString().padStart(2, '0')}m`;
+};
