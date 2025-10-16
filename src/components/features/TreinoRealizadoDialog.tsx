@@ -51,7 +51,7 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
     const [distanciaKm, setDistanciaKm] = useState(0);
     const [duracaoMin, setDuracaoMin] = useState<number | ''>('');
     const [comentario, setComentario] = useState('');
-    const [percepcaoEsforco, setPercepcaoEsforco] = useState<number | ''>('');
+    const [percepcaoEsforco, setPercepcaoEsforco] = useState<number | ''>(5);
     const [ritmoMedio, setRitmoMedio] = useState('');
     const [fcMedia, setFcMedia] = useState<number | ''>('');
     const [fcMax, setFcMax] = useState<number | ''>('');
@@ -66,7 +66,7 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
             setDistanciaKm(getSafeNumber(treino.distanciaKm));
             setDuracaoMin(treino.duracaoMin ? getSafeNumber(treino.duracaoMin) : '');
             setComentario('');
-            setPercepcaoEsforco('');
+            setPercepcaoEsforco(5);
             setRitmoMedio('');
             setFcMedia('');
             setFcMax('');
@@ -82,7 +82,7 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
         setDistanciaKm(0);
         setDuracaoMin('');
         setComentario('');
-        setPercepcaoEsforco('');
+        setPercepcaoEsforco(5);
         setRitmoMedio('');
         setFcMedia('');
         setFcMax('');
