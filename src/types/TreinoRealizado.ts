@@ -10,15 +10,15 @@ export interface TreinoRealizado {
     distanciaKm: number;
     fcMedia: number;
     fcMax?: number;
-    ritmoMedio: string;
+    ritmoMedio?: string;
     potenciaMedia?: number;
-    comentario?: string;
+    feedbackAtleta?: string;
     fonteDados?: string;
     status: string;
     percepcaoEsforco?: number;
     externalId?: string;
     tempoExecucaoSegundos?: number;
-    elevacaoTotalMetros: number;
+    elevacaoGanhoMetros?: number;
 }
 
 export interface CreateTreinoRealizado {
@@ -33,15 +33,15 @@ export interface CreateTreinoRealizado {
     distanciaKm: number;
     fcMedia: number;
     fcMax?: number;
-    ritmoMedio: string;
+    ritmoMedio?: string;
     potenciaMedia?: number;
-    comentario?: string;
+    feedbackAtleta?: string;
     fonteDados?: string;
     status: string;
     percepcaoEsforco?: number;
     externalId?: string;
     tempoExecucaoSegundos?: number;
-    elevacaoTotalMetros: number;
+    elevacaoGanhoMetros?: number;
 }
 
 export interface UpdateTreinoRealizado extends Partial<CreateTreinoRealizado> {
