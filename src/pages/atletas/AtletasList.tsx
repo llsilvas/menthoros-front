@@ -210,8 +210,8 @@ const AtletasList: React.FC = () => {
   ];
 
   return (
-    <Box sx={{ height: '100vh', p: 3 }}>
-      <Paper sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ height: '100%', p: 3, display: 'flex', flexDirection: 'column' }}>
+      <Paper sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         {/* Header */}
         <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
