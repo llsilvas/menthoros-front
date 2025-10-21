@@ -4,6 +4,7 @@ import type {} from '@mui/material/themeCssVarsAugmentation';
 import DashboardSidebarContext from '../../context/DashboardSidebarContext';
 import { DRAWER_WIDTH } from '../../constants/constants';
 import { getDrawerSxTransitionMixin } from '../../utils/mixins';
+import { useTheme } from '@mui/material/styles';
 
 export interface DashboardSidebarHeaderItemProps {
   children?: React.ReactNode;
@@ -13,6 +14,7 @@ export default function DashboardSidebarHeaderItem({
   children,
 }: DashboardSidebarHeaderItemProps) {
   const sidebarContext = React.useContext(DashboardSidebarContext);
+  const theme = useTheme();
   if (!sidebarContext) {
     throw new Error('Sidebar context was used without a provider.');
   }
@@ -41,7 +43,7 @@ export default function DashboardSidebarHeaderItem({
         whiteSpace: 'nowrap',
         zIndex: 2,
         backgroundColor: 'transparent',
-        color: '#b1e92d', // Verde secundário do Menthoros
+        color: theme.palette.secondary.main, // Verde Menthoros
         lineHeight: '36px',
       }}
     >
