@@ -2,46 +2,60 @@ export interface TreinoRealizado {
     atletaId: string;
     planoSemanalId: string;
     treinoPlanejadoId: string;
-    cadenciaMedia?: number;
     dataTreino: string;
     diaSemana?: string;
     tipoTreino: string;
-    duracaoMin: number;
+    descricao?: string;
+    zonaAlvo?: string;
+    duracaoMin: string;
     distanciaKm: number;
+    ritmoAlvo?: string;
+    ritmoMedio?: string;
+    elevacaoGanhoMetros?: number;
+    elevacaoPerdaMetros?: number;
+    observacao?: string;
     fcMedia: number;
     fcMax?: number;
-    ritmoMedio?: string;
+    cadenciaMedia?: number;
     potenciaMedia?: number;
+    velocidadeMedia?: number;
+    percepcaoEsforco?: number;
     feedbackAtleta?: string;
+    qualidadeSonoNoiteAnterior?: number;
+    nivelEstresse?: number;
     fonteDados?: string;
     status: string;
-    percepcaoEsforco?: number;
     externalId?: string;
-    tempoExecucaoSegundos?: number;
-    elevacaoGanhoMetros?: number;
 }
 
 export interface CreateTreinoRealizado {
     atletaId: string;
     planoSemanalId: string;
     treinoPlanejadoId: string;
-    cadenciaMedia?: number;
     dataTreino: string;
     diaSemana?: string;
     tipoTreino: string;
-    duracaoMin: number;
+    descricao?: string;
+    zonaAlvo?: string;
+    duracaoMin: string;
     distanciaKm: number;
+    ritmoAlvo?: string;
+    ritmoMedio?: string;
+    elevacaoGanhoMetros?: number;
+    elevacaoPerdaMetros?: number;
+    observacao?: string;
     fcMedia: number;
     fcMax?: number;
-    ritmoMedio?: string;
+    cadenciaMedia?: number;
     potenciaMedia?: number;
+    velocidadeMedia?: number;
+    percepcaoEsforco?: number;
     feedbackAtleta?: string;
+    qualidadeSonoNoiteAnterior?: number;
+    nivelEstresse?: number;
     fonteDados?: string;
     status: string;
-    percepcaoEsforco?: number;
     externalId?: string;
-    tempoExecucaoSegundos?: number;
-    elevacaoGanhoMetros?: number;
 }
 
 export interface UpdateTreinoRealizado extends Partial<CreateTreinoRealizado> {

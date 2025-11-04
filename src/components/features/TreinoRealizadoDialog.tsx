@@ -49,7 +49,7 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
     // Dados editáveis do treino realizado
     const [dataTreino, setDataTreino] = useState(new Date().toISOString().split('T')[0]);
     const [distanciaKm, setDistanciaKm] = useState(0);
-    const [duracaoMin, setDuracaoMin] = useState<number | ''>('');
+    const [duracaoMin, setDuracaoMin] = useState('');
     const [comentario, setComentario] = useState('');
     const [percepcaoEsforco, setPercepcaoEsforco] = useState<number | ''>(5);
     const [ritmoMedio, setRitmoMedio] = useState('');
@@ -64,7 +64,7 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
         if (treino && open) {
             setDataTreino(new Date().toISOString().split('T')[0]);
             setDistanciaKm(getSafeNumber(treino.distanciaKm));
-            setDuracaoMin(treino.duracaoMin ? getSafeNumber(treino.duracaoMin) : '');
+            setDuracaoMin('');
             setComentario('');
             setPercepcaoEsforco(5);
             setRitmoMedio('');
@@ -259,16 +259,12 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
                             <Grid size={{ xs: 12, sm: 6 }}>
                                 <TextField
                                     label="Duração (min)"
-                                    type="number"
+                                    placeholder="5:30 min/km"
                                     value={duracaoMin}
-                                    onChange={(e) => setDuracaoMin(e.target.value ? Number(e.target.value) : '')}
+                                    onChange={(e) => setDuracaoMin(e.target.value)}
                                     fullWidth
                                     required
-                                    helperText={
-                                        treino.duracaoMin
-                                            ? `Planejado: ${getSafeNumber(treino.duracaoMin)} min`
-                                            : 'Não especificado no planejamento'
-                                    }
+                                    helperText="Ex: 55:30 min"
                                 />
                             </Grid>
                             <Grid size={{ xs: 12, sm: 6 }}>
