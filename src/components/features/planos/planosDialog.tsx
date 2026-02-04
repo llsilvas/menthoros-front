@@ -22,11 +22,6 @@ import {
     Flag as FlagIcon,
     Assignment as AssignmentIcon,
     DirectionsRun as RunIcon,
-    Schedule as ScheduleIcon,
-    CheckCircle as CheckCircleIcon,
-    RadioButtonUnchecked as PendingIcon,
-    Speed as SpeedIcon,
-    PlayArrow as PlayIcon
 } from '@mui/icons-material';
 import { usePlanoSemanal } from '../../../hooks/usePlanoSemanal';
 import {
@@ -37,6 +32,9 @@ import {
 } from '../../../types/PlanoSemanal';
 import type { TreinoPlanejado } from '../../../types/TreinoPlanejado';
 import TreinoRealizadoDialog from '../TreinoRealizadoDialog';
+import DetalheTreinoDialog from './DetalheTreinoDialog';
+import TreinoCard from './TreinoCard';
+import { getSafeValue, getSafeNumber } from '../../../utils/safeValues';
 
 interface PlanosDialogProps {
     open: boolean;
@@ -67,6 +65,10 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
     const [conclusaoModalOpen, setConclusaoModalOpen] = useState(false);
     const [treinoSelecionado, setTreinoSelecionado] = useState<TreinoPlanejado | null>(null);
     const [planoSemanalIdSelecionado, setPlanoSemanalIdSelecionado] = useState<string>('');
+
+    // Estados para o modal de detalhes do treino
+    const [detalheModalOpen, setDetalheModalOpen] = useState(false);
+    const [treinoDetalhe, setTreinoDetalhe] = useState<TreinoPlanejado | null>(null);
 
     // Carrega os planos quando o dialog abre e atletaId está disponível
     useEffect(() => {
@@ -114,6 +116,17 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
         setPlanoSemanalIdSelecionado('');
     };
 
+    // Funções para o modal de detalhes
+    const handleOpenDetalheModal = (treino: TreinoPlanejado) => {
+        setTreinoDetalhe(treino);
+        setDetalheModalOpen(true);
+    };
+
+    const handleCloseDetalheModal = () => {
+        setDetalheModalOpen(false);
+        setTreinoDetalhe(null);
+    };
+
     const handleSuccess = async () => {
         // Recarregar os dados do plano
         if (atletaId) {
@@ -121,29 +134,6 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
             await fetchPlanosPorAtleta(atletaId);
             console.log('Planos recarregados:', planos);
         }
-    };
-
-    // Funções helper para processar dados (disponíveis globalmente)
-    const getSafeValue = (value: any): string | number => {
-        if (value === null || value === undefined) return '';
-        if (typeof value === 'object') {
-            return value.value || value.label || value.toString();
-        }
-        return value;
-    };
-
-    const getSafeNumber = (value: any): number => {
-        const safeValue = getSafeValue(value);
-        return typeof safeValue === 'number' ? safeValue : parseFloat(safeValue as string) || 0;
-    };
-
-    const getSafeBoolean = (value: any): boolean => {
-        if (typeof value === 'boolean') return value;
-        if (typeof value === 'string') return value.toLowerCase() === 'true';
-        if (typeof value === 'object' && value !== null) {
-            return value.value === true || value.value === 'true';
-        }
-        return false;
     };
 
     return (
@@ -326,135 +316,15 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                                                     </Box>
 
                                                     <Grid container spacing={2}>
-                                                        {plano.treinosPlanejados.map((treino, treinoIndex) => {
-                                                            const statusValue = typeof treino.statusTreino === 'object' ? treino.statusTreino?.value : treino.statusTreino;
-                                                            const isRealizado = statusValue === 'REALIZADO' || treino.realizado === true;
-                                                            console.log('Treino:', treino.id, 'statusTreino:', treino.statusTreino, 'statusValue:', statusValue, 'realizado:', treino.realizado, 'isRealizado:', isRealizado);
-
-                                                            return (
-                                                                <Grid size={{ xs: 12, sm: 6, md: 4 }} key={treino.id || treinoIndex}>
-                                                                    <Card
-                                                                        elevation={1}
-                                                                        sx={{
-                                                                            p: 2,
-                                                                            height: '100%',
-                                                                            border: isRealizado ? '2px solid' : '1px solid',
-                                                                            borderColor: isRealizado ? 'success.main' : 'divider',
-                                                                            bgcolor: isRealizado ? 'success.50' : 'background.paper'
-                                                                        }}
-                                                                    >
-                                                                        {/* Header do treino */}
-                                                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                                                                            <Chip
-                                                                                label={getSafeValue(treino.diaSemana)}
-                                                                                size="small"
-                                                                                color="primary"
-                                                                                variant="outlined"
-                                                                            />
-                                                                            {isRealizado ? (
-                                                                                <CheckCircleIcon color="success" fontSize="small" />
-                                                                            ) : (
-                                                                                <PendingIcon color="action" fontSize="small" />
-                                                                            )}
-                                                                        </Box>
-
-                                                                        {/* Tipo de treino */}
-                                                                        <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
-                                                                            {getSafeValue(treino.tipoTreino)}
-                                                                        </Typography>
-
-                                                                        {/* Métricas do treino */}
-                                                                        <Stack spacing={1}>
-                                                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                                                <RunIcon fontSize="small" color="action" />
-                                                                                <Typography variant="body2">
-                                                                                    {getSafeNumber(treino.distanciaKm)} km
-                                                                                </Typography>
-                                                                            </Box>
-
-                                                                            {treino.duracaoMin && (
-                                                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                                                    <ScheduleIcon fontSize="small" color="action" />
-                                                                                    <Typography variant="body2">
-                                                                                        {getSafeNumber(treino.duracaoMin)} min
-                                                                                    </Typography>
-                                                                                </Box>
-                                                                            )}
-
-                                                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                                                <SpeedIcon fontSize="small" color="action" />
-                                                                                <Typography variant="body2">
-                                                                                    {getSafeValue(treino.ritmoAlvo) || 'N/A'}
-                                                                                </Typography>
-                                                                            </Box>
-                                                                        </Stack>
-
-                                                                        {/* Observações do treino */}
-                                                                        {treino.observacao && (
-                                                                            <Typography
-                                                                                variant="caption"
-                                                                                color="text.secondary"
-                                                                                sx={{
-                                                                                    mt: 1,
-                                                                                    display: 'block',
-                                                                                    fontStyle: 'italic'
-                                                                                }}
-                                                                            >
-                                                                                {getSafeValue(treino.observacao)}
-                                                                            </Typography>
-                                                                        )}
-
-                                                                        {/* Botão para marcar como realizado ou data de realização */}
-                                                                        {!isRealizado ? (
-
-                                                                            <Grid container spacing={2}>
-                                                                                <Button
-                                                                                    variant="outlined"
-                                                                                    size="small"
-                                                                                    startIcon={<AssignmentIcon />}
-                                                                                    fullWidth
-                                                                                    href={`#/treinos/${treino.id}`}
-                                                                                    target="_blank"
-                                                                                    sx={{ mt: 1 }}
-                                                                                >
-                                                                                    Detalhes
-                                                                                </Button>
-                                                                                <Button
-                                                                                    variant="contained"
-                                                                                    size="small"
-                                                                                    startIcon={<PlayIcon />}
-                                                                                    onClick={() => handleOpenConclusaoModal(treino, plano.id || '')}
-                                                                                    sx={{
-                                                                                        mt: 1,
-                                                                                        bgcolor: 'success.main',
-                                                                                        '&:hover': {
-                                                                                            bgcolor: 'success.dark'
-                                                                                        }
-                                                                                    }}
-                                                                                    fullWidth
-                                                                                >
-                                                                                Marcar como Realizado
-                                                                            </Button>
-                                                                            </Grid>
-                                                                        ) : (
-                                                                            treino.dataRealizacao && (
-                                                                                <Typography
-                                                                                    variant="caption"
-                                                                                    color="success.main"
-                                                                                    sx={{
-                                                                                        mt: 1,
-                                                                                        display: 'block',
-                                                                                        fontWeight: 'bold'
-                                                                                    }}
-                                                                                >
-                                                                                    Realizado em: {new Date(getSafeValue(treino.dataRealizacao) as string).toLocaleDateString('pt-BR')}
-                                                                                </Typography>
-                                                                            )
-                                                                        )}
-                                                                    </Card>
-                                                                </Grid>
-                                                            );
-                                                        })}
+                                                        {plano.treinosPlanejados.map((treino, treinoIndex) => (
+                                                            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={treino.id || treinoIndex}>
+                                                                <TreinoCard
+                                                                    treino={treino}
+                                                                    onDetalhes={() => handleOpenDetalheModal(treino)}
+                                                                    onMarcarRealizado={() => handleOpenConclusaoModal(treino, plano.id || '')}
+                                                                />
+                                                            </Grid>
+                                                        ))}
                                                     </Grid>
                                                 </Box>
                                             </>
@@ -508,6 +378,12 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
             atletaId={atletaId}
             planoSemanalId={planoSemanalIdSelecionado}
             onSuccess={handleSuccess}
+        />
+
+        <DetalheTreinoDialog
+            open={detalheModalOpen}
+            onClose={handleCloseDetalheModal}
+            treino={treinoDetalhe}
         />
         </>
     );
