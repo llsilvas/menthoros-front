@@ -229,20 +229,6 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
         }
     };
 
-    // Funções helper para processar dados
-    const getSafeValue = (value: any): string | number => {
-        if (value === null || value === undefined) return '';
-        if (typeof value === 'object') {
-            return value.value || value.label || value.toString();
-        }
-        return value;
-    };
-
-    const getSafeNumber = (value: any): number => {
-        const safeValue = getSafeValue(value);
-        return typeof safeValue === 'number' ? safeValue : parseFloat(safeValue as string) || 0;
-    };
-
     if (!treino) return null;
 
     return (
@@ -384,23 +370,7 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
                             Métricas de Performance
                         </Typography>
 
-                        <Grid container spacing={2}>
-                            <Grid size={{ xs: 12 }}>
-                                <Typography variant="body2" sx={{ mb: 1 }}>
-                                    Percepção de Esforço (1-10)
-                                </Typography>
-                                <Slider
-                                    aria-label="Percepção de Esforço"
-                                    value={typeof percepcaoEsforco === 'number' ? percepcaoEsforco : 5}
-                                    onChange={(_, newValue) => setPercepcaoEsforco(newValue as number)}
-                                    step={1}
-                                    marks
-                                    min={1}
-                                    max={10}
-                                    valueLabelDisplay="auto"
-                                    sx={{ mt: 1 }}
-                                />
-                            </Grid>
+                        <Grid container spacing={1.5}>
                             <Grid size={{ xs: 12, sm: 6 }}>
                                 <TextField
                                     label="Ritmo Médio"
