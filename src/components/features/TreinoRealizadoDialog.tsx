@@ -380,6 +380,7 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
                                     fullWidth
                                     required
                                     helperText="Ex: 5:30 min/km"
+                                    size="small"
                                 />
                             </Grid>
                             <Grid size={{ xs: 12, sm: 6 }}>
