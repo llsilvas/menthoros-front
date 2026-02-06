@@ -20,6 +20,7 @@ import {
 } from '@mui/icons-material';
 import type { TreinoPlanejado } from '../../../types/TreinoPlanejado';
 import { getSafeValue, getSafeNumber } from '../../../utils/safeValues';
+import { glassSx, glass } from '../../../theme/tokens';
 
 interface TreinoCardProps {
     treino: TreinoPlanejado;
@@ -58,12 +59,13 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
         <Card
             elevation={1}
             sx={{
+                ...glassSx,
                 height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
-                border: isRealizado ? '2px solid' : '1px solid',
-                borderColor: isRealizado ? 'success.main' : 'divider',
-                bgcolor: isRealizado ? 'success.50' : 'background.paper',
+                border: isRealizado ? '2px solid' : `1px solid ${glass.border}`,
+                borderColor: isRealizado ? 'success.main' : undefined,
+                bgcolor: isRealizado ? 'rgba(76, 175, 80, 0.25)' : glass.background,
             }}
         >
             <CardContent sx={{ flexGrow: 1 }}>

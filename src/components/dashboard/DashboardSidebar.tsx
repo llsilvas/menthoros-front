@@ -21,6 +21,7 @@ import {
   getDrawerSxTransitionMixin,
   getDrawerWidthTransitionMixin,
 } from '../../utils/mixins';
+import { gradients, sidebar as sidebarTokens, glass } from '../../theme/tokens';
 
 export interface DashboardSidebarProps {
   expanded?: boolean;
@@ -209,8 +210,9 @@ export default function DashboardSidebar({
           width: drawerWidth,
           boxSizing: 'border-box',
           backgroundImage: 'none',
-          backgroundColor: theme.palette.primary.main,
-          color: theme.palette.primary.contrastText,
+          background: gradients.sidebar,
+          color: sidebarTokens.text,
+          borderRight: `1px solid ${glass.border}`,
           ...getDrawerWidthTransitionMixin(expanded),
         },
       };

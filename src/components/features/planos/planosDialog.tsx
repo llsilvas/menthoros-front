@@ -35,6 +35,7 @@ import TreinoRealizadoDialog from '../TreinoRealizadoDialog';
 import DetalheTreinoDialog from './DetalheTreinoDialog';
 import TreinoCard from './TreinoCard';
 import { getSafeValue, getSafeNumber } from '../../../utils/safeValues';
+import { glass } from '../../../theme/tokens';
 
 interface PlanosDialogProps {
     open: boolean;
@@ -139,8 +140,8 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
     return (
         <>
         <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant='h6' component="h1">
+            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 2, py: 1.5 }}>
+                <Typography variant='subtitle1' component="h1" sx={{ fontWeight: 700 }}>
                     Planos Semanais de {atletaNome}
                 </Typography>
                 <Button
@@ -149,11 +150,12 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                     startIcon={<AddIcon />}
                     onClick={handleGerarPlano}
                     disabled={loading}
+                    size="small"
                 >
                     {loading ? 'Gerando...' : 'Gerar Plano'}
                 </Button>
             </DialogTitle>
-            <DialogContent sx={{ p: 3 }}>
+            <DialogContent sx={{ p: 2 }}>
                 {loading && (
                     <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" minHeight="300px">
                         <CircularProgress size={60} />
@@ -259,7 +261,7 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                                                 sx={{
                                                     height: 8,
                                                     borderRadius: 4,
-                                                    bgcolor: 'grey.200',
+                                                    bgcolor: glass.background,
                                                     '& .MuiLinearProgress-bar': {
                                                         borderRadius: 4
                                                     }
@@ -364,8 +366,8 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                     </Stack>
                 )}
             </DialogContent>
-            <DialogActions>
-                <Button onClick={onClose} color="primary">
+            <DialogActions sx={{ px: 2, pb: 2 }}>
+                <Button onClick={onClose} color="primary" size="small">
                     Fechar
                 </Button>
             </DialogActions>

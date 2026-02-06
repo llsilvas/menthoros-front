@@ -34,6 +34,7 @@ import {
 import { TreinoService } from '../../../api/services/TreinoService';
 import type { TreinoPlanejado, EtapaTreino } from '../../../types/TreinoPlanejado';
 import { getSafeValue, getSafeNumber, getSafeLabel, getSafeColor } from '../../../utils/safeValues';
+import { glass } from '../../../theme/tokens';
 
 interface DetalheTreinoDialogProps {
     open: boolean;
@@ -77,7 +78,7 @@ const RpeScale: React.FC<{ value: number }> = ({ value }) => {
                         width: 12,
                         height: 12,
                         borderRadius: 1,
-                        bgcolor: i < value ? getColor(value) : 'grey.300',
+                        bgcolor: i < value ? getColor(value) : glass.background,
                     }}
                 />
             ))}
@@ -128,9 +129,9 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
     const duracaoDisplay = dados.duracaoMin != null ? String(dados.duracaoMin) : 'N/A';
 
     return (
-        <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-            <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, pr: 6 }}>
-                <Typography variant="h6" component="span" sx={{ fontWeight: 'bold', flexGrow: 1 }}>
+        <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth slotProps={{ paper: { sx: { backgroundColor: 'rgba(255, 255, 255, 0.75)' } } }}>
+            <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, pr: 6, px: 2, py: 1.5 }}>
+                <Typography variant="subtitle1" component="span" sx={{ fontWeight: 700, flexGrow: 1 }}>
                     {getSafeValue(dados.tipoTreino)}
                 </Typography>
                 <Chip
@@ -140,6 +141,8 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                         bgcolor: statusColor,
                         color: 'white',
                         fontWeight: 'bold',
+                        position: 'absolute', right: 64,
+                        top: 16,
                     }}
                 />
                 <IconButton
@@ -150,7 +153,7 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                 </IconButton>
             </DialogTitle>
 
-            <DialogContent dividers>
+            <DialogContent dividers sx={{ p: 2 }}>
                 {loadingDetalhes ? (
                     <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" minHeight="200px">
                         <CircularProgress size={48} />
@@ -280,7 +283,7 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
 
                         {/* Seção 3: Justificativa da IA */}
                         {dados.justificativaIa && (
-                            <Card variant="outlined" sx={{ bgcolor: 'action.hover' }}>
+                            <Card variant="outlined" sx={{ bgcolor: glass.background }}>
                                 <CardContent>
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                                         <AiIcon color="secondary" />
@@ -407,8 +410,8 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                 )}
             </DialogContent>
 
-            <DialogActions>
-                <Button onClick={onClose} color="primary">
+            <DialogActions sx={{ px: 2, pb: 2 }}>
+                <Button onClick={onClose} color="primary" size="small">
                     Fechar
                 </Button>
             </DialogActions>

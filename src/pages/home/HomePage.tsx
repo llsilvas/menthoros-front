@@ -9,7 +9,7 @@ export default function HomePage() {
         <Typography variant="h4" component="h1" gutterBottom>
           Bem-vindo ao Menthoros
         </Typography>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="body1" color="inherit" sx={{ opacity: 0.7 }}>
           Sistema de gerenciamento de atletas e treinamentos.
         </Typography>
       </Box>

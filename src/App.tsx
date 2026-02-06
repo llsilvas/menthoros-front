@@ -3,29 +3,77 @@ import { createHashRouter, RouterProvider } from 'react-router';
 import DashboardLayout from './components/dashboard/DashboardLayout';
 import AtletasList from './pages/atletas/AtletasList';
 import HomePage from './pages/home/HomePage';
+import { colors, text, content } from './theme/tokens';
 
 const theme = createTheme({
   palette: {
-    mode: 'light',
+    mode: 'dark',
     primary: {
-      main: '#0e3147', // Azul escuro do logo Menthoros
-      light: '#1a4a66',
-      dark: '#082130',
-      contrastText: '#ffffff',
+      main: colors.primary.main,
+      light: colors.primary.light,
+      dark: colors.primary.dark,
+      contrastText: colors.primary.contrastText,
     },
     secondary: {
-      main: '#b1e92d', // Verde claro do logo Menthoros
-      light: '#c5f05a',
-      dark: '#8bc120',
-      contrastText: '#0e3147',
+      main: colors.secondary.main,
+      light: colors.secondary.light,
+      dark: colors.secondary.dark,
+      contrastText: colors.secondary.contrastText,
     },
     background: {
-      default: '#f5f5f5',
-      paper: '#ffffff',
+      default: colors.primary.dark,
+      paper: 'rgba(255, 255, 255, 0.40)',
     },
+    text: {
+      primary: text.primary,
+      secondary: text.secondary,
+      disabled: text.disabled,
+    },
+    divider: content.divider,
   },
   typography: {
     fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+  },
+  shape: {
+    borderRadius: 12,
+  },
+  components: {
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          backgroundImage: 'none',
+        },
+      },
+    },
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          backgroundColor: 'rgba(255, 255, 255, 0.5)',
+        },
+      },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        notchedOutline: {
+          borderColor: 'rgba(14, 49, 71, 0.4)',
+        },
+        root: {
+          '&:hover .MuiOutlinedInput-notchedOutline': {
+            borderColor: 'rgba(14, 49, 71, 0.7)',
+          },
+        },
+      },
+    },
+    MuiSvgIcon: {
+      styleOverrides: {
+        root: {
+          color: text.icon,
+        },
+        colorAction: {
+          color: text.iconMuted,
+        },
+      },
+    },
   },
 });
 

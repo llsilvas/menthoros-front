@@ -6,28 +6,37 @@ import IconButton from '@mui/material/IconButton';
 import Toolbar from '@mui/material/Toolbar';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
+import Avatar from '@mui/material/Avatar';
 import MenuIcon from '@mui/icons-material/Menu';
 import MenuOpenIcon from '@mui/icons-material/MenuOpen';
 import Stack from '@mui/material/Stack';
 import { Link } from 'react-router';
 import ThemeSwitcher from './ThemeSwitcher';
+import { gradients, glass } from '../../theme/tokens';
 
 const AppBar = styled(MuiAppBar)(({ theme }) => ({
   borderWidth: 0,
   borderBottomWidth: 1,
   borderStyle: 'solid',
-  borderColor: (theme.vars ?? theme).palette.divider,
+  borderColor: glass.border,
   boxShadow: 'none',
+  background: gradients.header,
+  backdropFilter: glass.backdropFilter,
+  WebkitBackdropFilter: glass.backdropFilter,
   zIndex: theme.zIndex.drawer + 1,
 }));
 
 const LogoContainer = styled('div')({
   position: 'relative',
-  height: 40,
+  height: 44,
   display: 'flex',
   alignItems: 'center',
+  padding: '4px 10px',
+  borderRadius: 999,
+  background: 'rgba(255,255,255,0.12)',
+  boxShadow: '0 6px 16px rgba(0,0,0,0.15)',
   '& img': {
-    maxHeight: 40,
+    maxHeight: 44,
   },
 });
 
@@ -119,6 +128,21 @@ export default function DashboardHeader({
             <Stack direction="row" alignItems="center">
               <ThemeSwitcher />
             </Stack>
+            <Tooltip title="Usuário">
+              <Avatar
+                sx={{
+                  width: 32,
+                  height: 32,
+                  bgcolor: 'rgba(255,255,255,0.18)',
+                  color: 'white',
+                  fontWeight: 700,
+                  fontSize: '0.875rem',
+                  border: '1px solid rgba(255,255,255,0.35)',
+                }}
+              >
+                U
+              </Avatar>
+            </Tooltip>
           </Stack>
         </Stack>
       </Toolbar>

@@ -15,6 +15,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { Link } from 'react-router';
 import DashboardSidebarContext from '../../context/DashboardSidebarContext';
 import { MINI_DRAWER_WIDTH } from '../../constants/constants';
+import { sidebar as sidebarTokens, gradients } from '../../theme/tokens';
 
 export interface DashboardSidebarPageItemProps {
   id: string;
@@ -124,15 +125,18 @@ export default function DashboardSidebarPageItem({
           disabled={disabled}
           sx={{
             height: mini ? 50 : 'auto',
-            color: 'inherit',
+            color: sidebarTokens.text,
+            borderRadius: 1,
             '&:hover': {
-              backgroundColor: 'rgba(255, 255, 255, 0.08)',
+              backgroundColor: sidebarTokens.hoverBg,
+              color: sidebarTokens.textHover,
             },
             '&.Mui-selected': {
-              backgroundColor: 'rgba(177, 233, 45, 0.15)', // Verde secundário com transparência
-              borderLeft: '4px solid #b1e92d', // Borda verde
+              backgroundColor: sidebarTokens.selectedBg,
+              borderLeft: `3px solid ${sidebarTokens.selectedBorder}`,
               '&:hover': {
                 backgroundColor: 'rgba(177, 233, 45, 0.25)',
+                color: sidebarTokens.textHover,
               },
             },
           }}
@@ -173,7 +177,7 @@ export default function DashboardSidebarPageItem({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: mini ? 'center' : 'auto',
-                  color: selected ? '#b1e92d' : 'inherit', // Verde quando selecionado
+                  color: selected ? sidebarTokens.selectedIcon : 'inherit',
                 }}
               >
                 {icon ?? null}
@@ -243,6 +247,8 @@ export default function DashboardSidebarPageItem({
                   pt: 0.2,
                   pb: 0.2,
                   transform: 'translateY(-50px)',
+                  background: gradients.sidebar,
+                  color: sidebarTokens.text,
                 }}
               >
                 <DashboardSidebarContext.Provider

@@ -32,6 +32,7 @@ import { TreinoService } from '../../api/services/TreinoService';
 import type { TreinoRealizado } from '../../types/TreinoRealizado';
 import type { TreinoPlanejado } from '../../types/TreinoPlanejado';
 import { getSafeValue, getSafeNumber } from '../../utils/safeValues';
+import { glass } from '../../theme/tokens';
 
 interface TreinoRealizadoDialogProps {
     open: boolean;
@@ -237,11 +238,12 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
             onClose={handleClose}
             maxWidth="sm"
             fullWidth
+            slotProps={{ paper: { sx: { backgroundColor: 'rgba(255, 255, 255, 0.75)' } } }}
         >
-            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 2, py: 1.5 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <CheckCircleIcon color="success" />
-                    <Typography variant="h6">
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                         Marcar Treino como Realizado
                     </Typography>
                 </Box>
@@ -250,9 +252,9 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
                 </IconButton>
             </DialogTitle>
 
-            <DialogContent sx={{ pt: 2 }}>
+            <DialogContent sx={{ p: 2 }}>
                 {/* Informações do treino */}
-                <Card variant="outlined" sx={{ mb: 3, p: 2, bgcolor: 'grey.50' }}>
+                <Card variant="outlined" sx={{ mb: 3, p: 2, bgcolor: 'rgba(255, 255, 255, 0.8)' }}>
                     <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
                         {getSafeValue(treino.tipoTreino)}
                     </Typography>
@@ -488,7 +490,7 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
                             Feedback do Atleta
                         </Typography>
 
-                        <Card variant="outlined" sx={{ p: 2, bgcolor: 'grey.50', borderColor: 'grey.200' }}>
+                        <Card variant="outlined" sx={{ p: 2, bgcolor: 'rgba(255, 255, 255, 0.8)', borderColor: glass.border }}>
                             <Stack spacing={2}>
                                 <Box>
                                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
@@ -595,11 +597,12 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
                 </Stack>
             </DialogContent>
 
-            <DialogActions sx={{ px: 3, pb: 3 }}>
+            <DialogActions sx={{ px: 2, pb: 2 }}>
                 <Button
                     onClick={handleClose}
                     variant="outlined"
                     startIcon={<CloseIcon />}
+                    size="small"
                 >
                     Cancelar
                 </Button>
@@ -609,6 +612,7 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
                     color="success"
                     startIcon={loadingSave ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
                     disabled={loadingSave}
+                    size="small"
                 >
                     {loadingSave ? 'Salvando...' : 'Marcar como Realizado'}
                 </Button>

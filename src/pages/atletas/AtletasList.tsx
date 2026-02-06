@@ -4,25 +4,25 @@ import {
   Button,
   Typography,
   Alert,
-  Paper,
-  IconButton
+  Paper
 } from '@mui/material';
 import {
   DataGrid,
   GridActionsCellItem
 } from '@mui/x-data-grid';
 import type { GridColDef, GridRowParams } from '@mui/x-data-grid';
+import { GridToolbarQuickFilter } from '@mui/x-data-grid';
 import {
   Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  CalendarMonthTwoTone as CalendarIcon
+  EditOutlined as EditIcon,
+  DeleteOutline as DeleteIcon,
+  EventOutlined as CalendarIcon
 } from '@mui/icons-material';
+import { glassSx, content } from '../../theme/tokens';
 import { useCrud } from '../../hooks/features/useCrud';
 import AtletaDialog from '../../components/features/atleta/AtletaDialog';
 import type { Atleta, CreateAtleta, UpdateAtleta } from '../../types/Atleta';
 import PlanosDialog from '../../components/features/planos/planosDialog';
-import { usePlanoSemanal } from '../../hooks/usePlanoSemanal';
 
 const AtletasList: React.FC = () => {
   const {
@@ -175,13 +175,17 @@ const AtletasList: React.FC = () => {
       headerName: 'Lesão',
       width: 80,
       type: 'boolean',
-      valueFormatter: (value) => value ? 'Sim' : 'Não'
+      renderCell: (params) => (
+        <Typography variant="caption" color={params.value ? 'error.main' : 'text.secondary'} sx={{ fontWeight: 600 }}>
+          {params.value ? 'Sim' : 'Não'}
+        </Typography>
+      )
     },
     {
       field: 'actions',
       type: 'actions',
       headerName: 'Ações',
-      width: 100,
+      width: 120,
       getActions: (params: GridRowParams) => [
         <GridActionsCellItem
           key="edit"
@@ -190,32 +194,41 @@ const AtletasList: React.FC = () => {
           onClick={() => handleOpenDialog(params.row as Atleta)}
         />,
         <GridActionsCellItem
+          key="planos"
+          icon={<CalendarIcon />}
+          label="Planos"
+          onClick={() => handleViewPlanos(params.row.id)}
+        />,
+        <GridActionsCellItem
           key="delete"
           icon={<DeleteIcon />}
           label="Excluir"
           onClick={() => handleDelete(params.row.id)}
         />
       ]
-    }, 
-    {
-      field: 'planos', 
-      headerName: 'Planos',
-      width: 100, 
-      renderCell: (params) => (
-        <IconButton onClick={() => handleViewPlanos(params.row.id)}>
-          <CalendarIcon />
-        </IconButton>
-      )
     }
   ];
 
+  const QuickFilterToolbar = () => (
+    <Box sx={{ px: 1, py: 1, display: 'flex', justifyContent: 'flex-end' }}>
+      <GridToolbarQuickFilter
+        placeholder="Buscar atleta..."
+        debounceMs={300}
+        sx={{
+          minWidth: 240,
+          '& .MuiInputBase-root': { height: 36, fontSize: '0.875rem' },
+        }}
+      />
+    </Box>
+  );
+
   return (
-    <Box sx={{ height: '100%', p: 3, display: 'flex', flexDirection: 'column' }}>
-      <Paper sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ height: '100%', p: 2, display: 'flex', flexDirection: 'column' }}>
+      <Paper variant="outlined" sx={{ flex: 1, display: 'flex', flexDirection: 'column', ...glassSx, color: 'inherit' }}>
         {/* Header */}
-        <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+        <Box sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: content.divider }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="h4" component="h1">
+            <Typography variant="h5" component="h1">
               Atletas
             </Typography>
             <Button
@@ -223,6 +236,7 @@ const AtletasList: React.FC = () => {
               color="primary"
               startIcon={<AddIcon />}
               onClick={() => handleOpenDialog()}
+              size="small"
             >
               Novo Atleta
             </Button>
@@ -243,25 +257,34 @@ const AtletasList: React.FC = () => {
         )}
 
         {/* DataGrid */}
-        <Box sx={{ flex: 1, p: 2 }}>
+        <Box sx={{ flex: 1, p: 1.5 }}>
           <DataGrid
             rows={atletas}
             columns={columns}
             loading={loading}
             pageSizeOptions={[5, 10, 25, 50]}
+            density="compact"
+            rowHeight={44}
+            slots={{ toolbar: QuickFilterToolbar }}
             initialState={{
               pagination: {
                 paginationModel: { pageSize: 10 }
-              }
+              },
+              columns: {
+                columnVisibilityModel: {
+                  idade: false,
+                  pesoKg: false,
+                  alturaCm: false,
+                },
+              },
             }}
             disableRowSelectionOnClick
             sx={{
-              '& .MuiDataGrid-root': {
-                border: 'none'
-              },
-              '& .MuiDataGrid-main': {
-                borderRadius: 1
-              }
+              border: 'none',
+              '& .MuiDataGrid-columnHeaders': { minHeight: 44 },
+              '& .MuiDataGrid-columnHeaderTitle': { fontWeight: 600 },
+              '& .MuiDataGrid-cell': { py: 0.5 },
+              '& .MuiDataGrid-main': { borderRadius: 1 }
             }}
           />
         </Box>

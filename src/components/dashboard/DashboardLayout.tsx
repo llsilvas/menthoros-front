@@ -7,6 +7,7 @@ import { Outlet } from 'react-router';
 import DashboardHeader from './DashboardHeader';
 import DashboardSidebar from './DashboardSidebar';
 import logoMenthoros from '../../assets/icons/menthoros_navbar.png';
+import { gradients, text } from '../../theme/tokens';
 
 export default function DashboardLayout() {
   const theme = useTheme();
@@ -63,7 +64,7 @@ export default function DashboardLayout() {
             component="img"
             src={logoMenthoros}
             alt="Logo Menthoros"
-            sx={{ height: 40 }}
+            sx={{ height: 44, filter: 'drop-shadow(0 6px 12px rgba(0,0,0,0.25))' }}
           />
         }
         title="Menthoros"
@@ -91,6 +92,8 @@ export default function DashboardLayout() {
             flexDirection: 'column',
             flex: 1,
             overflow: 'auto',
+            background: gradients.background,
+            color: text.secondary,
           }}
         >
           <Outlet />

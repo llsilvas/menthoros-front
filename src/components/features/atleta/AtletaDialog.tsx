@@ -177,11 +177,15 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
     };
     return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-        <DialogTitle>{isEditMode ? 'Editar Atleta' : 'Adicionar Atleta'}</DialogTitle>
+        <DialogTitle sx={{ px: 2, py: 1.5 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                {isEditMode ? 'Editar Atleta' : 'Adicionar Atleta'}
+            </Typography>
+        </DialogTitle>
         <form onSubmit={handleSubmit} noValidate>
-            <DialogContent dividers>
+            <DialogContent dividers sx={{ p: 2 }}>
                 {submitError && <Alert severity="error" sx={{ mb: 2 }}>{submitError}</Alert>}
-                <Grid container spacing={2}>
+                <Grid container spacing={1.5}>
                     <Grid size={6}>
                         <TextField
                             label="Nome"
@@ -192,6 +196,7 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                             helperText={errors.nome}
                             fullWidth
                             required
+                            size="small"
                         />
                     </Grid>
                     <Grid size={6}>
@@ -205,6 +210,7 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                             helperText={errors.idade}
                             fullWidth
                             required
+                            size="small"
                         />
                     </Grid>
                     <Grid size={6}>
@@ -218,6 +224,7 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                             helperText={errors.pesoKg}
                             fullWidth
                             required
+                            size="small"
                         />
                     </Grid>
                     <Grid size={6}>
@@ -231,6 +238,7 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                             helperText={errors.alturaCm}
                             fullWidth
                             required
+                            size="small"
                         />
                     </Grid>
                     <Grid size={12}>
@@ -243,6 +251,7 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                             helperText={errors.objetivo}
                             fullWidth
                             required
+                            size="small"
                         />
                     </Grid>
                     <Grid size={6}>
@@ -253,6 +262,7 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                             value={formData.nivelExperiencia}
                             onChange={handleChange}
                             fullWidth
+                            size="small"
                         >
                             {['INICIANTE', 'INTERMEDIARIO', 'AVANCADO'].map(option => (
                                 <MenuItem key={option} value={option}>
@@ -269,6 +279,7 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                             value={formData.diaPreferidoLongo}
                             onChange={handleChange}
                             fullWidth
+                            size="small"
                         >
                             {['DOMINGO', 'SEGUNDA', 'TERCA', 'QUARTA', 'QUINTA', 'SEXTA', 'SABADO'].map(option => (
                                 <MenuItem key={option} value={option}>
@@ -279,7 +290,7 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                     </Grid>
                     <Grid size={12}>
                         <Box sx={{ mb: 2 }}>
-                            <Typography variant="subtitle1" gutterBottom>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600 }} gutterBottom>
                                 Dias Disponíveis para Treino
                             </Typography>
                             <FormGroup row>
@@ -331,14 +342,15 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                                 helperText={errors.descricaoLesao}
                                 fullWidth
                                 required
+                                size="small"
                             />
                         </Grid>
                     )}
                 </Grid>
             </DialogContent>
-            <DialogActions>
-                <Button onClick={handleClose} disabled={loading}>Cancelar</Button>
-                <Button type="submit" variant="contained" color="primary" disabled={loading}>
+            <DialogActions sx={{ px: 2, pb: 2 }}>
+                <Button onClick={handleClose} disabled={loading} size="small">Cancelar</Button>
+                <Button type="submit" variant="contained" color="primary" disabled={loading} size="small">
                     {loading ? 'Salvando...' : 'Salvar'}
                 </Button>
             </DialogActions>
