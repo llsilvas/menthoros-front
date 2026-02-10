@@ -44,6 +44,54 @@ interface PlanosDialogProps {
     atletaId: string;
 }
 
+const getDiaSemanaLabel = (diaSemana: TreinoPlanejado['diaSemana']): string => {
+    if (typeof diaSemana === 'string') {
+        return diaSemana;
+    }
+    return diaSemana?.value || diaSemana?.label || '';
+};
+
+const normalizeDiaSemana = (label: string): string => (
+    label
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z]/g, '')
+);
+
+const dayOrder: Record<string, number> = {
+    segunda: 0,
+    seg: 0,
+    tercafeira: 1,
+    terca: 1,
+    ter: 1,
+    quartafeira: 2,
+    quarta: 2,
+    qua: 2,
+    quintafeira: 3,
+    quinta: 3,
+    qui: 3,
+    sextafeira: 4,
+    sexta: 4,
+    sex: 4,
+    sabado: 5,
+    sab: 5,
+    domingo: 6,
+    dom: 6,
+};
+
+const getDiaSemanaOrder = (diaSemana: TreinoPlanejado['diaSemana']): number => {
+    const label = getDiaSemanaLabel(diaSemana);
+    const key = normalizeDiaSemana(label);
+    if (key && dayOrder[key] !== undefined) {
+        return dayOrder[key];
+    }
+    if (typeof diaSemana === 'object' && typeof diaSemana?.order === 'number') {
+        return diaSemana.order;
+    }
+    return Number.MAX_SAFE_INTEGER;
+};
+
 
 
 const PlanosDialog: React.FC<PlanosDialogProps> = ({
@@ -306,31 +354,33 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                                         )}
 
                                         {/* Treinos Planejados */}
-                                        {plano.treinosPlanejados && plano.treinosPlanejados.length > 0 && (
-                                            <>
-                                                <Divider sx={{ my: 2 }} />
-                                                <Box>
-                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                                                {plano.treinosPlanejados && plano.treinosPlanejados.length > 0 && (
+                                                    <>
+                                                        <Divider sx={{ my: 2 }} />
+                                                        <Box>
+                                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                                                         <RunIcon color="primary" />
                                                         <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
                                                             Treinos da Semana ({plano.treinosPlanejados.length})
                                                         </Typography>
                                                     </Box>
 
-                                                    <Grid container spacing={2}>
-                                                        {plano.treinosPlanejados.map((treino, treinoIndex) => (
-                                                            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={treino.id || treinoIndex}>
-                                                                <TreinoCard
-                                                                    treino={treino}
-                                                                    onDetalhes={() => handleOpenDetalheModal(treino)}
-                                                                    onMarcarRealizado={() => handleOpenConclusaoModal(treino, plano.id || '')}
-                                                                />
+                                                            <Grid container spacing={2}>
+                                                        {[...plano.treinosPlanejados]
+                                                            .sort((a, b) => getDiaSemanaOrder(a.diaSemana) - getDiaSemanaOrder(b.diaSemana))
+                                                            .map((treino, treinoIndex) => (
+                                                                <Grid size={{ xs: 12, sm: 6, md: 4 }} key={treino.id || treinoIndex}>
+                                                                    <TreinoCard
+                                                                        treino={treino}
+                                                                        onDetalhes={() => handleOpenDetalheModal(treino)}
+                                                                        onMarcarRealizado={() => handleOpenConclusaoModal(treino, plano.id || '')}
+                                                                    />
+                                                                </Grid>
+                                                            ))}
                                                             </Grid>
-                                                        ))}
-                                                    </Grid>
-                                                </Box>
-                                            </>
-                                        )}
+                                                        </Box>
+                                                    </>
+                                                )}
 
                                         {/* TSB (Training Stress Balance) */}
                                         {(plano.tsbInicio !== undefined || plano.tsbFim !== undefined) && (
