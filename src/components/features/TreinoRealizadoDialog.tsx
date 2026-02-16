@@ -18,7 +18,8 @@ import {
     AccordionDetails,
     TextField,
     IconButton,
-    Slider
+    Slider,
+    MenuItem
 } from '@mui/material';
 import {
     CheckCircle as CheckCircleIcon,
@@ -26,10 +27,14 @@ import {
     Save as SaveIcon,
     DirectionsRun as RunIcon,
     Schedule as ScheduleIcon,
-    ExpandMore as ExpandMoreIcon
+    ExpandMore as ExpandMoreIcon,
+    Add as AddIcon,
+    Delete as DeleteIcon,
+    FitnessCenterOutlined as EtapasIcon
 } from '@mui/icons-material';
 import { TreinoService } from '../../api/services/TreinoService';
-import type { TreinoRealizado } from '../../types/TreinoRealizado';
+import type { TreinoRealizado, EtapaRealizadaInput } from '../../types/TreinoRealizado';
+import { TIPO_ETAPA_OPTIONS, criarEtapasFromPlanejadas } from '../../types/TreinoRealizado';
 import type { TreinoPlanejado } from '../../types/TreinoPlanejado';
 import { getSafeValue, getSafeNumber } from '../../utils/safeValues';
 import { glass } from '../../theme/tokens';
@@ -73,6 +78,7 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
     const [feedbackAtleta, setFeedbackAtleta] = useState('');
     const [qualidadeSonoNoiteAnterior, setQualidadeSonoNoiteAnterior] = useState<number | ''>(5);
     const [nivelEstresse, setNivelEstresse] = useState<number | ''>(5);
+    const [etapasRealizadas, setEtapasRealizadas] = useState<EtapaRealizadaInput[]>([]);
 
     const getEffortColor = (value: number) => {
         if (value <= 5) return '#66bb6a';
@@ -126,6 +132,11 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
             setFeedbackAtleta('');
             setQualidadeSonoNoiteAnterior(5);
             setNivelEstresse(5);
+            if (treino.etapas && treino.etapas.length > 0) {
+                setEtapasRealizadas(criarEtapasFromPlanejadas(treino.etapas));
+            } else {
+                setEtapasRealizadas([]);
+            }
         }
     }, [treino, open]);
 
@@ -150,7 +161,39 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
         setFeedbackAtleta('');
         setQualidadeSonoNoiteAnterior(5);
         setNivelEstresse(5);
+        setEtapasRealizadas([]);
         onClose();
+    };
+
+    const createEmptyEtapa = (): EtapaRealizadaInput => ({
+        ordem: etapasRealizadas.length + 1,
+        tipoEtapa: 'PRINCIPAL',
+        descricao: '',
+        duracao: '',
+        distanciaKm: undefined,
+        fcMedia: undefined,
+        paceMedia: '',
+        percepcaoEsforco: undefined,
+        observacao: '',
+    });
+
+    const handleAddEtapa = () => {
+        setEtapasRealizadas(prev => [...prev, createEmptyEtapa()]);
+    };
+
+    const handleRemoveEtapa = (index: number) => {
+        setEtapasRealizadas(prev => {
+            const updated = prev.filter((_, i) => i !== index);
+            return updated.map((etapa, i) => ({ ...etapa, ordem: i + 1 }));
+        });
+    };
+
+    const handleUpdateEtapa = (index: number, field: keyof EtapaRealizadaInput, value: unknown) => {
+        setEtapasRealizadas(prev => {
+            const updated = [...prev];
+            updated[index] = { ...updated[index], [field]: value };
+            return updated;
+        });
     };
 
     const handleMarcarComoRealizado = async () => {
@@ -209,6 +252,23 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
                 fonteDados: 'MANUAL',
                 status: 'REALIZADO',
                 externalId: undefined,
+                etapasRealizadas: etapasRealizadas.length > 0
+                    ? etapasRealizadas.map(({ _planejado, ...etapa }, index) => ({
+                        ...etapa,
+                        ordem: index + 1,
+                        descricao: etapa.descricao?.trim() || undefined,
+                        duracao: etapa.duracao?.trim() || undefined,
+                        paceMedia: etapa.paceMedia?.trim() || undefined,
+                        observacao: etapa.observacao?.trim() || undefined,
+                        distanciaKm: etapa.distanciaKm || undefined,
+                        fcMedia: etapa.fcMedia || undefined,
+                        fcMax: etapa.fcMax || undefined,
+                        percepcaoEsforco: etapa.percepcaoEsforco || undefined,
+                        cadenciaMedia: etapa.cadenciaMedia || undefined,
+                        potenciaMedia: etapa.potenciaMedia || undefined,
+                        velocidadeMedia: etapa.velocidadeMedia || undefined,
+                    }))
+                    : undefined,
             };
 
             console.log('Dados enviados para API:', JSON.stringify(dadosRealizacao, null, 2));
@@ -481,6 +541,208 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
                                     />
                                 </Grid>
                             </Grid>
+                        </AccordionDetails>
+                    </Accordion>
+
+                    {/* Etapas do Treino Realizado */}
+                    <Accordion
+                        elevation={0}
+                        disableGutters
+                        sx={{ border: '1px solid', borderColor: 'divider' }}
+                        defaultExpanded={etapasRealizadas.length > 0}
+                    >
+                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <EtapasIcon fontSize="small" color="action" />
+                                <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                                    Etapas do Treino
+                                </Typography>
+                                {etapasRealizadas.length > 0 && (
+                                    <Chip
+                                        label={etapasRealizadas.length}
+                                        size="small"
+                                        color="primary"
+                                        variant="outlined"
+                                    />
+                                )}
+                            </Box>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                            <Stack spacing={2}>
+                                <Typography variant="caption" color="text.secondary">
+                                    Detalhe cada etapa do treino (aquecimento, tiros, recuperação, etc.)
+                                </Typography>
+
+                                {etapasRealizadas.map((etapa, index) => {
+                                    const tipoOpt = TIPO_ETAPA_OPTIONS.find(o => o.value === etapa.tipoEtapa);
+                                    const tipoColor = tipoOpt?.color || '#9E9E9E';
+                                    const ref = etapa._planejado;
+
+                                    return (
+                                        <Card
+                                            key={index}
+                                            variant="outlined"
+                                            sx={{
+                                                p: 1.5,
+                                                borderLeft: '4px solid',
+                                                borderLeftColor: tipoColor,
+                                            }}
+                                        >
+                                            {/* Linha 1: Ordem + Tipo + Descrição (labels) + Delete */}
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: ref ? 0.5 : 1.5 }}>
+                                                <Chip
+                                                    label={`#${etapa.ordem}`}
+                                                    size="small"
+                                                    sx={{
+                                                        fontWeight: 'bold',
+                                                        minWidth: 32,
+                                                        bgcolor: tipoColor,
+                                                        color: 'white',
+                                                    }}
+                                                />
+                                                <TextField
+                                                    select
+                                                    value={etapa.tipoEtapa || ''}
+                                                    onChange={(e) => handleUpdateEtapa(index, 'tipoEtapa', e.target.value)}
+                                                    size="small"
+                                                    variant="standard"
+                                                    sx={{ minWidth: 130 }}
+                                                    slotProps={{ input: { disableUnderline: true, sx: { fontWeight: 600, fontSize: '0.85rem' } } }}
+                                                >
+                                                    {TIPO_ETAPA_OPTIONS.map(opt => (
+                                                        <MenuItem key={opt.value} value={opt.value}>
+                                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                                <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: opt.color }} />
+                                                                {opt.label}
+                                                            </Box>
+                                                        </MenuItem>
+                                                    ))}
+                                                </TextField>
+                                                {etapa.descricao && (
+                                                    <Typography variant="body2" color="text.secondary" sx={{ flexGrow: 1 }} noWrap>
+                                                        {etapa.descricao}
+                                                    </Typography>
+                                                )}
+                                                <IconButton
+                                                    onClick={() => handleRemoveEtapa(index)}
+                                                    size="small"
+                                                    color="error"
+                                                    sx={{ ml: 'auto' }}
+                                                >
+                                                    <DeleteIcon fontSize="small" />
+                                                </IconButton>
+                                            </Box>
+
+                                            {/* Linha 2: Referência do planejado */}
+                                            {ref && (
+                                                <Box sx={{ display: 'flex', gap: 1.5, mb: 1.5, flexWrap: 'wrap' }}>
+                                                    {ref.duracaoMin != null && (
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            Duração: <b>{ref.duracaoMin} min</b>
+                                                        </Typography>
+                                                    )}
+                                                    {ref.distanciaKm != null && (
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            Dist: <b>{ref.distanciaKm} km</b>
+                                                        </Typography>
+                                                    )}
+                                                    {ref.ritmoAlvo && (
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            Ritmo: <b>{ref.ritmoAlvo}</b>
+                                                        </Typography>
+                                                    )}
+                                                    {ref.fcAlvoEtapa && (
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            FC: <b>{ref.fcAlvoEtapa}</b>
+                                                        </Typography>
+                                                    )}
+                                                    {ref.repeticoes != null && ref.repeticoes > 1 && (
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            Rep: <b>{ref.repeticoes}x</b>
+                                                        </Typography>
+                                                    )}
+                                                </Box>
+                                            )}
+
+                                            {/* Linha 3: Campos editáveis compactos */}
+                                            <Grid container spacing={1}>
+                                                <Grid size={{ xs: 6, sm: 4 }}>
+                                                    <TextField
+                                                        label="Duração"
+                                                        placeholder="MM:SS"
+                                                        value={etapa.duracao || ''}
+                                                        onChange={(e) => handleUpdateEtapa(index, 'duracao', e.target.value)}
+                                                        size="small"
+                                                        fullWidth
+                                                    />
+                                                </Grid>
+                                                <Grid size={{ xs: 6, sm: 4 }}>
+                                                    <TextField
+                                                        label="Distância (km)"
+                                                        type="number"
+                                                        value={etapa.distanciaKm ?? ''}
+                                                        onChange={(e) => handleUpdateEtapa(
+                                                            index, 'distanciaKm',
+                                                            e.target.value ? Number(e.target.value) : undefined
+                                                        )}
+                                                        size="small"
+                                                        fullWidth
+                                                    />
+                                                </Grid>
+                                                <Grid size={{ xs: 6, sm: 4 }}>
+                                                    <TextField
+                                                        label="FC Média"
+                                                        type="number"
+                                                        value={etapa.fcMedia ?? ''}
+                                                        onChange={(e) => handleUpdateEtapa(
+                                                            index, 'fcMedia',
+                                                            e.target.value ? Number(e.target.value) : undefined
+                                                        )}
+                                                        size="small"
+                                                        fullWidth
+                                                    />
+                                                </Grid>
+                                                <Grid size={{ xs: 6, sm: 4 }}>
+                                                    <TextField
+                                                        label="Pace Médio"
+                                                        placeholder="MM:SS"
+                                                        value={etapa.paceMedia || ''}
+                                                        onChange={(e) => handleUpdateEtapa(index, 'paceMedia', e.target.value)}
+                                                        size="small"
+                                                        fullWidth
+                                                    />
+                                                </Grid>
+                                                <Grid size={{ xs: 6, sm: 4 }}>
+                                                    <TextField
+                                                        label="RPE (1-10)"
+                                                        type="number"
+                                                        value={etapa.percepcaoEsforco ?? ''}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value ? Number(e.target.value) : undefined;
+                                                            if (val === undefined || (val >= 1 && val <= 10)) {
+                                                                handleUpdateEtapa(index, 'percepcaoEsforco', val);
+                                                            }
+                                                        }}
+                                                        size="small"
+                                                        fullWidth
+                                                        slotProps={{ htmlInput: { min: 1, max: 10 } }}
+                                                    />
+                                                </Grid>
+                                            </Grid>
+                                        </Card>
+                                    );
+                                })}
+
+                                <Button
+                                    startIcon={<AddIcon />}
+                                    onClick={handleAddEtapa}
+                                    variant="outlined"
+                                    size="small"
+                                    sx={{ alignSelf: 'flex-start' }}
+                                >
+                                    Adicionar Etapa
+                                </Button>
+                            </Stack>
                         </AccordionDetails>
                     </Accordion>
 
