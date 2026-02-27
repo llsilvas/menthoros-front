@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { styled, useTheme } from '@mui/material/styles';
+import { styled } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import MuiAppBar from '@mui/material/AppBar';
 import IconButton from '@mui/material/IconButton';
@@ -53,8 +53,6 @@ export default function DashboardHeader({
   menuOpen,
   onToggleMenu,
 }: DashboardHeaderProps) {
-  const theme = useTheme();
-
   const handleMenuOpen = React.useCallback(() => {
     onToggleMenu(!menuOpen);
   }, [menuOpen, onToggleMenu]);

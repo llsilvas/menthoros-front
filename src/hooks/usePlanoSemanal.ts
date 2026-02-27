@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { PlanoSemanalService } from '../api/services/PlanoSemanalService';
-import type { PlanoSemanal, CreatePlanoSemanal, UpdatePlanoSemanal, MetodoGeracaoPlano } from '../types/PlanoSemanal';
+import type { PlanoSemanal, MetodoGeracaoPlano } from '../types/PlanoSemanal';
 
 export const usePlanoSemanal = () => {
     const [planos, setPlanos] = useState<PlanoSemanal[]>([]);

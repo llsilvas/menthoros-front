@@ -3,6 +3,11 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
+    # Resolver extraído de /etc/resolv.conf em runtime pelo docker-entrypoint.sh
+    # Adia a resolução DNS para o momento da requisição (evita falha no startup
+    # quando o hostname do backend ainda não está disponível no DNS)
+    resolver __DNS_RESOLVER__ valid=10s ipv6=on;
+
     # Cache imutável para assets com hash de conteúdo (Vite: /assets/main.a1b2c3.js)
     location /assets/ {
         expires 1y;
@@ -18,11 +23,12 @@ server {
     }
 
     # Proxy reverso para o backend Spring Boot
-    # /api/atleta → ${BACKEND_URL}/atleta  (strip do prefixo /api)
+    # /api/atleta → __BACKEND_URL__/atleta  (strip do prefixo /api)
     # Elimina CORS: o browser acessa apenas a própria origem
-    # ${BACKEND_URL} é substituído em runtime pelo docker-entrypoint.sh via envsubst
+    # set $upstream adia a resolução DNS — nginx sobe mesmo se o backend não estiver pronto
     location /api/ {
-        proxy_pass ${BACKEND_URL}/;
+        set $upstream "__BACKEND_URL__";
+        proxy_pass $upstream/;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;

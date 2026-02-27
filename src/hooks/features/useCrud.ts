@@ -1,9 +1,8 @@
-import { useState, useCallback, useEffect, use } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type {
     Atleta, CreateAtleta, UpdateAtleta, CrudState, AtletaFilters, PaginationState, SortState
 } from "../../types/Atleta";
 import { AtletasService } from "../../api/services/AtletasService";
-import { set } from "date-fns";
 
 export interface CrudOperations {
     atletas: Atleta[];
@@ -29,7 +28,7 @@ export const useCrud = (): CrudOperations => {
     const loadAtletas = useCallback(async (
         filters?: AtletaFilters,
         pagination?: PaginationState,
-        sort?: SortState
+        _sort?: SortState
     ): Promise<void> => {
         setState((prev: CrudState) => ({ ...prev, loading: true, error: null }));
         try {

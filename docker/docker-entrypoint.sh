@@ -9,11 +9,21 @@ API_BASE_URL="${VITE_API_BASE_URL:-/api}"
 echo "Configurando API base URL: ${API_BASE_URL}"
 sed -i "s|__RUNTIME_API_URL_PLACEHOLDER__|${API_BASE_URL}|g" "${ENV_CONFIG}"
 
-# 2. Processa template do nginx substituindo ${BACKEND_URL}
-# Escopo restrito ('$BACKEND_URL') para não substituir variáveis nativas do nginx
-# como $host, $remote_addr, $uri, etc.
+# 2. Extrai nameserver de /etc/resolv.conf para o resolver do nginx
+# IPv6 precisa de colchetes na diretiva resolver do nginx: [::1]
+DNS_RESOLVER=$(awk '/^nameserver/{print $2; exit}' /etc/resolv.conf)
+case "$DNS_RESOLVER" in
+    *:*) DNS_RESOLVER="[$DNS_RESOLVER]" ;;
+esac
+echo "DNS resolver: ${DNS_RESOLVER}"
+
+# 3. Processa template do nginx via sed (substitui __BACKEND_URL__ e __DNS_RESOLVER__)
+# Usando placeholders __STYLE__ para não conflitar com variáveis nativas do nginx ($host, $uri, etc.)
 BACKEND_URL="${BACKEND_URL:-http://menthoros-app:8080}"
 echo "Configurando backend URL: ${BACKEND_URL}"
-envsubst '$BACKEND_URL' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
+sed \
+    -e "s|__BACKEND_URL__|${BACKEND_URL}|g" \
+    -e "s|__DNS_RESOLVER__|${DNS_RESOLVER}|g" \
+    /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
 
 exec "$@"

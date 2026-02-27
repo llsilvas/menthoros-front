@@ -1,10 +1,11 @@
 import { useCallback, useState } from 'react';
 import { TreinoService } from '../api/services/TreinoService';
-import type { TreinoRealizado, CreateTreinoRealizado, UpdateTreinoRealizado } from '../types/TreinoRealizado';
+import type { CreateTreinoRealizado } from '../types/TreinoRealizado';
+import type { TreinoPlanejado } from '../types/TreinoPlanejado';
 
 
 export const useTreinoRealizado = () => {
-    const [treinosRealizados, setTreinosRealizados] = useState<TreinoRealizado[]>([]);
+    const [treinosRealizados, setTreinosRealizados] = useState<TreinoPlanejado[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<Error | null>(null);
 
@@ -22,7 +23,7 @@ export const useTreinoRealizado = () => {
             setError(null);
             console.log('Chamando TreinoRealizadoService.listarTreinosRealizadosPorAtleta...');
 
-            const response = await TreinoService.listarTreinosRealizadosPorAtleta(atletaId);
+            const response = await TreinoService.listarTreinosRealizados(atletaId);
             console.log('Response completa:', response);
             console.log('Tipo da response:', typeof response);
             console.log('É array?', Array.isArray(response));
@@ -45,7 +46,7 @@ export const useTreinoRealizado = () => {
     const createTreinoRealizado = useCallback(async (dados: CreateTreinoRealizado) => {
         try {
             setLoading(true);
-            const novoTreino = await TreinoService.criarTreinoRealizado(dados);
+            const novoTreino = await TreinoService.marcarComoRealizado(dados);
             setTreinosRealizados(prev => [...prev, novoTreino]);
             return novoTreino;
         } catch (err) {

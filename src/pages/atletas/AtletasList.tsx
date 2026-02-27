@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Button,
@@ -210,14 +210,12 @@ const AtletasList: React.FC = () => {
 
   const QuickFilterToolbar = () => (
     <Box sx={{ px: 1, py: 1, display: 'flex', justifyContent: 'flex-end' }}>
-      <GridToolbarQuickFilter
-        placeholder="Buscar atleta..."
-        debounceMs={300}
-        sx={{
-          minWidth: 240,
-          '& .MuiInputBase-root': { height: 36, fontSize: '0.875rem' },
-        }}
-      />
+      <Box sx={{ minWidth: 240, '& .MuiInputBase-root': { height: 36, fontSize: '0.875rem' } }}>
+        <GridToolbarQuickFilter
+          debounceMs={300}
+          slotProps={{ root: { placeholder: 'Buscar atleta...' } }}
+        />
+      </Box>
     </Box>
   );
 
