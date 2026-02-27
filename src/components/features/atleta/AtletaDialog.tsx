@@ -2,11 +2,11 @@ import React, { useState, useEffect } from "react";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, FormControlLabel, Checkbox, Alert, Typography, FormGroup, Box } from "@mui/material";
 import Grid from '@mui/material/Grid';
 
-import type { Atleta, CreateAtleta, UpdateAtleta, AtletaDialogProps, diaSemana } from "../../../types/Atleta";
+import type { Atleta, CreateAtleta, UpdateAtleta, AtletaDialogProps, diaSemana, Sexo } from "../../../types/Atleta";
 
 interface FormErrors {
     nome?: string;
-    idade?: string;
+    dataNascimento?: string;
     pesoKg?: string;
     alturaCm?: string;
     objetivo?: string;
@@ -68,7 +68,8 @@ const getInitialFormData = (atleta?: Atleta): CreateAtleta | UpdateAtleta => {
 
     const baseData = {
         nome: typeof atleta?.nome === 'string' ? atleta.nome : "",
-        idade: typeof atleta?.idade === 'number' ? atleta.idade : 0,
+        dataNascimento: typeof atleta?.dataNascimento === 'string' ? atleta.dataNascimento : "",
+        sexo: (atleta?.sexo as Sexo) ?? 'MASCULINO',
         pesoKg: typeof atleta?.pesoKg === 'number' ? atleta.pesoKg : 0,
         alturaCm: typeof atleta?.alturaCm === 'number' ? atleta.alturaCm : 0,
         objetivo: typeof atleta?.objetivo === 'string' ? atleta.objetivo : "",
@@ -141,7 +142,7 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
     const validateForm = (): boolean => {
         const newErrors: FormErrors = {};
         if (!formData.nome?.trim()) newErrors.nome = 'Nome é obrigatório';
-        if (!formData.idade || formData.idade <= 0) newErrors.idade = 'Idade deve ser um número positivo';
+        if (!formData.dataNascimento) newErrors.dataNascimento = 'Data de nascimento é obrigatória';
         if (!formData.pesoKg || formData.pesoKg <= 0) newErrors.pesoKg = 'Peso deve ser um número positivo';
         if (!formData.alturaCm || formData.alturaCm <= 0) newErrors.alturaCm = 'Altura deve ser um número positivo';
         if (!formData.objetivo?.trim()) newErrors.objetivo = 'Objetivo é obrigatório';
@@ -201,17 +202,37 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                     </Grid>
                     <Grid size={6}>
                         <TextField
-                            label="Idade"
-                            name="idade"
-                            type="number"
-                            value={formData.idade}
+                            label="Data de Nascimento"
+                            name="dataNascimento"
+                            type="date"
+                            value={formData.dataNascimento}
                             onChange={handleChange}
-                            error={Boolean(errors.idade)}
-                            helperText={errors.idade}
+                            error={Boolean(errors.dataNascimento)}
+                            helperText={errors.dataNascimento}
                             fullWidth
                             required
                             size="small"
+                            slotProps={{ inputLabel: { shrink: true } }}
                         />
+                    </Grid>
+                    <Grid size={6}>
+                        <TextField
+                            select
+                            label="Sexo"
+                            name="sexo"
+                            value={formData.sexo}
+                            onChange={handleChange}
+                            fullWidth
+                            size="small"
+                        >
+                            {[
+                                { value: 'MASCULINO', label: 'Masculino' },
+                                { value: 'FEMININO',  label: 'Feminino'  },
+                                { value: 'OUTRO',     label: 'Outro'     },
+                            ].map(op => (
+                                <MenuItem key={op.value} value={op.value}>{op.label}</MenuItem>
+                            ))}
+                        </TextField>
                     </Grid>
                     <Grid size={6}>
                         <TextField

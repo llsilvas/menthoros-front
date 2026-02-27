@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { PlanoSemanalService } from '../api/services/PlanoSemanalService';
-import type { PlanoSemanal, CreatePlanoSemanal, UpdatePlanoSemanal } from '../types/PlanoSemanal';
+import type { PlanoSemanal, CreatePlanoSemanal, UpdatePlanoSemanal, MetodoGeracaoPlano } from '../types/PlanoSemanal';
 
 export const usePlanoSemanal = () => {
     const [planos, setPlanos] = useState<PlanoSemanal[]>([]);
@@ -59,11 +59,11 @@ export const usePlanoSemanal = () => {
         }
     }, []);
 
-    const gerarPlanoSemanal = useCallback(async (atletaId: string) => {
+    const gerarPlanoSemanal = useCallback(async (atletaId: string, modoGeracaoPlano?: MetodoGeracaoPlano) => {
         setLoading(true);
         setError(null);
         try {
-            await PlanoSemanalService.gerarPlanoSemanal(atletaId);
+            await PlanoSemanalService.gerarPlanoSemanal(atletaId, modoGeracaoPlano);
             await fetchPlanosPorAtleta(atletaId);
         } catch (err) {
             setError(err instanceof Error ? err : new Error('Erro ao gerar plano semanal'));

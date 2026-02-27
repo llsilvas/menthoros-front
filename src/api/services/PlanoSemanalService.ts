@@ -1,4 +1,4 @@
-import type { PlanoSemanal, CreatePlanoSemanal } from "../../types/PlanoSemanal";
+import type { PlanoSemanal, MetodoGeracaoPlano } from "../../types/PlanoSemanal";
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -29,12 +29,16 @@ export class PlanoSemanalService {
 
     public static gerarPlanoSemanal(
         atletaId: string,
+        modoGeracaoPlano: MetodoGeracaoPlano = 'PROXIMA_SEMANA',
     ): CancelablePromise<PlanoSemanal> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/planos/atletas/{atletaId}/gerar',
             path: {
                 'atletaId': atletaId,
+            },
+            query: {
+                'modoGeracaoPlano': modoGeracaoPlano,
             },
             errors: {
                 404: `Atleta não encontrado`,

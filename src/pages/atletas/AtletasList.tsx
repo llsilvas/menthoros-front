@@ -118,10 +118,9 @@ const AtletasList: React.FC = () => {
       minWidth: 150
     },
     {
-      field: 'idade',
-      headerName: 'Idade',
-      width: 80,
-      type: 'number'
+      field: 'dataNascimento',
+      headerName: 'Data de Nascimento',
+      width: 140
     },
     {
       field: 'pesoKg',
@@ -272,7 +271,7 @@ const AtletasList: React.FC = () => {
               },
               columns: {
                 columnVisibilityModel: {
-                  idade: false,
+                  dataNascimento: false,
                   pesoKg: false,
                   alturaCm: false,
                 },
