@@ -81,7 +81,7 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
     const [etapasRealizadas, setEtapasRealizadas] = useState<EtapaRealizadaInput[]>([]);
 
     const getEffortColor = (value: number) => {
-        if (value <= 5) return '#66bb6a';
+        if (value <= 3) return '#66bb6a';
         if (value <= 7) return '#ffcc80';
         if (value <= 9) return '#ff8a65';
         return '#ef5350';

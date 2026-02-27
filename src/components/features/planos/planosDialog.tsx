@@ -15,10 +15,13 @@ import {
     Grid,
     LinearProgress,
     Divider,
-    Stack
+    Stack,
+    ToggleButton,
+    ToggleButtonGroup
 } from '@mui/material';
 import {
     Add as AddIcon,
+    Delete as DeleteIcon,
     Flag as FlagIcon,
     Assignment as AssignmentIcon,
     DirectionsRun as RunIcon,
@@ -30,6 +33,7 @@ import {
     obterStatusColor,
     obterStatusLabel
 } from '../../../types/PlanoSemanal';
+import type { MetodoGeracaoPlano } from '../../../types/PlanoSemanal';
 import type { TreinoPlanejado } from '../../../types/TreinoPlanejado';
 import TreinoRealizadoDialog from '../TreinoRealizadoDialog';
 import DetalheTreinoDialog from './DetalheTreinoDialog';
@@ -107,8 +111,11 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
         error,
         fetchPlanosPorAtleta,
         gerarPlanoSemanal,
+        deletePlano,
         clearPlanos
     } = usePlanoSemanal();
+
+    const [modoGeracao, setModoGeracao] = useState<MetodoGeracaoPlano>('PROXIMA_SEMANA');
 
     // Estados para o modal de conclusão de treino
     const [conclusaoModalOpen, setConclusaoModalOpen] = useState(false);
@@ -138,6 +145,15 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
         console.log('PlanosDialog estados - loading:', loading, 'error:', error, 'planos:', planos);
     }, [loading, error, planos]);
 
+    // Auto-seleciona o plano ativo ao carregar
+    useEffect(() => {
+        if (planos.length > 0 && !planoSemanalIdSelecionado) {
+            const ativo = planos.find(p => p.status === 'ATIVO');
+            const primeiroId = (ativo ?? planos[0]).id ?? '';
+            setPlanoSemanalIdSelecionado(primeiroId);
+        }
+    }, [planos]);
+
     const handleGerarPlano = async () => {
         if(!atletaId) {
             console.error('ID do atleta não fornecido');
@@ -145,10 +161,24 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
         }
 
         try {
-            await gerarPlanoSemanal(atletaId);
+            await gerarPlanoSemanal(atletaId, modoGeracao);
             // Após gerar, recarrega a lista automaticamente
         } catch (err) {
             console.error('Erro ao gerar plano semanal:', err);
+        }
+    };
+
+    const handleDeletePlano = async (planoSemanalId: string) => {
+        if(!planoSemanalId) {
+            console.error('ID do plano semanal não fornecido');
+            return;
+        }
+
+        try {
+            await deletePlano(planoSemanalId);
+            // Após deletar, recarrega a lista automaticamente
+        } catch (err) {
+            console.error('Erro ao deletar plano semanal:', err);
         }
     };
 
@@ -185,23 +215,48 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
         }
     };
 
+    const planoAtivo = planos.find(p => p.status === 'ATIVO');
+    const temPlanoAtivo = !!planoAtivo;
+
     return (
         <>
         <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 2, py: 1.5 }}>
+            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 3, py: 1.5 }}>
                 <Typography variant='subtitle1' component="h1" sx={{ fontWeight: 700 }}>
                     Planos Semanais de {atletaNome}
                 </Typography>
-                <Button
-                    variant='contained'
-                    color='primary'
-                    startIcon={<AddIcon />}
-                    onClick={handleGerarPlano}
-                    disabled={loading}
-                    size="small"
-                >
-                    {loading ? 'Gerando...' : 'Gerar Plano'}
-                </Button>
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                    <ToggleButtonGroup
+                        value={modoGeracao}
+                        exclusive
+                        size="small"
+                        onChange={(_, value) => { if (value) setModoGeracao(value); }}
+                        disabled={loading || temPlanoAtivo}
+                    >
+                        <ToggleButton value="PROXIMA_SEMANA">Próx. Semana</ToggleButton>
+                        <ToggleButton value="SEMANA_ATUAL">Sem. Atual</ToggleButton>
+                    </ToggleButtonGroup>
+                    <Button
+                        variant='outlined'
+                        color='error'
+                        startIcon={<DeleteIcon />}
+                        onClick={() => handleDeletePlano(planoSemanalIdSelecionado)}
+                        disabled={loading || !planoSemanalIdSelecionado}
+                        size='small'
+                    >
+                        Excluir Plano
+                    </Button>
+                    <Button
+                        variant='contained'
+                        color='primary'
+                        startIcon={<AddIcon />}
+                        onClick={handleGerarPlano}
+                        disabled={loading || temPlanoAtivo}
+                        size="small"
+                    >
+                        {loading ? 'Gerando...' : 'Gerar Plano'}
+                    </Button>
+                </Box>
             </DialogTitle>
             <DialogContent sx={{ p: 2 }}>
                 {loading && (
@@ -242,21 +297,33 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                             const statusColor = obterStatusColor(status as any);
 
                             return (
-                                <Card key={plano.id || index} elevation={3} sx={{ overflow: 'visible' }}>
+                                <Card
+                                    key={plano.id || index}
+                                    elevation={planoSemanalIdSelecionado === plano.id ? 6 : 3}
+                                    onClick={() => setPlanoSemanalIdSelecionado(plano.id || '')}
+                                    sx={{
+                                        overflow: 'visible',
+                                        cursor: 'pointer',
+                                        outline: planoSemanalIdSelecionado === plano.id ? '2px solid' : 'none',
+                                        outlineColor: 'primary.main',
+                                    }}
+                                >
                                     <CardContent sx={{ p: 3 }}>
                                         {/* Header com período e status */}
                                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                                             <Typography variant="h6" component="h3">
                                                 {formatarPeriodoSemana(getSafeValue(plano.semanaInicio) as string, getSafeValue(plano.semanaFim) as string)}
                                             </Typography>
-                                            <Chip
-                                                label={obterStatusLabel(status as any)}
-                                                sx={{
-                                                    bgcolor: statusColor,
-                                                    color: 'white',
-                                                    fontWeight: 'bold'
-                                                }}
-                                            />
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                <Chip
+                                                    label={obterStatusLabel(status as any)}
+                                                    sx={{
+                                                        bgcolor: statusColor,
+                                                        color: 'white',
+                                                        fontWeight: 'bold'
+                                                    }}
+                                                />
+                                            </Box>
                                         </Box>
 
                                         {/* Volumes */}

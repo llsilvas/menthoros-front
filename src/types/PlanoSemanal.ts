@@ -3,6 +3,8 @@ import type { TreinoPlanejado, CreateTreinoPlanejado } from './TreinoPlanejado';
 // Enums e tipos base
 export type PlanoStatus = 'ATIVO' | 'CONCLUIDO' | 'CANCELADO' | 'PAUSADO';
 
+export type MetodoGeracaoPlano = 'PROXIMA_SEMANA' | 'SEMANA_ATUAL';
+
 // Interface principal do Plano Semanal
 export interface PlanoSemanal {
   id?: string;

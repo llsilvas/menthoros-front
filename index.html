@@ -8,6 +8,9 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- env-config.js carrega ANTES do bundle React (script clássico = síncrono)
+         garante que window.__RUNTIME_CONFIG__ existe quando main.tsx executar -->
+    <script src="/env-config.js"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

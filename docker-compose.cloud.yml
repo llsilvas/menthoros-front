@@ -1,0 +1,41 @@
+# docker-compose.cloud.yml — Perfil CLOUD
+# Build multi-stage com nginx — para deploy em nuvem
+# Imagem stateless: toda configuração via variáveis de ambiente
+#
+# Pré-requisito: rede menthoros-network criada pelo compose do backend
+#
+# Uso:
+#   docker compose -f docker-compose.cloud.yml up --build
+
+services:
+
+  # ── Frontend React/Vite (nginx + assets estáticos) ───────────────────────────
+  front:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.cloud
+    container_name: menthoros-front
+    env_file:
+      - .env
+    environment:
+      # /api é o padrão — nginx faz proxy reverso para o backend (sem CORS)
+      VITE_API_BASE_URL: /api
+      # URL interna do backend para o proxy nginx
+      # Docker local: http://menthoros-app:8080 (rede menthoros-network)
+      # Railway:      http://pacific-renewal.railway.internal:8080 (private network)
+      BACKEND_URL: ${BACKEND_URL:-http://menthoros-app:8080}
+    ports:
+      - "${FRONT_PORT:-80}:80"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+    networks:
+      - menthoros-network
+
+networks:
+  menthoros-network:
+    external: true    # Criada pelo docker-compose.cloud.yml do backend (projeto menthoros)

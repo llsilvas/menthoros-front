@@ -1,0 +1,38 @@
+# Dependências — nunca incluir no contexto de build
+node_modules
+.npm
+
+# Output do build — gerado pelo Stage 1 do Dockerfile.cloud
+dist
+
+# Controle de versão
+.git
+.gitignore
+
+# IDE e editor
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Variáveis de ambiente — não incluir no contexto de build
+.env
+.env.*
+!.env.example
+
+# Documentação e análises
+*.md
+docs
+ANALISE_*.md
+EXEMPLOS_*.md
+
+# Testes e cobertura
+coverage
+*.test.ts
+*.spec.ts
+
+# Logs
+*.log
+npm-debug.log*

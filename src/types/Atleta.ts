@@ -1,7 +1,8 @@
 export interface Atleta {
     id:string;
     nome:string;
-    idade:number;
+    dataNascimento: string;
+    sexo: Sexo;
     pesoKg:number;
     alturaCm:number;
     objetivo:string;
@@ -14,7 +15,8 @@ export interface Atleta {
 
 export interface CreateAtleta {
     nome:string;
-    idade:number;
+    dataNascimento: string;
+    sexo: Sexo;
     pesoKg:number;
     alturaCm:number;
     objetivo:string;
@@ -76,3 +78,4 @@ export const generateId = (): string => {
 
 export type nivelExperiencia = "INICIANTE" | "INTERMEDIARIO" | "AVANCADO";
 export type diaSemana = 'DOMINGO' | 'SEGUNDA' | 'TERCA' | 'QUARTA' | 'QUINTA' | 'SEXTA' | 'SABADO';
+export type Sexo = 'MASCULINO' | 'FEMININO' | 'OUTRO';

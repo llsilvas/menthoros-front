@@ -1,0 +1,38 @@
+# docker-compose.yml — Perfil LOCAL
+# Sobe o frontend em modo desenvolvimento com hot reload via Vite
+# O nginx NÃO é utilizado em local — Vite dev server expõe diretamente
+#
+# Pré-requisito: rede menthoros-network criada pelo compose do backend
+#   docker compose -f ../menthoros/docker-compose.yml up postgres redis app
+#
+# Uso:
+#   docker compose up
+
+services:
+
+  # ── Frontend React/Vite (dev server com hot reload) ──────────────────────────
+  front:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.local
+    container_name: menthoros-front
+    env_file:
+      - .env
+    environment:
+      # /api → Vite dev server faz proxy para BACKEND_URL (resolve menthoros-app na rede Docker)
+      VITE_API_BASE_URL: /api
+      BACKEND_URL: http://menthoros-app:8099
+    ports:
+      - "${FRONT_PORT:-5173}:5173"
+    volumes:
+      - ./src:/app/src:ro            # Hot reload: código-fonte montado como volume
+      - ./public:/app/public:ro
+      - ./index.html:/app/index.html:ro
+      - ./vite.config.ts:/app/vite.config.ts:ro
+    restart: "no"
+    networks:
+      - menthoros-network
+
+networks:
+  menthoros-network:
+    external: true    # Criada pelo docker-compose do backend (projeto menthoros)
