@@ -277,6 +277,7 @@ const AtletasList: React.FC = () => {
             }}
             disableRowSelectionOnClick
             sx={{
+              '--DataGrid-containerBackground': '#ffffff',
               border: 'none',
               '& .MuiDataGrid-columnHeaders': { minHeight: 44 },
               '& .MuiDataGrid-columnHeaderTitle': { fontWeight: 600 },
