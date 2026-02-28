@@ -30,10 +30,10 @@ export const gradients = {
 
 // ── Glassmorphism ─────────────────────────────────────────────────
 export const glass = {
-  background: 'rgba(255, 255, 255, 0.40)',
-  backgroundHover: 'rgba(255, 255, 255, 0.48)',
-  backgroundActive: 'rgba(255, 255, 255, 0.55)',
-  border: 'rgba(255, 255, 255, 0.22)',
+  background: 'rgba(255, 255, 255, 0.60)',
+  backgroundHover: 'rgba(255, 255, 255, 0.68)',
+  backgroundActive: 'rgba(255, 255, 255, 0.75)',
+  border: 'rgba(255, 255, 255, 0.30)',
   borderHover: 'rgba(255, 255, 255, 0.81)',
   backdropFilter: 'blur(10px)',
   boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)',

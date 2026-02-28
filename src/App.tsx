@@ -1,4 +1,5 @@
 import { ThemeProvider, createTheme, CssBaseline, GlobalStyles } from '@mui/material';
+import type {} from '@mui/x-data-grid/themeAugmentation';
 import { createHashRouter, RouterProvider } from 'react-router';
 import DashboardLayout from './components/dashboard/DashboardLayout';
 import AtletasList from './pages/atletas/AtletasList';
@@ -22,7 +23,7 @@ const theme = createTheme({
     },
     background: {
       default: colors.primary.dark,
-      paper: 'rgba(255, 255, 255, 0.40)',
+      paper: 'rgba(255, 255, 255, 0.60)',
     },
     text: {
       primary: text.primary,
@@ -71,6 +72,29 @@ const theme = createTheme({
         },
         colorAction: {
           color: text.iconMuted,
+        },
+      },
+    },
+    MuiDataGrid: {
+      styleOverrides: {
+        root: {
+          '--DataGrid-containerBackground': 'rgba(255, 255, 255, 0.55)',
+          backgroundColor: 'rgba(255, 255, 255, 0.55)',
+          color: text.primary,
+          borderColor: 'rgba(255,255,255,0.20)',
+          '& .MuiDataGrid-mainContent': { backgroundColor: 'rgba(255, 255, 255, 0.55)' },
+          '& .MuiDataGrid-virtualScroller': { backgroundColor: 'rgba(255, 255, 255, 0.55)' },
+          '& .MuiDataGrid-overlayWrapper': { backgroundColor: 'rgba(255, 255, 255, 0.55)' },
+          '& .MuiDataGrid-columnHeaders': { backgroundColor: 'rgba(255, 255, 255, 0.70)' },
+          '& .MuiDataGrid-columnHeader': { backgroundColor: 'rgba(255, 255, 255, 0.70)' },
+          '& .MuiDataGrid-columnHeaderTitle': { color: text.primary },
+          '& .MuiDataGrid-columnSeparator': { color: 'rgba(0,0,0,0.12)' },
+          '& .MuiDataGrid-cell': { color: text.primary, borderColor: 'rgba(0,0,0,0.06)' },
+          '& .MuiDataGrid-row:hover': { backgroundColor: 'rgba(255, 255, 255, 0.20)' },
+          '& .MuiDataGrid-footerContainer': { backgroundColor: 'rgba(255, 255, 255, 0.70)', color: text.primary, borderColor: 'rgba(255,255,255,0.20)' },
+          '& .MuiTablePagination-root': { color: text.primary },
+          '& .MuiTablePagination-selectIcon': { color: text.primary },
+          '& .MuiIconButton-root': { color: text.primary },
         },
       },
     },
