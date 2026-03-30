@@ -16,13 +16,15 @@ import {
   Add as AddIcon,
   EditOutlined as EditIcon,
   DeleteOutline as DeleteIcon,
-  EventOutlined as CalendarIcon
+  EventOutlined as CalendarIcon,
+  EmojiEvents as EmojiEventsIcon,
 } from '@mui/icons-material';
 import { glassSx, content } from '../../theme/tokens';
 import { useCrud } from '../../hooks/features/useCrud';
 import AtletaDialog from '../../components/features/atleta/AtletaDialog';
 import type { Atleta, CreateAtleta, UpdateAtleta } from '../../types/Atleta';
 import PlanosDialog from '../../components/features/planos/planosDialog';
+import ProvasDialog from '../../components/features/provas/ProvasDialog';
 
 const AtletasList: React.FC = () => {
   const {
@@ -40,6 +42,8 @@ const AtletasList: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [planosDialogOpen, setPlanosDialogOpen] = useState(false);
   const [selectedAtletaForPlanos, setSelectedAtletaForPlanos] = useState<Atleta | null>(null);
+  const [provasDialogOpen, setProvasDialogOpen] = useState(false);
+  const [selectedAtletaForProvas, setSelectedAtletaForProvas] = useState<Atleta | null>(null);
 
 
   const handleOpenDialog = (atleta?: Atleta) => {
@@ -76,6 +80,16 @@ const AtletasList: React.FC = () => {
   const handleClosePlanosDialog = () => {
     setPlanosDialogOpen(false);
     setSelectedAtletaForPlanos(null);
+  };
+
+  const handleViewProvas = (id: string) => {
+    setSelectedAtletaForProvas(atletas.find(a => a.id === id) || null);
+    setProvasDialogOpen(true);
+  };
+
+  const handleCloseProvasDialog = () => {
+    setProvasDialogOpen(false);
+    setSelectedAtletaForProvas(null);
   };
 
 
@@ -199,6 +213,12 @@ const AtletasList: React.FC = () => {
           onClick={() => handleViewPlanos(params.row.id)}
         />,
         <GridActionsCellItem
+          key="provas"
+          icon={<EmojiEventsIcon />}
+          label="Provas"
+          onClick={() => handleViewProvas(params.row.id)}
+        />,
+        <GridActionsCellItem
           key="delete"
           icon={<DeleteIcon />}
           label="Excluir"
@@ -300,7 +320,13 @@ const AtletasList: React.FC = () => {
         onClose={handleClosePlanosDialog}
         atletaNome={selectedAtletaForPlanos ? selectedAtletaForPlanos.nome : ''}
         atletaId={selectedAtletaForPlanos ? selectedAtletaForPlanos.id : ''}
-      />  
+      />
+      <ProvasDialog
+        open={provasDialogOpen}
+        onClose={handleCloseProvasDialog}
+        atletaNome={selectedAtletaForProvas ? selectedAtletaForProvas.nome : ''}
+        atletaId={selectedAtletaForProvas ? selectedAtletaForProvas.id : ''}
+      />
     </Box>
   );
 };
