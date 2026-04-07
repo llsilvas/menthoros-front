@@ -1,19 +1,20 @@
 schema: spec-driven
 
-context: |
-  Tech stack: React 19, TypeScript 5.8, Vite, Material UI v7, React Router v7, Axios
-  API client: openapi-typescript-codegen (gerado a partir de /api-docs do backend)
-  Design system: glassmorphism — tokens centralizados em src/theme/tokens.ts
-  Padrão de componentes: Dialog modais abertos de pages, não rotas aninhadas
-  Padrão de state: hooks custom (useXxx) com useState + useCallback + useEffect
-  Padrão de serviços: classes estáticas em src/api/services/ usando __request
-  Padrão de tipos: interfaces em src/types/ com InputDto (CreateXxx/UpdateXxx) e OutputDto (Xxx)
-  Backend: Spring Boot 3.5.4 / Java 21, multi-tenancy via JWT/Keycloak
-  Auth: token JWT armazenado em localStorage (@Menthoros:token), enviado no header Authorization
-  CORS configurado para http://localhost:5173
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+# Add your tech stack, conventions, style guides, domain knowledge, etc.
+# Example:
+#   context: |
+#     Tech stack: TypeScript, React, Node.js
+#     We use conventional commits
+#     Domain: e-commerce platform
 
-rules:
-  tasks:
-    - Dividir tarefas em incrementos de no máximo 2 horas
-    - Cada tarefa deve referenciar o arquivo exato a ser criado ou modificado
-    - Seguir a ordem: Types → Service → Hook → Component → Integration
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
