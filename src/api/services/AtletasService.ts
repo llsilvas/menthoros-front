@@ -105,4 +105,25 @@ export class AtletasService {
             },
         });
     }
+    /**
+     * Recalcular métricas do atleta
+     * Recalcula as métricas de um atleta específico
+     * @param id ID do atleta
+     * @returns void
+     * @throws ApiError
+     */
+    public static recalcularMetricas(
+        id: string,
+    ): CancelablePromise<void> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/atleta/{id}/recalcular-metricas',
+            path: {
+                'id': id,
+            },
+            errors: {
+                404: `Atleta não encontrado`,
+            },
+        });
+    }
 }
