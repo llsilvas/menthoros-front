@@ -79,19 +79,22 @@ const getInitials = (name: string) =>
     .map((part) => part[0]?.toUpperCase() ?? '')
     .join('');
 
+const readStringProp = (value: unknown, key: 'value' | 'short'): string | null => {
+  if (value && typeof value === 'object' && key in value) {
+    const prop = (value as Record<string, unknown>)[key];
+    return typeof prop === 'string' ? prop : null;
+  }
+  return null;
+};
+
 const getExperienceKey = (nivel: Atleta['nivelExperiencia']): NivelExperienciaKey => {
   if (typeof nivel === 'string' && nivel in nivelLabels) {
     return nivel as NivelExperienciaKey;
   }
 
-  if (
-    nivel &&
-    typeof nivel === 'object' &&
-    'value' in nivel &&
-    typeof nivel.value === 'string' &&
-    nivel.value in nivelLabels
-  ) {
-    return nivel.value as NivelExperienciaKey;
+  const value = readStringProp(nivel, 'value');
+  if (value && value in nivelLabels) {
+    return value as NivelExperienciaKey;
   }
 
   return 'INICIANTE';
@@ -114,12 +117,14 @@ const formatDiasDisponiveis = (dias: Atleta['diasDisponiveis']) => {
 
   return dias
     .map((dia) => {
-      if (dia && typeof dia === 'object' && 'short' in dia && typeof dia.short === 'string') {
-        return dia.short;
+      const shortValue = readStringProp(dia, 'short');
+      if (shortValue) {
+        return shortValue;
       }
 
-      if (dia && typeof dia === 'object' && 'value' in dia && typeof dia.value === 'string') {
-        return diasFormatados[dia.value as keyof typeof diasFormatados] || dia.value;
+      const value = readStringProp(dia, 'value');
+      if (value) {
+        return diasFormatados[value as keyof typeof diasFormatados] || value;
       }
 
       return diasFormatados[dia as keyof typeof diasFormatados] || String(dia);

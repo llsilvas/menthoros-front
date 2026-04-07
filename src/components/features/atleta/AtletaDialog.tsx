@@ -18,15 +18,20 @@ interface FormErrors {
     descricaoLesao?: string;
 }
 
+const getObjectValue = (value: unknown): unknown => {
+    if (value && typeof value === 'object' && 'value' in value) {
+        return value.value;
+    }
+    return undefined;
+};
+
 const getInitialFormData = (atleta?: Atleta): CreateAtleta | UpdateAtleta => {
     // Garantir que os valores são sempre strings válidas para os selects
     const validarNivelExperiencia = (nivel: unknown): "INICIANTE" | "INTERMEDIARIO" | "AVANCADO" => {
         // Se for um objeto com propriedade value
-        if (nivel && typeof nivel === 'object' && nivel.value) {
-            const value = nivel.value;
-            if (typeof value === 'string' && ['INICIANTE', 'INTERMEDIARIO', 'AVANCADO'].includes(value)) {
-                return value as "INICIANTE" | "INTERMEDIARIO" | "AVANCADO";
-            }
+        const value = getObjectValue(nivel);
+        if (typeof value === 'string' && ['INICIANTE', 'INTERMEDIARIO', 'AVANCADO'].includes(value)) {
+            return value as "INICIANTE" | "INTERMEDIARIO" | "AVANCADO";
         }
         // Se for uma string direta
         if (typeof nivel === 'string' && ['INICIANTE', 'INTERMEDIARIO', 'AVANCADO'].includes(nivel)) {
@@ -37,11 +42,9 @@ const getInitialFormData = (atleta?: Atleta): CreateAtleta | UpdateAtleta => {
 
     const validarDiaSemana = (dia: unknown): diaSemana => {
         // Se for um objeto com propriedade value
-        if (dia && typeof dia === 'object' && dia.value) {
-            const value = dia.value;
-            if (typeof value === 'string' && ['DOMINGO', 'SEGUNDA', 'TERCA', 'QUARTA', 'QUINTA', 'SEXTA', 'SABADO'].includes(value)) {
-                return value as diaSemana;
-            }
+        const value = getObjectValue(dia);
+        if (typeof value === 'string' && ['DOMINGO', 'SEGUNDA', 'TERCA', 'QUARTA', 'QUINTA', 'SEXTA', 'SABADO'].includes(value)) {
+            return value as diaSemana;
         }
         // Se for uma string direta
         if (typeof dia === 'string' && ['DOMINGO', 'SEGUNDA', 'TERCA', 'QUARTA', 'QUINTA', 'SEXTA', 'SABADO'].includes(dia)) {
@@ -54,9 +57,8 @@ const getInitialFormData = (atleta?: Atleta): CreateAtleta | UpdateAtleta => {
         if (Array.isArray(dias)) {
             return dias.map(dia => {
                 // Se for um objeto com propriedade value
-                if (dia && typeof dia === 'object' && dia.value) {
-                    return dia.value;
-                }
+                const value = getObjectValue(dia);
+                if (value != null) return value;
                 // Se for uma string direta
                 return dia;
             }).filter(value =>

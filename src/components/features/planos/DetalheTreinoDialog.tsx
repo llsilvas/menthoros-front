@@ -52,6 +52,15 @@ const formatDate = (date?: string | null): string | null => {
     return new Date(`${date}T00:00:00`).toLocaleDateString('pt-BR');
 };
 
+const getNumericValue = (value: unknown): number | null => {
+    if (typeof value === 'number' && !Number.isNaN(value)) return value;
+    if (typeof value === 'string') {
+        const parsed = Number(value);
+        return Number.isNaN(parsed) ? null : parsed;
+    }
+    return null;
+};
+
 const resolveStageMetric = (etapa: EtapaTreino): { label: string; value: string } | null => {
     if (etapa.fcAlvoEtapa) {
         return { label: 'FC alvo', value: etapa.fcAlvoEtapa };
@@ -175,7 +184,7 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
         ? `${Math.round(dados.intensidadePlanejada * 100)}%`
         : 'N/A';
     const blocks = toWorkoutBlocks(etapasOrdenadas);
-    const totalDuration = dados.duracaoMin ?? blocks.reduce((total, block) => total + block.durationMin, 0);
+    const totalDuration = getNumericValue(dados.duracaoMin) ?? blocks.reduce((total, block) => total + block.durationMin, 0);
     const dominantZoneKey = blocks.reduce<keyof typeof zones | null>((current, block) => {
         if (!current) return block.zoneKey;
         return block.zone > Number(current.replace('Z', '')) ? block.zoneKey : current;
@@ -403,7 +412,7 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                     <MetricCard
                                         icon={<ScheduleIcon fontSize="small" />}
                                         label="Duração"
-                                        value={formatDuration(dados.duracaoMin)}
+                                        value={formatDuration(getNumericValue(dados.duracaoMin))}
                                         accent="#1f9d8b"
                                     />
                                 </Grid>
@@ -411,7 +420,7 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                     <MetricCard
                                         icon={<SpeedIcon fontSize="small" />}
                                         label="Ritmo alvo"
-                                        value={getSafeValue(dados.ritmoAlvo) || 'N/A'}
+                                        value={String(getSafeValue(dados.ritmoAlvo) || 'N/A')}
                                         accent="#f39c12"
                                     />
                                 </Grid>
