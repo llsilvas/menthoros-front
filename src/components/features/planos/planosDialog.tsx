@@ -21,19 +21,23 @@ import {
 } from '@mui/material';
 import {
     Add as AddIcon,
+    Close as CloseIcon,
     Delete as DeleteIcon,
     Flag as FlagIcon,
     Assignment as AssignmentIcon,
     DirectionsRun as RunIcon,
+    Refresh as RefreshIcon,
 } from '@mui/icons-material';
+import { alpha } from '@mui/material/styles';
 import { usePlanoSemanal } from '../../../hooks/usePlanoSemanal';
+import { AtletasService } from '../../../api/services/AtletasService';
 import {
     formatarPeriodoSemana,
     calcularProgressoVolume,
     obterStatusColor,
     obterStatusLabel
 } from '../../../types/PlanoSemanal';
-import type { MetodoGeracaoPlano } from '../../../types/PlanoSemanal';
+import type { MetodoGeracaoPlano, PlanoStatus } from '../../../types/PlanoSemanal';
 import type { TreinoPlanejado } from '../../../types/TreinoPlanejado';
 import TreinoRealizadoDialog from '../TreinoRealizadoDialog';
 import DetalheTreinoDialog from './DetalheTreinoDialog';
@@ -96,6 +100,29 @@ const getDiaSemanaOrder = (diaSemana: TreinoPlanejado['diaSemana']): number => {
     return Number.MAX_SAFE_INTEGER;
 };
 
+const SummaryMetric: React.FC<{
+    value: number | string;
+    label: string;
+    accent: string;
+}> = ({ value, label, accent }) => (
+    <Box
+        sx={{
+            borderRadius: 1,
+            border: '1px solid #d1d5db',
+            background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+            p: 1.75,
+            textAlign: 'center',
+            height: '100%',
+        }}
+    >
+        <Typography variant="h4" sx={{ fontWeight: 'bold', color: accent, lineHeight: 1.1 }}>
+            {value}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            {label}
+        </Typography>
+    </Box>
+);
 
 
 const PlanosDialog: React.FC<PlanosDialogProps> = ({
@@ -152,6 +179,9 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
             const primeiroId = (ativo ?? planos[0]).id ?? '';
             setPlanoSemanalIdSelecionado(primeiroId);
         }
+        // `planoSemanalIdSelecionado` fica fora da lista para preservar o comportamento atual:
+        // selecionar apenas na carga inicial dos planos.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [planos]);
 
     const handleGerarPlano = async () => {
@@ -206,6 +236,15 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
         setTreinoDetalhe(null);
     };
 
+    const handleRecalcularMetricas = async () => {
+        if (!atletaId) return;
+        try {
+            await AtletasService.recalcularMetricas(atletaId);
+        } catch (err) {
+            console.error('Erro ao recalcular métricas:', err);
+        }
+    };
+
     const handleSuccess = async () => {
         // Recarregar os dados do plano
         if (atletaId) {
@@ -220,47 +259,195 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
 
     return (
         <>
-        <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 3, py: 1.5 }}>
-                <Typography variant='subtitle1' component="h1" sx={{ fontWeight: 700 }}>
-                    Planos Semanais de {atletaNome}
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+        <Dialog
+            open={open}
+            onClose={onClose}
+            maxWidth="lg"
+            fullWidth
+            slotProps={{
+                paper: {
+                    sx: {
+                        overflow: 'hidden',
+                        borderRadius: 1,
+                        backgroundColor: '#ffffff',
+                    },
+                },
+            }}
+        >
+            <DialogTitle
+                sx={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 2,
+                    px: 3,
+                    py: 2.25,
+                    pr: 8,
+                    color: 'white',
+                    background: 'linear-gradient(135deg, #082130 0%, #0e3147 55%, #133c56 100%)',
+                    borderBottom: '1px solid rgba(255,255,255,0.08)',
+                }}
+            >
+                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1, mb: 1 }}>
+                        <Chip
+                            label={`${planos.length} plano(s)`}
+                            size="small"
+                            sx={{
+                                bgcolor: 'rgba(255,255,255,0.12)',
+                                color: '#e8eaed',
+                                fontWeight: 700,
+                                border: '1px solid rgba(255,255,255,0.12)',
+                            }}
+                        />
+                        {temPlanoAtivo && (
+                            <Chip
+                                label="Plano ativo"
+                                size="small"
+                                sx={{
+                                    bgcolor: alpha('#b3ff00', 0.16),
+                                    color: '#f8fafc',
+                                    border: `1px solid ${alpha('#b3ff00', 0.28)}`,
+                                    fontWeight: 700,
+                                }}
+                            />
+                        )}
+                    </Box>
+                    <Typography
+                        variant="h6"
+                        component="div"
+                        sx={{
+                            fontFamily: 'Syne, sans-serif',
+                            fontWeight: 800,
+                            lineHeight: 1.15,
+                            pr: 2,
+                        }}
+                    >
+                        Planos Semanais de {atletaNome}
+                    </Typography>
+                    <Typography
+                        variant="body2"
+                        sx={{
+                            mt: 0.75,
+                            color: 'rgba(232, 234, 237, 0.72)',
+                            maxWidth: 760,
+                        }}
+                    >
+                        Acompanhe volume, progresso e treinos planejados com a mesma leitura visual usada no detalhe do treino.
+                    </Typography>
+                </Box>
+
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end', mr: 2 }}>
                     <ToggleButtonGroup
                         value={modoGeracao}
                         exclusive
                         size="small"
                         onChange={(_, value) => { if (value) setModoGeracao(value); }}
                         disabled={loading || temPlanoAtivo}
+                        sx={{
+                            '& .MuiToggleButton-root': {
+                                color: 'rgba(255,255,255,0.78)',
+                                borderColor: 'rgba(255,255,255,0.14)',
+                                bgcolor: 'rgba(255,255,255,0.04)',
+                                textTransform: 'none',
+                                px: 1.25,
+                            },
+                            '& .MuiToggleButton-root.Mui-selected': {
+                                color: '#082130',
+                                bgcolor: '#ffffff',
+                                '&:hover': {
+                                    bgcolor: '#ffffff',
+                                },
+                            },
+                        }}
                     >
                         <ToggleButton value="PROXIMA_SEMANA">Próx. Semana</ToggleButton>
                         <ToggleButton value="SEMANA_ATUAL">Sem. Atual</ToggleButton>
                     </ToggleButtonGroup>
                     <Button
                         variant='outlined'
-                        color='error'
+                        startIcon={<RefreshIcon />}
+                        onClick={handleRecalcularMetricas}
+                        disabled={loading}
+                        size='small'
+                        sx={{
+                            color: '#ffffff',
+                            borderColor: 'rgba(255,255,255,0.18)',
+                            bgcolor: 'rgba(255,255,255,0.04)',
+                            '&:hover': {
+                                borderColor: 'rgba(255,255,255,0.26)',
+                                bgcolor: 'rgba(255,255,255,0.08)',
+                            },
+                        }}
+                    >
+                        Recalcular Métricas
+                    </Button>
+                    <Button
+                        variant='outlined'
                         startIcon={<DeleteIcon />}
                         onClick={() => handleDeletePlano(planoSemanalIdSelecionado)}
                         disabled={loading || !planoSemanalIdSelecionado}
                         size='small'
+                        sx={{
+                            color: '#fecaca',
+                            borderColor: 'rgba(248,113,113,0.28)',
+                            bgcolor: 'rgba(127,29,29,0.12)',
+                            '&:hover': {
+                                borderColor: 'rgba(248,113,113,0.42)',
+                                bgcolor: 'rgba(127,29,29,0.18)',
+                            },
+                        }}
                     >
                         Excluir Plano
                     </Button>
                     <Button
                         variant='contained'
-                        color='primary'
                         startIcon={<AddIcon />}
                         onClick={handleGerarPlano}
                         disabled={loading || temPlanoAtivo}
                         size="small"
+                        sx={{
+                            bgcolor: '#b3ff00',
+                            color: '#082130',
+                            fontWeight: 700,
+                            '&:hover': {
+                                bgcolor: '#c8ff4d',
+                            },
+                        }}
                     >
                         {loading ? 'Gerando...' : 'Gerar Plano'}
                     </Button>
                 </Box>
+
+                <Button
+                    onClick={onClose}
+                    sx={{
+                        position: 'absolute',
+                        right: 12,
+                        top: 12,
+                        minWidth: 0,
+                        width: 36,
+                        height: 36,
+                        p: 0,
+                        color: 'white',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        bgcolor: 'rgba(255,255,255,0.06)',
+                        '&:hover': {
+                            bgcolor: 'rgba(255,255,255,0.12)',
+                        },
+                    }}
+                >
+                    <CloseIcon fontSize="small" />
+                </Button>
             </DialogTitle>
-            <DialogContent sx={{ p: 2 }}>
+            <DialogContent
+                sx={{
+                    p: 0,
+                    background:
+                        'radial-gradient(circle at top right, rgba(179,233,45,0.08), transparent 24%), linear-gradient(180deg, #eef3f8 0%, #e8edf4 100%)',
+                }}
+            >
                 {loading && (
-                    <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" minHeight="300px">
+                    <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" minHeight="320px">
                         <CircularProgress size={60} />
                         <Typography sx={{ mt: 2 }} color="text.secondary">
                             Carregando planos semanais...
@@ -269,13 +456,13 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                 )}
 
                 {error && (
-                    <Alert severity="error" sx={{ mb: 2 }}>
+                    <Alert severity="error" sx={{ m: 3 }}>
                         {error.message}
                     </Alert>
                 )}
 
                 {!loading && !error && planos.length === 0 && (
-                    <Box sx={{ textAlign: 'center', py: 6 }}>
+                    <Box sx={{ textAlign: 'center', py: 8, px: 3 }}>
                         <AssignmentIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
                         <Typography variant="h6" color="text.secondary" gutterBottom>
                             Nenhum plano semanal encontrado
@@ -287,36 +474,57 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                 )}
 
                 {!loading && !error && planos.length > 0 && (
-                    <Stack spacing={3}>
+                    <Stack spacing={2.5} sx={{ p: { xs: 2, md: 3 } }}>
                         {planos.map((plano, index) => {
                             const volumeRealizado = getSafeNumber(plano.volumeRealizadoKm);
                             const volumePlanejado = getSafeNumber(plano.volumePlanejadoKm);
-                            const status = getSafeValue(plano.status);
+                            const status = getSafeValue(plano.status) as PlanoStatus;
 
                             const progresso = calcularProgressoVolume(volumeRealizado, volumePlanejado);
-                            const statusColor = obterStatusColor(status as any);
+                            const statusColor = obterStatusColor(status);
 
                             return (
                                 <Card
                                     key={plano.id || index}
-                                    elevation={planoSemanalIdSelecionado === plano.id ? 6 : 3}
+                                    variant="outlined"
                                     onClick={() => setPlanoSemanalIdSelecionado(plano.id || '')}
                                     sx={{
-                                        overflow: 'visible',
+                                        borderRadius: 1,
+                                        overflow: 'hidden',
                                         cursor: 'pointer',
-                                        outline: planoSemanalIdSelecionado === plano.id ? '2px solid' : 'none',
-                                        outlineColor: 'primary.main',
+                                        borderColor: planoSemanalIdSelecionado === plano.id ? 'primary.main' : '#d1d5db',
+                                        background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+                                        transition: 'border-color 0.15s ease, transform 0.15s ease',
+                                        '&:hover': {
+                                            borderColor: alpha('#1976d2', 0.5),
+                                            transform: 'translateY(-1px)',
+                                        },
                                     }}
                                 >
-                                    <CardContent sx={{ p: 3 }}>
+                                    <CardContent sx={{ p: 2.5 }}>
                                         {/* Header com período e status */}
-                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                                            <Typography variant="h6" component="h3">
-                                                {formatarPeriodoSemana(getSafeValue(plano.semanaInicio) as string, getSafeValue(plano.semanaFim) as string)}
-                                            </Typography>
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2, mb: 2 }}>
+                                            <Box>
+                                                <Typography
+                                                    sx={{
+                                                        fontSize: '0.75rem',
+                                                        fontWeight: 800,
+                                                        textTransform: 'uppercase',
+                                                        letterSpacing: '0.05em',
+                                                        color: '#6b7a8d',
+                                                        mb: 0.5,
+                                                    }}
+                                                >
+                                                    Semana planejada
+                                                </Typography>
+                                                <Typography variant="h6" component="h3" sx={{ fontWeight: 700, color: '#1a2535' }}>
+                                                    {formatarPeriodoSemana(getSafeValue(plano.semanaInicio) as string, getSafeValue(plano.semanaFim) as string)}
+                                                </Typography>
+                                            </Box>
                                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                                 <Chip
-                                                    label={obterStatusLabel(status as any)}
+                                                    label={obterStatusLabel(status)}
+                                                    size="small"
                                                     sx={{
                                                         bgcolor: statusColor,
                                                         color: 'white',
@@ -327,41 +535,28 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                                         </Box>
 
                                         {/* Volumes */}
-                                        <Grid container spacing={3} sx={{ mb: 3 }}>
-                                            <Grid>
-                                                <Box sx={{ textAlign: 'center' }}>
-                                                    <Typography variant="h4" color="primary" sx={{ fontWeight: 'bold' }}>
-                                                        {volumePlanejado}
-                                                    </Typography>
-                                                    <Typography variant="body2" color="text.secondary">
-                                                        Volume Planejado (km)
-                                                    </Typography>
-                                                </Box>
+                                        <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
+                                            <Grid size={{ xs: 12, sm: 4 }}>
+                                                <SummaryMetric value={volumePlanejado} label="Volume Planejado (km)" accent="#1976d2" />
                                             </Grid>
-                                            <Grid>
-                                                <Box sx={{ textAlign: 'center' }}>
-                                                    <Typography variant="h4" color="success.main" sx={{ fontWeight: 'bold' }}>
-                                                        {volumeRealizado}
-                                                    </Typography>
-                                                    <Typography variant="body2" color="text.secondary">
-                                                        Volume Realizado (km)
-                                                    </Typography>
-                                                </Box>
+                                            <Grid size={{ xs: 12, sm: 4 }}>
+                                                <SummaryMetric value={volumeRealizado} label="Volume Realizado (km)" accent="#2e7d32" />
                                             </Grid>
-                                            <Grid>
-                                                <Box sx={{ textAlign: 'center' }}>
-                                                    <Typography variant="h4" color="warning.main" sx={{ fontWeight: 'bold' }}>
-                                                        {getSafeNumber(plano.volumeAlvoKm)}
-                                                    </Typography>
-                                                    <Typography variant="body2" color="text.secondary">
-                                                        Volume Alvo (km)
-                                                    </Typography>
-                                                </Box>
+                                            <Grid size={{ xs: 12, sm: 4 }}>
+                                                <SummaryMetric value={getSafeNumber(plano.volumeAlvoKm)} label="Volume Alvo (km)" accent="#ed6c02" />
                                             </Grid>
                                         </Grid>
 
                                         {/* Barra de progresso */}
-                                        <Box sx={{ mb: 3 }}>
+                                        <Box
+                                            sx={{
+                                                mb: 2.5,
+                                                borderRadius: 1,
+                                                border: '1px solid #d1d5db',
+                                                bgcolor: '#fff',
+                                                p: 1.5,
+                                            }}
+                                        >
                                             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                                                 <Typography variant="body2" color="text.secondary">
                                                     Progresso do Volume
@@ -453,7 +648,14 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                                         {(plano.tsbInicio !== undefined || plano.tsbFim !== undefined) && (
                                             <>
                                                 <Divider sx={{ my: 2 }} />
-                                                <Box>
+                                                <Box
+                                                    sx={{
+                                                        borderRadius: 1,
+                                                        border: '1px solid #d1d5db',
+                                                        bgcolor: '#fff',
+                                                        p: 1.5,
+                                                    }}
+                                                >
                                                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
                                                         Training Stress Balance (TSB)
                                                     </Typography>
@@ -483,8 +685,13 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                     </Stack>
                 )}
             </DialogContent>
-            <DialogActions sx={{ px: 2, pb: 2 }}>
-                <Button onClick={onClose} color="primary" size="small">
+            <DialogActions sx={{ px: 3, py: 2, background: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
+                <Box sx={{ flexGrow: 1 }}>
+                    <Typography variant="caption" sx={{ color: '#6b7a8d' }}>
+                        Visual alinhado ao detalhe do treino para manter consistência entre lista e drill-down.
+                    </Typography>
+                </Box>
+                <Button onClick={onClose} color="primary" size="small" variant="contained">
                     Fechar
                 </Button>
             </DialogActions>
