@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, FormControlLabel, Checkbox, Alert, Typography, FormGroup, Box } from "@mui/material";
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, FormControlLabel, Checkbox, Alert, Typography, FormGroup, Box, Chip, IconButton, Stack } from "@mui/material";
+import { Close as CloseIcon } from '@mui/icons-material';
 import Grid from '@mui/material/Grid';
 
 import type { Atleta, CreateAtleta, UpdateAtleta, AtletaDialogProps, diaSemana, Sexo } from "../../../types/Atleta";
@@ -19,7 +20,7 @@ interface FormErrors {
 
 const getInitialFormData = (atleta?: Atleta): CreateAtleta | UpdateAtleta => {
     // Garantir que os valores são sempre strings válidas para os selects
-    const validarNivelExperiencia = (nivel: any): "INICIANTE" | "INTERMEDIARIO" | "AVANCADO" => {
+    const validarNivelExperiencia = (nivel: unknown): "INICIANTE" | "INTERMEDIARIO" | "AVANCADO" => {
         // Se for um objeto com propriedade value
         if (nivel && typeof nivel === 'object' && nivel.value) {
             const value = nivel.value;
@@ -34,7 +35,7 @@ const getInitialFormData = (atleta?: Atleta): CreateAtleta | UpdateAtleta => {
         return "INICIANTE";
     };
 
-    const validarDiaSemana = (dia: any): diaSemana => {
+    const validarDiaSemana = (dia: unknown): diaSemana => {
         // Se for um objeto com propriedade value
         if (dia && typeof dia === 'object' && dia.value) {
             const value = dia.value;
@@ -49,7 +50,7 @@ const getInitialFormData = (atleta?: Atleta): CreateAtleta | UpdateAtleta => {
         return "DOMINGO";
     };
 
-    const validarDiasDisponiveis = (dias: any): diaSemana[] => {
+    const validarDiasDisponiveis = (dias: unknown): diaSemana[] => {
         if (Array.isArray(dias)) {
             return dias.map(dia => {
                 // Se for um objeto com propriedade value
@@ -177,17 +178,126 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
         }
     };
     return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ px: 2, py: 1.5 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                {isEditMode ? 'Editar Atleta' : 'Adicionar Atleta'}
-            </Typography>
+    <Dialog
+        open={open}
+        onClose={handleClose}
+        maxWidth="lg"
+        fullWidth
+        slotProps={{
+            paper: {
+                sx: {
+                    overflow: 'hidden',
+                    borderRadius: 1,
+                    backgroundColor: '#ffffff',
+                },
+            },
+        }}
+    >
+        <DialogTitle
+            sx={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 2,
+                px: 3,
+                py: 2.25,
+                pr: 8,
+                color: 'white',
+                background: 'linear-gradient(135deg, #082130 0%, #0e3147 55%, #133c56 100%)',
+                borderBottom: '1px solid rgba(255,255,255,0.08)',
+            }}
+        >
+            <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <Chip
+                        label={isEditMode ? 'Edição' : 'Cadastro'}
+                        size="small"
+                        sx={{
+                            bgcolor: 'rgba(255,255,255,0.12)',
+                            color: '#e8eaed',
+                            fontWeight: 700,
+                            border: '1px solid rgba(255,255,255,0.12)',
+                        }}
+                    />
+                </Box>
+                <Typography
+                    variant="h6"
+                    component="div"
+                    sx={{
+                        fontFamily: 'Syne, sans-serif',
+                        fontWeight: 800,
+                        lineHeight: 1.15,
+                        pr: 2,
+                    }}
+                >
+                    {isEditMode ? 'Editar Atleta' : 'Adicionar Atleta'}
+                </Typography>
+                <Typography
+                    variant="body2"
+                    sx={{
+                        mt: 0.75,
+                        color: 'rgba(232, 234, 237, 0.72)',
+                        maxWidth: 720,
+                    }}
+                >
+                    Atualize os dados de perfil, disponibilidade e preferências mantendo a mesma linguagem visual dos outros dialogs.
+                </Typography>
+            </Box>
+
+            <IconButton
+                onClick={handleClose}
+                disabled={loading}
+                sx={{
+                    position: 'absolute',
+                    right: 12,
+                    top: 12,
+                    color: 'white',
+                    bgcolor: 'rgba(255,255,255,0.06)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    '&:hover': {
+                        bgcolor: 'rgba(255,255,255,0.12)',
+                    },
+                }}
+            >
+                <CloseIcon />
+            </IconButton>
         </DialogTitle>
         <form onSubmit={handleSubmit} noValidate>
-            <DialogContent dividers sx={{ p: 2 }}>
-                {submitError && <Alert severity="error" sx={{ mb: 2 }}>{submitError}</Alert>}
-                <Grid container spacing={1.5}>
-                    <Grid size={6}>
+            <DialogContent
+                dividers
+                sx={{
+                    p: 0,
+                    background:
+                        'radial-gradient(circle at top right, rgba(179,233,45,0.08), transparent 24%), linear-gradient(180deg, #eef3f8 0%, #e8edf4 100%)',
+                }}
+            >
+                <Stack spacing={2.5} sx={{ p: { xs: 2, md: 3 } }}>
+                    {submitError && <Alert severity="error">{submitError}</Alert>}
+                    <Box
+                        sx={{
+                            borderRadius: 1,
+                            border: '1px solid rgba(255,255,255,0.7)',
+                            background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.94) 100%)',
+                            p: { xs: 2, md: 2.5 },
+                        }}
+                    >
+                        <Box sx={{ mb: 2 }}>
+                            <Typography
+                                sx={{
+                                    fontFamily: 'Syne, sans-serif',
+                                    fontSize: '1.1rem',
+                                    fontWeight: 800,
+                                    color: '#1a2535',
+                                }}
+                            >
+                                Dados do atleta
+                            </Typography>
+                            <Typography variant="body2" sx={{ mt: 0.5, color: '#6b7a8d' }}>
+                                Preencha as informações obrigatórias, rotina disponível e eventuais restrições.
+                            </Typography>
+                        </Box>
+
+                        <Grid container spacing={1.5}>
+                            <Grid size={6}>
                         <TextField
                             label="Nome"
                             name="nome"
@@ -199,8 +309,8 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                             required
                             size="small"
                         />
-                    </Grid>
-                    <Grid size={6}>
+                            </Grid>
+                            <Grid size={6}>
                         <TextField
                             label="Data de Nascimento"
                             name="dataNascimento"
@@ -214,8 +324,8 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                             size="small"
                             slotProps={{ inputLabel: { shrink: true } }}
                         />
-                    </Grid>
-                    <Grid size={6}>
+                            </Grid>
+                            <Grid size={6}>
                         <TextField
                             select
                             label="Sexo"
@@ -233,8 +343,8 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                                 <MenuItem key={op.value} value={op.value}>{op.label}</MenuItem>
                             ))}
                         </TextField>
-                    </Grid>
-                    <Grid size={6}>
+                            </Grid>
+                            <Grid size={6}>
                         <TextField
                             label="Peso (kg)"
                             name="pesoKg"
@@ -247,8 +357,8 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                             required
                             size="small"
                         />
-                    </Grid>
-                    <Grid size={6}>
+                            </Grid>
+                            <Grid size={6}>
                         <TextField
                             label="Altura (cm)"
                             name="alturaCm"
@@ -261,8 +371,8 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                             required
                             size="small"
                         />
-                    </Grid>
-                    <Grid size={12}>
+                            </Grid>
+                            <Grid size={12}>
                         <TextField
                             label="Objetivo"
                             name="objetivo"
@@ -274,8 +384,8 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                             required
                             size="small"
                         />
-                    </Grid>
-                    <Grid size={6}>
+                            </Grid>
+                            <Grid size={6}>
                         <TextField
                             select
                             label="Nível de Experiência"
@@ -291,8 +401,8 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                                 </MenuItem>
                             ))}
                         </TextField>
-                    </Grid>
-                    <Grid size={6}>
+                            </Grid>
+                            <Grid size={6}>
                         <TextField
                             select
                             label="Dia Preferido para Treino Longo"
@@ -308,8 +418,8 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                                 </MenuItem>
                             ))}
                         </TextField>
-                    </Grid>
-                    <Grid size={12}>
+                            </Grid>
+                            <Grid size={12}>
                         <Box sx={{ mb: 2 }}>
                             <Typography variant="subtitle2" sx={{ fontWeight: 600 }} gutterBottom>
                                 Dias Disponíveis para Treino
@@ -339,8 +449,8 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                                 ))}
                             </FormGroup>
                         </Box>
-                    </Grid>
-                    <Grid size={12}>
+                            </Grid>
+                            <Grid size={12}>
                         <FormControlLabel
                             control={
                                 <Checkbox
@@ -351,9 +461,9 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                             }
                             label="Possui Lesão"
                         />
-                    </Grid>
-                    {formData.temLesao && (
-                        <Grid size={12}>
+                            </Grid>
+                            {formData.temLesao && (
+                                <Grid size={12}>
                             <TextField
                                 label="Descrição da Lesão"
                                 name="descricaoLesao"
@@ -365,11 +475,18 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                                 required
                                 size="small"
                             />
+                                </Grid>
+                            )}
                         </Grid>
-                    )}
-                </Grid>
+                    </Box>
+                </Stack>
             </DialogContent>
-            <DialogActions sx={{ px: 2, pb: 2 }}>
+            <DialogActions sx={{ px: 3, py: 2, background: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
+                <Box sx={{ flexGrow: 1 }}>
+                    <Typography variant="caption" sx={{ color: '#6b7a8d' }}>
+                        Tamanho e estilo padronizados com os dialogs de planos e detalhe.
+                    </Typography>
+                </Box>
                 <Button onClick={handleClose} disabled={loading} size="small">Cancelar</Button>
                 <Button type="submit" variant="contained" color="primary" disabled={loading} size="small">
                     {loading ? 'Salvando...' : 'Salvar'}
