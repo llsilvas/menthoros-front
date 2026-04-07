@@ -37,7 +37,6 @@ import type { TreinoRealizado, EtapaRealizadaInput } from '../../types/TreinoRea
 import { TIPO_ETAPA_OPTIONS, criarEtapasFromPlanejadas } from '../../types/TreinoRealizado';
 import type { TreinoPlanejado } from '../../types/TreinoPlanejado';
 import { getSafeValue, getSafeNumber } from '../../utils/safeValues';
-import { glass } from '../../theme/tokens';
 
 interface TreinoRealizadoDialogProps {
     open: boolean;
@@ -253,21 +252,26 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
                 status: 'REALIZADO',
                 externalId: undefined,
                 etapasRealizadas: etapasRealizadas.length > 0
-                    ? etapasRealizadas.map(({ _planejado, ...etapa }, index) => ({
-                        ...etapa,
-                        ordem: index + 1,
-                        descricao: etapa.descricao?.trim() || undefined,
-                        duracao: etapa.duracao?.trim() || undefined,
-                        paceMedia: etapa.paceMedia?.trim() || undefined,
-                        observacao: etapa.observacao?.trim() || undefined,
-                        distanciaKm: etapa.distanciaKm || undefined,
-                        fcMedia: etapa.fcMedia || undefined,
-                        fcMax: etapa.fcMax || undefined,
-                        percepcaoEsforco: etapa.percepcaoEsforco || undefined,
-                        cadenciaMedia: etapa.cadenciaMedia || undefined,
-                        potenciaMedia: etapa.potenciaMedia || undefined,
-                        velocidadeMedia: etapa.velocidadeMedia || undefined,
-                    }))
+                    ? etapasRealizadas.map((etapaRealizada, index) => {
+                        const { _planejado, ...etapa } = etapaRealizada;
+                        void _planejado;
+
+                        return {
+                            ...etapa,
+                            ordem: index + 1,
+                            descricao: etapa.descricao?.trim() || undefined,
+                            duracao: etapa.duracao?.trim() || undefined,
+                            paceMedia: etapa.paceMedia?.trim() || undefined,
+                            observacao: etapa.observacao?.trim() || undefined,
+                            distanciaKm: etapa.distanciaKm || undefined,
+                            fcMedia: etapa.fcMedia || undefined,
+                            fcMax: etapa.fcMax || undefined,
+                            percepcaoEsforco: etapa.percepcaoEsforco || undefined,
+                            cadenciaMedia: etapa.cadenciaMedia || undefined,
+                            potenciaMedia: etapa.potenciaMedia || undefined,
+                            velocidadeMedia: etapa.velocidadeMedia || undefined,
+                        };
+                    })
                     : undefined,
             };
 
@@ -296,25 +300,96 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
         <Dialog
             open={open}
             onClose={handleClose}
-            maxWidth="sm"
+            maxWidth="lg"
             fullWidth
-            slotProps={{ paper: { sx: { backgroundColor: 'rgba(255, 255, 255, 0.75)' } } }}
+            slotProps={{
+                paper: {
+                    sx: {
+                        overflow: 'hidden',
+                        borderRadius: 1,
+                        backgroundColor: '#ffffff',
+                    },
+                },
+            }}
         >
-            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 2, py: 1.5 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <CheckCircleIcon color="success" />
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+            <DialogTitle
+                sx={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 2,
+                    px: 3,
+                    py: 2.25,
+                    pr: 8,
+                    color: 'white',
+                    background: 'linear-gradient(135deg, #082130 0%, #0e3147 55%, #133c56 100%)',
+                    borderBottom: '1px solid rgba(255,255,255,0.08)',
+                }}
+            >
+                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1, mb: 1 }}>
+                        <Chip
+                            icon={<CheckCircleIcon sx={{ fontSize: '0.9rem !important', color: '#b3ff00 !important' }} />}
+                            label="Conclusão de treino"
+                            size="small"
+                            sx={{
+                                bgcolor: 'rgba(255,255,255,0.12)',
+                                color: '#e8eaed',
+                                fontWeight: 700,
+                                border: '1px solid rgba(255,255,255,0.12)',
+                            }}
+                        />
+                    </Box>
+                    <Typography
+                        variant="h6"
+                        sx={{
+                            fontFamily: 'Syne, sans-serif',
+                            fontWeight: 800,
+                            lineHeight: 1.15,
+                            pr: 2,
+                        }}
+                    >
                         Marcar Treino como Realizado
                     </Typography>
+                    <Typography variant="body2" sx={{ mt: 0.75, color: 'rgba(232, 234, 237, 0.72)', maxWidth: 760 }}>
+                        Registre dados executados, etapas e feedback do atleta dentro do mesmo padrão visual dos dialogs de treino.
+                    </Typography>
                 </Box>
-                <IconButton onClick={handleClose} size="small">
+
+                <IconButton
+                    onClick={handleClose}
+                    size="small"
+                    sx={{
+                        position: 'absolute',
+                        right: 12,
+                        top: 12,
+                        color: 'white',
+                        bgcolor: 'rgba(255,255,255,0.06)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        '&:hover': { bgcolor: 'rgba(255,255,255,0.12)' },
+                    }}
+                >
                     <CloseIcon />
                 </IconButton>
             </DialogTitle>
 
-            <DialogContent sx={{ p: 2 }}>
+            <DialogContent
+                sx={{
+                    p: 0,
+                    background:
+                        'radial-gradient(circle at top right, rgba(179,233,45,0.08), transparent 24%), linear-gradient(180deg, #eef3f8 0%, #e8edf4 100%)',
+                }}
+            >
+                <Stack spacing={2.5} sx={{ p: { xs: 2, md: 3 } }}>
                 {/* Informações do treino */}
-                <Card variant="outlined" sx={{ mb: 3, p: 2, bgcolor: 'rgba(255, 255, 255, 0.8)' }}>
+                <Card
+                    variant="outlined"
+                    sx={{
+                        p: 2,
+                        borderRadius: 1,
+                        borderColor: '#d1d5db',
+                        background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.94) 100%)',
+                    }}
+                >
                     <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
                         {getSafeValue(treino.tipoTreino)}
                     </Typography>
@@ -752,7 +827,15 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
                             Feedback do Atleta
                         </Typography>
 
-                        <Card variant="outlined" sx={{ p: 2, bgcolor: 'rgba(255, 255, 255, 0.8)', borderColor: glass.border }}>
+                        <Card
+                            variant="outlined"
+                            sx={{
+                                p: 2,
+                                borderRadius: 1,
+                                bgcolor: 'rgba(255, 255, 255, 0.96)',
+                                borderColor: '#d1d5db',
+                            }}
+                        >
                             <Stack spacing={2}>
                                 <Box>
                                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
@@ -857,9 +940,15 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
                         </Card>
                     </Box>
                 </Stack>
+                </Stack>
             </DialogContent>
 
-            <DialogActions sx={{ px: 2, pb: 2 }}>
+            <DialogActions sx={{ px: 3, py: 2, background: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
+                <Box sx={{ flexGrow: 1 }}>
+                    <Typography variant="caption" sx={{ color: '#6b7a8d' }}>
+                        Mesmo dimensionamento e linguagem visual dos demais dialogs do fluxo.
+                    </Typography>
+                </Box>
                 <Button
                     onClick={handleClose}
                     variant="outlined"
