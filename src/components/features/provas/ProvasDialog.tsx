@@ -13,10 +13,12 @@ import {
 } from '@mui/material';
 import {
     Add as AddIcon,
+    Close as CloseIcon,
     EditOutlined as EditIcon,
     DeleteOutline as DeleteIcon,
     EmojiEvents as EmojiEventsIcon,
 } from '@mui/icons-material';
+import { alpha } from '@mui/material/styles';
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
 import type { GridColDef, GridRowParams } from '@mui/x-data-grid';
 import { useProvas } from '../../../hooks/useProvas';
@@ -105,7 +107,7 @@ const ProvasDialog: React.FC<ProvasDialogProps> = ({ open, onClose, atletaId, at
             field: 'tipoProva',
             headerName: 'Tipo',
             width: 130,
-            valueFormatter: (value: any) => {
+            valueFormatter: (value: unknown) => {
                 const key = extractTipoKey(value);
                 return key ? (TIPO_PROVA_LABELS[key] ?? key) : '—';
             },
@@ -114,7 +116,7 @@ const ProvasDialog: React.FC<ProvasDialogProps> = ({ open, onClose, atletaId, at
             field: 'distancia',
             headerName: 'Distância',
             width: 160,
-            valueFormatter: (value: any) => {
+            valueFormatter: (value: unknown) => {
                 const key = extractDistanciaKey(value);
                 return key ? (DISTANCIA_PROVA_LABELS[key] ?? key) : '—';
             },
@@ -190,28 +192,113 @@ const ProvasDialog: React.FC<ProvasDialogProps> = ({ open, onClose, atletaId, at
 
     return (
         <>
-            <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-                <DialogTitle sx={{ px: 2, py: 1.5 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+            <Dialog
+                open={open}
+                onClose={onClose}
+                maxWidth="lg"
+                fullWidth
+                slotProps={{
+                    paper: {
+                        sx: {
+                            overflow: 'hidden',
+                            borderRadius: 1,
+                            backgroundColor: '#ffffff',
+                        },
+                    },
+                }}
+            >
+                <DialogTitle
+                    sx={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: 2,
+                        px: 3,
+                        py: 2.25,
+                        pr: 8,
+                        color: 'white',
+                        background: 'linear-gradient(135deg, #082130 0%, #0e3147 55%, #133c56 100%)',
+                        borderBottom: '1px solid rgba(255,255,255,0.08)',
+                    }}
+                >
+                    <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1, mb: 1 }}>
+                            <Chip
+                                label={`${provas.length} prova(s)`}
+                                size="small"
+                                sx={{
+                                    bgcolor: 'rgba(255,255,255,0.12)',
+                                    color: '#e8eaed',
+                                    fontWeight: 700,
+                                    border: '1px solid rgba(255,255,255,0.12)',
+                                }}
+                            />
+                        </Box>
+                        <Typography
+                            variant="h6"
+                            sx={{
+                                fontFamily: 'Syne, sans-serif',
+                                fontWeight: 800,
+                                lineHeight: 1.15,
+                                pr: 2,
+                            }}
+                        >
                             Provas de {atletaNome}
                         </Typography>
-                        <Button
-                            variant="contained"
-                            color="primary"
-                            startIcon={<AddIcon />}
-                            onClick={() => handleOpenForm()}
-                            disabled={loading}
-                            size="small"
-                        >
-                            Nova Prova
-                        </Button>
+                        <Typography variant="body2" sx={{ mt: 0.75, color: 'rgba(232, 234, 237, 0.72)', maxWidth: 720 }}>
+                            Visualize provas cadastradas, status e contagem regressiva no mesmo padrão dos dialogs de atleta e planos.
+                        </Typography>
                     </Box>
+
+                    <Button
+                        variant="contained"
+                        startIcon={<AddIcon />}
+                        onClick={() => handleOpenForm()}
+                        disabled={loading}
+                        size="small"
+                        sx={{
+                            mr: 2,
+                            bgcolor: '#b3ff00',
+                            color: '#082130',
+                            fontWeight: 700,
+                            '&:hover': {
+                                bgcolor: '#c8ff4d',
+                            },
+                        }}
+                    >
+                        Nova Prova
+                    </Button>
+
+                    <Button
+                        onClick={onClose}
+                        sx={{
+                            position: 'absolute',
+                            right: 12,
+                            top: 12,
+                            minWidth: 0,
+                            width: 36,
+                            height: 36,
+                            p: 0,
+                            color: 'white',
+                            border: '1px solid rgba(255,255,255,0.08)',
+                            bgcolor: 'rgba(255,255,255,0.06)',
+                            '&:hover': {
+                                bgcolor: 'rgba(255,255,255,0.12)',
+                            },
+                        }}
+                    >
+                        <CloseIcon fontSize="small" />
+                    </Button>
                 </DialogTitle>
 
-                <DialogContent sx={{ p: 2, minHeight: 300 }}>
+                <DialogContent
+                    sx={{
+                        p: 0,
+                        background:
+                            'radial-gradient(circle at top right, rgba(179,233,45,0.08), transparent 24%), linear-gradient(180deg, #eef3f8 0%, #e8edf4 100%)',
+                    }}
+                >
                     {error && (
-                        <Alert severity="error" onClose={clearError} sx={{ mb: 2 }}>
+                        <Alert severity="error" onClose={clearError} sx={{ m: 3 }}>
                             {error}
                         </Alert>
                     )}
@@ -225,40 +312,62 @@ const ProvasDialog: React.FC<ProvasDialogProps> = ({ open, onClose, atletaId, at
                         </Box>
                     )}
 
-                    {!loading && !error && provas.length === 0 && (
-                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 220 }}>
-                            <EmojiEventsIcon sx={{ fontSize: 56, color: 'text.disabled', mb: 1.5 }} />
-                            <Typography variant="body1" color="text.secondary" gutterBottom>
-                                Nenhuma prova cadastrada
-                            </Typography>
-                            <Typography variant="body2" color="text.disabled">
-                                Clique em "Nova Prova" para adicionar.
-                            </Typography>
-                        </Box>
-                    )}
-
-                    {provas.length > 0 && (
-                        <DataGrid
-                            rows={provas}
-                            columns={columns}
-                            loading={loading}
-                            density="compact"
-                            rowHeight={44}
-                            hideFooterPagination
-                            hideFooter={provas.length <= 25}
-                            pageSizeOptions={[25]}
-                            disableRowSelectionOnClick
+                    <Box sx={{ p: { xs: 2, md: 3 } }}>
+                        <Box
                             sx={{
-                                border: 'none',
-                                '& .MuiDataGrid-columnHeaderTitle': { fontWeight: 600 },
-                                '& .MuiDataGrid-cell': { py: 0.5 },
+                                borderRadius: 1,
+                                border: '1px solid rgba(255,255,255,0.7)',
+                                background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.94) 100%)',
+                                p: 2,
+                                minHeight: 300,
                             }}
-                        />
-                    )}
+                        >
+                            {!loading && !error && provas.length === 0 ? (
+                                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 220 }}>
+                                    <EmojiEventsIcon sx={{ fontSize: 56, color: 'text.disabled', mb: 1.5 }} />
+                                    <Typography variant="body1" color="text.secondary" gutterBottom>
+                                        Nenhuma prova cadastrada
+                                    </Typography>
+                                    <Typography variant="body2" color="text.disabled">
+                                        Clique em "Nova Prova" para adicionar.
+                                    </Typography>
+                                </Box>
+                            ) : (
+                                <DataGrid
+                                    rows={provas}
+                                    columns={columns}
+                                    loading={loading}
+                                    density="compact"
+                                    rowHeight={44}
+                                    hideFooterPagination
+                                    hideFooter={provas.length <= 25}
+                                    pageSizeOptions={[25]}
+                                    disableRowSelectionOnClick
+                                    sx={{
+                                        border: 'none',
+                                        '--DataGrid-containerBackground': 'rgba(255, 255, 255, 0.55)',
+                                        '& .MuiDataGrid-columnHeaders': {
+                                            minHeight: 44,
+                                            borderRadius: 1,
+                                            bgcolor: alpha('#0e3147', 0.04),
+                                        },
+                                        '& .MuiDataGrid-columnHeaderTitle': { fontWeight: 600 },
+                                        '& .MuiDataGrid-cell': { py: 0.5 },
+                                        '& .MuiDataGrid-main': { borderRadius: 1 },
+                                    }}
+                                />
+                            )}
+                        </Box>
+                    </Box>
                 </DialogContent>
 
-                <DialogActions sx={{ px: 2, pb: 2 }}>
-                    <Button onClick={onClose} color="primary" size="small">
+                <DialogActions sx={{ px: 3, py: 2, background: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
+                    <Box sx={{ flexGrow: 1 }}>
+                        <Typography variant="caption" sx={{ color: '#6b7a8d' }}>
+                            Padrão visual alinhado à jornada de atletas, planos e treino.
+                        </Typography>
+                    </Box>
+                    <Button onClick={onClose} color="primary" size="small" variant="contained">
                         Fechar
                     </Button>
                 </DialogActions>
