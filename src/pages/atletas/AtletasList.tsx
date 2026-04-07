@@ -1,30 +1,131 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
+  Alert,
   Box,
   Button,
+  Chip,
+  CircularProgress,
+  IconButton,
+  Paper,
+  Stack,
+  TextField,
   Typography,
-  Alert,
-  Paper
 } from '@mui/material';
 import {
-  DataGrid,
-  GridActionsCellItem
-} from '@mui/x-data-grid';
-import type { GridColDef, GridRowParams } from '@mui/x-data-grid';
-import { GridToolbarQuickFilter } from '@mui/x-data-grid';
-import {
   Add as AddIcon,
-  EditOutlined as EditIcon,
   DeleteOutline as DeleteIcon,
-  EventOutlined as CalendarIcon,
+  EditOutlined as EditIcon,
   EmojiEvents as EmojiEventsIcon,
+  EventOutlined as CalendarIcon,
+  Search as SearchIcon,
 } from '@mui/icons-material';
-import { glassSx, content } from '../../theme/tokens';
+import { alpha } from '@mui/material/styles';
 import { useCrud } from '../../hooks/features/useCrud';
 import AtletaDialog from '../../components/features/atleta/AtletaDialog';
 import type { Atleta, CreateAtleta, UpdateAtleta } from '../../types/Atleta';
 import PlanosDialog from '../../components/features/planos/planosDialog';
 import ProvasDialog from '../../components/features/provas/ProvasDialog';
+
+type NivelExperienciaKey = 'INICIANTE' | 'INTERMEDIARIO' | 'AVANCADO';
+
+const nivelLabels: Record<NivelExperienciaKey, string> = {
+  INICIANTE: 'Iniciante',
+  INTERMEDIARIO: 'Intermediário',
+  AVANCADO: 'Avançado',
+};
+
+const nivelStyles: Record<NivelExperienciaKey, { bg: string; color: string; rowBg: string; rowBorder: string }> = {
+  INICIANTE: {
+    bg: 'rgba(52, 152, 219, 0.12)',
+    color: '#1a5f8a',
+    rowBg: 'rgba(52, 152, 219, 0.06)',
+    rowBorder: '#3498db',
+  },
+  INTERMEDIARIO: {
+    bg: 'rgba(179, 255, 0, 0.14)',
+    color: '#486500',
+    rowBg: 'rgba(179, 255, 0, 0.10)',
+    rowBorder: '#9fcf21',
+  },
+  AVANCADO: {
+    bg: 'rgba(243, 156, 18, 0.12)',
+    color: '#8a5a00',
+    rowBg: 'rgba(243, 156, 18, 0.08)',
+    rowBorder: '#e0a12b',
+  },
+};
+
+const diasFormatados = {
+  DOMINGO: 'Dom',
+  SEGUNDA: 'Seg',
+  TERCA: 'Ter',
+  QUARTA: 'Qua',
+  QUINTA: 'Qui',
+  SEXTA: 'Sex',
+  SABADO: 'Sab',
+} as const;
+
+const normalizeText = (value: string) =>
+  value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+const getInitials = (name: string) =>
+  name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('');
+
+const getExperienceKey = (nivel: Atleta['nivelExperiencia']): NivelExperienciaKey => {
+  if (typeof nivel === 'string' && nivel in nivelLabels) {
+    return nivel as NivelExperienciaKey;
+  }
+
+  if (
+    nivel &&
+    typeof nivel === 'object' &&
+    'value' in nivel &&
+    typeof nivel.value === 'string' &&
+    nivel.value in nivelLabels
+  ) {
+    return nivel.value as NivelExperienciaKey;
+  }
+
+  return 'INICIANTE';
+};
+
+const getObjetivoLabel = (objetivo: string) => {
+  const normalized = normalizeText(objetivo);
+
+  if (normalized.includes('marat')) return 'Maratona';
+  if (normalized.includes('meia')) return 'Meia';
+  if (normalized.includes('10k') || normalized.includes('10 km')) return '10K';
+  if (normalized.includes('5k') || normalized.includes('5 km')) return '5K';
+  if (normalized.includes('trail')) return 'Trail';
+
+  return objetivo || 'Objetivo';
+};
+
+const formatDiasDisponiveis = (dias: Atleta['diasDisponiveis']) => {
+  if (!Array.isArray(dias) || dias.length === 0) return 'Sem rotina definida';
+
+  return dias
+    .map((dia) => {
+      if (dia && typeof dia === 'object' && 'short' in dia && typeof dia.short === 'string') {
+        return dia.short;
+      }
+
+      if (dia && typeof dia === 'object' && 'value' in dia && typeof dia.value === 'string') {
+        return diasFormatados[dia.value as keyof typeof diasFormatados] || dia.value;
+      }
+
+      return diasFormatados[dia as keyof typeof diasFormatados] || String(dia);
+    })
+    .join('');
+};
 
 const AtletasList: React.FC = () => {
   const {
@@ -36,7 +137,7 @@ const AtletasList: React.FC = () => {
     updateAtleta,
     deleteAtleta,
     selectAtleta,
-    clearError
+    clearError,
   } = useCrud();
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -44,7 +145,7 @@ const AtletasList: React.FC = () => {
   const [selectedAtletaForPlanos, setSelectedAtletaForPlanos] = useState<Atleta | null>(null);
   const [provasDialogOpen, setProvasDialogOpen] = useState(false);
   const [selectedAtletaForProvas, setSelectedAtletaForProvas] = useState<Atleta | null>(null);
-
+  const [query, setQuery] = useState('');
 
   const handleOpenDialog = (atleta?: Atleta) => {
     selectAtleta(atleta || null);
@@ -72,8 +173,7 @@ const AtletasList: React.FC = () => {
   };
 
   const handleViewPlanos = (id: string) => {
-    console.log('Visualizar planos do atleta:', id);
-    setSelectedAtletaForPlanos(atletas.find(a => a.id === id) || null);
+    setSelectedAtletaForPlanos(atletas.find((a) => a.id === id) || null);
     setPlanosDialogOpen(true);
   };
 
@@ -83,7 +183,7 @@ const AtletasList: React.FC = () => {
   };
 
   const handleViewProvas = (id: string) => {
-    setSelectedAtletaForProvas(atletas.find(a => a.id === id) || null);
+    setSelectedAtletaForProvas(atletas.find((a) => a.id === id) || null);
     setProvasDialogOpen(true);
   };
 
@@ -92,223 +192,294 @@ const AtletasList: React.FC = () => {
     setSelectedAtletaForProvas(null);
   };
 
+  const filteredAtletas = useMemo(() => {
+    const normalizedQuery = normalizeText(query.trim());
+    if (!normalizedQuery) return atletas;
 
-  const formatDiasDisponiveis = (dias: any[]) => {
-    if (!Array.isArray(dias)) return '';
-
-    const diasFormatados = {
-      DOMINGO: 'Dom',
-      SEGUNDA: 'Seg',
-      TERCA: 'Ter',
-      QUARTA: 'Qua',
-      QUINTA: 'Qui',
-      SEXTA: 'Sex',
-      SABADO: 'Sáb'
-    };
-
-    return dias.map(dia => {
-      // Se for um objeto com short property
-      if (dia && typeof dia === 'object' && dia.short) {
-        return dia.short;
-      }
-      // Se for um objeto com label property
-      if (dia && typeof dia === 'object' && dia.label) {
-        return dia.label.substring(0, 3);
-      }
-      // Se for um objeto com value property
-      if (dia && typeof dia === 'object' && dia.value) {
-        return diasFormatados[dia.value as keyof typeof diasFormatados] || dia.value;
-      }
-      // Se for string direta
-      return diasFormatados[dia as keyof typeof diasFormatados] || dia;
-    }).join(', ');
-  };
-
-  const columns: GridColDef[] = [
-    {
-      field: 'nome',
-      headerName: 'Nome',
-      flex: 1,
-      minWidth: 150
-    },
-    {
-      field: 'dataNascimento',
-      headerName: 'Data de Nascimento',
-      width: 140
-    },
-    {
-      field: 'pesoKg',
-      headerName: 'Peso (kg)',
-      width: 100,
-      type: 'number',
-      valueFormatter: (value) => `${value} kg`
-    },
-    {
-      field: 'alturaCm',
-      headerName: 'Altura (cm)',
-      width: 110,
-      type: 'number',
-      valueFormatter: (value) => `${value} cm`
-    },
-    {
-      field: 'nivelExperiencia',
-      headerName: 'Nível',
-      width: 120,
-      valueFormatter: (params: any) => {
-        // Se for um objeto com label, usar o label
-        if (params && typeof params === 'object' && params.label) {
-          return params.label;
-        }
-        // Se for um objeto com value, usar o value formatado
-        if (params && typeof params === 'object' && params.value) {
-          const niveis = {
-            INICIANTE: 'Iniciante',
-            INTERMEDIARIO: 'Intermediário',
-            AVANCADO: 'Avançado'
-          };
-          return niveis[params.value as keyof typeof niveis] || params.value;
-        }
-        // Se for string direta
-        const niveis = {
-          INICIANTE: 'Iniciante',
-          INTERMEDIARIO: 'Intermediário',
-          AVANCADO: 'Avançado'
-        };
-        return niveis[params as keyof typeof niveis] || params;
-      }
-    },
-    {
-      field: 'diasDisponiveis',
-      headerName: 'Dias Disponíveis',
-      width: 180,
-      valueFormatter: (params: any) => formatDiasDisponiveis(params || [])
-    },
-    {
-      field: 'temLesao',
-      headerName: 'Lesão',
-      width: 80,
-      type: 'boolean',
-      renderCell: (params) => (
-        <Typography variant="caption" color={params.value ? 'error.main' : 'text.secondary'} sx={{ fontWeight: 600 }}>
-          {params.value ? 'Sim' : 'Não'}
-        </Typography>
-      )
-    },
-    {
-      field: 'actions',
-      type: 'actions',
-      headerName: 'Ações',
-      width: 120,
-      getActions: (params: GridRowParams) => [
-        <GridActionsCellItem
-          key="edit"
-          icon={<EditIcon />}
-          label="Editar"
-          onClick={() => handleOpenDialog(params.row as Atleta)}
-        />,
-        <GridActionsCellItem
-          key="planos"
-          icon={<CalendarIcon />}
-          label="Planos"
-          onClick={() => handleViewPlanos(params.row.id)}
-        />,
-        <GridActionsCellItem
-          key="provas"
-          icon={<EmojiEventsIcon />}
-          label="Provas"
-          onClick={() => handleViewProvas(params.row.id)}
-        />,
-        <GridActionsCellItem
-          key="delete"
-          icon={<DeleteIcon />}
-          label="Excluir"
-          onClick={() => handleDelete(params.row.id)}
-        />
+    return atletas.filter((atleta) => {
+      const nivel = nivelLabels[getExperienceKey(atleta.nivelExperiencia)];
+      const haystack = [
+        atleta.nome,
+        atleta.objetivo,
+        nivel,
+        formatDiasDisponiveis(atleta.diasDisponiveis),
       ]
-    }
-  ];
+        .join(' ')
+        .toLowerCase();
 
-  const QuickFilterToolbar = () => (
-    <Box sx={{ px: 1, py: 1, display: 'flex', justifyContent: 'flex-end' }}>
-      <Box sx={{ minWidth: 240, '& .MuiInputBase-root': { height: 36, fontSize: '0.875rem' } }}>
-        <GridToolbarQuickFilter
-          debounceMs={300}
-          slotProps={{ root: { placeholder: 'Buscar atleta...' } }}
-        />
-      </Box>
-    </Box>
-  );
+      return normalizeText(haystack).includes(normalizedQuery);
+    });
+  }, [atletas, query]);
 
   return (
-    <Box sx={{ height: '100%', p: 2, display: 'flex', flexDirection: 'column' }}>
-      <Paper variant="outlined" sx={{ flex: 1, display: 'flex', flexDirection: 'column', ...glassSx, color: 'inherit' }}>
-        {/* Header */}
-        <Box sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: content.divider }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="h5" component="h1">
-              Atletas
-            </Typography>
+    <Box
+      sx={{
+        minHeight: '100%',
+        p: 2,
+        display: 'flex',
+        flexDirection: 'column',
+        background:
+          'radial-gradient(circle at top right, rgba(179,233,45,0.08), transparent 24%), linear-gradient(180deg, #eef3f8 0%, #e8edf4 100%)',
+      }}
+    >
+      <Paper
+        variant="outlined"
+        sx={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          color: 'inherit',
+          borderRadius: 1,
+          borderColor: '#d1d5db',
+          overflow: 'hidden',
+          background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+        }}
+      >
+        <Box
+          sx={{
+            px: 3,
+            py: 2.25,
+            borderBottom: '1px solid rgba(255,255,255,0.08)',
+            background: 'linear-gradient(135deg, #082130 0%, #0e3147 55%, #133c56 100%)',
+            color: 'white',
+          }}
+        >
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2 }}>
+            <Box>
+              <Typography
+                variant="h5"
+                component="h1"
+                sx={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, lineHeight: 1.1 }}
+              >
+                Atletas
+              </Typography>
+              <Typography variant="body2" sx={{ mt: 0.75, color: 'rgba(232, 234, 237, 0.72)' }}>
+                Gerencie cadastro, planos e provas a partir de uma visualização unificada.
+              </Typography>
+            </Box>
+
             <Button
               variant="contained"
-              color="primary"
               startIcon={<AddIcon />}
               onClick={() => handleOpenDialog()}
               size="small"
+              sx={{
+                bgcolor: '#b3ff00',
+                color: '#082130',
+                fontWeight: 700,
+                '&:hover': {
+                  bgcolor: '#c8ff4d',
+                },
+              }}
             >
               Novo Atleta
             </Button>
           </Box>
         </Box>
 
-        {/* Error Alert */}
         {error && (
           <Box sx={{ p: 2 }}>
-            <Alert
-              severity="error"
-              onClose={clearError}
-              sx={{ mb: 2 }}
-            >
+            <Alert severity="error" onClose={clearError}>
               {error}
             </Alert>
           </Box>
         )}
 
-        {/* DataGrid */}
-        <Box sx={{ flex: 1, p: 1.5 }}>
-          <DataGrid
-            rows={atletas}
-            columns={columns}
-            loading={loading}
-            pageSizeOptions={[5, 10, 25, 50]}
-            density="compact"
-            rowHeight={44}
-            slots={{ toolbar: QuickFilterToolbar }}
-            initialState={{
-              pagination: {
-                paginationModel: { pageSize: 10 }
-              },
-              columns: {
-                columnVisibilityModel: {
-                  dataNascimento: false,
-                  pesoKg: false,
-                  alturaCm: false,
-                },
-              },
-            }}
-            disableRowSelectionOnClick
+        <Box sx={{ flex: 1, p: { xs: 1.5, md: 2 } }}>
+          <Box
             sx={{
-              '--DataGrid-containerBackground': 'rgba(255, 255, 255, 0.55)',
-              border: 'none',
-              '& .MuiDataGrid-columnHeaders': { minHeight: 44 },
-              '& .MuiDataGrid-columnHeaderTitle': { fontWeight: 600 },
-              '& .MuiDataGrid-cell': { py: 0.5 },
-              '& .MuiDataGrid-main': { borderRadius: 1 }
+              borderRadius: 1,
+              border: '1px solid rgba(255,255,255,0.7)',
+              background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.94) 100%)',
+              p: { xs: 1.25, md: 1.5 },
             }}
-          />
+          >
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1.25 }}>
+              <TextField
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Buscar atleta..."
+                size="small"
+                sx={{
+                  minWidth: { xs: '100%', sm: 280 },
+                  '& .MuiInputBase-root': {
+                    height: 38,
+                    bgcolor: '#fff',
+                  },
+                }}
+                slotProps={{
+                  input: {
+                    startAdornment: <SearchIcon sx={{ color: '#6b7a8d', mr: 1, fontSize: 18 }} />,
+                  },
+                }}
+              />
+            </Box>
+
+            {loading ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 260 }}>
+                <CircularProgress size={44} />
+              </Box>
+            ) : filteredAtletas.length === 0 ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 220 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Nenhum atleta encontrado.
+                </Typography>
+              </Box>
+            ) : (
+              <Stack spacing={1}>
+                {filteredAtletas.map((atleta) => {
+                  const initials = getInitials(atleta.nome);
+                  const nivelKey = getExperienceKey(atleta.nivelExperiencia);
+                  const nivelStyle = nivelStyles[nivelKey];
+                  const diasResumo = formatDiasDisponiveis(atleta.diasDisponiveis);
+                  const meta = `${getObjetivoLabel(atleta.objetivo)} · ${diasResumo}`;
+                  const rowTone = atleta.temLesao
+                    ? {
+                        bg: 'rgba(231, 76, 60, 0.07)',
+                        border: '#d96b5f',
+                        chipBg: 'rgba(231, 76, 60, 0.12)',
+                        chipColor: '#8a1a1a',
+                        label: 'Atenção',
+                      }
+                    : {
+                        bg: nivelStyle.rowBg,
+                        border: nivelStyle.rowBorder,
+                        chipBg: nivelStyle.bg,
+                        chipColor: nivelStyle.color,
+                        label: nivelLabels[nivelKey],
+                      };
+
+                  return (
+                    <Box
+                      key={atleta.id}
+                      sx={{
+                        display: 'grid',
+                        gridTemplateColumns: { xs: '1fr', md: '72px minmax(0,1.5fr) 88px 88px 150px 176px' },
+                        gap: 1.25,
+                        alignItems: 'center',
+                        border: '1px solid #dbe3ec',
+                        borderLeft: `4px solid ${rowTone.border}`,
+                        borderRadius: 1,
+                        bgcolor: rowTone.bg,
+                        px: { xs: 1.25, md: 1.5 },
+                        py: 1.25,
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: 42,
+                          height: 42,
+                          borderRadius: '999px',
+                          display: 'grid',
+                          placeItems: 'center',
+                          bgcolor: alpha('#0e3147', 0.1),
+                          color: '#0e3147',
+                          fontWeight: 800,
+                          fontSize: '0.82rem',
+                          letterSpacing: '0.04em',
+                        }}
+                      >
+                        {initials}
+                      </Box>
+
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography sx={{ fontSize: '0.98rem', fontWeight: 700, color: '#1a2535' }}>
+                          {atleta.nome}
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#6b7a8d', mt: 0.25 }}>
+                          {meta}
+                        </Typography>
+                      </Box>
+
+                      <Box>
+                        <Typography sx={{ fontSize: '1.1rem', fontWeight: 800, color: '#ed6c02', textAlign: { xs: 'left', md: 'center' } }}>
+                          {atleta.pesoKg}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#6b7a8d', display: 'block', textAlign: { xs: 'left', md: 'center' } }}>
+                          kg
+                        </Typography>
+                      </Box>
+
+                      <Box>
+                        <Typography sx={{ fontSize: '1.1rem', fontWeight: 800, color: '#0e3147', textAlign: { xs: 'left', md: 'center' } }}>
+                          {atleta.alturaCm}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#6b7a8d', display: 'block', textAlign: { xs: 'left', md: 'center' } }}>
+                          cm
+                        </Typography>
+                      </Box>
+
+                      <Box>
+                        <Chip
+                          label={rowTone.label}
+                          size="small"
+                          sx={{
+                            bgcolor: rowTone.chipBg,
+                            color: rowTone.chipColor,
+                            fontWeight: 700,
+                          }}
+                        />
+                      </Box>
+
+                      <Box sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'flex-end' }, gap: 0.75 }}>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleViewPlanos(atleta.id)}
+                          sx={{
+                            width: 32,
+                            height: 32,
+                            border: '1px solid #dbe3ec',
+                            borderRadius: 1,
+                          }}
+                        >
+                          <CalendarIcon sx={{ fontSize: 17, color: '#6b7a8d' }} />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleViewProvas(atleta.id)}
+                          sx={{
+                            width: 32,
+                            height: 32,
+                            border: '1px solid #dbe3ec',
+                            borderRadius: 1,
+                          }}
+                        >
+                          <EmojiEventsIcon sx={{ fontSize: 17, color: '#6b7a8d' }} />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleOpenDialog(atleta)}
+                          sx={{
+                            width: 32,
+                            height: 32,
+                            border: '1px solid #dbe3ec',
+                            borderRadius: 1,
+                          }}
+                        >
+                          <EditIcon sx={{ fontSize: 17, color: '#6b7a8d' }} />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDelete(atleta.id)}
+                          sx={{
+                            width: 32,
+                            height: 32,
+                            border: '1px solid #f1d1d1',
+                            borderRadius: 1,
+                          }}
+                        >
+                          <DeleteIcon sx={{ fontSize: 17, color: '#c45b5b' }} />
+                        </IconButton>
+                      </Box>
+                    </Box>
+                  );
+                })}
+              </Stack>
+            )}
+          </Box>
         </Box>
       </Paper>
 
-      {/* Dialog */}
       <AtletaDialog
         open={dialogOpen}
         onClose={handleCloseDialog}
