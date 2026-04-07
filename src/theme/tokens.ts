@@ -100,3 +100,14 @@ export const glassSxHover = {
   backgroundColor: glass.backgroundHover,
   border: `1px solid ${glass.borderHover}`,
 } as const;
+
+// ── Zone palette (Z1–Z5) ──────────────────────────────────────────
+export const zones = {
+  Z1: { color: '#c8cdd4', fill: 'rgba(200, 205, 212, 0.18)', border: '#c8cdd4', label: 'Recuperação' },
+  Z2: { color: '#b3ff00', fill: 'rgba(179, 255, 0, 0.18)',   border: '#b3ff00', label: 'Base' },
+  Z3: { color: '#3498db', fill: 'rgba(52, 152, 219, 0.18)',  border: '#3498db', label: 'Tempo' },
+  Z4: { color: '#f39c12', fill: 'rgba(243, 156, 18, 0.18)',  border: '#f39c12', label: 'Limiar' },
+  Z5: { color: '#e74c3c', fill: 'rgba(231, 76, 60, 0.18)',   border: '#e74c3c', label: 'VO₂ Máx' },
+} as const;
+
+export type ZoneKey = keyof typeof zones;
