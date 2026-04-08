@@ -311,7 +311,7 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                         </Typography>
                     </Box>
                 ) : (
-                    <Stack spacing={2.5} sx={{ p: { xs: 2, md: 3 } }}>
+                    <Stack spacing={2.5} sx={{ p: { xs: 1.5, md: 3 } }}>
                         <Box
                             sx={{
                                 borderRadius: 1,
@@ -812,7 +812,7 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                 )}
             </DialogContent>
 
-            <DialogActions sx={{ px: 3, py: 2, background: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
+            <DialogActions sx={{ px: { xs: 2, md: 3 }, py: 2, background: '#f8fafc', borderTop: '1px solid #e2e8f0', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: 1 }}>
                 <Box sx={{ flexGrow: 1 }}>
                     {dados.tssPlanejado != null && (
                         <Typography variant="caption" sx={{ color: '#6b7a8d' }}>
@@ -820,7 +820,7 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                         </Typography>
                     )}
                 </Box>
-                <Button onClick={onClose} color="primary" size="small" variant="contained">
+                <Button onClick={onClose} color="primary" size="small" variant="contained" fullWidth={isMobile} sx={{ fontSize: { xs: '0.8rem', md: '0.875rem' }, minHeight: { xs: 40, md: 32 } }}>
                     Fechar
                 </Button>
             </DialogActions>

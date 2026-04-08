@@ -385,7 +385,7 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
                         'radial-gradient(circle at top right, rgba(179,233,45,0.08), transparent 24%), linear-gradient(180deg, #eef3f8 0%, #e8edf4 100%)',
                 }}
             >
-                <Stack spacing={2.5} sx={{ p: { xs: 2, md: 3 } }}>
+                <Stack spacing={2.5} sx={{ p: { xs: 1.5, md: 3 } }}>
                 {/* Informações do treino */}
                 <Card
                     variant="outlined"
@@ -949,7 +949,7 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
                 </Stack>
             </DialogContent>
 
-            <DialogActions sx={{ px: 3, py: 2, background: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
+            <DialogActions sx={{ px: { xs: 2, md: 3 }, py: 2, background: '#f8fafc', borderTop: '1px solid #e2e8f0', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: 1 }}>
                 <Box sx={{ flexGrow: 1 }}>
                     <Typography variant="caption" sx={{ color: '#6b7a8d' }}>
                         Mesmo dimensionamento e linguagem visual dos demais dialogs do fluxo.
@@ -960,6 +960,8 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
                     variant="outlined"
                     startIcon={<CloseIcon />}
                     size="small"
+                    fullWidth={isMobile}
+                    sx={{ fontSize: { xs: '0.8rem', md: '0.875rem' }, minHeight: { xs: 40, md: 32 } }}
                 >
                     Cancelar
                 </Button>
@@ -970,6 +972,8 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
                     startIcon={loadingSave ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
                     disabled={loadingSave}
                     size="small"
+                    fullWidth={isMobile}
+                    sx={{ fontSize: { xs: '0.8rem', md: '0.875rem' }, minHeight: { xs: 40, md: 32 } }}
                 >
                     {loadingSave ? 'Salvando...' : 'Marcar como Realizado'}
                 </Button>

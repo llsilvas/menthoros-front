@@ -244,6 +244,7 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                         mt: 0.75,
                         color: 'rgba(232, 234, 237, 0.72)',
                         maxWidth: 720,
+                        fontSize: { xs: '0.8rem', md: '0.875rem' },
                     }}
                 >
                     Atualize os dados de perfil, disponibilidade e preferências mantendo a mesma linguagem visual dos outros dialogs.
@@ -277,7 +278,7 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                         'radial-gradient(circle at top right, rgba(179,233,45,0.08), transparent 24%), linear-gradient(180deg, #eef3f8 0%, #e8edf4 100%)',
                 }}
             >
-                <Stack spacing={2.5} sx={{ p: { xs: 2, md: 3 } }}>
+                <Stack spacing={2.5} sx={{ p: { xs: 1.5, md: 3 } }}>
                     {submitError && <Alert severity="error">{submitError}</Alert>}
                     <Box
                         sx={{
@@ -488,14 +489,14 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                     </Box>
                 </Stack>
             </DialogContent>
-            <DialogActions sx={{ px: 3, py: 2, background: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
+            <DialogActions sx={{ px: { xs: 2, md: 3 }, py: 2, background: '#f8fafc', borderTop: '1px solid #e2e8f0', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: 1 }}>
                 <Box sx={{ flexGrow: 1 }}>
                     <Typography variant="caption" sx={{ color: '#6b7a8d' }}>
                         Tamanho e estilo padronizados com os dialogs de planos e detalhe.
                     </Typography>
                 </Box>
-                <Button onClick={handleClose} disabled={loading} size="small">Cancelar</Button>
-                <Button type="submit" variant="contained" color="primary" disabled={loading} size="small">
+                <Button onClick={handleClose} disabled={loading} size="small" fullWidth={isMobile} sx={{ fontSize: { xs: '0.8rem', md: '0.875rem' }, minHeight: { xs: 40, md: 32 } }}>Cancelar</Button>
+                <Button type="submit" variant="contained" color="primary" disabled={loading} size="small" fullWidth={isMobile} sx={{ fontSize: { xs: '0.8rem', md: '0.875rem' }, minHeight: { xs: 40, md: 32 } }}>
                     {loading ? 'Salvando...' : 'Salvar'}
                 </Button>
             </DialogActions>

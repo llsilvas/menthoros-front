@@ -336,13 +336,14 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                             mt: 0.75,
                             color: 'rgba(232, 234, 237, 0.72)',
                             maxWidth: 760,
+                            fontSize: { xs: '0.8rem', md: '0.875rem' },
                         }}
                     >
                         Acompanhe volume, progresso e treinos planejados com a mesma leitura visual usada no detalhe do treino.
                     </Typography>
                 </Box>
 
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end', mr: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', justifyContent: { xs: 'flex-start', md: 'flex-end' }, mr: { xs: 0, md: 2 }, mt: { xs: 1.5, md: 0 }, width: { xs: '100%', md: 'auto' } }}>
                     <ToggleButtonGroup
                         value={modoGeracao}
                         exclusive
@@ -350,12 +351,15 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                         onChange={(_, value) => { if (value) setModoGeracao(value); }}
                         disabled={loading || temPlanoAtivo}
                         sx={{
+                            width: { xs: '100%', sm: 'auto' },
                             '& .MuiToggleButton-root': {
                                 color: 'rgba(255,255,255,0.78)',
                                 borderColor: 'rgba(255,255,255,0.14)',
                                 bgcolor: 'rgba(255,255,255,0.04)',
                                 textTransform: 'none',
                                 px: 1.25,
+                                fontSize: { xs: '0.75rem', md: '0.8125rem' },
+                                minHeight: { xs: 38, md: 32 },
                             },
                             '& .MuiToggleButton-root.Mui-selected': {
                                 color: '#082130',
@@ -376,9 +380,12 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                         disabled={loading}
                         size='small'
                         sx={{
+                            width: { xs: '100%', sm: 'auto' },
                             color: '#ffffff',
                             borderColor: 'rgba(255,255,255,0.18)',
                             bgcolor: 'rgba(255,255,255,0.04)',
+                            fontSize: { xs: '0.78rem', md: '0.8125rem' },
+                            minHeight: { xs: 38, md: 32 },
                             '&:hover': {
                                 borderColor: 'rgba(255,255,255,0.26)',
                                 bgcolor: 'rgba(255,255,255,0.08)',
@@ -394,9 +401,12 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                         disabled={loading || !planoSemanalIdSelecionado}
                         size='small'
                         sx={{
+                            width: { xs: '100%', sm: 'auto' },
                             color: '#fecaca',
                             borderColor: 'rgba(248,113,113,0.28)',
                             bgcolor: 'rgba(127,29,29,0.12)',
+                            fontSize: { xs: '0.78rem', md: '0.8125rem' },
+                            minHeight: { xs: 38, md: 32 },
                             '&:hover': {
                                 borderColor: 'rgba(248,113,113,0.42)',
                                 bgcolor: 'rgba(127,29,29,0.18)',
@@ -412,9 +422,12 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                         disabled={loading || temPlanoAtivo}
                         size="small"
                         sx={{
+                            width: { xs: '100%', sm: 'auto' },
                             bgcolor: '#b3ff00',
                             color: '#082130',
                             fontWeight: 700,
+                            fontSize: { xs: '0.78rem', md: '0.8125rem' },
+                            minHeight: { xs: 38, md: 32 },
                             '&:hover': {
                                 bgcolor: '#c8ff4d',
                             },
@@ -480,7 +493,7 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                 )}
 
                 {!loading && !error && planos.length > 0 && (
-                    <Stack spacing={2.5} sx={{ p: { xs: 2, md: 3 } }}>
+                    <Stack spacing={2.5} sx={{ p: { xs: 1.5, md: 3 } }}>
                         {planos.map((plano, index) => {
                             const volumeRealizado = getSafeNumber(plano.volumeRealizadoKm);
                             const volumePlanejado = getSafeNumber(plano.volumePlanejadoKm);
@@ -691,13 +704,13 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                     </Stack>
                 )}
             </DialogContent>
-            <DialogActions sx={{ px: 3, py: 2, background: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
+            <DialogActions sx={{ px: { xs: 2, md: 3 }, py: 2, background: '#f8fafc', borderTop: '1px solid #e2e8f0', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: 1 }}>
                 <Box sx={{ flexGrow: 1 }}>
                     <Typography variant="caption" sx={{ color: '#6b7a8d' }}>
                         Visual alinhado ao detalhe do treino para manter consistência entre lista e drill-down.
                     </Typography>
                 </Box>
-                <Button onClick={onClose} color="primary" size="small" variant="contained">
+                <Button onClick={onClose} color="primary" size="small" variant="contained" fullWidth={isMobile} sx={{ fontSize: { xs: '0.8rem', md: '0.875rem' }, minHeight: { xs: 40, md: 32 } }}>
                     Fechar
                 </Button>
             </DialogActions>

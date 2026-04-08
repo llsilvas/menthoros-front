@@ -262,10 +262,14 @@ const ProvasDialog: React.FC<ProvasDialogProps> = ({ open, onClose, atletaId, at
                         disabled={loading}
                         size="small"
                         sx={{
-                            mr: 2,
+                            mr: { xs: 0, md: 2 },
+                            mt: { xs: 1.5, md: 0 },
+                            width: { xs: '100%', sm: 'auto' },
                             bgcolor: '#b3ff00',
                             color: '#082130',
                             fontWeight: 700,
+                            fontSize: { xs: '0.78rem', md: '0.8125rem' },
+                            minHeight: { xs: 38, md: 32 },
                             '&:hover': {
                                 bgcolor: '#c8ff4d',
                             },
@@ -318,7 +322,7 @@ const ProvasDialog: React.FC<ProvasDialogProps> = ({ open, onClose, atletaId, at
                         </Box>
                     )}
 
-                    <Box sx={{ p: { xs: 2, md: 3 } }}>
+                        <Box sx={{ p: { xs: 1.5, md: 3 } }}>
                         <Box
                             sx={{
                                 borderRadius: 1,
@@ -367,13 +371,13 @@ const ProvasDialog: React.FC<ProvasDialogProps> = ({ open, onClose, atletaId, at
                     </Box>
                 </DialogContent>
 
-                <DialogActions sx={{ px: 3, py: 2, background: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
+                <DialogActions sx={{ px: { xs: 2, md: 3 }, py: 2, background: '#f8fafc', borderTop: '1px solid #e2e8f0', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: 1 }}>
                     <Box sx={{ flexGrow: 1 }}>
                         <Typography variant="caption" sx={{ color: '#6b7a8d' }}>
                             Padrão visual alinhado à jornada de atletas, planos e treino.
                         </Typography>
                     </Box>
-                    <Button onClick={onClose} color="primary" size="small" variant="contained">
+                    <Button onClick={onClose} color="primary" size="small" variant="contained" fullWidth={isMobile} sx={{ fontSize: { xs: '0.8rem', md: '0.875rem' }, minHeight: { xs: 40, md: 32 } }}>
                         Fechar
                     </Button>
                 </DialogActions>
