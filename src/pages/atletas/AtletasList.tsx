@@ -100,18 +100,6 @@ const getExperienceKey = (nivel: Atleta['nivelExperiencia']): NivelExperienciaKe
   return 'INICIANTE';
 };
 
-const getObjetivoLabel = (objetivo: string) => {
-  const normalized = normalizeText(objetivo);
-
-  if (normalized.includes('marat')) return 'Maratona';
-  if (normalized.includes('meia')) return 'Meia';
-  if (normalized.includes('10k') || normalized.includes('10 km')) return '10K';
-  if (normalized.includes('5k') || normalized.includes('5 km')) return '5K';
-  if (normalized.includes('trail')) return 'Trail';
-
-  return objetivo || 'Objetivo';
-};
-
 const formatDiasDisponiveis = (dias: Atleta['diasDisponiveis']) => {
   if (!Array.isArray(dias) || dias.length === 0) return 'Sem rotina definida';
 
@@ -220,6 +208,7 @@ const AtletasList: React.FC = () => {
     <Box
       sx={{
         minHeight: '100%',
+        height: '100%',
         p: 2,
         display: 'flex',
         flexDirection: 'column',
@@ -231,6 +220,7 @@ const AtletasList: React.FC = () => {
         variant="outlined"
         sx={{
           flex: 1,
+          minHeight: 0,
           display: 'flex',
           flexDirection: 'column',
           color: 'inherit',
@@ -290,13 +280,17 @@ const AtletasList: React.FC = () => {
           </Box>
         )}
 
-        <Box sx={{ flex: 1, p: { xs: 1.5, md: 2 } }}>
+        <Box sx={{ flex: 1, minHeight: 0, p: { xs: 1.5, md: 2 } }}>
           <Box
             sx={{
+              height: '100%',
               borderRadius: 1,
               border: '1px solid rgba(255,255,255,0.7)',
               background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.94) 100%)',
               p: { xs: 1.25, md: 1.5 },
+              overflowY: 'auto',
+              overflowX: { xs: 'auto', md: 'visible' },
+              WebkitOverflowScrolling: 'touch',
             }}
           >
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1.25 }}>
@@ -331,13 +325,11 @@ const AtletasList: React.FC = () => {
                 </Typography>
               </Box>
             ) : (
-              <Stack spacing={1}>
+              <Stack spacing={0.75} sx={{ maxWidth: 980, mx: 'auto' }}>
                 {filteredAtletas.map((atleta) => {
                   const initials = getInitials(atleta.nome);
                   const nivelKey = getExperienceKey(atleta.nivelExperiencia);
                   const nivelStyle = nivelStyles[nivelKey];
-                  const diasResumo = formatDiasDisponiveis(atleta.diasDisponiveis);
-                  const meta = `${getObjetivoLabel(atleta.objetivo)} · ${diasResumo}`;
                   const rowTone = atleta.temLesao
                     ? {
                         bg: 'rgba(231, 76, 60, 0.07)',
@@ -358,63 +350,48 @@ const AtletasList: React.FC = () => {
                     <Box
                       key={atleta.id}
                       sx={{
-                        display: 'grid',
-                        gridTemplateColumns: { xs: '1fr', md: '72px minmax(0,1.5fr) 88px 88px 150px 176px' },
-                        gap: 1.25,
-                        alignItems: 'center',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 0.75,
                         border: '1px solid #dbe3ec',
                         borderLeft: `4px solid ${rowTone.border}`,
                         borderRadius: 1,
                         bgcolor: rowTone.bg,
-                        px: { xs: 1.25, md: 1.5 },
-                        py: 1.25,
+                        px: { xs: 1, md: 1.25 },
+                        py: 1,
                       }}
                     >
                       <Box
                         sx={{
-                          width: 42,
-                          height: 42,
-                          borderRadius: '999px',
                           display: 'grid',
-                          placeItems: 'center',
-                          bgcolor: alpha('#0e3147', 0.1),
-                          color: '#0e3147',
-                          fontWeight: 800,
-                          fontSize: '0.82rem',
-                          letterSpacing: '0.04em',
+                          gridTemplateColumns: '42px minmax(0,1fr) auto',
+                          gap: 1,
+                          alignItems: 'center',
                         }}
                       >
-                        {initials}
-                      </Box>
+                        <Box
+                          sx={{
+                            width: 42,
+                            height: 42,
+                            borderRadius: '999px',
+                            display: 'grid',
+                            placeItems: 'center',
+                            bgcolor: alpha('#0e3147', 0.1),
+                            color: '#0e3147',
+                            fontWeight: 800,
+                            fontSize: '0.82rem',
+                            letterSpacing: '0.04em',
+                          }}
+                        >
+                          {initials}
+                        </Box>
 
-                      <Box sx={{ minWidth: 0 }}>
-                        <Typography sx={{ fontSize: '0.98rem', fontWeight: 700, color: '#1a2535' }}>
-                          {atleta.nome}
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: '#6b7a8d', mt: 0.25 }}>
-                          {meta}
-                        </Typography>
-                      </Box>
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography sx={{ fontSize: '0.98rem', fontWeight: 700, color: '#1a2535', lineHeight: 1.2 }}>
+                            {atleta.nome}
+                          </Typography>
+                        </Box>
 
-                      <Box>
-                        <Typography sx={{ fontSize: '1.1rem', fontWeight: 800, color: '#ed6c02', textAlign: { xs: 'left', md: 'center' } }}>
-                          {atleta.pesoKg}
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: '#6b7a8d', display: 'block', textAlign: { xs: 'left', md: 'center' } }}>
-                          kg
-                        </Typography>
-                      </Box>
-
-                      <Box>
-                        <Typography sx={{ fontSize: '1.1rem', fontWeight: 800, color: '#0e3147', textAlign: { xs: 'left', md: 'center' } }}>
-                          {atleta.alturaCm}
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: '#6b7a8d', display: 'block', textAlign: { xs: 'left', md: 'center' } }}>
-                          cm
-                        </Typography>
-                      </Box>
-
-                      <Box>
                         <Chip
                           label={rowTone.label}
                           size="small"
@@ -426,7 +403,28 @@ const AtletasList: React.FC = () => {
                         />
                       </Box>
 
-                      <Box sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'flex-end' }, gap: 0.75 }}>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 1,
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        <Typography variant="caption" sx={{ color: '#6b7a8d' }}>
+                          {formatDiasDisponiveis(atleta.diasDisponiveis)}
+                        </Typography>
+                      </Box>
+
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'flex-end',
+                          gap: 0.75,
+                          pt: 0.1,
+                        }}
+                      >
                         <IconButton
                           size="small"
                           onClick={() => handleViewPlanos(atleta.id)}
@@ -435,6 +433,7 @@ const AtletasList: React.FC = () => {
                             height: 32,
                             border: '1px solid #dbe3ec',
                             borderRadius: 1,
+                            bgcolor: '#fff',
                           }}
                         >
                           <CalendarIcon sx={{ fontSize: 17, color: '#6b7a8d' }} />
@@ -447,6 +446,7 @@ const AtletasList: React.FC = () => {
                             height: 32,
                             border: '1px solid #dbe3ec',
                             borderRadius: 1,
+                            bgcolor: '#fff',
                           }}
                         >
                           <EmojiEventsIcon sx={{ fontSize: 17, color: '#6b7a8d' }} />
@@ -459,6 +459,7 @@ const AtletasList: React.FC = () => {
                             height: 32,
                             border: '1px solid #dbe3ec',
                             borderRadius: 1,
+                            bgcolor: '#fff',
                           }}
                         >
                           <EditIcon sx={{ fontSize: 17, color: '#6b7a8d' }} />
@@ -471,6 +472,7 @@ const AtletasList: React.FC = () => {
                             height: 32,
                             border: '1px solid #f1d1d1',
                             borderRadius: 1,
+                            bgcolor: '#fff',
                           }}
                         >
                           <DeleteIcon sx={{ fontSize: 17, color: '#c45b5b' }} />
