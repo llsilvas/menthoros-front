@@ -17,7 +17,8 @@ import {
     Divider,
     Stack,
     ToggleButton,
-    ToggleButtonGroup
+    ToggleButtonGroup,
+    useMediaQuery,
 } from '@mui/material';
 import {
     Add as AddIcon,
@@ -29,6 +30,7 @@ import {
     Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import { alpha } from '@mui/material/styles';
+import { useTheme } from '@mui/material/styles';
 import { usePlanoSemanal } from '../../../hooks/usePlanoSemanal';
 import { AtletasService } from '../../../api/services/AtletasService';
 import {
@@ -131,6 +133,8 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
     atletaNome,
     atletaId
 }) => {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
     const {
         planos,
@@ -262,6 +266,7 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
         <Dialog
             open={open}
             onClose={onClose}
+            fullScreen={isMobile}
             maxWidth="lg"
             fullWidth
             slotProps={{
@@ -279,9 +284,9 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                     display: 'flex',
                     alignItems: 'flex-start',
                     gap: 2,
-                    px: 3,
-                    py: 2.25,
-                    pr: 8,
+                    px: { xs: 2, md: 3 },
+                    py: { xs: 2, md: 2.25 },
+                    pr: { xs: 7, md: 8 },
                     color: 'white',
                     background: 'linear-gradient(135deg, #082130 0%, #0e3147 55%, #133c56 100%)',
                     borderBottom: '1px solid rgba(255,255,255,0.08)',
@@ -320,6 +325,7 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                             fontWeight: 800,
                             lineHeight: 1.15,
                             pr: 2,
+                            fontSize: { xs: '1.05rem', md: '1.25rem' },
                         }}
                     >
                         Planos Semanais de {atletaNome}

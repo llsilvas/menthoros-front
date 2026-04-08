@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, FormControlLabel, Checkbox, Alert, Typography, FormGroup, Box, Chip, IconButton, Stack } from "@mui/material";
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, FormControlLabel, Checkbox, Alert, Typography, FormGroup, Box, Chip, IconButton, Stack, useMediaQuery } from "@mui/material";
 import { Close as CloseIcon } from '@mui/icons-material';
+import { useTheme } from '@mui/material/styles';
 import Grid from '@mui/material/Grid';
 
 import type { Atleta, CreateAtleta, UpdateAtleta, AtletaDialogProps, diaSemana, Sexo } from "../../../types/Atleta";
@@ -92,6 +93,8 @@ const getInitialFormData = (atleta?: Atleta): CreateAtleta | UpdateAtleta => {
 
 const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atleta }) => {
     const isEditMode = Boolean(atleta);
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const [formData, setFormData] = useState<CreateAtleta | UpdateAtleta>(getInitialFormData(atleta));
     const [errors, setErrors] = useState<FormErrors>({});
     const [loading, setLoading] = useState<boolean>(false);
@@ -183,6 +186,7 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
     <Dialog
         open={open}
         onClose={handleClose}
+        fullScreen={isMobile}
         maxWidth="lg"
         fullWidth
         slotProps={{
@@ -200,9 +204,9 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                 display: 'flex',
                 alignItems: 'flex-start',
                 gap: 2,
-                px: 3,
-                py: 2.25,
-                pr: 8,
+                px: { xs: 2, md: 3 },
+                py: { xs: 2, md: 2.25 },
+                pr: { xs: 7, md: 8 },
                 color: 'white',
                 background: 'linear-gradient(135deg, #082130 0%, #0e3147 55%, #133c56 100%)',
                 borderBottom: '1px solid rgba(255,255,255,0.08)',
@@ -229,6 +233,7 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                         fontWeight: 800,
                         lineHeight: 1.15,
                         pr: 2,
+                        fontSize: { xs: '1.05rem', md: '1.25rem' },
                     }}
                 >
                     {isEditMode ? 'Editar Atleta' : 'Adicionar Atleta'}

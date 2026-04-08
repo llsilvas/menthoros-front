@@ -10,6 +10,7 @@ import {
     Alert,
     CircularProgress,
     Chip,
+    useMediaQuery,
 } from '@mui/material';
 import {
     Add as AddIcon,
@@ -19,6 +20,7 @@ import {
     EmojiEvents as EmojiEventsIcon,
 } from '@mui/icons-material';
 import { alpha } from '@mui/material/styles';
+import { useTheme } from '@mui/material/styles';
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
 import type { GridColDef, GridRowParams } from '@mui/x-data-grid';
 import { useProvas } from '../../../hooks/useProvas';
@@ -42,6 +44,8 @@ interface ProvasDialogProps {
 }
 
 const ProvasDialog: React.FC<ProvasDialogProps> = ({ open, onClose, atletaId, atletaNome }) => {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const {
         provas,
         loading,
@@ -195,6 +199,7 @@ const ProvasDialog: React.FC<ProvasDialogProps> = ({ open, onClose, atletaId, at
             <Dialog
                 open={open}
                 onClose={onClose}
+                fullScreen={isMobile}
                 maxWidth="lg"
                 fullWidth
                 slotProps={{
@@ -212,9 +217,9 @@ const ProvasDialog: React.FC<ProvasDialogProps> = ({ open, onClose, atletaId, at
                         display: 'flex',
                         alignItems: 'flex-start',
                         gap: 2,
-                        px: 3,
-                        py: 2.25,
-                        pr: 8,
+                        px: { xs: 2, md: 3 },
+                        py: { xs: 2, md: 2.25 },
+                        pr: { xs: 7, md: 8 },
                         color: 'white',
                         background: 'linear-gradient(135deg, #082130 0%, #0e3147 55%, #133c56 100%)',
                         borderBottom: '1px solid rgba(255,255,255,0.08)',
@@ -240,11 +245,12 @@ const ProvasDialog: React.FC<ProvasDialogProps> = ({ open, onClose, atletaId, at
                                 fontWeight: 800,
                                 lineHeight: 1.15,
                                 pr: 2,
+                                fontSize: { xs: '1.05rem', md: '1.25rem' },
                             }}
                         >
                             Provas de {atletaNome}
                         </Typography>
-                        <Typography variant="body2" sx={{ mt: 0.75, color: 'rgba(232, 234, 237, 0.72)', maxWidth: 720 }}>
+                        <Typography variant="body2" sx={{ mt: 0.75, color: 'rgba(232, 234, 237, 0.72)', maxWidth: 720, fontSize: { xs: '0.8rem', md: '0.875rem' } }}>
                             Visualize provas cadastradas, status e contagem regressiva no mesmo padrão dos dialogs de atleta e planos.
                         </Typography>
                     </Box>

@@ -14,6 +14,7 @@ import {
     CardContent,
     Stack,
     CircularProgress,
+    useMediaQuery,
 } from '@mui/material';
 import {
     Close as CloseIcon,
@@ -25,6 +26,7 @@ import {
     CalendarToday as CalendarIcon,
 } from '@mui/icons-material';
 import { alpha } from '@mui/material/styles';
+import { useTheme } from '@mui/material/styles';
 import { TreinoService } from '../../../api/services/TreinoService';
 import type { TreinoPlanejado, EtapaTreino } from '../../../types/TreinoPlanejado';
 import { getSafeValue, getSafeNumber, getSafeLabel, getSafeColor } from '../../../utils/safeValues';
@@ -148,6 +150,8 @@ const RpeScale: React.FC<{ value: number }> = ({ value }) => {
 };
 
 const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose, treino }) => {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const [treinoCompleto, setTreinoCompleto] = useState<TreinoPlanejado | null>(null);
     const [loadingDetalhes, setLoadingDetalhes] = useState(false);
 
@@ -196,6 +200,7 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
         <Dialog
             open={open}
             onClose={onClose}
+            fullScreen={isMobile}
             maxWidth="lg"
             fullWidth
             slotProps={{
@@ -213,9 +218,9 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                     display: 'flex',
                     alignItems: 'flex-start',
                     gap: 2,
-                    px: 3,
-                    py: 2.25,
-                    pr: 8,
+                    px: { xs: 2, md: 3 },
+                    py: { xs: 2, md: 2.25 },
+                    pr: { xs: 7, md: 8 },
                     color: 'white',
                     background: 'linear-gradient(135deg, #082130 0%, #0e3147 55%, #133c56 100%)',
                     borderBottom: '1px solid rgba(255,255,255,0.08)',
@@ -254,6 +259,7 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                             fontWeight: 800,
                             lineHeight: 1.15,
                             pr: 2,
+                            fontSize: { xs: '1.05rem', md: '1.25rem' },
                         }}
                     >
                         {getSafeValue(dados.tipoTreino)}
@@ -264,6 +270,7 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                             mt: 0.75,
                             color: 'rgba(232, 234, 237, 0.72)',
                             maxWidth: 720,
+                            fontSize: { xs: '0.8rem', md: '0.875rem' },
                         }}
                     >
                         Visualização da estrutura do treino com foco em duração, carga e distribuição entre etapas.

@@ -16,8 +16,10 @@ import {
     FormControlLabel,
     Checkbox,
     Divider,
+    useMediaQuery,
 } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
+import { useTheme } from '@mui/material/styles';
 import Grid from '@mui/material/Grid';
 import type {
     Prova,
@@ -75,6 +77,8 @@ const getInitialFormData = (prova?: Prova): CreateProva => ({
 
 const ProvaFormDialog: React.FC<ProvaFormDialogProps> = ({ open, onClose, onSave, prova }) => {
     const isEditMode = Boolean(prova);
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const [formData, setFormData] = useState<CreateProva>(getInitialFormData(prova));
     const [errors, setErrors] = useState<FormErrors>({});
     const [loading, setLoading] = useState(false);
@@ -151,6 +155,7 @@ const ProvaFormDialog: React.FC<ProvaFormDialogProps> = ({ open, onClose, onSave
         <Dialog
             open={open}
             onClose={handleClose}
+            fullScreen={isMobile}
             maxWidth="lg"
             fullWidth
             slotProps={{
@@ -168,9 +173,9 @@ const ProvaFormDialog: React.FC<ProvaFormDialogProps> = ({ open, onClose, onSave
                     display: 'flex',
                     alignItems: 'flex-start',
                     gap: 2,
-                    px: 3,
-                    py: 2.25,
-                    pr: 8,
+                    px: { xs: 2, md: 3 },
+                    py: { xs: 2, md: 2.25 },
+                    pr: { xs: 7, md: 8 },
                     color: 'white',
                     background: 'linear-gradient(135deg, #082130 0%, #0e3147 55%, #133c56 100%)',
                     borderBottom: '1px solid rgba(255,255,255,0.08)',
@@ -196,11 +201,12 @@ const ProvaFormDialog: React.FC<ProvaFormDialogProps> = ({ open, onClose, onSave
                             fontWeight: 800,
                             lineHeight: 1.15,
                             pr: 2,
+                            fontSize: { xs: '1.05rem', md: '1.25rem' },
                         }}
                     >
                         {isEditMode ? 'Editar Prova' : 'Nova Prova'}
                     </Typography>
-                    <Typography variant="body2" sx={{ mt: 0.75, color: 'rgba(232, 234, 237, 0.72)', maxWidth: 720 }}>
+                    <Typography variant="body2" sx={{ mt: 0.75, color: 'rgba(232, 234, 237, 0.72)', maxWidth: 720, fontSize: { xs: '0.8rem', md: '0.875rem' } }}>
                         Cadastre prova, objetivos e resultado no mesmo padrão visual aplicado aos demais dialogs.
                     </Typography>
                 </Box>

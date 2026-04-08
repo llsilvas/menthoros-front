@@ -19,7 +19,8 @@ import {
     TextField,
     IconButton,
     Slider,
-    MenuItem
+    MenuItem,
+    useMediaQuery,
 } from '@mui/material';
 import {
     CheckCircle as CheckCircleIcon,
@@ -37,6 +38,7 @@ import type { TreinoRealizado, EtapaRealizadaInput } from '../../types/TreinoRea
 import { TIPO_ETAPA_OPTIONS, criarEtapasFromPlanejadas } from '../../types/TreinoRealizado';
 import type { TreinoPlanejado } from '../../types/TreinoPlanejado';
 import { getSafeValue, getSafeNumber } from '../../utils/safeValues';
+import { useTheme } from '@mui/material/styles';
 
 interface TreinoRealizadoDialogProps {
     open: boolean;
@@ -55,6 +57,8 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
     planoSemanalId,
     onSuccess
 }) => {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const [loadingSave, setLoadingSave] = useState(false);
 
     // Dados editáveis do treino realizado
@@ -300,6 +304,7 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
         <Dialog
             open={open}
             onClose={handleClose}
+            fullScreen={isMobile}
             maxWidth="lg"
             fullWidth
             slotProps={{
@@ -317,9 +322,9 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
                     display: 'flex',
                     alignItems: 'flex-start',
                     gap: 2,
-                    px: 3,
-                    py: 2.25,
-                    pr: 8,
+                    px: { xs: 2, md: 3 },
+                    py: { xs: 2, md: 2.25 },
+                    pr: { xs: 7, md: 8 },
                     color: 'white',
                     background: 'linear-gradient(135deg, #082130 0%, #0e3147 55%, #133c56 100%)',
                     borderBottom: '1px solid rgba(255,255,255,0.08)',
@@ -346,11 +351,12 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
                             fontWeight: 800,
                             lineHeight: 1.15,
                             pr: 2,
+                            fontSize: { xs: '1.05rem', md: '1.25rem' },
                         }}
                     >
                         Marcar Treino como Realizado
                     </Typography>
-                    <Typography variant="body2" sx={{ mt: 0.75, color: 'rgba(232, 234, 237, 0.72)', maxWidth: 760 }}>
+                    <Typography variant="body2" sx={{ mt: 0.75, color: 'rgba(232, 234, 237, 0.72)', maxWidth: 760, fontSize: { xs: '0.8rem', md: '0.875rem' } }}>
                         Registre dados executados, etapas e feedback do atleta dentro do mesmo padrão visual dos dialogs de treino.
                     </Typography>
                 </Box>
