@@ -1,5 +1,5 @@
 import type { EtapaTreino } from '../../../../types/TreinoPlanejado';
-import type { WorkoutBlock } from './types';
+import type { WorkoutBlock, BlockType } from './types';
 import type { ZoneKey } from '../../../../theme/tokens';
 
 function getZoneFromEtapa(etapa: EtapaTreino): 1 | 2 | 3 | 4 | 5 {
@@ -54,12 +54,18 @@ function getLabel(etapa: EtapaTreino): string {
   return `Etapa ${etapa.ordem ?? ''}`;
 }
 
-function getIconHint(zone: number, tipoLabel: string): string {
+function getBlockType(tipoLabel: string): BlockType {
   const lower = tipoLabel.toLowerCase();
-  if (lower.includes('aquecimento') || lower.includes('warmup') || lower.includes('warm')) return 'warmup';
-  if (lower.includes('desaquecimento') || lower.includes('cooldown') || lower.includes('cool')) return 'cooldown';
-  if (zone >= 4) return 'main';
-  if (zone === 1) return 'cooldown';
+  if (lower.includes('aquecimento') || lower.includes('warmup') || lower.includes('warm_up')) return 'warmup';
+  if (lower.includes('desaquecimento') || lower.includes('cooldown') || lower.includes('cool_down')) return 'cooldown';
+  if (lower.includes('intervalo') || lower.includes('interval') || lower.includes('repeat')) return 'interval';
+  if (lower.includes('recuperacao') || lower.includes('recuperação') || lower.includes('recovery')) return 'recovery';
+  return 'main';
+}
+
+function getIconHint(blockType: BlockType): string {
+  if (blockType === 'warmup') return 'warmup';
+  if (blockType === 'cooldown') return 'cooldown';
   return 'main';
 }
 
@@ -69,20 +75,25 @@ export function toWorkoutBlocks(etapas: EtapaTreino[]): WorkoutBlock[] {
     const zoneKey: ZoneKey = `Z${zone}` as ZoneKey;
     const label = getLabel(etapa);
     const durationMin = etapa.duracaoMin ?? 0;
+    const tipoLabel = typeof etapa.tipoEtapa === 'string'      ? etapa.tipoEtapa
+      : (etapa.tipoEtapa as { label: string }).label ?? '';
 
     if (!etapa.duracaoMin) {
       console.warn(`[WorkoutTimelineChart] Etapa "${label}" has no duration, defaulting to 0`);
     }
 
+    const blockType = getBlockType(label || tipoLabel);
+
     return {
       id: etapa.id ?? `etapa-${index}`,
       label,
-      shortLabel: label.substring(0, 3).toUpperCase(),
+      shortLabel: tipoLabel.toUpperCase(),
       durationMin,
       zone,
       zoneKey,
+      blockType,
       description: etapa.fcAlvoEtapa ?? etapa.observacao,
-      icon: getIconHint(zone, label),
+      icon: getIconHint(blockType),
     };
   });
 }

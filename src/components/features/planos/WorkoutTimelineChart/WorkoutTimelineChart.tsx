@@ -5,8 +5,18 @@ import DirectionsRunIcon from '@mui/icons-material/DirectionsRun';
 import AcUnitIcon from '@mui/icons-material/AcUnit';
 import BoltIcon from '@mui/icons-material/Bolt';
 import { zones } from '../../../../theme/tokens';
-import type { WorkoutBlock } from './types';
+import type { WorkoutBlock, BlockType } from './types';
 import type { ZoneKey } from '../../../../theme/tokens';
+
+// ── Block-type color overrides ─────────────────────────────────────
+// These take priority over zone colors when blockType is set.
+const blockTypeColors: Record<BlockType, { color: string; fill: string; border: string; label: string }> = {
+  warmup:   { color: '#3498db', fill: 'rgba(52,152,219,0.18)',  border: '#3498db', label: 'Aquecimento' },
+  main:     { color: '#b3ff00', fill: 'rgba(179,255,0,0.18)',   border: '#b3ff00', label: 'Principal' },
+  cooldown: { color: '#f39c12', fill: 'rgba(243,156,18,0.18)',  border: '#f39c12', label: 'Desaquecimento' },
+  interval: { color: '#e74c3c', fill: 'rgba(231,76,60,0.18)',   border: '#e74c3c', label: 'Intervalo' },
+  recovery: { color: '#c8cdd4', fill: 'rgba(200,205,212,0.18)', border: '#c8cdd4', label: 'Recuperação' },
+};
 
 interface WorkoutTimelineChartProps {
   blocks: WorkoutBlock[];
@@ -136,7 +146,7 @@ export const WorkoutTimelineChart: React.FC<WorkoutTimelineChartProps> = ({ bloc
           const widthPct = (block.durationMin / totalDurationMin) * 100;
           const showLabel = widthPct > 8;
           const isHovered = hoveredId === block.id;
-          const zone = zones[block.zoneKey];
+          const zone = block.blockType ? blockTypeColors[block.blockType] : zones[block.zoneKey];
           const barHeight = zoneHeight[block.zoneKey];
 
           return (
