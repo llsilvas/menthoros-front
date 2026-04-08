@@ -25,10 +25,10 @@ interface WorkoutTimelineChartProps {
 
 // ── Zone height map (reflects intensity) ──────────────────────────
 const zoneHeight: Record<ZoneKey, number> = {
-  Z1: 48,
-  Z2: 64,
-  Z3: 80,
-  Z4: 104,
+  Z1: 55,
+  Z2: 68,
+  Z3: 85,
+  Z4: 110,
   Z5: 128,
 };
 
@@ -184,6 +184,7 @@ export const WorkoutTimelineChart: React.FC<WorkoutTimelineChartProps> = ({ bloc
                     variant="caption"
                     sx={{
                       fontWeight: 700,
+                      fontSize: '10px',
                       color: '#374151',
                       textAlign: 'center',
                       overflow: 'hidden',
