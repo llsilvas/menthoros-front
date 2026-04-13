@@ -19,4 +19,13 @@ export const runtimeConfig = {
     runtimeApiUrl ??
     import.meta.env.VITE_API_BASE_URL ??
     'http://localhost:8099',
+
+  keycloakUrl:
+    import.meta.env.VITE_KEYCLOAK_URL ?? 'http://localhost:8443',
+
+  keycloakRealm:
+    import.meta.env.VITE_KEYCLOAK_REALM ?? 'menthoros-api',
+
+  keycloakClientId:
+    import.meta.env.VITE_KEYCLOAK_CLIENT_ID ?? 'menthoros-web',
 } as const;

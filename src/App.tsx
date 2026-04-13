@@ -1,10 +1,21 @@
 import { ThemeProvider, createTheme, CssBaseline, GlobalStyles } from '@mui/material';
 import type {} from '@mui/x-data-grid/themeAugmentation';
-import { createHashRouter, RouterProvider } from 'react-router';
+import { createHashRouter, RouterProvider, Outlet } from 'react-router';
 import DashboardLayout from './components/dashboard/DashboardLayout';
 import AtletasList from './pages/atletas/AtletasList';
 import HomePage from './pages/home/HomePage';
+import { LoginPage } from './pages/auth/LoginPage';
+import { ProtectedRoute } from './components/auth/ProtectedRoute';
+import { AuthProvider } from './context/auth/AuthContext';
 import { colors, text, content } from './theme/tokens';
+
+function AuthLayout() {
+  return (
+    <AuthProvider>
+      <Outlet />
+    </AuthProvider>
+  );
+}
 
 const theme = createTheme({
   palette: {
@@ -125,35 +136,49 @@ const globalStyles = (
 
 const router = createHashRouter([
   {
-    element: <DashboardLayout />,
+    element: <AuthLayout />,
     children: [
       {
-        index: true,
-        element: <HomePage />,
+        path: 'auth/login',
+        element: <LoginPage />,
       },
       {
-        path: 'atletas',
-        element: <AtletasList />,
-      },
-      {
-        path: 'treinos',
-        element: <div>Página de Treinos (em construção)</div>,
-      },
-      {
-        path: 'planos',
-        element: <div>Página de Planos (em construção)</div>,
-      },
-      {
-        path: 'calendario',
-        element: <div>Calendário (em construção)</div>,
-      },
-      {
-        path: 'relatorios',
-        element: <div>Relatórios (em construção)</div>,
-      },
-      {
-        path: 'configuracoes',
-        element: <div>Configurações (em construção)</div>,
+        element: <ProtectedRoute />,
+        children: [
+          {
+            element: <DashboardLayout />,
+            children: [
+              {
+                index: true,
+                element: <HomePage />,
+              },
+              {
+                path: 'atletas',
+                element: <AtletasList />,
+              },
+              {
+                path: 'treinos',
+                element: <div>Página de Treinos (em construção)</div>,
+              },
+              {
+                path: 'planos',
+                element: <div>Página de Planos (em construção)</div>,
+              },
+              {
+                path: 'calendario',
+                element: <div>Calendário (em construção)</div>,
+              },
+              {
+                path: 'relatorios',
+                element: <div>Relatórios (em construção)</div>,
+              },
+              {
+                path: 'configuracoes',
+                element: <div>Configurações (em construção)</div>,
+              },
+            ],
+          },
+        ],
       },
     ],
   },

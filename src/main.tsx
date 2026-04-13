@@ -9,6 +9,9 @@ import { runtimeConfig } from './config/env'
 // OpenAPI é um objeto mutável — compatível com regeneração via npm run generate:api.
 OpenAPI.BASE = runtimeConfig.apiBaseUrl
 
+// Resolver do bearer token: lê o access token persistido no localStorage a cada requisição.
+OpenAPI.TOKEN = () => Promise.resolve(localStorage.getItem('@Menthoros:token') ?? '')
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />

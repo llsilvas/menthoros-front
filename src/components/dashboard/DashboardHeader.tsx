@@ -7,12 +7,18 @@ import Toolbar from '@mui/material/Toolbar';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import Avatar from '@mui/material/Avatar';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import Divider from '@mui/material/Divider';
+import LogoutIcon from '@mui/icons-material/Logout';
 import MenuIcon from '@mui/icons-material/Menu';
 import MenuOpenIcon from '@mui/icons-material/MenuOpen';
 import Stack from '@mui/material/Stack';
 import { Link } from 'react-router';
 import ThemeSwitcher from './ThemeSwitcher';
 import { gradients, glass } from '../../theme/tokens';
+import { useAuth } from '../../context/auth/AuthContext';
 
 const AppBar = styled(MuiAppBar)(({ theme }) => ({
   borderWidth: 0,
@@ -53,6 +59,9 @@ export default function DashboardHeader({
   menuOpen,
   onToggleMenu,
 }: DashboardHeaderProps) {
+  const { user, logout } = useAuth();
+  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+
   const handleMenuOpen = React.useCallback(() => {
     onToggleMenu(!menuOpen);
   }, [menuOpen, onToggleMenu]);
@@ -126,21 +135,56 @@ export default function DashboardHeader({
             <Stack direction="row" alignItems="center">
               <ThemeSwitcher />
             </Stack>
-            <Tooltip title="Usuário">
-              <Avatar
-                sx={{
-                  width: 32,
-                  height: 32,
-                  bgcolor: 'rgba(255,255,255,0.18)',
-                  color: 'white',
-                  fontWeight: 700,
-                  fontSize: '0.875rem',
-                  border: '1px solid rgba(255,255,255,0.35)',
-                }}
+            <Stack direction="row" alignItems="center" spacing={1}>
+              {user && (
+                <Box sx={{ textAlign: 'right' }}>
+                  <Typography variant="body2" sx={{ color: 'white', fontWeight: 600, lineHeight: 1.2 }}>
+                    {user.name}
+                  </Typography>
+                  {user.role && (
+                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.65)', lineHeight: 1 }}>
+                      {user.role}
+                    </Typography>
+                  )}
+                </Box>
+              )}
+              <Tooltip title={user?.username ?? 'Usuário'}>
+                <Avatar
+                  onClick={(e) => setAnchorEl(e.currentTarget)}
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    bgcolor: 'rgba(255,255,255,0.18)',
+                    color: 'white',
+                    fontWeight: 700,
+                    fontSize: '0.875rem',
+                    border: '1px solid rgba(255,255,255,0.35)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {user?.initials ?? 'U'}
+                </Avatar>
+              </Tooltip>
+              <Menu
+                anchorEl={anchorEl}
+                open={Boolean(anchorEl)}
+                onClose={() => setAnchorEl(null)}
+                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
               >
-                U
-              </Avatar>
-            </Tooltip>
+                <MenuItem disabled sx={{ opacity: '1 !important' }}>
+                  <Box>
+                    <Typography variant="body2" fontWeight={600}>{user?.name}</Typography>
+                    <Typography variant="caption" color="text.secondary">{user?.username}</Typography>
+                  </Box>
+                </MenuItem>
+                <Divider />
+                <MenuItem onClick={() => { setAnchorEl(null); logout(); }}>
+                  <ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon>
+                  Sair
+                </MenuItem>
+              </Menu>
+            </Stack>
           </Stack>
         </Stack>
       </Toolbar>
