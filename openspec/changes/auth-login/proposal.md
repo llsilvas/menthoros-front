@@ -1,39 +1,45 @@
-## Why
+## Por quê
 
-The Menthoros frontend currently opens directly into the dashboard experience with no authentication gate. That makes it impossible to protect athlete, plan, and workout data, and it prevents the application from establishing a consistent session model with the backend.
+O frontend do Menthoros atualmente abre diretamente na experiência do dashboard sem nenhuma barreira de autenticação. Isso torna impossível proteger os dados de atletas, planos e treinos, e impede a aplicação de estabelecer um modelo de sessão consistente com o backend.
 
-The product needs a first authentication step: a dedicated login screen that exchanges user credentials for a backend-generated token, persists that token locally, and uses it to unlock the private dashboard routes.
+O produto precisa de uma primeira etapa de autenticação: uma tela de login dedicada que colete as credenciais do usuário, autentique contra o **Keycloak** (o provedor de identidade que suporta o backend), persista o JWT access token retornado localmente e utilize-o para desbloquear as rotas privadas do dashboard.
 
-## What Changes
+O backend Spring Boot é um **OAuth2 Resource Server** — ele valida tokens JWT emitidos pelo Keycloak, mas não os emite. O frontend deve autenticar diretamente contra o endpoint de token do Keycloak.
 
-- Introduce a new public login route at `/auth/login`
-- Add a login screen in the Menthoros visual style, separate from `DashboardLayout`
-- Call a backend authentication service that returns a `token`
-- Persist the token in `localStorage` using the existing Menthoros auth key
-- Hydrate authentication state on app bootstrap from the persisted token
-- Protect internal dashboard routes and redirect unauthenticated users to login
-- Redirect authenticated users away from the login page back to `/`
+## O que Muda
 
-## Capabilities
+- Introduzir uma nova rota pública em `/auth/login`
+- Adicionar uma tela de login no estilo visual do Menthoros, separada do `DashboardLayout`
+- Chamar o endpoint de token do Keycloak com as credenciais do usuário para obter um JWT access token
+- Persistir o access token no `localStorage` usando a chave de auth existente do Menthoros
+- Hidratar o estado de autenticação na inicialização da aplicação a partir do token persistido
+- Proteger as rotas internas do dashboard e redirecionar usuários não autenticados para o login
+- Redirecionar usuários autenticados que acessem a página de login de volta para `/`
 
-### New Capabilities
+## Capacidades
 
-- `auth-login`: Authenticate a user with backend credentials, persist the returned token, and gate access to protected Menthoros routes
+### Novas Capacidades
 
-### Modified Capabilities
+- `auth-login`: Autenticar um usuário contra o Keycloak, persistir o JWT access token retornado e controlar o acesso às rotas protegidas do Menthoros
 
-- Dashboard routing: Existing routes become protected and require authentication before rendering
+### Capacidades Modificadas
 
-## Impact
+- Roteamento do dashboard: As rotas existentes passam a ser protegidas e exigem autenticação antes de renderizar
 
-- **Context**: `AuthContext` must hydrate persisted token state and continue to expose login/logout actions
-- **Routing**: `src/App.tsx` must split public auth routes from protected dashboard routes
-- **API**: A dedicated authentication service must call the backend login endpoint and return `{ token: string }`
-- **HTTP client**: Existing bearer token injection must reuse the persisted token
-- **UI**: A new login page/screen must be added in the frontend design system
+## Impacto
 
-## Assumptions
+- **Context**: `AuthContext` deve hidratar o estado do token persistido na inicialização e continuar expondo as ações login/logout
+- **Routing**: `src/App.tsx` deve separar as rotas públicas de auth das rotas protegidas do dashboard
+- **API**: Um serviço de autenticação dedicado chama o endpoint de token do Keycloak e retorna `{ accessToken: string }`
+- **HTTP client**: A injeção do bearer token em `OpenAPI.TOKEN` deve ler o access token persistido
+- **Config**: As coordenadas do Keycloak (URL base, realm, client ID) devem ser expostas como variáveis de ambiente
+- **UI**: Uma nova página de login fora do `DashboardLayout` deve ser adicionada
 
-- The backend login endpoint accepts credentials and returns a JSON body with `token: string`
-- The initial authentication iteration does not include refresh tokens, password recovery, registration, or permission roles
-- The default redirect after successful login will be `/`
+## Premissas
+
+- A autenticação usa o fluxo **Direct Grant** do Keycloak (Resource Owner Password Credentials): o frontend envia as credenciais diretamente ao endpoint de token do Keycloak
+- O client do Keycloak (`menthoros-web`) tem o Direct Grant habilitado no realm
+- A iteração inicial de autenticação não inclui refresh tokens, recuperação de senha, registro ou papéis de permissão
+- O campo `access_token` na resposta do token do Keycloak é o JWT que o backend valida
+- O redirecionamento padrão após login bem-sucedido é `/`
+- A URL base do Keycloak, realm e client ID são fornecidos como variáveis de ambiente (`VITE_KEYCLOAK_URL`, `VITE_KEYCLOAK_REALM`, `VITE_KEYCLOAK_CLIENT_ID`)

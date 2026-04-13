@@ -1,38 +1,45 @@
-## 1. Auth Service & Types
+## 1. Configuração de Ambiente Keycloak
 
-- [ ] 1.1 Define `LoginRequest` and `LoginResponse` types for frontend authentication
-- [ ] 1.2 Create an authentication service that submits credentials to the backend and returns `{ token: string }`
-- [ ] 1.3 Ensure the service integrates cleanly with the existing API client/request layer
+- [ ] 1.1 Adicionar `VITE_KEYCLOAK_URL`, `VITE_KEYCLOAK_REALM`, `VITE_KEYCLOAK_CLIENT_ID` em `src/config/env.ts` com fallbacks locais
+- [ ] 1.2 Documentar as três variáveis no `.env.example` (ou equivalente) com os valores padrão de desenvolvimento
 
-## 2. Auth State & Token Hydration
+## 2. Tipos e Serviço de Autenticação
 
-- [ ] 2.1 Update `AuthContext` to hydrate the persisted token from `@Menthoros:token` on app initialization
-- [ ] 2.2 Keep `login(token)` responsible for persisting the token and marking the app as authenticated
-- [ ] 2.3 Keep `logout()` responsible for removing the token and clearing authenticated state
+- [ ] 2.1 Definir os tipos `LoginRequest`, `KeycloakTokenResponse` e `LoginResult` para o fluxo de autenticação
+- [ ] 2.2 Criar um serviço de autenticação que chame o endpoint de token do Keycloak via Direct Grant (`grant_type=password`, `Content-Type: application/x-www-form-urlencoded`) e retorne `{ accessToken: string }`
+- [ ] 2.3 Mapear HTTP 401 do Keycloak para erro de credenciais inválidas e outros erros para mensagem genérica
 
-## 3. Routing & Access Control
+## 3. Estado de Auth e Hidratação do Token
 
-- [ ] 3.1 Add a public login route at `/auth/login`
-- [ ] 3.2 Add a protected-route wrapper for dashboard pages
-- [ ] 3.3 Redirect unauthenticated users from private routes to `/auth/login`
-- [ ] 3.4 Redirect authenticated users away from `/auth/login` to `/`
+- [ ] 3.1 Atualizar `AuthContext` para hidratar o token persistido de `@Menthoros:token` na inicialização da aplicação
+- [ ] 3.2 Na inicialização, configurar `OpenAPI.TOKEN` como uma função resolver que lê `localStorage.getItem('@Menthoros:token')`
+- [ ] 3.3 Manter `login(token)` responsável por persistir o token, atualizar o estado de autenticação e redirecionar para `/`
+- [ ] 3.4 Atualizar `logout()` para remover o token, limpar `OpenAPI.TOKEN` e redirecionar para `/auth/login`
 
-## 4. Login Screen UI
+## 4. Roteamento e Controle de Acesso
 
-- [ ] 4.1 Create a standalone login page/screen outside `DashboardLayout`
-- [ ] 4.2 Implement the login form with identifier and password fields
-- [ ] 4.3 Implement loading, disabled-submit, and authentication error states
-- [ ] 4.4 Ensure the layout is responsive for mobile and desktop
+- [ ] 4.1 Adicionar uma rota pública para `/auth/login`
+- [ ] 4.2 Criar um componente `ProtectedRoute` que redirecione usuários não autenticados para `/auth/login`
+- [ ] 4.3 Envolver todas as rotas do dashboard com `ProtectedRoute`
+- [ ] 4.4 Redirecionar usuários autenticados que tentarem acessar `/auth/login` para `/`
 
-## 5. HTTP Authorization Integration
+## 5. Tela de Login
 
-- [ ] 5.1 Ensure authenticated requests continue to send `Authorization: Bearer <token>`
-- [ ] 5.2 Reuse the persisted token source already consumed by the request layer
+- [ ] 5.1 Criar uma página de login autônoma fora do `DashboardLayout`
+- [ ] 5.2 Implementar o formulário de login com campos de usuário/email e senha
+- [ ] 5.3 Implementar os estados: idle, submitting (campos e botão desabilitados), erro de autenticação
+- [ ] 5.4 Garantir layout responsivo para mobile e desktop
 
-## 6. Validation & Acceptance
+## 6. Integração Authorization Bearer
 
-- [ ] 6.1 Verify successful login stores the token and redirects to `/`
-- [ ] 6.2 Verify invalid login shows an error and does not navigate
-- [ ] 6.3 Verify refresh with a stored token keeps the user authenticated
-- [ ] 6.4 Verify logout removes the token and redirects to `/auth/login`
-- [ ] 6.5 Verify protected routes cannot be accessed without authentication
+- [ ] 6.1 Verificar que `OpenAPI.TOKEN` está configurado como resolver antes da primeira chamada de serviço
+- [ ] 6.2 Confirmar que todas as requisições ao backend enviam `Authorization: Bearer <access_token>`
+
+## 7. Validação e Aceite
+
+- [ ] 7.1 Login com sucesso: armazena o token, redireciona para `/`
+- [ ] 7.2 Login com credenciais inválidas: exibe erro, não navega, não persiste token
+- [ ] 7.3 Refresh com token armazenado: usuário permanece autenticado
+- [ ] 7.4 Logout: remove token, redireciona para `/auth/login`
+- [ ] 7.5 Rota protegida sem token: redireciona para `/auth/login`
+- [ ] 7.6 Usuário autenticado acessa `/auth/login`: redireciona para `/`
