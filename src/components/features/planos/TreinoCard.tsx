@@ -14,6 +14,7 @@ import {
     Schedule as ScheduleIcon,
     CheckCircle as CheckCircleIcon,
     RadioButtonUnchecked as PendingIcon,
+    Cancel as CancelIcon,
     Speed as SpeedIcon,
     InfoOutlined as InfoIcon,
     EmojiEvents as TrophyIcon,
@@ -26,6 +27,7 @@ interface TreinoCardProps {
     treino: TreinoPlanejado;
     onDetalhes: () => void;
     onMarcarRealizado: () => void;
+    onMarcarPerdido?: () => void;
 }
 
 const MetricItem: React.FC<{ icon: React.ReactNode; label: string; value: string }> = ({
@@ -46,11 +48,15 @@ const MetricItem: React.FC<{ icon: React.ReactNode; label: string; value: string
     </Box>
 );
 
-const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRealizado }) => {
+const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRealizado, onMarcarPerdido }) => {
     const statusValue = typeof treino.statusTreino === 'object'
         ? treino.statusTreino?.value
         : treino.statusTreino;
     const isRealizado = statusValue === 'REALIZADO' || treino.realizado === true;
+    const isPerdido = statusValue === 'PERDIDO';
+    const hoje = new Date().toISOString().split('T')[0];
+    const treinoPassado = treino.dataTreino ? treino.dataTreino <= hoje : false;
+    const podeMarcardPerdido = !isRealizado && !isPerdido && treinoPassado && !!onMarcarPerdido;
     const duracaoDisplay = treino.duracaoMin != null ? String(treino.duracaoMin) : null;
     const ritmoAlvo = getSafeValue(treino.ritmoAlvo);
     const rpeEsperado = treino.percepcaoEsforcoEsperada;
@@ -63,9 +69,13 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                 height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
-                border: isRealizado ? '2px solid' : `1px solid ${glass.border}`,
-                borderColor: isRealizado ? 'success.main' : undefined,
-                bgcolor: isRealizado ? 'rgba(76, 175, 80, 0.25)' : glass.background,
+                border: isRealizado || isPerdido ? '2px solid' : `1px solid ${glass.border}`,
+                borderColor: isRealizado ? 'success.main' : isPerdido ? 'error.main' : undefined,
+                bgcolor: isRealizado
+                    ? 'rgba(76, 175, 80, 0.25)'
+                    : isPerdido
+                    ? 'rgba(244, 67, 54, 0.08)'
+                    : glass.background,
             }}
         >
             <CardContent sx={{ flexGrow: 1 }}>
@@ -79,6 +89,8 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                     />
                     {isRealizado ? (
                         <CheckCircleIcon color="success" fontSize="small" />
+                    ) : isPerdido ? (
+                        <CancelIcon sx={{ color: 'error.main' }} fontSize="small" />
                     ) : (
                         <PendingIcon color="action" fontSize="small" />
                     )}
@@ -131,7 +143,25 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                     >
                         Detalhes
                     </Button>
-                    {!isRealizado && (
+                    {podeMarcardPerdido && (
+                        <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<CancelIcon />}
+                            onClick={onMarcarPerdido}
+                            sx={{
+                                color: 'error.main',
+                                borderColor: 'error.main',
+                                '&:hover': {
+                                    bgcolor: 'rgba(244, 67, 54, 0.08)',
+                                    borderColor: 'error.dark',
+                                },
+                            }}
+                        >
+                            Perdido
+                        </Button>
+                    )}
+                    {!isRealizado && !isPerdido && (
                         <Button
                             variant="contained"
                             size="small"

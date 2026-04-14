@@ -123,6 +123,28 @@ export class TreinoService {
     }
 
     /**
+     * Marcar treino como perdido (não realizado)
+     * @param treinoId ID do treino planejado
+     * @returns void
+     * @throws ApiError
+     */
+    public static marcarComoPerdido(
+        treinoId: string,
+    ): CancelablePromise<void> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/treinos/{treinoId}/marcar-perdido',
+            path: {
+                'treinoId': treinoId,
+            },
+            errors: {
+                404: `Treino não encontrado`,
+                400: `Treino não pode ser marcado como perdido`,
+            },
+        });
+    }
+
+    /**
      * Desfazer realização de treino (marcar como pendente)
      * @param treinoId ID do treino
      * @returns TreinoPlanejado Treino atualizado

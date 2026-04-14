@@ -33,6 +33,7 @@ import { alpha } from '@mui/material/styles';
 import { useTheme } from '@mui/material/styles';
 import { usePlanoSemanal } from '../../../hooks/usePlanoSemanal';
 import { AtletasService } from '../../../api/services/AtletasService';
+import { TreinoService } from '../../../api/services/TreinoService';
 import {
     formatarPeriodoSemana,
     calcularProgressoVolume,
@@ -255,6 +256,17 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
             console.log('Recarregando planos após marcar como realizado...');
             await fetchPlanosPorAtleta(atletaId);
             console.log('Planos recarregados:', planos);
+        }
+    };
+
+    const handleMarcarPerdido = async (treinoId: string) => {
+        try {
+            await TreinoService.marcarComoPerdido(treinoId);
+            if (atletaId) {
+                await fetchPlanosPorAtleta(atletaId);
+            }
+        } catch (err) {
+            console.error('Erro ao marcar treino como perdido:', err);
         }
     };
 
@@ -655,6 +667,7 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                                                                         treino={treino}
                                                                         onDetalhes={() => handleOpenDetalheModal(treino)}
                                                                         onMarcarRealizado={() => handleOpenConclusaoModal(treino, plano.id || '')}
+                                                                        onMarcarPerdido={treino.id ? () => handleMarcarPerdido(treino.id!) : undefined}
                                                                     />
                                                                 </Grid>
                                                             ))}
