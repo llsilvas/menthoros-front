@@ -3,7 +3,7 @@ import type {} from '@mui/x-data-grid/themeAugmentation';
 import { createHashRouter, RouterProvider } from 'react-router';
 import DashboardLayout from './components/dashboard/DashboardLayout';
 import AtletasList from './pages/atletas/AtletasList';
-import HomePage from './pages/home/HomePage';
+import LandingPage from './pages/landing/LandingPage';
 import { colors, text, content } from './theme/tokens';
 
 const theme = createTheme({
@@ -125,12 +125,12 @@ const globalStyles = (
 
 const router = createHashRouter([
   {
+    path: '/',
+    element: <LandingPage />,
+  },
+  {
     element: <DashboardLayout />,
     children: [
-      {
-        index: true,
-        element: <HomePage />,
-      },
       {
         path: 'atletas',
         element: <AtletasList />,
