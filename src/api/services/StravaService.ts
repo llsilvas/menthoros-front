@@ -15,7 +15,7 @@ export class StravaService {
   ): CancelablePromise<StravaAuthorizationUrlResponse> {
     return __request(OpenAPI, {
       method: 'GET',
-      url: '/strava/auth/url/{atletaId}',
+      url: '/api/strava/auth/url/{atletaId}',
       path: {
         'atletaId': atletaId,
       },
@@ -33,7 +33,7 @@ export class StravaService {
   ): CancelablePromise<SyncResponse> {
     return __request(OpenAPI, {
       method: 'POST',
-      url: '/strava/sync/{atletaId}',
+      url: '/api/strava/sync/{atletaId}',
       path: {
         'atletaId': atletaId,
       },
@@ -56,7 +56,7 @@ export class StravaService {
   ): CancelablePromise<SyncStatus> {
     return __request(OpenAPI, {
       method: 'GET',
-      url: '/strava/sync-status/{atletaId}',
+      url: '/api/strava/sync-status/{atletaId}',
       path: {
         'atletaId': atletaId,
       },
