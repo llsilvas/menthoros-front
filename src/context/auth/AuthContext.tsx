@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { OpenAPI } from '../../api/core/OpenAPI';
 
 interface AuthContextData {
     isAuthenticated: boolean;
@@ -7,18 +8,25 @@ interface AuthContextData {
 }
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
+const TOKEN_STORAGE_KEY = '@Menthoros:token';
+
+const readToken = (): string => localStorage.getItem(TOKEN_STORAGE_KEY) ?? '';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(readToken()));
+    useEffect(() => {
+        OpenAPI.TOKEN = async () => readToken();
+    }, []);
 
     const login = (token: string) => {
-        localStorage.setItem('@Menthoros:token', token);
+        localStorage.setItem(TOKEN_STORAGE_KEY, token);
         setIsAuthenticated(true);
     };
 
     const logout = () => {
-        localStorage.removeItem('@Menthoros:token');
+        localStorage.removeItem(TOKEN_STORAGE_KEY);
         setIsAuthenticated(false);
+        window.location.hash = '#/auth/login';
     };
 
     return (

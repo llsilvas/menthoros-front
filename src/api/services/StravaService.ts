@@ -1,9 +1,27 @@
-import type { SyncStatus, SyncResponse } from '../../types/Strava';
+import type { SyncStatus, SyncResponse, StravaAuthorizationUrlResponse } from '../../types/Strava';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
 export class StravaService {
+  /**
+   * Retorna URL de autorização OAuth2 do Strava
+   * @param atletaId ID do atleta
+   * @returns StravaAuthorizationUrlResponse URL de autorização
+   * @throws ApiError
+   */
+  public static getAuthorizationUrl(
+    atletaId: string,
+  ): CancelablePromise<StravaAuthorizationUrlResponse> {
+    return __request(OpenAPI, {
+      method: 'GET',
+      url: '/strava/auth/url/{atletaId}',
+      path: {
+        'atletaId': atletaId,
+      },
+    });
+  }
+
   /**
    * Dispara sincronização manual de atividades do atleta
    * @param atletaId ID do atleta

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
+import { ApiError } from '../../api/core/ApiError';
 import { StravaService } from '../../api/services/StravaService';
-import type { SyncStatus } from '../../types/Strava';
 
 interface UseStravasyncState {
+  connected: boolean;
   syncing: boolean;
   imported: number;
   error: string | null;
@@ -11,6 +12,7 @@ interface UseStravasyncState {
 
 export const useStravaSync = (atletaId: string) => {
   const [state, setState] = useState<UseStravasyncState>({
+    connected: false,
     syncing: false,
     imported: 0,
     error: null,
@@ -25,6 +27,7 @@ export const useStravaSync = (atletaId: string) => {
         const status = await StravaService.getSyncStatus(atletaId);
         setState(prev => ({
           ...prev,
+          connected: status.connected,
           syncing: status.syncing,
           imported: status.imported,
           error: status.lastError || null,
@@ -36,6 +39,20 @@ export const useStravaSync = (atletaId: string) => {
           setPollingInterval(null);
         }
       } catch (err) {
+        if (err instanceof ApiError && err.status === 404) {
+          setState(prev => ({
+            ...prev,
+            connected: false,
+            syncing: false,
+            imported: 0,
+            error: null,
+            lastSync: null,
+          }));
+          clearInterval(timer);
+          setPollingInterval(null);
+          return;
+        }
+
         setState(prev => ({
           ...prev,
           error: err instanceof Error ? err.message : 'Erro ao obter status de sincronização',
@@ -60,6 +77,41 @@ export const useStravaSync = (atletaId: string) => {
       }));
     }
   }, [atletaId, startPolling]);
+
+  useEffect(() => {
+    const loadStatus = async () => {
+      try {
+        const status = await StravaService.getSyncStatus(atletaId);
+        setState(prev => ({
+          ...prev,
+          connected: status.connected,
+          syncing: status.syncing,
+          imported: status.imported,
+          error: status.lastError || null,
+          lastSync: status.lastSync || null,
+        }));
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) {
+          setState(prev => ({
+            ...prev,
+            connected: false,
+            syncing: false,
+            imported: 0,
+            error: null,
+            lastSync: null,
+          }));
+          return;
+        }
+
+        setState(prev => ({
+          ...prev,
+          error: err instanceof Error ? err.message : 'Erro ao obter status de sincronização',
+        }));
+      }
+    };
+
+    void loadStatus();
+  }, [atletaId]);
 
   useEffect(() => {
     return () => {

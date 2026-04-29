@@ -140,8 +140,6 @@ const AtletasList: React.FC = () => {
   const [provasDialogOpen, setProvasDialogOpen] = useState(false);
   const [selectedAtletaForProvas, setSelectedAtletaForProvas] = useState<Atleta | null>(null);
   const [query, setQuery] = useState('');
-  const [syncingAtletaId, setSyncingAtletaId] = useState<string | null>(null);
-
   const handleOpenDialog = (atleta?: Atleta) => {
     selectAtleta(atleta || null);
     setDialogOpen(true);
@@ -423,7 +421,6 @@ const AtletasList: React.FC = () => {
                         <SyncStravaButton
                           atletaId={atleta.id}
                           connected={true}
-                          onSyncComplete={() => setSyncingAtletaId(null)}
                         />
                       </Box>
 

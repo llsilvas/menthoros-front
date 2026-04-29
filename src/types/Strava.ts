@@ -12,3 +12,7 @@ export interface SyncResponse {
   imported: number;
   message: string;
 }
+
+export interface StravaAuthorizationUrlResponse {
+  authorizationUrl: string;
+}

@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  Box,
   Button,
   CircularProgress,
   Alert,
@@ -8,6 +7,7 @@ import {
   Stack,
 } from '@mui/material';
 import { useStravaSync } from '../../../hooks/features/useStravaSync';
+import { StravaService } from '../../../api/services/StravaService';
 
 interface SyncStravaButtonProps {
   atletaId: string;
@@ -17,10 +17,12 @@ interface SyncStravaButtonProps {
 
 export default function SyncStravaButton({
   atletaId,
-  connected,
+  connected: connectedProp,
   onSyncComplete,
 }: SyncStravaButtonProps) {
-  const { syncing, imported, error, triggerSync } = useStravaSync(atletaId);
+  const { connected, syncing, imported, error, triggerSync } = useStravaSync(atletaId);
+  const [connecting, setConnecting] = React.useState(false);
+  const [connectError, setConnectError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (!syncing && imported > 0 && onSyncComplete) {
@@ -28,16 +30,38 @@ export default function SyncStravaButton({
     }
   }, [syncing, imported, onSyncComplete]);
 
-  if (!connected) {
-    return null;
-  }
+  const isConnected = connectedProp && connected;
 
   const handleSync = async () => {
     await triggerSync();
   };
 
+  const handleConnect = async () => {
+    try {
+      setConnectError(null);
+      setConnecting(true);
+      const response = await StravaService.getAuthorizationUrl(atletaId);
+      window.location.href = response.authorizationUrl;
+    } catch (err) {
+      setConnectError(err instanceof Error ? err.message : 'Erro ao iniciar conexão com Strava');
+    } finally {
+      setConnecting(false);
+    }
+  };
+
   return (
     <Stack direction="row" spacing={2} alignItems="center">
+      {!isConnected && (
+        <Button
+          variant="outlined"
+          onClick={handleConnect}
+          disabled={connecting}
+          size="small"
+        >
+          {connecting ? 'Conectando...' : 'Conectar Strava'}
+        </Button>
+      )}
+
       {syncing && (
         <>
           <CircularProgress size={20} />
@@ -47,18 +71,26 @@ export default function SyncStravaButton({
         </>
       )}
 
-      <Button
-        variant="contained"
-        onClick={handleSync}
-        disabled={syncing}
-        size="small"
-      >
-        {syncing ? 'Sincronizando...' : 'Sincronizar 90 Dias'}
-      </Button>
+      {isConnected && (
+        <Button
+          variant="contained"
+          onClick={handleSync}
+          disabled={syncing}
+          size="small"
+        >
+          {syncing ? 'Sincronizando...' : 'Sincronizar 90 Dias'}
+        </Button>
+      )}
 
       {error && (
         <Alert severity="error" sx={{ flex: 1, py: 0.5 }}>
           {error}
+        </Alert>
+      )}
+
+      {connectError && (
+        <Alert severity="error" sx={{ flex: 1, py: 0.5 }}>
+          {connectError}
         </Alert>
       )}
 
