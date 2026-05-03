@@ -11,6 +11,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import DescriptionIcon from '@mui/icons-material/Description';
 import LayersIcon from '@mui/icons-material/Layers';
+import SyncIcon from '@mui/icons-material/Sync';
 import { matchPath, useLocation } from 'react-router';
 import DashboardSidebarContext from '../../context/DashboardSidebarContext';
 import { DRAWER_WIDTH, MINI_DRAWER_WIDTH } from '../../constants/constants';
@@ -164,6 +165,13 @@ export default function DashboardSidebar({
               icon={<LayersIcon />}
               href="/planos"
               selected={!!matchPath('/planos', pathname)}
+            />
+            <DashboardSidebarPageItem
+              id="reconciliacao"
+              title="Revisão Strava"
+              icon={<SyncIcon />}
+              href="/reconciliacao"
+              selected={!!matchPath('/reconciliacao', pathname)}
             />
             <DashboardSidebarDividerItem />
             <DashboardSidebarHeaderItem>Outros</DashboardSidebarHeaderItem>

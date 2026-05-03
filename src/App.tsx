@@ -4,6 +4,7 @@ import { createHashRouter, RouterProvider } from 'react-router';
 import DashboardLayout from './components/dashboard/DashboardLayout';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import AtletasList from './pages/atletas/AtletasList';
+import ReconciliacaoPage from './pages/reconciliacao/ReconciliacaoPage';
 import LoginPage from './pages/auth/LoginPage';
 import LandingPage from './pages/landing/LandingPage';
 import { colors, text, content } from './theme/tokens';
@@ -143,6 +144,10 @@ const router = createHashRouter([
           {
             path: 'atletas',
             element: <AtletasList />,
+          },
+          {
+            path: 'reconciliacao',
+            element: <ReconciliacaoPage />,
           },
           {
             path: 'treinos',
