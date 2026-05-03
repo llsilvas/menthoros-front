@@ -16,7 +16,21 @@ OpenAPI.HEADERS = async (): Promise<Record<string, string>> => {
   if (!token) return {}
   try {
     const payload = JSON.parse(atob(token.split('.')[1]))
-    const tenantId = payload.tenantId ?? payload.tenant_id ?? payload.organizationId
+
+    let tenantId: string | null = null
+
+    // Try direct claims first
+    if (payload.tenantId) tenantId = payload.tenantId
+    else if (payload.tenant_id) tenantId = payload.tenant_id
+    else if (payload.organizationId) tenantId = payload.organizationId
+    // Try nested organization structure (Keycloak protocol mapper)
+    else if (payload.organization && typeof payload.organization === 'object') {
+      const org = Object.values(payload.organization)[0] as any
+      if (org && Array.isArray(org.tenant_id) && org.tenant_id.length > 0) {
+        tenantId = org.tenant_id[0]
+      }
+    }
+
     if (tenantId) {
       return { 'X-Tenant-ID': String(tenantId) }
     }
