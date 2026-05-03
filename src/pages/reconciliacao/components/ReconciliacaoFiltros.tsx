@@ -7,8 +7,11 @@ import {
   MenuItem,
   Button,
   Autocomplete,
+  FormControlLabel,
+  Checkbox,
 } from '@mui/material';
 import { useEffect, useState } from 'react';
+import { subDays, format } from 'date-fns';
 import { AtletasService } from '../../../api/services/AtletasService';
 import type { Atleta } from '../../../types/Atleta';
 
@@ -42,6 +45,7 @@ export function ReconciliacaoFiltros({
 }: ReconciliacaoFiltrosProps) {
   const [atletas, setAtletas] = useState<Atleta[]>([]);
   const [atletasLoading, setAtletasLoading] = useState(false);
+  const [mostrarHistorico, setMostrarHistorico] = useState(false);
 
   useEffect(() => {
     const loadAtletas = async () => {
@@ -58,6 +62,20 @@ export function ReconciliacaoFiltros({
 
     loadAtletas();
   }, []);
+
+  const handleHistoricoToggle = (checked: boolean) => {
+    setMostrarHistorico(checked);
+    if (checked) {
+      // Últimas 2 semanas: hoje - 14 dias
+      const dataInicioHistorico = format(subDays(new Date(), 14), 'yyyy-MM-dd');
+      const dataFimAtual = format(new Date(), 'yyyy-MM-dd');
+      onDataInicioChange(dataInicioHistorico);
+      onDataFimChange(dataFimAtual);
+    } else {
+      onDataInicioChange('');
+      onDataFimChange('');
+    }
+  };
 
   const selectedAtleta = atletaId ? atletas.find((a) => a.id === atletaId) : null;
 
@@ -99,7 +117,7 @@ export function ReconciliacaoFiltros({
           label="De"
           value={dataInicio}
           onChange={(e) => onDataInicioChange(e.target.value)}
-          disabled={loading}
+          disabled={loading || mostrarHistorico}
           InputLabelProps={{ shrink: true }}
           sx={{ minWidth: { xs: '100%', sm: 120 } }}
         />
@@ -109,7 +127,7 @@ export function ReconciliacaoFiltros({
           label="Até"
           value={dataFim}
           onChange={(e) => onDataFimChange(e.target.value)}
-          disabled={loading}
+          disabled={loading || mostrarHistorico}
           InputLabelProps={{ shrink: true }}
           sx={{ minWidth: { xs: '100%', sm: 120 } }}
         />
@@ -121,6 +139,7 @@ export function ReconciliacaoFiltros({
             onStatusesChange(['AMBIGUO', 'NAO_PLANEJADO']);
             onDataInicioChange('');
             onDataFimChange('');
+            setMostrarHistorico(false);
           }}
           disabled={loading}
           sx={{ minWidth: { xs: '100%', sm: 'auto' } }}
@@ -128,6 +147,17 @@ export function ReconciliacaoFiltros({
           Limpar
         </Button>
       </Stack>
+
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={mostrarHistorico}
+            onChange={(e) => handleHistoricoToggle(e.target.checked)}
+            disabled={loading}
+          />
+        }
+        label="📋 Mostrar histórico (últimas 2 semanas)"
+      />
     </Stack>
   );
 }
