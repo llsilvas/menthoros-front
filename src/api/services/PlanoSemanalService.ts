@@ -17,7 +17,7 @@ export class PlanoSemanalService {
     ): CancelablePromise<PlanoSemanal[]> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/planos/{atletaId}',
+            url: '/api/v1/planos/{atletaId}',
             path: {
                 'atletaId': atletaId,
             },
@@ -33,7 +33,7 @@ export class PlanoSemanalService {
     ): CancelablePromise<PlanoSemanal> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/planos/atletas/{atletaId}/gerar',
+            url: '/api/v1/planos/atletas/{atletaId}/gerar',
             path: {
                 'atletaId': atletaId,
             },
@@ -51,7 +51,7 @@ export class PlanoSemanalService {
     ): CancelablePromise<void> {
         return __request(OpenAPI, {
             method: 'DELETE',
-            url: '/planos/{planoId}',
+            url: '/api/v1/planos/{planoId}',
             path: {
                 'planoId': planoId,
             },

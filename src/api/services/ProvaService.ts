@@ -16,7 +16,7 @@ export class ProvaService {
     ): CancelablePromise<Array<Prova>> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/atleta/{atletaId}/provas',
+            url: '/api/v1/atletas/{atletaId}/provas',
             path: {
                 'atletaId': atletaId,
             },
@@ -40,7 +40,7 @@ export class ProvaService {
     ): CancelablePromise<Prova> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/atleta/{atletaId}/provas',
+            url: '/api/v1/atletas/{atletaId}/provas',
             path: {
                 'atletaId': atletaId,
             },
@@ -67,7 +67,7 @@ export class ProvaService {
     ): CancelablePromise<Prova> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/atleta/{atletaId}/provas/{provaId}',
+            url: '/api/v1/atletas/{atletaId}/provas/{provaId}',
             path: {
                 'atletaId': atletaId,
                 'provaId': provaId,
@@ -94,7 +94,7 @@ export class ProvaService {
     ): CancelablePromise<Prova> {
         return __request(OpenAPI, {
             method: 'PUT',
-            url: '/atleta/{atletaId}/provas/{provaId}',
+            url: '/api/v1/atletas/{atletaId}/provas/{provaId}',
             path: {
                 'atletaId': atletaId,
                 'provaId': provaId,
@@ -122,7 +122,7 @@ export class ProvaService {
     ): CancelablePromise<void> {
         return __request(OpenAPI, {
             method: 'DELETE',
-            url: '/atleta/{atletaId}/provas/{provaId}',
+            url: '/api/v1/atletas/{atletaId}/provas/{provaId}',
             path: {
                 'atletaId': atletaId,
                 'provaId': provaId,
