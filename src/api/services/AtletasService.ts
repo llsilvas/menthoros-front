@@ -116,7 +116,7 @@ export class AtletasService {
         id: string,
     ): CancelablePromise<void> {
         return __request(OpenAPI, {
-            method: 'GET',
+            method: 'POST',
             url: '/atleta/{id}/recalcular-metricas',
             path: {
                 'id': id,
