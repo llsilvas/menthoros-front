@@ -3,6 +3,7 @@ import type {} from '@mui/x-data-grid/themeAugmentation';
 import { createHashRouter, RouterProvider } from 'react-router';
 import DashboardLayout from './components/dashboard/DashboardLayout';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import HomePage from './pages/home/HomePage';
 import AtletasList from './pages/atletas/AtletasList';
 import ReconciliacaoPage from './pages/reconciliacao/ReconciliacaoPage';
 import LoginPage from './pages/auth/LoginPage';
@@ -141,6 +142,10 @@ const router = createHashRouter([
       {
         element: <DashboardLayout />,
         children: [
+          {
+            index: true,
+            element: <HomePage />,
+          },
           {
             path: 'atletas',
             element: <AtletasList />,
