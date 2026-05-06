@@ -56,7 +56,7 @@ export class StravaService {
   ): CancelablePromise<SyncStatus> {
     return __request(OpenAPI, {
       method: 'GET',
-      url: '/strava/sync-status/{atletaId}',
+      url: '/api/v1/strava/sync-status/{atletaId}',
       path: {
         'atletaId': atletaId,
       },

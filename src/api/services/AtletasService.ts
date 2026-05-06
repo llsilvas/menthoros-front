@@ -16,7 +16,7 @@ export class AtletasService {
     ): CancelablePromise<Atleta> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/api/v1/atletas/{id}',
+            url: '/v1/atletas/{id}',
             path: {
                 'id': id,
             },
