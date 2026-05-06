@@ -36,7 +36,7 @@ export class TreinoService {
     ): CancelablePromise<TreinoPlanejado> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/treinos/{treinoId}/marcar-realizado',
+            url: '/api/v1/treinos/{treinoId}/marcar-realizado',
             path: {
                 'treinoId': dados.treinoPlanejadoId as string,
             },
@@ -61,7 +61,7 @@ export class TreinoService {
     ): CancelablePromise<TreinoPlanejado> {
         return __request(OpenAPI, {
             method: 'PUT',
-            url: '/treinos/{treinoId}',
+            url: '/api/v1/treinos/{treinoId}',
             path: {
                 'treinoId': treinoId,
             },
@@ -86,7 +86,7 @@ export class TreinoService {
     ): CancelablePromise<TreinoPlanejado[]> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/treinos/realizados/{atletaId}',
+            url: '/api/v1/treinos/realizados/{atletaId}',
             path: {
                 'atletaId': atletaId,
             },
@@ -112,7 +112,7 @@ export class TreinoService {
     ): CancelablePromise<TreinoPlanejado> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/treinos/{treinoId}',
+            url: '/api/v1/treinos/{treinoId}',
             path: {
                 'treinoId': treinoId,
             },

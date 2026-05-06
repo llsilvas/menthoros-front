@@ -2,8 +2,11 @@ import { ThemeProvider, createTheme, CssBaseline, GlobalStyles } from '@mui/mate
 import type {} from '@mui/x-data-grid/themeAugmentation';
 import { createHashRouter, RouterProvider } from 'react-router';
 import DashboardLayout from './components/dashboard/DashboardLayout';
+import ProtectedRoute from './components/auth/ProtectedRoute';
 import AtletasList from './pages/atletas/AtletasList';
-import HomePage from './pages/home/HomePage';
+import ReconciliacaoPage from './pages/reconciliacao/ReconciliacaoPage';
+import LoginPage from './pages/auth/LoginPage';
+import LandingPage from './pages/landing/LandingPage';
 import { colors, text, content } from './theme/tokens';
 
 const theme = createTheme({
@@ -125,35 +128,48 @@ const globalStyles = (
 
 const router = createHashRouter([
   {
-    element: <DashboardLayout />,
+    path: '/',
+    element: <LandingPage />,
+  },
+  {
+    path: '/auth/login',
+    element: <LoginPage />,
+  },
+  {
+    element: <ProtectedRoute />,
     children: [
       {
-        index: true,
-        element: <HomePage />,
-      },
-      {
-        path: 'atletas',
-        element: <AtletasList />,
-      },
-      {
-        path: 'treinos',
-        element: <div>Página de Treinos (em construção)</div>,
-      },
-      {
-        path: 'planos',
-        element: <div>Página de Planos (em construção)</div>,
-      },
-      {
-        path: 'calendario',
-        element: <div>Calendário (em construção)</div>,
-      },
-      {
-        path: 'relatorios',
-        element: <div>Relatórios (em construção)</div>,
-      },
-      {
-        path: 'configuracoes',
-        element: <div>Configurações (em construção)</div>,
+        element: <DashboardLayout />,
+        children: [
+          {
+            path: 'atletas',
+            element: <AtletasList />,
+          },
+          {
+            path: 'reconciliacao',
+            element: <ReconciliacaoPage />,
+          },
+          {
+            path: 'treinos',
+            element: <div>Página de Treinos (em construção)</div>,
+          },
+          {
+            path: 'planos',
+            element: <div>Página de Planos (em construção)</div>,
+          },
+          {
+            path: 'calendario',
+            element: <div>Calendário (em construção)</div>,
+          },
+          {
+            path: 'relatorios',
+            element: <div>Relatórios (em construção)</div>,
+          },
+          {
+            path: 'configuracoes',
+            element: <div>Configurações (em construção)</div>,
+          },
+        ],
       },
     ],
   },

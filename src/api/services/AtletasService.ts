@@ -16,7 +16,7 @@ export class AtletasService {
     ): CancelablePromise<Atleta> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/atleta/{id}',
+            url: '/v1/atletas/{id}',
             path: {
                 'id': id,
             },
@@ -39,7 +39,7 @@ export class AtletasService {
     ): CancelablePromise<Atleta> {
         return __request(OpenAPI, {
             method: 'PUT',
-            url: '/atleta/{id}',
+            url: '/api/v1/atletas/{id}',
             path: {
                 'id': id,
             },
@@ -63,7 +63,7 @@ export class AtletasService {
     ): CancelablePromise<void> {
         return __request(OpenAPI, {
             method: 'DELETE',
-            url: '/atleta/{id}',
+            url: '/api/v1/atletas/{id}',
             path: {
                 'id': id,
             },
@@ -81,7 +81,7 @@ export class AtletasService {
     public static listarAtletas(): CancelablePromise<Array<Atleta>> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/atleta',
+            url: '/api/v1/atletas',
         });
     }
     /**
@@ -96,7 +96,7 @@ export class AtletasService {
     ): CancelablePromise<Atleta> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/atleta',
+            url: '/api/v1/atletas',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -116,8 +116,8 @@ export class AtletasService {
         id: string,
     ): CancelablePromise<void> {
         return __request(OpenAPI, {
-            method: 'GET',
-            url: '/atleta/{id}/recalcular-metricas',
+            method: 'POST',
+            url: '/api/v1/atletas/{id}/recalcular-metricas',
             path: {
                 'id': id,
             },

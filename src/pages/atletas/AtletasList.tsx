@@ -25,6 +25,7 @@ import AtletaDialog from '../../components/features/atleta/AtletaDialog';
 import type { Atleta, CreateAtleta, UpdateAtleta } from '../../types/Atleta';
 import PlanosDialog from '../../components/features/planos/planosDialog';
 import ProvasDialog from '../../components/features/provas/ProvasDialog';
+import SyncStravaButton from '../../components/features/strava/SyncStravaButton';
 
 type NivelExperienciaKey = 'INICIANTE' | 'INTERMEDIARIO' | 'AVANCADO';
 
@@ -139,7 +140,6 @@ const AtletasList: React.FC = () => {
   const [provasDialogOpen, setProvasDialogOpen] = useState(false);
   const [selectedAtletaForProvas, setSelectedAtletaForProvas] = useState<Atleta | null>(null);
   const [query, setQuery] = useState('');
-
   const handleOpenDialog = (atleta?: Atleta) => {
     selectAtleta(atleta || null);
     setDialogOpen(true);
@@ -415,6 +415,13 @@ const AtletasList: React.FC = () => {
                         <Typography variant="caption" sx={{ color: '#6b7a8d' }}>
                           {formatDiasDisponiveis(atleta.diasDisponiveis)}
                         </Typography>
+                      </Box>
+
+                      <Box sx={{ py: 0.5 }}>
+                        <SyncStravaButton
+                          atletaId={atleta.id}
+                          connected={true}
+                        />
                       </Box>
 
                       <Box
