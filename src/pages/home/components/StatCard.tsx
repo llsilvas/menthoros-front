@@ -39,8 +39,8 @@ export default function StatCard({
           display: 'flex',
           justifyContent: 'center',
           mb: 1.5,
-          color,
           fontSize: 28,
+          color,
         }}
       >
         {icon}

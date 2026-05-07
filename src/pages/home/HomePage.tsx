@@ -172,28 +172,24 @@ export default function HomePage() {
             }}
           >
             <StatCard
-              icon={<PeopleIcon />}
+              icon={<PeopleIcon sx={{ color: '#b1e92d' }} />}
               label="Total de Atletas"
               value={kpis.total}
-              color="#b1e92d"
             />
             <StatCard
-              icon={<LocalHospitalIcon />}
+              icon={<LocalHospitalIcon sx={{ color: '#b1e92d' }} />}
               label="Com Lesão"
               value={kpis.comLesao}
-              color="#b1e92d"
             />
             <StatCard
-              icon={<TrendingUpIcon />}
+              icon={<TrendingUpIcon sx={{ color: '#b1e92d' }} />}
               label="Iniciantes"
               value={kpis.iniciantes}
-              color="#b1e92d"
             />
             <StatCard
-              icon={<WarningIcon />}
+              icon={<WarningIcon sx={{ color: '#b1e92d' }} />}
               label="Sem Rotina"
               value={kpis.semRotina}
-              color="#b1e92d"
             />
           </Box>
 
