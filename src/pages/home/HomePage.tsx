@@ -17,6 +17,7 @@ import type { Atleta } from '../../types/Atleta';
 import { gradients } from '../../theme/tokens';
 import StatCard from './components/StatCard';
 import AtletaStatusRow from './components/AtletaStatusRow';
+import StravaStatusWidget from './components/StravaStatusWidget';
 
 type NivelExperienciaKey = 'INICIANTE' | 'INTERMEDIARIO' | 'AVANCADO';
 
@@ -193,6 +194,10 @@ export default function HomePage() {
               value={kpis.semRotina}
               color={kpis.semRotina > 0 ? '#f39c12' : '#34c064'}
             />
+          </Box>
+
+          <Box sx={{ px: 3 }}>
+            <StravaStatusWidget atletas={atletas} />
           </Box>
 
           {atletasAtencao.length > 0 && (
