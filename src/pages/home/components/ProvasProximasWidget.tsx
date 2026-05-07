@@ -16,7 +16,7 @@ import type { Atleta } from '../../../types/Atleta';
 import type { Prova, DistanciaProvaObj } from '../../../types/Prova';
 import { DISTANCIA_PROVA_LABELS } from '../../../types/Prova';
 import { ProvaService } from '../../../api/services/ProvaService';
-import { glassSx, glassSxHover, transitions } from '../../../theme/tokens';
+import { glassAzulSx, glassAzulSxHover, transitions } from '../../../theme/tokens';
 
 interface ProvaProximasWidgetProps {
   atletas: Atleta[];
@@ -100,8 +100,8 @@ export default function ProvasProximasWidget({ atletas }: ProvaProximasWidgetPro
       sx={{
         p: 2.5,
         transition: transitions.default,
-        ...glassSx,
-        '&:hover': glassSxHover,
+        ...glassAzulSx,
+        '&:hover': glassAzulSxHover,
       }}
     >
       <Stack spacing={2}>

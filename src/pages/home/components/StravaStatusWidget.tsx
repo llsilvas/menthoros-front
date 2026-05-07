@@ -11,7 +11,7 @@ import {
   Info as InfoIcon,
 } from '@mui/icons-material';
 import type { Atleta } from '../../../types/Atleta';
-import { glassSx, glassSxHover, transitions } from '../../../theme/tokens';
+import { glassAzulSx, glassAzulSxHover, transitions } from '../../../theme/tokens';
 
 interface StravaStatusWidgetProps {
   atletas: Atleta[];
@@ -32,8 +32,8 @@ export default function StravaStatusWidget({ atletas }: StravaStatusWidgetProps)
       sx={{
         p: 2.5,
         transition: transitions.default,
-        ...glassSx,
-        '&:hover': glassSxHover,
+        ...glassAzulSx,
+        '&:hover': glassAzulSxHover,
       }}
     >
       <Stack spacing={2}>
