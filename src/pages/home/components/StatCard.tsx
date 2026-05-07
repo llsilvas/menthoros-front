@@ -2,7 +2,7 @@ import React from 'react';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
-import { glassSx, glassSxHover, transitions } from '../../../theme/tokens';
+import { glassAzulSx, glassAzulSxHover, transitions } from '../../../theme/tokens';
 
 interface StatCardProps {
   icon: React.ReactNode;
@@ -28,9 +28,9 @@ export default function StatCard({
         textAlign: 'center',
         cursor: onClick ? 'pointer' : 'default',
         transition: transitions.default,
-        ...glassSx,
+        ...glassAzulSx,
         ...(onClick && {
-          '&:hover': glassSxHover,
+          '&:hover': glassAzulSxHover,
         }),
       }}
     >

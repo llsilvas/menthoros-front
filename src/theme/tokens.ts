@@ -39,6 +39,15 @@ export const glass = {
   boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
 } as const;
 
+export const glassAzul = {
+  background: 'rgba(26, 74, 102, 0.35)',
+  backgroundHover: 'rgba(26, 74, 102, 0.45)',
+  border: 'rgba(177, 233, 45, 0.25)',
+  borderHover: 'rgba(177, 233, 45, 0.40)',
+  backdropFilter: 'blur(10px)',
+  boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
+} as const;
+
 // ── Textos ────────────────────────────────────────────────────────
 export const text = {
   primary: '#082130',
@@ -99,6 +108,19 @@ export const glassSx = {
 export const glassSxHover = {
   backgroundColor: glass.backgroundHover,
   border: `1px solid ${glass.borderHover}`,
+} as const;
+
+export const glassAzulSx = {
+  backgroundColor: glassAzul.background,
+  backdropFilter: glassAzul.backdropFilter,
+  WebkitBackdropFilter: glassAzul.backdropFilter,
+  border: `1px solid ${glassAzul.border}`,
+  boxShadow: glassAzul.boxShadow,
+} as const;
+
+export const glassAzulSxHover = {
+  backgroundColor: glassAzul.backgroundHover,
+  border: `1px solid ${glassAzul.borderHover}`,
 } as const;
 
 // ── Zone palette (Z1–Z5) ──────────────────────────────────────────
