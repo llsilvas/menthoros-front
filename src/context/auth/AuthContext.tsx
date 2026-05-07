@@ -12,10 +12,36 @@ const TOKEN_STORAGE_KEY = '@Menthoros:token';
 
 const readToken = (): string => localStorage.getItem(TOKEN_STORAGE_KEY) ?? '';
 
+const isTokenExpired = (token: string): boolean => {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.exp * 1000 < Date.now();
+  } catch {
+    return true;
+  }
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(readToken()));
+    const [isAuthenticated, setIsAuthenticated] = useState(() => {
+        const token = readToken();
+        return Boolean(token) && !isTokenExpired(token);
+    });
+
     useEffect(() => {
         OpenAPI.TOKEN = async () => readToken();
+    }, []);
+
+    useEffect(() => {
+        const checkTokenExpiration = () => {
+            const token = readToken();
+            if (token && isTokenExpired(token)) {
+                setIsAuthenticated(false);
+                localStorage.removeItem(TOKEN_STORAGE_KEY);
+            }
+        };
+
+        const interval = setInterval(checkTokenExpiration, 60000);
+        return () => clearInterval(interval);
     }, []);
 
     const login = (token: string) => {

@@ -4,7 +4,8 @@ import { Navigate, useNavigate } from 'react-router';
 import { ROUTES } from '../../constants/routes';
 import { useAuth } from '../../context/auth/AuthContext';
 import { AuthService } from '../../services/auth/AuthService';
-import { gradients } from '../../theme/tokens';
+import { gradients, glassAzulSx, glassAzulSxHover, transitions } from '../../theme/tokens';
+import logoMenthoros from '../../assets/icons/menthoros_navbar.png';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -51,18 +52,42 @@ export default function LoginPage() {
           width: '100%',
           maxWidth: 420,
           p: 4,
-          borderRadius: 3,
-          border: '1px solid rgba(255,255,255,0.25)',
-          backgroundColor: 'rgba(255,255,255,0.7)',
+          borderRadius: 2,
+          transition: transitions.default,
+          ...glassAzulSx,
+          '&:hover': glassAzulSxHover,
         }}
       >
-        <Stack spacing={2.5} component="form" onSubmit={handleSubmit}>
+        <Stack spacing={3} component="form" onSubmit={handleSubmit}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
+            <img
+              src={logoMenthoros}
+              alt="Menthoros"
+              style={{
+                height: 44,
+                opacity: 0.95,
+              }}
+            />
+          </Box>
+
           <Box>
-            <Typography variant="h5" fontWeight={700}>
-              Entrar
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: 700,
+                color: '#ffffff',
+                mb: 0.5,
+              }}
+            >
+              Bem-vindo de volta
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Acesse o dashboard Menthoros.
+            <Typography
+              variant="body2"
+              sx={{
+                color: 'rgba(255, 255, 255, 0.7)',
+              }}
+            >
+              Acesse sua assessoria
             </Typography>
           </Box>
 
@@ -73,6 +98,27 @@ export default function LoginPage() {
             required
             disabled={submitting}
             fullWidth
+            InputLabelProps={{
+              style: { color: 'rgba(255, 255, 255, 0.7)' },
+            }}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                color: '#ffffff',
+                '& fieldset': {
+                  borderColor: 'rgba(177, 233, 45, 0.3)',
+                },
+                '&:hover fieldset': {
+                  borderColor: 'rgba(177, 233, 45, 0.5)',
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: '#b1e92d',
+                },
+              },
+              '& .MuiOutlinedInput-input::placeholder': {
+                color: 'rgba(255, 255, 255, 0.5)',
+                opacity: 1,
+              },
+            }}
           />
           <TextField
             label="Senha"
@@ -82,11 +128,56 @@ export default function LoginPage() {
             required
             disabled={submitting}
             fullWidth
+            InputLabelProps={{
+              style: { color: 'rgba(255, 255, 255, 0.7)' },
+            }}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                color: '#ffffff',
+                '& fieldset': {
+                  borderColor: 'rgba(177, 233, 45, 0.3)',
+                },
+                '&:hover fieldset': {
+                  borderColor: 'rgba(177, 233, 45, 0.5)',
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: '#b1e92d',
+                },
+              },
+              '& .MuiOutlinedInput-input::placeholder': {
+                color: 'rgba(255, 255, 255, 0.5)',
+                opacity: 1,
+              },
+            }}
           />
 
-          {error ? <Alert severity="error">{error}</Alert> : null}
+          {error ? (
+            <Alert severity="error" sx={{ bgcolor: 'rgba(231, 76, 60, 0.15)', color: '#e74c3c' }}>
+              {error}
+            </Alert>
+          ) : null}
 
-          <Button type="submit" variant="contained" disabled={submitting || !username || !password} fullWidth>
+          <Button
+            type="submit"
+            variant="contained"
+            disabled={submitting || !username || !password}
+            fullWidth
+            sx={{
+              bgcolor: '#b1e92d',
+              color: '#0e3147',
+              fontWeight: 700,
+              fontSize: '1rem',
+              py: 1.5,
+              mt: 1,
+              '&:hover': {
+                bgcolor: '#c5f05a',
+              },
+              '&:disabled': {
+                bgcolor: 'rgba(177, 233, 45, 0.5)',
+                color: 'rgba(14, 49, 71, 0.5)',
+              },
+            }}
+          >
             {submitting ? 'Entrando...' : 'Entrar'}
           </Button>
         </Stack>
