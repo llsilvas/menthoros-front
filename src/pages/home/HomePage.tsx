@@ -181,19 +181,19 @@ export default function HomePage() {
               icon={<LocalHospitalIcon />}
               label="Com Lesão"
               value={kpis.comLesao}
-              color={kpis.comLesao > 0 ? '#e74c3c' : '#34c064'}
+              color="#b1e92d"
             />
             <StatCard
               icon={<TrendingUpIcon />}
               label="Iniciantes"
               value={kpis.iniciantes}
-              color="#3498db"
+              color="#b1e92d"
             />
             <StatCard
               icon={<WarningIcon />}
               label="Sem Rotina"
               value={kpis.semRotina}
-              color={kpis.semRotina > 0 ? '#f39c12' : '#34c064'}
+              color="#b1e92d"
             />
           </Box>
 
