@@ -107,6 +107,10 @@ export default function HomePage() {
         background: gradients.background,
       }}
     >
+      <Box sx={{ px: 3 }}>
+        <AssessmentInfoCard />
+      </Box>
+
       <Box
         sx={{
           px: 3,
@@ -198,18 +202,7 @@ export default function HomePage() {
             />
           </Box>
 
-          <Box
-            sx={{
-              px: 3,
-              display: 'grid',
-              gridTemplateColumns: {
-                xs: '1fr',
-                md: '1fr 1fr',
-              },
-              gap: 1.5,
-            }}
-          >
-            <AssessmentInfoCard />
+          <Box sx={{ px: 3 }}>
             <ProvasProximasWidget atletas={atletas} />
           </Box>
 
