@@ -4,16 +4,20 @@ import {
   Chip,
   IconButton,
   Typography,
+  Stack,
+  Divider,
 } from '@mui/material';
 import {
   EventOutlined as CalendarIcon,
   EmojiEvents as EmojiEventsIcon,
   EditOutlined as EditIcon,
+  FitnessCenter as FitnessCenterIcon,
 } from '@mui/icons-material';
 import { alpha } from '@mui/material/styles';
 import type { Atleta } from '../../../types/Atleta';
 import PlanosDialog from '../../../components/features/planos/planosDialog';
 import ProvasDialog from '../../../components/features/provas/ProvasDialog';
+import SyncStravaButton from '../../../components/features/strava/SyncStravaButton';
 
 type NivelExperienciaKey = 'INICIANTE' | 'INTERMEDIARIO' | 'AVANCADO';
 
@@ -227,6 +231,39 @@ export default function AtletaStatusRow({ atleta, onEditAtleta }: AtletaStatusRo
             />
           )}
         </Box>
+
+        <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)' }} />
+
+        <Stack spacing={1}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <FitnessCenterIcon
+              sx={{
+                fontSize: 18,
+                color: '#b1e92d',
+                opacity: 0.8,
+              }}
+            />
+            <Typography
+              variant="caption"
+              sx={{
+                color: 'rgba(255,255,255,0.7)',
+                fontWeight: 600,
+                fontSize: '0.75rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+              }}
+            >
+              Sincronização Strava
+            </Typography>
+          </Box>
+
+          <Box sx={{ pl: 3.5 }}>
+            <SyncStravaButton
+              atletaId={atleta.id}
+              connected={true}
+            />
+          </Box>
+        </Stack>
 
         <Box
           sx={{
