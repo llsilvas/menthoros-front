@@ -18,7 +18,6 @@ import { gradients } from '../../theme/tokens';
 import StatCard from './components/StatCard';
 import AtletaStatusRow from './components/AtletaStatusRow';
 import StravaStatusWidget from './components/StravaStatusWidget';
-import AssessmentHeader from './components/AssessmentHeader';
 import ProvasProximasWidget from './components/ProvasProximasWidget';
 
 type NivelExperienciaKey = 'INICIANTE' | 'INTERMEDIARIO' | 'AVANCADO';
@@ -107,8 +106,6 @@ export default function HomePage() {
         background: gradients.background,
       }}
     >
-      <AssessmentHeader />
-
       <Box
         sx={{
           px: 3,

@@ -10,8 +10,10 @@ import Avatar from '@mui/material/Avatar';
 import MenuIcon from '@mui/icons-material/Menu';
 import MenuOpenIcon from '@mui/icons-material/MenuOpen';
 import Stack from '@mui/material/Stack';
+import Popover from '@mui/material/Popover';
 import { Link } from 'react-router';
 import ThemeSwitcher from './ThemeSwitcher';
+import { useUserInfo } from '../../hooks/useUserInfo';
 import { gradients, glass } from '../../theme/tokens';
 
 const AppBar = styled(MuiAppBar)(({ theme }) => ({
@@ -53,6 +55,29 @@ export default function DashboardHeader({
   menuOpen,
   onToggleMenu,
 }: DashboardHeaderProps) {
+  const userInfo = useUserInfo();
+  const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
+
+  const handleAvatarClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handlePopoverClose = () => {
+    setAnchorEl(null);
+  };
+
+  const openPopover = Boolean(anchorEl);
+
+  const getInitials = (name?: string) => {
+    if (!name) return 'U';
+    return name
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? '')
+      .join('');
+  };
+
   const handleMenuOpen = React.useCallback(() => {
     onToggleMenu(!menuOpen);
   }, [menuOpen, onToggleMenu]);
@@ -126,21 +151,63 @@ export default function DashboardHeader({
             <Stack direction="row" alignItems="center">
               <ThemeSwitcher />
             </Stack>
-            <Tooltip title="Usuário">
-              <Avatar
-                sx={{
-                  width: 32,
-                  height: 32,
-                  bgcolor: 'rgba(255,255,255,0.18)',
-                  color: 'white',
-                  fontWeight: 700,
-                  fontSize: '0.875rem',
-                  border: '1px solid rgba(255,255,255,0.35)',
-                }}
+            <Tooltip title={userInfo.name || 'Usuário'}>
+              <IconButton
+                onClick={handleAvatarClick}
+                sx={{ p: 0 }}
               >
-                U
-              </Avatar>
+                <Avatar
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    bgcolor: '#b1e92d',
+                    color: '#0e3147',
+                    fontWeight: 700,
+                    fontSize: '0.875rem',
+                    border: '1px solid rgba(255,255,255,0.35)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {getInitials(userInfo.name)}
+                </Avatar>
+              </IconButton>
             </Tooltip>
+
+            <Popover
+              open={openPopover}
+              anchorEl={anchorEl}
+              onClose={handlePopoverClose}
+              anchorOrigin={{
+                vertical: 'bottom',
+                horizontal: 'right',
+              }}
+              transformOrigin={{
+                vertical: 'top',
+                horizontal: 'right',
+              }}
+            >
+              <Box sx={{ p: 2, minWidth: 220, bgcolor: '#0e3147', color: 'white' }}>
+                <Typography
+                  sx={{
+                    fontSize: '0.95rem',
+                    fontWeight: 600,
+                    color: 'white',
+                    mb: 0.5,
+                  }}
+                >
+                  {userInfo.name || 'Usuário'}
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: '0.85rem',
+                    color: '#b1e92d',
+                    fontWeight: 600,
+                  }}
+                >
+                  {userInfo.organizationName || 'Assessoria'}
+                </Typography>
+              </Box>
+            </Popover>
           </Stack>
         </Stack>
       </Toolbar>
