@@ -1,4 +1,5 @@
 import type { Prova, CreateProva, UpdateProva } from '../../types/Prova';
+import type { ProvasProximasResponse } from '../../types/Metricas';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -131,5 +132,33 @@ export class ProvaService {
                 404: `Prova não encontrada`,
             },
         });
+    }
+
+    /**
+     * Listar próximas provas
+     * Retorna um lote de próximas provas dentro de um período de dias
+     * @param dias Número de dias para buscar próximas provas (padrão: 15)
+     * @returns ProvasProximasResponse Resposta contendo lista de próximas provas
+     * @throws Error
+     */
+    public static async listarProximas(dias: number = 15): Promise<ProvasProximasResponse> {
+        const params = new URLSearchParams({ dias: dias.toString() });
+
+        const token = typeof OpenAPI.TOKEN === 'function' ? await OpenAPI.TOKEN({} as any) : OpenAPI.TOKEN;
+
+        const response = await fetch(
+            `${OpenAPI.BASE}/api/v1/provas/proximas?${params.toString()}`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch upcoming races: ${response.statusText}`);
+        }
+
+        return response.json();
     }
 }
