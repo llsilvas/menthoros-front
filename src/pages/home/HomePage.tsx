@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -19,6 +19,7 @@ import StatCard from './components/StatCard';
 import AtletaStatusRow from './components/AtletaStatusRow';
 import StravaStatusWidget from './components/StravaStatusWidget';
 import ProvasProximasWidget from './components/ProvasProximasWidget';
+import AtletasFiltros from './components/AtletasFiltros';
 
 type NivelExperienciaKey = 'INICIANTE' | 'INTERMEDIARIO' | 'AVANCADO';
 
@@ -49,6 +50,9 @@ const calcularStatus = (atleta: Atleta): 'EM_DIA' | 'ATENCAO' | 'SEM_ROTINA' => 
 
 export default function HomePage() {
   const { atletas, loading, error, fetchAtletas } = useAtletas();
+  const [busca, setBusca] = useState('');
+  const [filtroStatus, setFiltroStatus] = useState<'EM_DIA' | 'ATENCAO' | 'SEM_ROTINA' | 'TODOS'>('TODOS');
+  const [filtroNivel, setFiltroNivel] = useState<'INICIANTE' | 'INTERMEDIARIO' | 'AVANCADO' | 'TODOS'>('TODOS');
 
   useEffect(() => {
     fetchAtletas();
@@ -83,6 +87,15 @@ export default function HomePage() {
   const atletasAtencao = useMemo(() => {
     return atletas.filter((a) => calcularStatus(a) !== 'EM_DIA');
   }, [atletas]);
+
+  const atletasFiltrados = useMemo(() => {
+    return atletas.filter((a) => {
+      const matchBusca = !busca || a.nome.toLowerCase().includes(busca.toLowerCase());
+      const matchStatus = filtroStatus === 'TODOS' || calcularStatus(a) === filtroStatus;
+      const matchNivel = filtroNivel === 'TODOS' || getExperienceKey(a.nivelExperiencia) === filtroNivel;
+      return matchBusca && matchStatus && matchNivel;
+    });
+  }, [atletas, busca, filtroStatus, filtroNivel]);
 
   const getDataAtual = () => {
     const today = new Date();
@@ -236,13 +249,25 @@ export default function HomePage() {
                 fontSize: '1rem',
               }}
             >
-              Todos os Atletas ({atletas.length})
+              Todos os Atletas ({atletasFiltrados.length}/{atletas.length})
             </Typography>
-            <Stack spacing={1} sx={{ maxWidth: 1000 }}>
-              {atletas.map((atleta) => (
-                <AtletaStatusRow key={atleta.id} atleta={atleta} />
-              ))}
-            </Stack>
+            <Box sx={{ maxWidth: 1000 }}>
+              <AtletasFiltros
+                busca={busca}
+                status={filtroStatus}
+                nivel={filtroNivel}
+                onBuscaChange={setBusca}
+                onStatusChange={setFiltroStatus}
+                onNivelChange={setFiltroNivel}
+                totalFiltrado={atletasFiltrados.length}
+                totalGeral={atletas.length}
+              />
+              <Stack spacing={1}>
+                {atletasFiltrados.map((atleta) => (
+                  <AtletaStatusRow key={atleta.id} atleta={atleta} />
+                ))}
+              </Stack>
+            </Box>
           </Box>
         </>
       )}
