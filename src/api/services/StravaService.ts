@@ -1,4 +1,5 @@
 import type { SyncStatus, SyncResponse, StravaAuthorizationUrlResponse } from '../../types/Strava';
+import type { StravaStatusGlobal } from '../../types/Metricas';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -63,6 +64,18 @@ export class StravaService {
       errors: {
         404: 'Integração Strava não encontrada',
       },
+    });
+  }
+
+  /**
+   * Retorna status global da conexão Strava
+   * @returns StravaStatusGlobal Status global da integração Strava
+   * @throws ApiError
+   */
+  public static getStatusGlobal(): CancelablePromise<StravaStatusGlobal> {
+    return __request(OpenAPI, {
+      method: 'GET',
+      url: '/api/v1/strava/status-global',
     });
   }
 }
