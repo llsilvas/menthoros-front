@@ -10,7 +10,6 @@ import Avatar from '@mui/material/Avatar';
 import MenuIcon from '@mui/icons-material/Menu';
 import MenuOpenIcon from '@mui/icons-material/MenuOpen';
 import Stack from '@mui/material/Stack';
-import Popover from '@mui/material/Popover';
 import { Link } from 'react-router';
 import ThemeSwitcher from './ThemeSwitcher';
 import { useUserInfo } from '../../hooks/useUserInfo';
@@ -56,17 +55,6 @@ export default function DashboardHeader({
   onToggleMenu,
 }: DashboardHeaderProps) {
   const userInfo = useUserInfo();
-  const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
-
-  const handleAvatarClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handlePopoverClose = () => {
-    setAnchorEl(null);
-  };
-
-  const openPopover = Boolean(anchorEl);
 
   const getInitials = (name?: string) => {
     if (!name) return 'U';
@@ -151,63 +139,60 @@ export default function DashboardHeader({
             <Stack direction="row" alignItems="center">
               <ThemeSwitcher />
             </Stack>
-            <Tooltip title={userInfo.name || 'Usuário'}>
-              <IconButton
-                onClick={handleAvatarClick}
-                sx={{ p: 0 }}
-              >
-                <Avatar
-                  sx={{
-                    width: 32,
-                    height: 32,
-                    bgcolor: '#b1e92d',
-                    color: '#0e3147',
-                    fontWeight: 700,
-                    fontSize: '0.875rem',
-                    border: '1px solid rgba(255,255,255,0.35)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {getInitials(userInfo.name)}
-                </Avatar>
-              </IconButton>
-            </Tooltip>
-
-            <Popover
-              open={openPopover}
-              anchorEl={anchorEl}
-              onClose={handlePopoverClose}
-              anchorOrigin={{
-                vertical: 'bottom',
-                horizontal: 'right',
-              }}
-              transformOrigin={{
-                vertical: 'top',
-                horizontal: 'right',
-              }}
+            <Stack
+              direction="row"
+              alignItems="center"
+              spacing={1}
+              sx={{ minWidth: 0 }}
             >
-              <Box sx={{ p: 2, minWidth: 220, bgcolor: '#0e3147', color: 'white' }}>
+              <Avatar
+                sx={{
+                  width: 36,
+                  height: 36,
+                  bgcolor: '#b1e92d',
+                  color: '#0e3147',
+                  fontWeight: 700,
+                  fontSize: '0.875rem',
+                  border: '1px solid rgba(255,255,255,0.35)',
+                  flexShrink: 0,
+                }}
+              >
+                {getInitials(userInfo.name)}
+              </Avatar>
+
+              <Stack
+                direction="column"
+                spacing={0}
+                sx={{ minWidth: 0 }}
+              >
                 <Typography
                   sx={{
-                    fontSize: '0.95rem',
+                    fontSize: '0.9rem',
                     fontWeight: 600,
                     color: 'white',
-                    mb: 0.5,
+                    lineHeight: 1.2,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   {userInfo.name || 'Usuário'}
                 </Typography>
                 <Typography
                   sx={{
-                    fontSize: '0.85rem',
-                    color: '#b1e92d',
+                    fontSize: '0.75rem',
                     fontWeight: 600,
+                    color: '#b1e92d',
+                    lineHeight: 1.2,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   {userInfo.organizationName || 'Assessoria'}
                 </Typography>
-              </Box>
-            </Popover>
+              </Stack>
+            </Stack>
           </Stack>
         </Stack>
       </Toolbar>
