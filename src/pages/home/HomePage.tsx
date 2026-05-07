@@ -18,6 +18,8 @@ import { gradients } from '../../theme/tokens';
 import StatCard from './components/StatCard';
 import AtletaStatusRow from './components/AtletaStatusRow';
 import StravaStatusWidget from './components/StravaStatusWidget';
+import AssessmentInfoCard from './components/AssessmentInfoCard';
+import ProvasProximasWidget from './components/ProvasProximasWidget';
 
 type NivelExperienciaKey = 'INICIANTE' | 'INTERMEDIARIO' | 'AVANCADO';
 
@@ -194,6 +196,21 @@ export default function HomePage() {
               value={kpis.semRotina}
               color={kpis.semRotina > 0 ? '#f39c12' : '#34c064'}
             />
+          </Box>
+
+          <Box
+            sx={{
+              px: 3,
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: '1fr',
+                md: '1fr 1fr',
+              },
+              gap: 1.5,
+            }}
+          >
+            <AssessmentInfoCard />
+            <ProvasProximasWidget atletas={atletas} />
           </Box>
 
           <Box sx={{ px: 3 }}>
