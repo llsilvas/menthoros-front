@@ -1,206 +1,151 @@
-import { useEffect, useState, useMemo } from 'react';
-import {
-  Box,
-  Paper,
-  Stack,
-  Typography,
-  CircularProgress,
-  Alert,
-  Chip,
-} from '@mui/material';
-import {
-  EmojiEvents as EmojiEventsIcon,
-  Event as EventIcon,
-} from '@mui/icons-material';
-import type { Atleta } from '../../../types/Atleta';
-import type { Prova, DistanciaProvaObj } from '../../../types/Prova';
-import { DISTANCIA_PROVA_LABELS } from '../../../types/Prova';
+import { useEffect, useState } from 'react';
+import { Box, CircularProgress, Paper, Stack, Typography } from '@mui/material';
 import { ProvaService } from '../../../api/services/ProvaService';
+import type { ProvaProxima } from '../../../types/Metricas';
 import { glassAzulSx, glassAzulSxHover, transitions } from '../../../theme/tokens';
 
-interface ProvaProximasWidgetProps {
-  atletas: Atleta[];
+interface ProvasProximasWidgetProps {
+  atletas?: any[];
 }
 
-export default function ProvasProximasWidget({ atletas }: ProvaProximasWidgetProps) {
-  const [provas, setProvas] = useState<Prova[]>([]);
+export default function ProvasProximasWidget(_props: ProvasProximasWidgetProps) {
+  const [provas, setProvas] = useState<ProvaProxima[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const carregarProvas = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+    ProvaService.listarProximas(15)
+      .then((response) => setProvas(response.provas))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
 
-        const todasAsProvas: Prova[] = [];
-        for (const atleta of atletas) {
-          try {
-            const provasAtleta = await ProvaService.listarProvas(atleta.id);
-            if (Array.isArray(provasAtleta)) {
-              todasAsProvas.push(...provasAtleta);
-            }
-          } catch {
-            // Ignora erros individuais de atletas
-          }
-        }
+  if (loading) {
+    return <CircularProgress />;
+  }
 
-        setProvas(todasAsProvas);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Erro ao carregar próximas provas');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (atletas.length > 0) {
-      carregarProvas();
-    } else {
-      setLoading(false);
-    }
-  }, [atletas]);
-
-  const provasProximas = useMemo(() => {
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-
-    return provas
-      .filter((prova) => {
-        if (!prova.dataProva) return false;
-        const dataProva = new Date(prova.dataProva);
-        dataProva.setHours(0, 0, 0, 0);
-        return dataProva >= hoje && dataProva <= new Date(hoje.getTime() + 14 * 24 * 60 * 60 * 1000);
-      })
-      .sort((a, b) => new Date(a.dataProva!).getTime() - new Date(b.dataProva!).getTime())
-      .slice(0, 5);
-  }, [provas]);
-
-  const formatarData = (data: string) => {
-    const date = new Date(data);
-    return date.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
-
-  const getDistanciaLabel = (distancia: Prova['distancia']): string => {
-    if (!distancia) return '';
-    if (typeof distancia === 'string') {
-      return DISTANCIA_PROVA_LABELS[distancia] || distancia;
-    }
-    if (typeof distancia === 'object' && 'label' in distancia) {
-      return (distancia as DistanciaProvaObj).label;
-    }
-    return '';
-  };
+  if (provas.length === 0) {
+    return (
+      <Paper
+        sx={{
+          p: 2.5,
+          borderRadius: 1,
+          ...glassAzulSx,
+        }}
+      >
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 700,
+            color: '#ffffff',
+            mb: 2,
+            fontSize: '1rem',
+          }}
+        >
+          Próximas Provas
+        </Typography>
+        <Typography
+          variant="body2"
+          sx={{
+            color: 'rgba(255, 255, 255, 0.6)',
+          }}
+        >
+          Nenhuma prova nos próximos 15 dias
+        </Typography>
+      </Paper>
+    );
+  }
 
   return (
     <Paper
       sx={{
         p: 2.5,
-        transition: transitions.default,
+        borderRadius: 1,
         ...glassAzulSx,
         '&:hover': glassAzulSxHover,
+        transition: transitions.default,
       }}
     >
-      <Stack spacing={2}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <EmojiEventsIcon sx={{ fontSize: 24, color: '#b1e92d' }} />
-          <Typography
-            variant="h6"
+      <Typography
+        variant="h6"
+        sx={{
+          fontWeight: 700,
+          color: '#ffffff',
+          mb: 2,
+          fontSize: '1rem',
+        }}
+      >
+        Próximas Provas ({provas.length})
+      </Typography>
+
+      <Stack spacing={1.5}>
+        {provas.map((prova) => (
+          <Box
+            key={prova.id}
             sx={{
-              fontWeight: 700,
-              color: '#ffffff',
-              fontSize: '1rem',
+              p: 1.5,
+              borderRadius: 1,
+              backgroundColor: 'rgba(177, 233, 45, 0.05)',
+              borderLeft: '3px solid #b1e92d',
             }}
           >
-            Próximas Provas (14 dias)
-          </Typography>
-        </Box>
-
-        {error && <Alert severity="error">{error}</Alert>}
-
-        {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-            <CircularProgress size={32} />
-          </Box>
-        ) : provasProximas.length === 0 ? (
-          <Typography
-            variant="body2"
-            sx={{
-              color: 'rgba(255,255,255,0.6)',
-              textAlign: 'center',
-              py: 2,
-            }}
-          >
-            Nenhuma prova agendada nos próximos 14 dias
-          </Typography>
-        ) : (
-          <Stack spacing={1}>
-            {provasProximas.map((prova) => (
-              <Box
-                key={prova.id}
-                sx={{
-                  p: 1.5,
-                  borderRadius: 1,
-                  bgcolor: 'rgba(243, 156, 18, 0.08)',
-                  border: '1px solid rgba(243, 156, 18, 0.2)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 1,
-                }}
-              >
-                <Box sx={{ minWidth: 0, flex: 1 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <Box sx={{ flex: 1 }}>
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    fontWeight: 700,
+                    color: '#ffffff',
+                    mb: 0.5,
+                  }}
+                >
+                  {prova.nomeProva}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    display: 'block',
+                    mb: 0.5,
+                  }}
+                >
+                  {prova.nomeAtleta}
+                </Typography>
+                {prova.distanciaKm && (
                   <Typography
+                    variant="caption"
                     sx={{
-                      fontSize: '0.9rem',
-                      fontWeight: 700,
-                      color: '#ffffff',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}
-                  >
-                    {prova.nomeProva}
-                  </Typography>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 0.5,
-                      mt: 0.25,
-                    }}
-                  >
-                    <EventIcon sx={{ fontSize: 14, color: '#f39c12' }} />
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: 'rgba(255,255,255,0.6)',
-                        fontSize: '0.75rem',
-                      }}
-                    >
-                      {formatarData(prova.dataProva!)}
-                    </Typography>
-                  </Box>
-                </Box>
-
-                {prova.distancia && (
-                  <Chip
-                    label={getDistanciaLabel(prova.distancia)}
-                    size="small"
-                    sx={{
-                      bgcolor: 'rgba(243, 156, 18, 0.2)',
-                      color: '#f39c12',
-                      fontWeight: 600,
+                      color: 'rgba(255, 255, 255, 0.6)',
                       fontSize: '0.7rem',
                     }}
-                  />
+                  >
+                    {prova.distanciaKm} km
+                  </Typography>
                 )}
               </Box>
-            ))}
-          </Stack>
-        )}
+              <Box sx={{ textAlign: 'right' }}>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontWeight: 700,
+                    color: '#b1e92d',
+                    mb: 0.5,
+                  }}
+                >
+                  {prova.diasFaltando}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    fontSize: '0.7rem',
+                  }}
+                >
+                  dias
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+        ))}
       </Stack>
     </Paper>
   );
