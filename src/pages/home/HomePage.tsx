@@ -211,7 +211,7 @@ export default function HomePage() {
           </Box>
 
           <Box sx={{ px: 3 }}>
-            <StravaStatusWidget atletas={atletas} />
+            <StravaStatusWidget />
           </Box>
 
           {atletasAtencao.length > 0 && (

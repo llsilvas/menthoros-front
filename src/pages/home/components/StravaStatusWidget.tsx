@@ -1,31 +1,41 @@
+import { useEffect, useState } from 'react';
 import {
   Box,
   Paper,
   Stack,
   Typography,
   Chip,
+  CircularProgress,
 } from '@mui/material';
 import {
   Sync as SyncIcon,
   CheckCircle as CheckCircleIcon,
   Info as InfoIcon,
 } from '@mui/icons-material';
-import type { Atleta } from '../../../types/Atleta';
+import type { StravaStatusGlobal } from '../../../types/Metricas';
+import { StravaService } from '../../../services/StravaService';
 import { glassAzulSx, glassAzulSxHover, transitions } from '../../../theme/tokens';
 
-interface StravaStatusWidgetProps {
-  atletas: Atleta[];
-}
+export default function StravaStatusWidget() {
+  const [status, setStatus] = useState<StravaStatusGlobal | null>(null);
+  const [loading, setLoading] = useState(true);
 
-export default function StravaStatusWidget({ atletas }: StravaStatusWidgetProps) {
-  // Para futura implementação: necessário campo stravaConnected na Atleta
-  // ou endpoint para buscar status de conexão Strava por atleta
-  const totalAtletas = atletas.length;
-  const stravaConnected = 0; // TODO: contar atletas com Strava conectado
+  useEffect(() => {
+    StravaService.getStatusGlobal()
+      .then(setStatus)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
 
-  const connectionPercentage = totalAtletas > 0
-    ? Math.round((stravaConnected / totalAtletas) * 100)
-    : 0;
+  if (loading) {
+    return <CircularProgress />;
+  }
+
+  if (!status) {
+    return null;
+  }
+
+  const connectionPercentage = Math.round(status.percentualConectado);
 
   return (
     <Paper
@@ -84,7 +94,7 @@ export default function StravaStatusWidget({ atletas }: StravaStatusWidgetProps)
                   mt: 0.5,
                 }}
               >
-                {stravaConnected}/{totalAtletas}
+                {status.atletasConectados}/{status.totalAtletas}
               </Typography>
               <Typography
                 variant="caption"
@@ -127,7 +137,7 @@ export default function StravaStatusWidget({ atletas }: StravaStatusWidgetProps)
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             <Chip
               icon={<CheckCircleIcon />}
-              label={`${stravaConnected} conectados`}
+              label={`${status.atletasConectados} conectados`}
               size="small"
               sx={{
                 bgcolor: 'rgba(52, 192, 100, 0.2)',
