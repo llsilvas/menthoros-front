@@ -1,5 +1,5 @@
 import { OpenAPI } from '../api/core/OpenAPI';
-import type { AdesaoSemanal, ResumoSemanalTreino } from '../types/Metricas';
+import type { AdesaoSemanal, ResumoSemanalTreino, AdesaoDiaria } from '../types/Metricas';
 
 const getAuthToken = async (): Promise<string> => {
   if (!OpenAPI.TOKEN) {
@@ -51,6 +51,23 @@ export class MetricasService {
 
     if (!response.ok) {
       throw new Error(`Failed to fetch weekly summary: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  static async getAdesaoDiaria(atletaId: string): Promise<AdesaoDiaria> {
+    const response = await fetch(
+      `${OpenAPI.BASE}/api/v1/atletas/${atletaId}/metricas/adesao-diaria`,
+      {
+        headers: {
+          'Authorization': `Bearer ${await getAuthToken()}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch daily adherence metrics: ${response.statusText}`);
     }
 
     return response.json();

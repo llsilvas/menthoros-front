@@ -65,3 +65,25 @@ export interface ProvasProximasResponse {
   total: number;
   dataConsulta: string;
 }
+
+export interface DiaAdesao {
+  data: string;
+  diaSemana: string;
+  treinosPlanejados: number;
+  treinosRealizados: number;
+  percentual: number;
+}
+
+export interface SemanaAdesaoDiaria {
+  semana: string;
+  dataInicio: string;
+  dataFim: string;
+  percentualGeral: number;
+  dias: DiaAdesao[];
+}
+
+export interface AdesaoDiaria {
+  atletaId: string;
+  nomeAtleta: string;
+  semanas: SemanaAdesaoDiaria[];
+}

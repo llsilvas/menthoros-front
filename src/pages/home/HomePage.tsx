@@ -22,6 +22,7 @@ import ProvasProximasWidget from './components/ProvasProximasWidget';
 import AtletasFiltros from './components/AtletasFiltros';
 import TaxaAdesaoWidget from './components/TaxaAdesaoWidget';
 import ResumoSemanalWidget from './components/ResumoSemanalWidget';
+import GraficoAdesaoWidget from './components/GraficoAdesaoWidget';
 
 type NivelExperienciaKey = 'INICIANTE' | 'INTERMEDIARIO' | 'AVANCADO';
 
@@ -222,6 +223,7 @@ export default function HomePage() {
               <Stack spacing={2}>
                 <TaxaAdesaoWidget atletaId={atleta.id} atletaNome={atleta.nome} />
                 <ResumoSemanalWidget atletaId={atleta.id} atletaNome={atleta.nome} />
+                <GraficoAdesaoWidget atletaId={atleta.id} atletaNome={atleta.nome} />
               </Stack>
             </Box>
           ))}
