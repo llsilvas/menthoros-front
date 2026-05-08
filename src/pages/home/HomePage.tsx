@@ -223,10 +223,14 @@ export default function HomePage() {
               <Stack spacing={2}>
                 <TaxaAdesaoWidget atletaId={atleta.id} atletaNome={atleta.nome} />
                 <ResumoSemanalWidget atletaId={atleta.id} atletaNome={atleta.nome} />
-                <GraficoAdesaoWidget atletaId={atleta.id} atletaNome={atleta.nome} />
               </Stack>
             </Box>
           ))}
+
+          {/* Assessoria Adherence Chart */}
+          <Box sx={{ px: 3 }}>
+            <GraficoAdesaoWidget />
+          </Box>
 
           {atletasAtencao.length > 0 && (
             <Box sx={{ px: 3 }}>

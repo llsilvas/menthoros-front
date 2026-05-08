@@ -72,4 +72,21 @@ export class MetricasService {
 
     return response.json();
   }
+
+  static async getAdesaoDiariaAssessoria(): Promise<AdesaoDiaria> {
+    const response = await fetch(
+      `${OpenAPI.BASE}/api/v1/metricas/adesao-diaria-assessoria`,
+      {
+        headers: {
+          'Authorization': `Bearer ${await getAuthToken()}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch assessoria daily adherence metrics: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
 }

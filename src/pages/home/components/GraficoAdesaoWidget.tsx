@@ -14,10 +14,7 @@ import { MetricasService } from '../../../services/MetricasService';
 import type { AdesaoDiaria } from '../../../types/Metricas';
 import { glassAzulSx, glassAzulSxHover, transitions } from '../../../theme/tokens';
 
-interface GraficoAdesaoWidgetProps {
-  atletaId: string;
-  atletaNome: string;
-}
+interface GraficoAdesaoWidgetProps {}
 
 interface ChartDataPoint {
   dia: string;
@@ -61,20 +58,20 @@ const transformarDadosParaGrafico = (adesaoDiaria: AdesaoDiaria): ChartDataPoint
   return chartData;
 };
 
-export default function GraficoAdesaoWidget({ atletaId, atletaNome }: GraficoAdesaoWidgetProps) {
+export default function GraficoAdesaoWidget({}: GraficoAdesaoWidgetProps) {
   const [adesaoDiaria, setAdesaoDiaria] = useState<AdesaoDiaria | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    MetricasService.getAdesaoDiaria(atletaId)
+    MetricasService.getAdesaoDiariaAssessoria()
       .then(setAdesaoDiaria)
       .catch((err) => {
         console.error('Erro ao carregar adesão diária:', err);
         setError('Não foi possível carregar os dados');
       })
       .finally(() => setLoading(false));
-  }, [atletaId]);
+  }, []);
 
   if (loading) {
     return (
@@ -156,7 +153,7 @@ export default function GraficoAdesaoWidget({ atletaId, atletaNome }: GraficoAde
           fontSize: '1rem',
         }}
       >
-        Adesão por Dia - {atletaNome}
+        Adesão por Dia - Assessoria
       </Typography>
 
       <ResponsiveContainer width="100%" height={220}>
