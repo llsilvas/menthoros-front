@@ -20,6 +20,8 @@ import AtletaStatusRow from './components/AtletaStatusRow';
 import StravaStatusWidget from './components/StravaStatusWidget';
 import ProvasProximasWidget from './components/ProvasProximasWidget';
 import AtletasFiltros from './components/AtletasFiltros';
+import TaxaAdesaoWidget from './components/TaxaAdesaoWidget';
+import ResumoSemanalWidget from './components/ResumoSemanalWidget';
 
 type NivelExperienciaKey = 'INICIANTE' | 'INTERMEDIARIO' | 'AVANCADO';
 
@@ -213,6 +215,16 @@ export default function HomePage() {
           <Box sx={{ px: 3 }}>
             <StravaStatusWidget />
           </Box>
+
+          {/* Adherence and Training Summary */}
+          {atletas.length > 0 && atletas.slice(0, 1).map((atleta) => (
+            <Box key={`metrics-${atleta.id}`} sx={{ px: 3 }}>
+              <Stack spacing={2}>
+                <TaxaAdesaoWidget atletaId={atleta.id} atletaNome={atleta.nome} />
+                <ResumoSemanalWidget atletaId={atleta.id} atletaNome={atleta.nome} />
+              </Stack>
+            </Box>
+          ))}
 
           {atletasAtencao.length > 0 && (
             <Box sx={{ px: 3 }}>
