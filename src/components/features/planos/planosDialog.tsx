@@ -46,7 +46,6 @@ import TreinoRealizadoDialog from '../TreinoRealizadoDialog';
 import DetalheTreinoDialog from './DetalheTreinoDialog';
 import TreinoCard from './TreinoCard';
 import { getSafeValue, getSafeNumber } from '../../../utils/safeValues';
-import { glass } from '../../../theme/tokens';
 
 interface PlanosDialogProps {
     open: boolean;
@@ -507,9 +506,17 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                 {!loading && !error && planos.length > 0 && (
                     <Stack spacing={2.5} sx={{ p: { xs: 1.5, md: 3 } }}>
                         {planos.map((plano, index) => {
-                            const volumeRealizado = getSafeNumber(plano.volumeRealizadoKm);
                             const volumePlanejado = getSafeNumber(plano.volumePlanejadoKm);
                             const status = getSafeValue(plano.status) as PlanoStatus;
+
+                            // Calcula volumeRealizado a partir dos treinos realizados
+                            const volumeRealizado = (plano.treinosPlanejados || []).reduce((total, treino) => {
+                                const treinoStatus = typeof treino.statusTreino === 'object'
+                                    ? treino.statusTreino?.value
+                                    : treino.statusTreino;
+                                const isRealizado = treinoStatus === 'REALIZADO' || treino.realizado === true;
+                                return total + (isRealizado ? getSafeNumber(treino.distanciaKm) : 0);
+                            }, 0);
 
                             const progresso = calcularProgressoVolume(volumeRealizado, volumePlanejado);
                             const statusColor = obterStatusColor(status);
@@ -602,9 +609,10 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                                                 sx={{
                                                     height: 8,
                                                     borderRadius: 4,
-                                                    bgcolor: glass.background,
+                                                    backgroundColor: '#e0e0e0',
                                                     '& .MuiLinearProgress-bar': {
-                                                        borderRadius: 4
+                                                        borderRadius: 4,
+                                                        backgroundColor: '#2e7d32'
                                                     }
                                                 }}
                                             />
@@ -718,11 +726,11 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                 )}
             </DialogContent>
             <DialogActions sx={{ px: { xs: 2, md: 3 }, py: 2, background: '#f8fafc', borderTop: '1px solid #e2e8f0', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: 1 }}>
-                <Box sx={{ flexGrow: 1 }}>
+                {/* <Box sx={{ flexGrow: 1 }}>
                     <Typography variant="caption" sx={{ color: '#6b7a8d' }}>
                         Visual alinhado ao detalhe do treino para manter consistência entre lista e drill-down.
                     </Typography>
-                </Box>
+                </Box> */}
                 <Button onClick={onClose} color="primary" size="small" variant="contained" fullWidth={isMobile} sx={{ fontSize: { xs: '0.8rem', md: '0.875rem' }, minHeight: { xs: 40, md: 32 } }}>
                     Fechar
                 </Button>

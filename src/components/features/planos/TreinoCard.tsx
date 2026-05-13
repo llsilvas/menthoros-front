@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
     Card,
     CardContent,
@@ -18,6 +18,8 @@ import {
     Speed as SpeedIcon,
     InfoOutlined as InfoIcon,
     EmojiEvents as TrophyIcon,
+    LightbulbOutlined as InsightIcon,
+    ExpandMore as ExpandMoreIcon,
 } from '@mui/icons-material';
 import type { TreinoPlanejado } from '../../../types/TreinoPlanejado';
 import { getSafeValue, getSafeNumber } from '../../../utils/safeValues';
@@ -49,6 +51,7 @@ const MetricItem: React.FC<{ icon: React.ReactNode; label: string; value: string
 );
 
 const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRealizado, onMarcarPerdido }) => {
+    const [expandedInsight, setExpandedInsight] = useState(false);
     const statusValue = typeof treino.statusTreino === 'object'
         ? treino.statusTreino?.value
         : treino.statusTreino;
@@ -60,6 +63,10 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
     const duracaoDisplay = treino.duracaoMin != null ? String(treino.duracaoMin) : null;
     const ritmoAlvo = getSafeValue(treino.ritmoAlvo);
     const rpeEsperado = treino.percepcaoEsforcoEsperada;
+
+    // Mock feedback da LLM - será substituído pelo backend
+    const feedbackComTreino = 'Excelente ritmo mantido! Sua consistência melhorou 12% em relação à semana passada. Continue focando na progressão gradual.';
+    const mostrarFeedback = isRealizado && feedbackComTreino;
 
     return (
         <Card
@@ -132,6 +139,83 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                 </Stack>
             </CardContent>
 
+            {mostrarFeedback && (
+                <Box
+                    sx={{
+                        px: 2,
+                        py: 1.5,
+                        mx: 2,
+                        mb: 2,
+                        background: 'linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 152, 0, 0.08) 100%)',
+                        border: '1px solid rgba(255, 152, 0, 0.3)',
+                        borderRadius: 1.5,
+                        backdropFilter: 'blur(8px)',
+                    }}
+                >
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 1 }}>
+                        <InsightIcon
+                            fontSize="small"
+                            sx={{
+                                color: 'rgba(255, 152, 0, 0.8)',
+                                mt: 0.5,
+                                flexShrink: 0,
+                            }}
+                        />
+                        <Typography
+                            variant="caption"
+                            sx={{
+                                color: 'rgba(0, 0, 0, 0.7)',
+                                fontWeight: 600,
+                                textTransform: 'uppercase',
+                                letterSpacing: 0.5,
+                                fontSize: '0.7rem',
+                            }}
+                        >
+                            Coach Insight
+                        </Typography>
+                    </Box>
+
+                    <Typography
+                        variant="body2"
+                        sx={{
+                            color: 'rgba(0, 0, 0, 0.75)',
+                            lineHeight: 1.5,
+                            display: expandedInsight ? 'block' : '-webkit-box',
+                            WebkitLineClamp: expandedInsight ? 'unset' : 1,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                            wordBreak: 'break-word',
+                        }}
+                    >
+                        {feedbackComTreino}
+                    </Typography>
+
+                    <Button
+                        size="small"
+                        onClick={() => setExpandedInsight(!expandedInsight)}
+                        sx={{
+                            mt: 0.5,
+                            textTransform: 'none',
+                            color: 'rgba(255, 152, 0, 0.9)',
+                            fontSize: '0.75rem',
+                            p: 0,
+                            '&:hover': { bgcolor: 'transparent' },
+                        }}
+                        endIcon={
+                            <ExpandMoreIcon
+                                fontSize="small"
+                                sx={{
+                                    transition: 'transform 0.3s ease',
+                                    transform: expandedInsight ? 'rotate(180deg)' : 'rotate(0deg)',
+                                }}
+                            />
+                        }
+                    >
+                        {expandedInsight ? 'Ver menos' : 'Ver mais'}
+                    </Button>
+                </Box>
+            )}
+
             <CardActions sx={{ px: 2, pb: 2, pt: 0 }}>
                 <Stack direction="row" spacing={1} sx={{ width: '100%' }}>
                     <Button
@@ -139,7 +223,7 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                         size="small"
                         startIcon={<InfoIcon />}
                         onClick={onDetalhes}
-                        sx={{ flexShrink: 0 }}
+                        sx={{ flex: 1, minWidth: 0 }}
                     >
                         Detalhes
                     </Button>
@@ -150,6 +234,8 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                             startIcon={<CancelIcon />}
                             onClick={onMarcarPerdido}
                             sx={{
+                                flex: 1,
+                                minWidth: 0,
                                 color: 'error.main',
                                 borderColor: 'error.main',
                                 '&:hover': {
@@ -166,9 +252,10 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                             variant="contained"
                             size="small"
                             startIcon={<TrophyIcon />}
-                            fullWidth
                             onClick={onMarcarRealizado}
                             sx={{
+                                flex: 1,
+                                minWidth: 0,
                                 bgcolor: 'success.main',
                                 '&:hover': { bgcolor: 'success.dark' },
                             }}

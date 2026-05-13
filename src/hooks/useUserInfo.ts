@@ -45,7 +45,7 @@ export const useUserInfo = (): UserInfo => {
         email: payload.email,
         tenantId,
         organizationName,
-        roles: payload.realm_access?.roles || [],
+        roles: payload.roles ?? payload.realm_access?.roles ?? [],
       };
     } catch {
       return {};

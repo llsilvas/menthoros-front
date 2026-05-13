@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { OpenAPI } from '../../api/core/OpenAPI';
+import { runtimeConfig } from '../../config/env';
 
 interface AuthContextData {
     isAuthenticated: boolean;
@@ -29,6 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         OpenAPI.TOKEN = async () => readToken();
+        OpenAPI.BASE = runtimeConfig.apiBaseUrl;
     }, []);
 
     useEffect(() => {
