@@ -166,4 +166,24 @@ export class TreinoService {
             },
         });
     }
+
+    /**
+     * Busca detalhes completos da atividade no Strava e enriquece o treino.
+     * Se o Garmin/Strava registrou o perceived_exertion, o RPE é preenchido automaticamente.
+     */
+    public static enriquecerComStrava(
+        treinoRealizadoId: string,
+    ): CancelablePromise<TreinoRealizado> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/treinos/realizados/{id}/enriquecer-strava',
+            path: {
+                'id': treinoRealizadoId,
+            },
+            errors: {
+                400: `Treino não é proveniente do Strava`,
+                404: `Treino não encontrado`,
+            },
+        });
+    }
 }

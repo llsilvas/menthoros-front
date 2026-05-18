@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+    Alert,
     Dialog,
     DialogTitle,
     DialogContent,
@@ -18,6 +19,7 @@ import {
 } from '@mui/material';
 import {
     Close as CloseIcon,
+    CloudSync as CloudSyncIcon,
     DirectionsRun as RunIcon,
     Schedule as ScheduleIcon,
     Speed as SpeedIcon,
@@ -154,6 +156,9 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const [treinoCompleto, setTreinoCompleto] = useState<TreinoPlanejado | null>(null);
     const [loadingDetalhes, setLoadingDetalhes] = useState(false);
+    const [enriching, setEnriching] = useState(false);
+    const [enrichResult, setEnrichResult] = useState<{ rpePreenchido: boolean; rpe?: number } | null>(null);
+    const [enrichError, setEnrichError] = useState<string | null>(null);
 
     useEffect(() => {
         if (open && treino?.id && (!treino.etapas || treino.etapas.length === 0)) {
@@ -170,6 +175,8 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
     useEffect(() => {
         if (!open) {
             setTreinoCompleto(null);
+            setEnrichResult(null);
+            setEnrichError(null);
         }
     }, [open]);
 
@@ -184,6 +191,27 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
     const statusColor = getSafeColor(dados.statusTreino, '#9E9E9E');
     const diaSemanaLabel = getSafeLabel(dados.diaSemana);
     const fonteDadosLabel = getSafeLabel(dados.fonteDados);
+    const fonteDadosValue = typeof dados.fonteDados === 'object' ? dados.fonteDados?.value : dados.fonteDados;
+    const isStrava = fonteDadosValue === 'STRAVA';
+
+    const handleEnriquecerComStrava = async () => {
+        if (!dados.treinoRealizadoId) return;
+        setEnriching(true);
+        setEnrichResult(null);
+        setEnrichError(null);
+        try {
+            const resultado = await TreinoService.enriquecerComStrava(dados.treinoRealizadoId);
+            const rpe = resultado.percepcaoEsforco ?? undefined;
+            setEnrichResult({ rpePreenchido: rpe != null, rpe });
+            if (treinoCompleto) {
+                setTreinoCompleto({ ...treinoCompleto, percepcaoEsforcoRealizado: rpe });
+            }
+        } catch {
+            setEnrichError('Não foi possível buscar os detalhes do Strava. Tente novamente.');
+        } finally {
+            setEnriching(false);
+        }
+    };
     const intensidadePercent = dados.intensidadePlanejada
         ? `${Math.round(dados.intensidadePlanejada * 100)}%`
         : 'N/A';
@@ -404,7 +432,44 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                         }}
                                     />
                                 )}
+                                {isStrava && dados.treinoRealizadoId && (
+                                    <Button
+                                        size="small"
+                                        variant="outlined"
+                                        startIcon={enriching
+                                            ? <CircularProgress size={14} />
+                                            : <CloudSyncIcon fontSize="small" />}
+                                        onClick={handleEnriquecerComStrava}
+                                        disabled={enriching}
+                                        sx={{
+                                            borderColor: '#FC4C02',
+                                            color: '#FC4C02',
+                                            fontSize: '0.75rem',
+                                            py: 0.25,
+                                            '&:hover': { bgcolor: 'rgba(252,76,2,0.06)', borderColor: '#FC4C02' },
+                                        }}
+                                    >
+                                        {enriching ? 'Buscando…' : 'Detalhes do Strava'}
+                                    </Button>
+                                )}
                             </Box>
+
+                            {enrichResult && (
+                                <Alert
+                                    severity={enrichResult.rpePreenchido ? 'success' : 'info'}
+                                    sx={{ mb: 1.5 }}
+                                    onClose={() => setEnrichResult(null)}
+                                >
+                                    {enrichResult.rpePreenchido
+                                        ? `RPE preenchido automaticamente com dados do Strava: ${enrichResult.rpe}/10. Análise AI será gerada em breve.`
+                                        : 'Detalhes do Strava carregados. O Strava não registrou perceived_exertion para este treino.'}
+                                </Alert>
+                            )}
+                            {enrichError && (
+                                <Alert severity="error" sx={{ mb: 1.5 }} onClose={() => setEnrichError(null)}>
+                                    {enrichError}
+                                </Alert>
+                            )}
 
                             <Grid container spacing={1.5}>
                                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
