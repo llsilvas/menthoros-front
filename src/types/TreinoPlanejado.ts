@@ -18,6 +18,8 @@ export interface TreinoPlanejado {
   intensidadePlanejada?: number; // Ex: 0.7, 1.15
   justificativaIa?: string; // Justificativa gerada pela IA
   fonteDados?: string | { value: string; label: string; description?: string; color?: string };
+  treinoRealizadoId?: string;
+  percepcaoEsforcoRealizado?: number;
 }
 
 

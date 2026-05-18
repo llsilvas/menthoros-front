@@ -5,14 +5,15 @@ import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
 export interface UpdateTreinoDto {
-    tipoTreino?: string;
+    percepcaoEsforco?: number;
+    feedbackAtleta?: string;
+    qualidadeSonoNoiteAnterior?: number;
+    nivelEstresse?: number;
+    fcMedia?: number;
+    fcMax?: number;
     distanciaKm?: number;
-    duracaoMin?: number;
-    intensidade?: string;
     observacao?: string;
-    diaSemana?: string;
-    realizado?: boolean;
-    dataRealizacao?: string;
+    status?: string;
 }
 
 export interface TreinoFiltros {
@@ -56,14 +57,14 @@ export class TreinoService {
      * @throws ApiError
      */
     public static atualizarTreino(
-        treinoId: string,
+        treinoRealizadoId: string,
         dados: UpdateTreinoDto,
-    ): CancelablePromise<TreinoPlanejado> {
+    ): CancelablePromise<TreinoRealizado> {
         return __request(OpenAPI, {
             method: 'PUT',
-            url: '/api/v1/treinos/{treinoId}',
+            url: '/api/v1/treinos/realizados/{id}',
             path: {
-                'treinoId': treinoId,
+                'id': treinoRealizadoId,
             },
             body: dados,
             errors: {
@@ -133,7 +134,7 @@ export class TreinoService {
     ): CancelablePromise<void> {
         return __request(OpenAPI, {
             method: 'PATCH',
-            url: '/treinos/{treinoId}/marcar-perdido',
+            url: '/api/v1/treinos/{treinoId}/marcar-perdido',
             path: {
                 'treinoId': treinoId,
             },
@@ -155,7 +156,7 @@ export class TreinoService {
     ): CancelablePromise<TreinoPlanejado> {
         return __request(OpenAPI, {
             method: 'DELETE',
-            url: '/treinos/{treinoId}/realizacao',
+            url: '/api/v1/treinos/{treinoId}/realizacao',
             path: {
                 'treinoId': treinoId,
             },
