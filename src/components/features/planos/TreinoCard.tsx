@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Card,
     CardContent,
@@ -30,7 +30,10 @@ import {
     Add as AddIcon,
 } from '@mui/icons-material';
 import { TreinoService } from '../../../api/services/TreinoService';
+import { AnaliseService } from '../../../api/services/AnaliseService';
 import type { TreinoPlanejado } from '../../../types/TreinoPlanejado';
+import type { AnaliseWorkout } from '../../../types/AnaliseWorkout';
+import { PRIMARY_CAUSE_LABEL } from '../../../types/AnaliseWorkout';
 import { getSafeValue, getSafeNumber } from '../../../utils/safeValues';
 import { glassSx, glass } from '../../../theme/tokens';
 
@@ -76,6 +79,8 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
     const [rpeValue, setRpeValue] = useState<number>(treino.percepcaoEsforcoRealizado ?? 5);
     const [currentRpe, setCurrentRpe] = useState<number | undefined>(treino.percepcaoEsforcoRealizado);
     const [savingRpe, setSavingRpe] = useState(false);
+    const [analise, setAnalise] = useState<AnaliseWorkout | null>(null);
+    const [analiseStatus, setAnaliseStatus] = useState<'idle' | 'loading' | 'pending' | 'done' | 'error'>('idle');
 
     const statusValue = typeof treino.statusTreino === 'object'
         ? treino.statusTreino?.value
@@ -89,9 +94,29 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
     const ritmoAlvo = getSafeValue(treino.ritmoAlvo);
     const rpeEsperado = treino.percepcaoEsforcoEsperada;
 
-    // Mock feedback da LLM - será substituído pelo backend
-    const feedbackComTreino = 'Excelente ritmo mantido! Sua consistência melhorou 12% em relação à semana passada. Continue focando na progressão gradual.';
-    const mostrarFeedback = isRealizado && feedbackComTreino;
+    // Busca análise AI quando treino realizado tem RPE definido
+    useEffect(() => {
+        if (!isRealizado || !treino.treinoRealizadoId || currentRpe == null) return;
+        setAnaliseStatus('loading');
+        AnaliseService.getAnaliseTreino(treino.treinoRealizadoId)
+            .then((data) => {
+                if (!data) {
+                    setAnaliseStatus('pending');
+                    return;
+                }
+                if (data.status === 'COMPLETED') {
+                    setAnalise(data);
+                    setAnaliseStatus('done');
+                } else if (data.status === 'PENDING') {
+                    setAnaliseStatus('pending');
+                } else {
+                    setAnaliseStatus('error');
+                }
+            })
+            .catch(() => setAnaliseStatus('idle'));
+    }, [isRealizado, treino.treinoRealizadoId, currentRpe]);
+
+    const mostrarInsight = isRealizado && (analiseStatus === 'done' || analiseStatus === 'pending' || analiseStatus === 'loading');
 
     return (
         <Card
@@ -209,7 +234,7 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                 </Stack>
             </CardContent>
 
-            {mostrarFeedback && (
+            {mostrarInsight && (
                 <Box
                     sx={{
                         px: 2,
@@ -222,14 +247,10 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                         backdropFilter: 'blur(8px)',
                     }}
                 >
-                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                         <InsightIcon
                             fontSize="small"
-                            sx={{
-                                color: 'rgba(255, 152, 0, 0.8)',
-                                mt: 0.5,
-                                flexShrink: 0,
-                            }}
+                            sx={{ color: 'rgba(255, 152, 0, 0.8)', flexShrink: 0 }}
                         />
                         <Typography
                             variant="caption"
@@ -239,50 +260,92 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                                 textTransform: 'uppercase',
                                 letterSpacing: 0.5,
                                 fontSize: '0.7rem',
+                                flexGrow: 1,
                             }}
                         >
                             Coach Insight
                         </Typography>
-                    </Box>
-
-                    <Typography
-                        variant="body2"
-                        sx={{
-                            color: 'rgba(0, 0, 0, 0.75)',
-                            lineHeight: 1.5,
-                            display: expandedInsight ? 'block' : '-webkit-box',
-                            WebkitLineClamp: expandedInsight ? 'unset' : 1,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                            wordBreak: 'break-word',
-                        }}
-                    >
-                        {feedbackComTreino}
-                    </Typography>
-
-                    <Button
-                        size="small"
-                        onClick={() => setExpandedInsight(!expandedInsight)}
-                        sx={{
-                            mt: 0.5,
-                            textTransform: 'none',
-                            color: 'rgba(255, 152, 0, 0.9)',
-                            fontSize: '0.75rem',
-                            p: 0,
-                            '&:hover': { bgcolor: 'transparent' },
-                        }}
-                        endIcon={
-                            <ExpandMoreIcon
-                                fontSize="small"
+                        {analise?.executionScore != null && (
+                            <Chip
+                                label={`${analise.executionScore}/10`}
+                                size="small"
                                 sx={{
-                                    transition: 'transform 0.3s ease',
-                                    transform: expandedInsight ? 'rotate(180deg)' : 'rotate(0deg)',
+                                    bgcolor: getRpeColor(analise.executionScore),
+                                    color: '#fff',
+                                    fontWeight: 700,
+                                    fontSize: '0.7rem',
+                                    height: 20,
                                 }}
                             />
-                        }
-                    >
-                        {expandedInsight ? 'Ver menos' : 'Ver mais'}
-                    </Button>
+                        )}
+                    </Box>
+
+                    {(analiseStatus === 'loading' || analiseStatus === 'pending') && (
+                        <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
+                            {analiseStatus === 'loading' ? 'Carregando análise…' : 'Análise AI em andamento…'}
+                        </Typography>
+                    )}
+
+                    {analiseStatus === 'done' && analise && (
+                        <>
+                            <Typography
+                                variant="body2"
+                                sx={{
+                                    color: 'rgba(0, 0, 0, 0.75)',
+                                    lineHeight: 1.5,
+                                    display: expandedInsight ? 'block' : '-webkit-box',
+                                    WebkitLineClamp: expandedInsight ? 'unset' : 2,
+                                    WebkitBoxOrient: 'vertical',
+                                    overflow: 'hidden',
+                                    wordBreak: 'break-word',
+                                }}
+                            >
+                                {analise.summary}
+                            </Typography>
+
+                            {expandedInsight && analise.recommendation && (
+                                <Box sx={{ mt: 1, pt: 1, borderTop: '1px solid rgba(255,152,0,0.2)' }}>
+                                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'rgba(0,0,0,0.6)' }}>
+                                        Recomendação
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ color: 'rgba(0,0,0,0.75)', lineHeight: 1.5 }}>
+                                        {analise.recommendation}
+                                    </Typography>
+                                    {analise.primaryCause && (
+                                        <Chip
+                                            label={PRIMARY_CAUSE_LABEL[analise.primaryCause]}
+                                            size="small"
+                                            sx={{ mt: 0.75, bgcolor: 'rgba(255,152,0,0.15)', fontSize: '0.7rem' }}
+                                        />
+                                    )}
+                                </Box>
+                            )}
+
+                            <Button
+                                size="small"
+                                onClick={() => setExpandedInsight(!expandedInsight)}
+                                sx={{
+                                    mt: 0.5,
+                                    textTransform: 'none',
+                                    color: 'rgba(255, 152, 0, 0.9)',
+                                    fontSize: '0.75rem',
+                                    p: 0,
+                                    '&:hover': { bgcolor: 'transparent' },
+                                }}
+                                endIcon={
+                                    <ExpandMoreIcon
+                                        fontSize="small"
+                                        sx={{
+                                            transition: 'transform 0.3s ease',
+                                            transform: expandedInsight ? 'rotate(180deg)' : 'rotate(0deg)',
+                                        }}
+                                    />
+                                }
+                            >
+                                {expandedInsight ? 'Ver menos' : 'Ver mais'}
+                            </Button>
+                        </>
+                    )}
                 </Box>
             )}
 
