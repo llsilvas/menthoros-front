@@ -18,7 +18,7 @@ export const runtimeConfig = {
   apiBaseUrl:
     runtimeApiUrl ??
     import.meta.env.VITE_API_BASE_URL ??
-    '/api',
+    '',
   keycloakUrl: import.meta.env.VITE_KEYCLOAK_URL ?? '/auth',
   keycloakRealm: import.meta.env.VITE_KEYCLOAK_REALM ?? 'menthoros',
   keycloakClientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID ?? 'menthoros-web',
