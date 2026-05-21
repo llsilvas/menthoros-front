@@ -23,9 +23,12 @@ echo "DNS resolver: ${DNS_RESOLVER}"
 # 3. Processa template do nginx via sed (substitui __BACKEND_URL__ e __DNS_RESOLVER__)
 # Usando placeholders __STYLE__ para não conflitar com variáveis nativas do nginx ($host, $uri, etc.)
 BACKEND_URL="${BACKEND_URL:-http://menthoros-app:8080}"
+KEYCLOAK_URL="${KEYCLOAK_URL:-http://localhost:8080}"
 echo "Configurando backend URL: ${BACKEND_URL}"
+echo "Configurando Keycloak URL: ${KEYCLOAK_URL}"
 sed \
     -e "s|__BACKEND_URL__|${BACKEND_URL}|g" \
+    -e "s|__KEYCLOAK_URL__|${KEYCLOAK_URL}|g" \
     -e "s|__DNS_RESOLVER__|${DNS_RESOLVER}|g" \
     /etc/nginx/nginx.conf.template > /etc/nginx/conf.d/default.conf
 

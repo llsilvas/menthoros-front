@@ -22,6 +22,22 @@ server {
         try_files $uri =404;
     }
 
+    # Proxy reverso para o Keycloak
+    # /auth/realms/... → __KEYCLOAK_URL__/realms/...  (strip do prefixo /auth)
+    # Evita CORS no browser — mesmo padrão do proxy Vite em dev
+    location /auth/ {
+        set $keycloak "__KEYCLOAK_URL__";
+        rewrite ^/auth/(.*) /$1 break;
+        proxy_pass $keycloak;
+        proxy_http_version 1.1;
+        proxy_set_header Host $proxy_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 10s;
+        proxy_read_timeout 30s;
+    }
+
     # Proxy reverso para o backend Spring Boot
     # /api/atleta → __BACKEND_URL__/atleta  (strip do prefixo /api)
     # Elimina CORS: o browser acessa apenas a própria origem
