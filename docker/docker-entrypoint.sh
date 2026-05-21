@@ -5,7 +5,7 @@ set -e
 
 # 1. Injeta VITE_API_BASE_URL no env-config.js (config runtime do React)
 ENV_CONFIG="/usr/share/nginx/html/env-config.js"
-API_BASE_URL="${VITE_API_BASE_URL:-/api}"
+API_BASE_URL="${VITE_API_BASE_URL-}"
 echo "Configurando API base URL: ${API_BASE_URL}"
 sed -i "s|__RUNTIME_API_URL_PLACEHOLDER__|${API_BASE_URL}|g" "${ENV_CONFIG}"
 
