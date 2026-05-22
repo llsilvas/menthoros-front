@@ -74,14 +74,26 @@ export class AtletasService {
     }
     /**
      * Listar atletas
-     * Retorna a lista de todos os atletas ativos
+     * Retorna atletas ativos com filtros opcionais por nome, nível e lesão
+     * @param nome Filtrar por nome (busca parcial, case-insensitive)
+     * @param nivelExperiencia Filtrar por nível de experiência
+     * @param temLesao Filtrar por presença de lesão
      * @returns AtletaOutputDto Lista de atletas retornada com sucesso
      * @throws ApiError
      */
-    public static listarAtletas(): CancelablePromise<Array<Atleta>> {
+    public static listarAtletas(
+        nome?: string,
+        nivelExperiencia?: string,
+        temLesao?: boolean,
+    ): CancelablePromise<Array<Atleta>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/atletas',
+            query: {
+                'nome': nome,
+                'nivelExperiencia': nivelExperiencia,
+                'temLesao': temLesao,
+            },
         });
     }
     /**

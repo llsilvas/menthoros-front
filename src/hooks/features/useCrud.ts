@@ -32,25 +32,12 @@ export const useCrud = (): CrudOperations => {
     ): Promise<void> => {
         setState((prev: CrudState) => ({ ...prev, loading: true, error: null }));
         try {
-            let data = await AtletasService.listarAtletas();
-            
-            // Aplicar filtros
-            if (filters) {
-                data = data.filter(atleta => {
-                    if (filters.nome && atleta.nome && !atleta.nome.toLowerCase().includes(filters.nome.toLowerCase())) {
-                        return false;
-                    }
-                    if (filters.nivelExperiencia && atleta.nivelExperiencia !== filters.nivelExperiencia) {
-                        return false;
-                    }
-                    if (filters.temLesao !== undefined && atleta.temLesao !== filters.temLesao) {
-                        return false;
-                    }
-                    return true;
-                });
-            }
+            let data = await AtletasService.listarAtletas(
+                filters?.nome || undefined,
+                filters?.nivelExperiencia || undefined,
+                filters?.temLesao,
+            );
 
-            // Aplicar paginação
             if (pagination) {
                 const start = pagination.page * pagination.pageSize;
                 const end = start + pagination.pageSize;

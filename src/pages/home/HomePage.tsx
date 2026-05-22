@@ -56,8 +56,15 @@ export default function HomePage() {
   const [filtroNivel, setFiltroNivel] = useState<'INICIANTE' | 'INTERMEDIARIO' | 'AVANCADO' | 'TODOS'>('TODOS');
 
   useEffect(() => {
-    fetchAtletas();
-  }, [fetchAtletas]);
+    const delay = busca ? 400 : 0;
+    const timeout = setTimeout(() => {
+      fetchAtletas({
+        nome: busca || undefined,
+        nivelExperiencia: filtroNivel !== 'TODOS' ? filtroNivel : undefined,
+      });
+    }, delay);
+    return () => clearTimeout(timeout);
+  }, [busca, filtroNivel, fetchAtletas]);
 
   const kpis = useMemo(() => {
     if (!atletas || atletas.length === 0) {
@@ -90,13 +97,9 @@ export default function HomePage() {
   }, [atletas]);
 
   const atletasFiltrados = useMemo(() => {
-    return atletas.filter((a) => {
-      const matchBusca = !busca || a.nome.toLowerCase().includes(busca.toLowerCase());
-      const matchStatus = filtroStatus === 'TODOS' || calcularStatus(a) === filtroStatus;
-      const matchNivel = filtroNivel === 'TODOS' || getExperienceKey(a.nivelExperiencia) === filtroNivel;
-      return matchBusca && matchStatus && matchNivel;
-    });
-  }, [atletas, busca, filtroStatus, filtroNivel]);
+    if (filtroStatus === 'TODOS') return atletas;
+    return atletas.filter((a) => calcularStatus(a) === filtroStatus);
+  }, [atletas, filtroStatus]);
 
   const getDataAtual = () => {
     const today = new Date();
