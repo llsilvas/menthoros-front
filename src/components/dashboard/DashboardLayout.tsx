@@ -7,7 +7,8 @@ import { Outlet } from 'react-router';
 import DashboardHeader from './DashboardHeader';
 import DashboardSidebar from './DashboardSidebar';
 import logoMenthoros from '../../assets/icons/menthoros_navbar.png';
-import { gradients, text } from '../../theme/tokens';
+import { text } from '../../theme/tokens';
+import { elevation } from '../../shared/design-tokens';
 
 export default function DashboardLayout() {
   const theme = useTheme();
@@ -92,8 +93,8 @@ export default function DashboardLayout() {
             flexDirection: 'column',
             flex: 1,
             overflow: 'auto',
-            background: gradients.background,
-            color: text.secondary,
+            background: elevation.base,
+            color: text.primary,
           }}
         >
           <Outlet />
