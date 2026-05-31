@@ -14,7 +14,8 @@ import {
 } from '@mui/icons-material';
 import { useAtletas } from '../../hooks/useAtletas';
 import type { Atleta } from '../../types/Atleta';
-import { gradients } from '../../theme/tokens';
+import { primary, surface } from '../../theme/tokens';
+import { elevation } from '../../shared/design-tokens';
 import StatCard from './components/StatCard';
 import AtletaStatusRow from './components/AtletaStatusRow';
 import StravaStatusWidget from './components/StravaStatusWidget';
@@ -50,56 +51,55 @@ const calcularStatus = (atleta: Atleta): 'EM_DIA' | 'ATENCAO' | 'SEM_ROTINA' => 
 };
 
 export default function HomePage() {
-  const { atletas, loading, error, fetchAtletas } = useAtletas();
+  // Resumo do time — carrega no mount, alimenta KPIs e seção de atenção
+  const { atletas: todosAtletas, loading: summaryLoading, error, fetchAtletas: fetchTodos } = useAtletas();
+  // Lista filtrada — só carrega quando o usuário aplica um filtro
+  const { atletas: atletasLista, loading: listaLoading, fetchAtletas } = useAtletas();
+
   const [busca, setBusca] = useState('');
   const [filtroStatus, setFiltroStatus] = useState<'EM_DIA' | 'ATENCAO' | 'SEM_ROTINA' | 'TODOS'>('TODOS');
   const [filtroNivel, setFiltroNivel] = useState<'INICIANTE' | 'INTERMEDIARIO' | 'AVANCADO' | 'TODOS'>('TODOS');
 
+  const filtroAtivo = busca.length > 0 || filtroNivel !== 'TODOS';
+
+  // Carrega dados de resumo no mount (KPIs, atenção, próximas provas)
   useEffect(() => {
-    const delay = busca ? 400 : 0;
+    fetchTodos();
+  }, [fetchTodos]);
+
+  // Carrega a lista filtrada apenas quando há um filtro ativo
+  useEffect(() => {
+    if (!filtroAtivo) return;
     const timeout = setTimeout(() => {
       fetchAtletas({
         nome: busca || undefined,
         nivelExperiencia: filtroNivel !== 'TODOS' ? filtroNivel : undefined,
       });
-    }, delay);
+    }, busca ? 400 : 0);
     return () => clearTimeout(timeout);
-  }, [busca, filtroNivel, fetchAtletas]);
+  }, [busca, filtroNivel, filtroAtivo, fetchAtletas]);
 
   const kpis = useMemo(() => {
-    if (!atletas || atletas.length === 0) {
-      return {
-        total: 0,
-        comLesao: 0,
-        iniciantes: 0,
-        semRotina: 0,
-      };
+    if (!todosAtletas || todosAtletas.length === 0) {
+      return { total: 0, comLesao: 0, iniciantes: 0, semRotina: 0 };
     }
-
-    const comLesao = atletas.filter((a) => a.temLesao).length;
-    const iniciantes = atletas.filter(
-      (a) => getExperienceKey(a.nivelExperiencia) === 'INICIANTE'
-    ).length;
-    const semRotina = atletas.filter(
-      (a) => !a.diasDisponiveis || a.diasDisponiveis.length === 0
-    ).length;
-
     return {
-      total: atletas.length,
-      comLesao,
-      iniciantes,
-      semRotina,
+      total: todosAtletas.length,
+      comLesao: todosAtletas.filter((a) => a.temLesao).length,
+      iniciantes: todosAtletas.filter((a) => getExperienceKey(a.nivelExperiencia) === 'INICIANTE').length,
+      semRotina: todosAtletas.filter((a) => !a.diasDisponiveis || a.diasDisponiveis.length === 0).length,
     };
-  }, [atletas]);
+  }, [todosAtletas]);
 
   const atletasAtencao = useMemo(() => {
-    return atletas.filter((a) => calcularStatus(a) !== 'EM_DIA');
-  }, [atletas]);
+    return todosAtletas.filter((a) => calcularStatus(a) !== 'EM_DIA');
+  }, [todosAtletas]);
 
+  // filtroStatus é campo derivado (não existe no banco), aplicado client-side sobre a lista já filtrada
   const atletasFiltrados = useMemo(() => {
-    if (filtroStatus === 'TODOS') return atletas;
-    return atletas.filter((a) => calcularStatus(a) === filtroStatus);
-  }, [atletas, filtroStatus]);
+    if (filtroStatus === 'TODOS') return atletasLista;
+    return atletasLista.filter((a) => calcularStatus(a) === filtroStatus);
+  }, [atletasLista, filtroStatus]);
 
   const getDataAtual = () => {
     const today = new Date();
@@ -120,7 +120,7 @@ export default function HomePage() {
         display: 'flex',
         flexDirection: 'column',
         gap: 2,
-        background: gradients.background,
+        background: elevation.base,
       }}
     >
       <Box
@@ -128,8 +128,8 @@ export default function HomePage() {
           px: 3,
           py: 2.5,
           borderRadius: 1,
-          background: 'linear-gradient(135deg, #082130 0%, #0e3147 55%, #133c56 100%)',
-          color: 'white',
+          background: elevation.panel,
+          color: surface[50],
           borderBottom: '1px solid rgba(255,255,255,0.08)',
         }}
       >
@@ -162,7 +162,7 @@ export default function HomePage() {
         </Alert>
       )}
 
-      {loading ? (
+      {summaryLoading ? (
         <Box
           sx={{
             display: 'flex',
@@ -189,29 +189,29 @@ export default function HomePage() {
             }}
           >
             <StatCard
-              icon={<PeopleIcon sx={{ color: '#b1e92d' }} />}
+              icon={<PeopleIcon sx={{ color: primary[500] }} />}
               label="Total de Atletas"
               value={kpis.total}
             />
             <StatCard
-              icon={<LocalHospitalIcon sx={{ color: '#b1e92d' }} />}
+              icon={<LocalHospitalIcon sx={{ color: primary[500] }} />}
               label="Com Lesão"
               value={kpis.comLesao}
             />
             <StatCard
-              icon={<TrendingUpIcon sx={{ color: '#b1e92d' }} />}
+              icon={<TrendingUpIcon sx={{ color: primary[500] }} />}
               label="Iniciantes"
               value={kpis.iniciantes}
             />
             <StatCard
-              icon={<WarningIcon sx={{ color: '#b1e92d' }} />}
+              icon={<WarningIcon sx={{ color: primary[500] }} />}
               label="Sem Rotina"
               value={kpis.semRotina}
             />
           </Box>
 
           <Box sx={{ px: 3 }}>
-            <ProvasProximasWidget atletas={atletas} />
+            <ProvasProximasWidget atletas={todosAtletas} />
           </Box>
           {/* Assessoria Adherence Chart */}
           <Box sx={{ px: 3 }}>
@@ -245,7 +245,7 @@ export default function HomePage() {
                   gap: 1,
                 }}
               >
-                <WarningIcon sx={{ fontSize: 20, color: '#f39c12' }} />
+                <WarningIcon sx={{ fontSize: 20, color: '#F59E0B' }} />
                 Precisam de Atenção ({atletasAtencao.length})
               </Typography>
               <Stack spacing={1} sx={{ maxWidth: 1000 }}>
@@ -259,14 +259,11 @@ export default function HomePage() {
           <Box sx={{ px: 3 }}>
             <Typography
               variant="h6"
-              sx={{
-                fontWeight: 700,
-                color: '#ffffff',
-                mb: 1.5,
-                fontSize: '1rem',
-              }}
+              sx={{ fontWeight: 700, color: '#ffffff', mb: 1.5, fontSize: '1rem' }}
             >
-              Todos os Atletas ({atletasFiltrados.length}/{atletas.length})
+              {filtroAtivo
+                ? `Busca de Atletas (${atletasFiltrados.length})`
+                : 'Busca de Atletas'}
             </Typography>
             <Box sx={{ maxWidth: 1000 }}>
               <AtletasFiltros
@@ -277,19 +274,33 @@ export default function HomePage() {
                 onStatusChange={setFiltroStatus}
                 onNivelChange={setFiltroNivel}
                 totalFiltrado={atletasFiltrados.length}
-                totalGeral={atletas.length}
+                totalGeral={atletasLista.length}
               />
-              <Stack spacing={1}>
-                {atletasFiltrados.map((atleta) => (
-                  <AtletaStatusRow key={atleta.id} atleta={atleta} />
-                ))}
-              </Stack>
+              {!filtroAtivo ? (
+                <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.9rem', pt: 2, textAlign: 'center' }}>
+                  Use o filtro acima para buscar atletas
+                </Typography>
+              ) : listaLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', pt: 3 }}>
+                  <CircularProgress size={28} />
+                </Box>
+              ) : atletasFiltrados.length === 0 ? (
+                <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.9rem', pt: 2, textAlign: 'center' }}>
+                  Nenhum atleta encontrado para este filtro
+                </Typography>
+              ) : (
+                <Stack spacing={1}>
+                  {atletasFiltrados.map((atleta) => (
+                    <AtletaStatusRow key={atleta.id} atleta={atleta} />
+                  ))}
+                </Stack>
+              )}
             </Box>
           </Box>
         </>
       )}
 
-      {!loading && atletas.length === 0 && !error && (
+      {!summaryLoading && todosAtletas.length === 0 && !error && (
         <Box
           sx={{
             display: 'flex',
