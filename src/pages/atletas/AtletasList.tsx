@@ -18,6 +18,7 @@ import {
   EmojiEvents as EmojiEventsIcon,
   EventOutlined as CalendarIcon,
   Search as SearchIcon,
+  TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
 import { alpha } from '@mui/material/styles';
 import { useCrud } from '../../hooks/features/useCrud';
@@ -26,6 +27,9 @@ import type { Atleta, CreateAtleta, UpdateAtleta } from '../../types/Atleta';
 import PlanosDialog from '../../components/features/planos/planosDialog';
 import ProvasDialog from '../../components/features/provas/ProvasDialog';
 import SyncStravaButton from '../../components/features/strava/SyncStravaButton';
+import GerarProjecaoDialog from '../../components/features/projecao/GerarProjecaoDialog';
+import { primary, surface } from '../../theme/tokens';
+import { elevation } from '../../shared/design-tokens';
 
 type NivelExperienciaKey = 'INICIANTE' | 'INTERMEDIARIO' | 'AVANCADO';
 
@@ -35,24 +39,25 @@ const nivelLabels: Record<NivelExperienciaKey, string> = {
   AVANCADO: 'Avançado',
 };
 
+// Dark-mode color palette: tints and light text on dark surfaces
 const nivelStyles: Record<NivelExperienciaKey, { bg: string; color: string; rowBg: string; rowBorder: string }> = {
   INICIANTE: {
-    bg: 'rgba(52, 152, 219, 0.12)',
-    color: '#1a5f8a',
-    rowBg: 'rgba(52, 152, 219, 0.06)',
-    rowBorder: '#3498db',
+    bg: 'rgba(59, 130, 246, 0.15)',
+    color: '#93C5FD',
+    rowBg: 'rgba(59, 130, 246, 0.06)',
+    rowBorder: '#3B82F6',
   },
   INTERMEDIARIO: {
-    bg: 'rgba(179, 255, 0, 0.14)',
-    color: '#486500',
-    rowBg: 'rgba(179, 255, 0, 0.10)',
-    rowBorder: '#9fcf21',
+    bg: 'rgba(245, 158, 11, 0.15)',
+    color: '#FCD34D',
+    rowBg: 'rgba(245, 158, 11, 0.06)',
+    rowBorder: '#F59E0B',
   },
   AVANCADO: {
-    bg: 'rgba(243, 156, 18, 0.12)',
-    color: '#8a5a00',
-    rowBg: 'rgba(243, 156, 18, 0.08)',
-    rowBorder: '#e0a12b',
+    bg: 'rgba(16, 185, 129, 0.15)',
+    color: '#6EE7B7',
+    rowBg: 'rgba(16, 185, 129, 0.06)',
+    rowBorder: '#10B981',
   },
 };
 
@@ -139,6 +144,9 @@ const AtletasList: React.FC = () => {
   const [selectedAtletaForPlanos, setSelectedAtletaForPlanos] = useState<Atleta | null>(null);
   const [provasDialogOpen, setProvasDialogOpen] = useState(false);
   const [selectedAtletaForProvas, setSelectedAtletaForProvas] = useState<Atleta | null>(null);
+  const [projecaoDialogOpen, setProjecaoDialogOpen] = useState(false);
+  const [selectedAtletaForProjecao, setSelectedAtletaForProjecao] = useState<Atleta | null>(null);
+  const [preSelectedProvaId, setPreSelectedProvaId] = useState<string | undefined>(undefined);
   const [query, setQuery] = useState('');
   const handleOpenDialog = (atleta?: Atleta) => {
     selectAtleta(atleta || null);
@@ -185,6 +193,25 @@ const AtletasList: React.FC = () => {
     setSelectedAtletaForProvas(null);
   };
 
+  const handleGerarProjecao = (id: string) => {
+    setSelectedAtletaForProjecao(atletas.find((a) => a.id === id) || null);
+    setPreSelectedProvaId(undefined);
+    setProjecaoDialogOpen(true);
+  };
+
+  const handleGerarProjecaoFromProva = (provaId: string) => {
+    setSelectedAtletaForProjecao(selectedAtletaForProvas);
+    setPreSelectedProvaId(provaId);
+    setProvasDialogOpen(false);
+    setProjecaoDialogOpen(true);
+  };
+
+  const handleCloseProjecaoDialog = () => {
+    setProjecaoDialogOpen(false);
+    setSelectedAtletaForProjecao(null);
+    setPreSelectedProvaId(undefined);
+  };
+
   const filteredAtletas = useMemo(() => {
     const normalizedQuery = normalizeText(query.trim());
     if (!normalizedQuery) return atletas;
@@ -212,8 +239,7 @@ const AtletasList: React.FC = () => {
         p: 2,
         display: 'flex',
         flexDirection: 'column',
-        background:
-          'radial-gradient(circle at top right, rgba(179,233,45,0.08), transparent 24%), linear-gradient(180deg, #eef3f8 0%, #e8edf4 100%)',
+        background: elevation.base,
       }}
     >
       <Paper
@@ -225,9 +251,9 @@ const AtletasList: React.FC = () => {
           flexDirection: 'column',
           color: 'inherit',
           borderRadius: 1,
-          borderColor: '#d1d5db',
+          borderColor: 'rgba(255,255,255,0.10)',
           overflow: 'hidden',
-          background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+          background: elevation.card,
         }}
       >
         <Box
@@ -235,8 +261,8 @@ const AtletasList: React.FC = () => {
             px: 3,
             py: 2.25,
             borderBottom: '1px solid rgba(255,255,255,0.08)',
-            background: 'linear-gradient(135deg, #082130 0%, #0e3147 55%, #133c56 100%)',
-            color: 'white',
+            background: elevation.panel,
+            color: surface[50],
           }}
         >
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2 }}>
@@ -244,11 +270,11 @@ const AtletasList: React.FC = () => {
               <Typography
                 variant="h5"
                 component="h1"
-                sx={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, lineHeight: 1.1 }}
+                sx={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, lineHeight: 1.1, color: surface[50] }}
               >
                 Atletas
               </Typography>
-              <Typography variant="body2" sx={{ mt: 0.75, color: 'rgba(232, 234, 237, 0.72)' }}>
+              <Typography variant="body2" sx={{ mt: 0.75, color: surface[400] }}>
                 Gerencie cadastro, planos e provas a partir de uma visualização unificada.
               </Typography>
             </Box>
@@ -259,11 +285,11 @@ const AtletasList: React.FC = () => {
               onClick={() => handleOpenDialog()}
               size="small"
               sx={{
-                bgcolor: '#b3ff00',
-                color: '#082130',
+                bgcolor: primary[500],
+                color: surface[900],
                 fontWeight: 700,
                 '&:hover': {
-                  bgcolor: '#c8ff4d',
+                  bgcolor: primary[400],
                 },
               }}
             >
@@ -285,8 +311,8 @@ const AtletasList: React.FC = () => {
             sx={{
               height: '100%',
               borderRadius: 1,
-              border: '1px solid rgba(255,255,255,0.7)',
-              background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.94) 100%)',
+              border: `1px solid rgba(255,255,255,0.10)`,
+              background: elevation.card,
               p: { xs: 1.25, md: 1.5 },
               overflowY: 'auto',
               overflowX: { xs: 'auto', md: 'visible' },
@@ -303,12 +329,13 @@ const AtletasList: React.FC = () => {
                   minWidth: { xs: '100%', sm: 280 },
                   '& .MuiInputBase-root': {
                     height: 38,
-                    bgcolor: '#fff',
+                    bgcolor: elevation.panel,
+                    color: surface[50],
                   },
                 }}
                 slotProps={{
                   input: {
-                    startAdornment: <SearchIcon sx={{ color: '#6b7a8d', mr: 1, fontSize: 18 }} />,
+                    startAdornment: <SearchIcon sx={{ color: surface[400], mr: 1, fontSize: 18 }} />,
                   },
                 }}
               />
@@ -332,10 +359,10 @@ const AtletasList: React.FC = () => {
                   const nivelStyle = nivelStyles[nivelKey];
                   const rowTone = atleta.temLesao
                     ? {
-                        bg: 'rgba(231, 76, 60, 0.07)',
-                        border: '#d96b5f',
-                        chipBg: 'rgba(231, 76, 60, 0.12)',
-                        chipColor: '#8a1a1a',
+                        bg: 'rgba(239, 68, 68, 0.08)',
+                        border: '#EF4444',
+                        chipBg: 'rgba(239, 68, 68, 0.15)',
+                        chipColor: '#FCA5A5',
                         label: 'Atenção',
                       }
                     : {
@@ -353,7 +380,7 @@ const AtletasList: React.FC = () => {
                         display: 'flex',
                         flexDirection: 'column',
                         gap: 0.75,
-                        border: '1px solid #dbe3ec',
+                        border: '1px solid rgba(255,255,255,0.08)',
                         borderLeft: `4px solid ${rowTone.border}`,
                         borderRadius: 1,
                         bgcolor: rowTone.bg,
@@ -376,8 +403,8 @@ const AtletasList: React.FC = () => {
                             borderRadius: '999px',
                             display: 'grid',
                             placeItems: 'center',
-                            bgcolor: alpha('#0e3147', 0.1),
-                            color: '#0e3147',
+                            bgcolor: alpha(surface[700], 0.8),
+                            color: surface[50],
                             fontWeight: 800,
                             fontSize: '0.82rem',
                             letterSpacing: '0.04em',
@@ -387,7 +414,7 @@ const AtletasList: React.FC = () => {
                         </Box>
 
                         <Box sx={{ minWidth: 0 }}>
-                          <Typography sx={{ fontSize: '0.98rem', fontWeight: 700, color: '#1a2535', lineHeight: 1.2 }}>
+                          <Typography sx={{ fontSize: '0.98rem', fontWeight: 700, color: surface[50], lineHeight: 1.2 }}>
                             {atleta.nome}
                           </Typography>
                         </Box>
@@ -412,7 +439,7 @@ const AtletasList: React.FC = () => {
                           flexWrap: 'wrap',
                         }}
                       >
-                        <Typography variant="caption" sx={{ color: '#6b7a8d' }}>
+                        <Typography variant="caption" sx={{ color: surface[400] }}>
                           {formatDiasDisponiveis(atleta.diasDisponiveis)}
                         </Typography>
                       </Box>
@@ -436,53 +463,63 @@ const AtletasList: React.FC = () => {
                           size="small"
                           onClick={() => handleViewPlanos(atleta.id)}
                           sx={{
-                            width: 32,
-                            height: 32,
-                            border: '1px solid #dbe3ec',
+                            width: 32, height: 32,
+                            border: '1px solid rgba(255,255,255,0.12)',
                             borderRadius: 1,
-                            bgcolor: '#fff',
+                            bgcolor: 'rgba(255,255,255,0.05)',
                           }}
                         >
-                          <CalendarIcon sx={{ fontSize: 17, color: '#6b7a8d' }} />
+                          <CalendarIcon sx={{ fontSize: 17, color: surface[400] }} />
                         </IconButton>
                         <IconButton
                           size="small"
                           onClick={() => handleViewProvas(atleta.id)}
                           sx={{
-                            width: 32,
-                            height: 32,
-                            border: '1px solid #dbe3ec',
+                            width: 32, height: 32,
+                            border: '1px solid rgba(255,255,255,0.12)',
                             borderRadius: 1,
-                            bgcolor: '#fff',
+                            bgcolor: 'rgba(255,255,255,0.05)',
                           }}
                         >
-                          <EmojiEventsIcon sx={{ fontSize: 17, color: '#6b7a8d' }} />
+                          <EmojiEventsIcon sx={{ fontSize: 17, color: surface[400] }} />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          title="Gerar Projeção de Prova"
+                          onClick={() => handleGerarProjecao(atleta.id)}
+                          sx={{
+                            width: 32, height: 32,
+                            border: `1px solid ${primary[700]}`,
+                            borderRadius: 1,
+                            bgcolor: `${primary[500]}14`,
+                            '&:hover': { bgcolor: `${primary[500]}26` },
+                          }}
+                        >
+                          <TrendingUpIcon sx={{ fontSize: 17, color: primary[500] }} />
                         </IconButton>
                         <IconButton
                           size="small"
                           onClick={() => handleOpenDialog(atleta)}
                           sx={{
-                            width: 32,
-                            height: 32,
-                            border: '1px solid #dbe3ec',
+                            width: 32, height: 32,
+                            border: '1px solid rgba(255,255,255,0.12)',
                             borderRadius: 1,
-                            bgcolor: '#fff',
+                            bgcolor: 'rgba(255,255,255,0.05)',
                           }}
                         >
-                          <EditIcon sx={{ fontSize: 17, color: '#6b7a8d' }} />
+                          <EditIcon sx={{ fontSize: 17, color: surface[400] }} />
                         </IconButton>
                         <IconButton
                           size="small"
                           onClick={() => handleDelete(atleta.id)}
                           sx={{
-                            width: 32,
-                            height: 32,
-                            border: '1px solid #f1d1d1',
+                            width: 32, height: 32,
+                            border: '1px solid rgba(239,68,68,0.30)',
                             borderRadius: 1,
-                            bgcolor: '#fff',
+                            bgcolor: 'rgba(239,68,68,0.05)',
                           }}
                         >
-                          <DeleteIcon sx={{ fontSize: 17, color: '#c45b5b' }} />
+                          <DeleteIcon sx={{ fontSize: 17, color: '#EF4444' }} />
                         </IconButton>
                       </Box>
                     </Box>
@@ -511,6 +548,14 @@ const AtletasList: React.FC = () => {
         onClose={handleCloseProvasDialog}
         atletaNome={selectedAtletaForProvas ? selectedAtletaForProvas.nome : ''}
         atletaId={selectedAtletaForProvas ? selectedAtletaForProvas.id : ''}
+        onGerarProjecao={handleGerarProjecaoFromProva}
+      />
+      <GerarProjecaoDialog
+        open={projecaoDialogOpen}
+        onClose={handleCloseProjecaoDialog}
+        atletaId={selectedAtletaForProjecao ? selectedAtletaForProjecao.id : ''}
+        atletaNome={selectedAtletaForProjecao ? selectedAtletaForProjecao.nome : ''}
+        preSelectedProvaId={preSelectedProvaId}
       />
     </Box>
   );
