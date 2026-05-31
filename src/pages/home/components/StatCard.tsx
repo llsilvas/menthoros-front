@@ -16,7 +16,7 @@ export default function StatCard({
   icon,
   label,
   value,
-  color = '#b1e92d',
+  color = '#D4FF3A',
   onClick,
 }: StatCardProps) {
   return (
