@@ -26,14 +26,25 @@ When instructions conflict, follow this order:
 Never start implementation directly in code.
 
 1. Identify active change in `menthoros-product/openspec/changes/<change-id>`.
-2. Read in order:
+2. Create a feature branch from `develop` following the pattern `feature/<change-id>` **in each affected repository** (never in the workspace root):
+   ```bash
+   # Frontend (apps/menthoros-front)
+   git -C apps/menthoros-front pull origin develop
+   git -C apps/menthoros-front checkout -b feature/<change-id>
+
+   # Backend (apps/menthoros-backend) — only if the change touches backend
+   git -C apps/menthoros-backend pull origin develop
+   git -C apps/menthoros-backend checkout -b feature/<change-id>
+   ```
+   The workspace root (`menthoros`) is a coordinator repo — never branch there for feature work.
+3. Read in order:
    - `proposal.md`
    - `design.md` (if present)
    - `tasks.md`
    - affected `specs/**/spec.md`
-3. Execute one `tasks.md` item at a time.
-4. If behavior changes, update OpenSpec in the same work.
-5. Keep changes minimal and in-scope.
+4. Execute one `tasks.md` item at a time.
+5. If behavior changes, update OpenSpec in the same work.
+6. Keep changes minimal and in-scope.
 
 ## Coding Rules (Frontend)
 
