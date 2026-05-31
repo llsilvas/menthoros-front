@@ -8,63 +8,68 @@ import AtletasList from './pages/atletas/AtletasList';
 import ReconciliacaoPage from './pages/reconciliacao/ReconciliacaoPage';
 import LoginPage from './pages/auth/LoginPage';
 import LandingPage from './pages/landing/LandingPage';
-import { colors, text, content } from './theme/tokens';
+import { colors, text, content, backgrounds } from './theme/tokens';
 
 const theme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: colors.primary.main,
-      light: colors.primary.light,
-      dark: colors.primary.dark,
-      contrastText: colors.primary.contrastText,
+      main:         colors.primary.main,         // #D4FF3A — brand lime
+      light:        colors.primary.light,
+      dark:         colors.primary.dark,
+      contrastText: colors.primary.contrastText, // #0A1628 navy on lime
     },
     secondary: {
-      main: colors.secondary.main,
-      light: colors.secondary.light,
-      dark: colors.secondary.dark,
+      main:         colors.secondary.main,
+      light:        colors.secondary.light,
+      dark:         colors.secondary.dark,
       contrastText: colors.secondary.contrastText,
     },
     background: {
-      default: colors.primary.dark,
-      paper: 'rgba(255, 255, 255, 0.60)',
+      default: backgrounds.canvas, // #0A1628 — navy canvas
+      paper:   backgrounds.card,   // #131F35 — elevated cards
     },
     text: {
-      primary: text.primary,
-      secondary: text.secondary,
-      disabled: text.disabled,
+      primary:   text.primary,   // #F8FAFC — off-white
+      secondary: text.secondary, // #94A3B8 — muted
+      disabled:  text.disabled,  // #475569
     },
     divider: content.divider,
   },
   typography: {
-    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+    fontFamily: '"Syne", "Inter", "Helvetica", "Arial", sans-serif',
   },
   shape: {
-    borderRadius: 12,
+    borderRadius: 8,
   },
   components: {
     MuiPaper: {
       styleOverrides: {
         root: {
           backgroundImage: 'none',
+          backgroundColor: backgrounds.card,
         },
       },
     },
     MuiDialog: {
       styleOverrides: {
         paper: {
-          backgroundColor: 'rgba(255, 255, 255, 0.5)',
+          backgroundColor: backgrounds.highest,
+          border: `1px solid rgba(255,255,255,0.12)`,
         },
       },
     },
     MuiOutlinedInput: {
       styleOverrides: {
         notchedOutline: {
-          borderColor: 'rgba(14, 49, 71, 0.4)',
+          borderColor: 'rgba(255,255,255,0.15)',
         },
         root: {
           '&:hover .MuiOutlinedInput-notchedOutline': {
-            borderColor: 'rgba(14, 49, 71, 0.7)',
+            borderColor: 'rgba(255,255,255,0.30)',
+          },
+          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+            borderColor: colors.primary.main,
           },
         },
       },
@@ -82,23 +87,23 @@ const theme = createTheme({
     MuiDataGrid: {
       styleOverrides: {
         root: {
-          '--DataGrid-containerBackground': 'rgba(255, 255, 255, 0.55)',
-          backgroundColor: 'rgba(255, 255, 255, 0.55)',
+          '--DataGrid-containerBackground': backgrounds.card,
+          backgroundColor: backgrounds.card,
           color: text.primary,
-          borderColor: 'rgba(255,255,255,0.20)',
-          '& .MuiDataGrid-mainContent': { backgroundColor: 'rgba(255, 255, 255, 0.55)' },
-          '& .MuiDataGrid-virtualScroller': { backgroundColor: 'rgba(255, 255, 255, 0.55)' },
-          '& .MuiDataGrid-overlayWrapper': { backgroundColor: 'rgba(255, 255, 255, 0.55)' },
-          '& .MuiDataGrid-columnHeaders': { backgroundColor: 'rgba(255, 255, 255, 0.70)' },
-          '& .MuiDataGrid-columnHeader': { backgroundColor: 'rgba(255, 255, 255, 0.70)' },
-          '& .MuiDataGrid-columnHeaderTitle': { color: text.primary },
-          '& .MuiDataGrid-columnSeparator': { color: 'rgba(0,0,0,0.12)' },
-          '& .MuiDataGrid-cell': { color: text.primary, borderColor: 'rgba(0,0,0,0.06)' },
-          '& .MuiDataGrid-row:hover': { backgroundColor: 'rgba(255, 255, 255, 0.20)' },
-          '& .MuiDataGrid-footerContainer': { backgroundColor: 'rgba(255, 255, 255, 0.70)', color: text.primary, borderColor: 'rgba(255,255,255,0.20)' },
-          '& .MuiTablePagination-root': { color: text.primary },
-          '& .MuiTablePagination-selectIcon': { color: text.primary },
-          '& .MuiIconButton-root': { color: text.primary },
+          borderColor: 'rgba(255,255,255,0.10)',
+          '& .MuiDataGrid-mainContent':     { backgroundColor: backgrounds.card },
+          '& .MuiDataGrid-virtualScroller': { backgroundColor: backgrounds.card },
+          '& .MuiDataGrid-overlayWrapper':  { backgroundColor: backgrounds.card },
+          '& .MuiDataGrid-columnHeaders':   { backgroundColor: backgrounds.panel },
+          '& .MuiDataGrid-columnHeader':    { backgroundColor: backgrounds.panel },
+          '& .MuiDataGrid-columnHeaderTitle': { color: text.secondary },
+          '& .MuiDataGrid-columnSeparator': { color: 'rgba(255,255,255,0.10)' },
+          '& .MuiDataGrid-cell':            { color: text.primary, borderColor: 'rgba(255,255,255,0.06)' },
+          '& .MuiDataGrid-row:hover':       { backgroundColor: 'rgba(255,255,255,0.04)' },
+          '& .MuiDataGrid-footerContainer': { backgroundColor: backgrounds.panel, color: text.secondary, borderColor: 'rgba(255,255,255,0.10)' },
+          '& .MuiTablePagination-root':     { color: text.secondary },
+          '& .MuiTablePagination-selectIcon': { color: text.secondary },
+          '& .MuiIconButton-root':          { color: text.secondary },
         },
       },
     },
