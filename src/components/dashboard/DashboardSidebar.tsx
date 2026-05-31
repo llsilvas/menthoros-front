@@ -22,7 +22,7 @@ import {
   getDrawerSxTransitionMixin,
   getDrawerWidthTransitionMixin,
 } from '../../utils/mixins';
-import { gradients, sidebar as sidebarTokens, glass } from '../../theme/tokens';
+import { sidebar as sidebarTokens, glass, gradients } from '../../theme/tokens';
 
 export interface DashboardSidebarProps {
   expanded?: boolean;
