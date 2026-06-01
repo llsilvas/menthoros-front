@@ -1,6 +1,6 @@
 import { Box, Paper, Stack, TextField, Chip } from '@mui/material';
 import { Search as SearchIcon } from '@mui/icons-material';
-import { glassAzulSx, transitions } from '../../../theme/tokens';
+import { glassAzulSx, transitions, primary } from '../../../theme/tokens';
 
 type NivelExperienciaKey = 'INICIANTE' | 'INTERMEDIARIO' | 'AVANCADO';
 type AtletaStatus = 'EM_DIA' | 'ATENCAO' | 'SEM_ROTINA';
@@ -58,7 +58,7 @@ export default function AtletasFiltros({
           onChange={(e) => onBuscaChange(e.target.value)}
           fullWidth
           InputProps={{
-            startAdornment: <SearchIcon sx={{ mr: 1, color: '#b1e92d', opacity: 0.7 }} />,
+            startAdornment: <SearchIcon sx={{ mr: 1, color: primary[500], opacity: 0.7 }} />,
           }}
           InputLabelProps={{
             style: { color: 'rgba(255, 255, 255, 0.7)' },
@@ -67,13 +67,13 @@ export default function AtletasFiltros({
             '& .MuiOutlinedInput-root': {
               color: '#ffffff',
               '& fieldset': {
-                borderColor: 'rgba(177, 233, 45, 0.3)',
+                borderColor: `${primary[500]}4D`,
               },
               '&:hover fieldset': {
-                borderColor: 'rgba(177, 233, 45, 0.5)',
+                borderColor: `${primary[500]}80`,
               },
               '&.Mui-focused fieldset': {
-                borderColor: '#b1e92d',
+                borderColor: primary[500],
               },
             },
             '& .MuiOutlinedInput-input::placeholder': {
@@ -92,15 +92,15 @@ export default function AtletasFiltros({
                 onClick={() => onStatusChange(s)}
                 size="small"
                 sx={{
-                  bgcolor: status === s ? '#b1e92d' : 'rgba(177, 233, 45, 0.15)',
-                  color: status === s ? '#0e3147' : '#b1e92d',
+                  bgcolor: status === s ? primary[500] : `${primary[500]}26`,
+                  color: status === s ? '#0e3147' : primary[500],
                   fontWeight: status === s ? 700 : 600,
                   fontSize: '0.85rem',
                   cursor: 'pointer',
                   transition: transitions.default,
-                  border: status === s ? '1px solid #b1e92d' : '1px solid rgba(177, 233, 45, 0.3)',
+                  border: status === s ? `1px solid ${primary[500]}` : `1px solid ${primary[500]}4D`,
                   '&:hover': {
-                    bgcolor: status === s ? '#b1e92d' : 'rgba(177, 233, 45, 0.25)',
+                    bgcolor: status === s ? primary[500] : `${primary[500]}40`,
                   },
                 }}
               />
@@ -117,15 +117,15 @@ export default function AtletasFiltros({
                 onClick={() => onNivelChange(n)}
                 size="small"
                 sx={{
-                  bgcolor: nivel === n ? '#b1e92d' : 'rgba(177, 233, 45, 0.15)',
-                  color: nivel === n ? '#0e3147' : '#b1e92d',
+                  bgcolor: nivel === n ? primary[500] : `${primary[500]}26`,
+                  color: nivel === n ? '#0e3147' : primary[500],
                   fontWeight: nivel === n ? 700 : 600,
                   fontSize: '0.85rem',
                   cursor: 'pointer',
                   transition: transitions.default,
-                  border: nivel === n ? '1px solid #b1e92d' : '1px solid rgba(177, 233, 45, 0.3)',
+                  border: nivel === n ? `1px solid ${primary[500]}` : `1px solid ${primary[500]}4D`,
                   '&:hover': {
-                    bgcolor: nivel === n ? '#b1e92d' : 'rgba(177, 233, 45, 0.25)',
+                    bgcolor: nivel === n ? primary[500] : `${primary[500]}40`,
                   },
                 }}
               />

@@ -14,6 +14,7 @@ import {
   FitnessCenter as FitnessCenterIcon,
 } from '@mui/icons-material';
 import { alpha } from '@mui/material/styles';
+import { semantic, categorical } from '../../../theme/tokens';
 import type { Atleta } from '../../../types/Atleta';
 import PlanosDialog from '../../../components/features/planos/planosDialog';
 import ProvasDialog from '../../../components/features/provas/ProvasDialog';
@@ -27,23 +28,10 @@ const nivelLabels: Record<NivelExperienciaKey, string> = {
   AVANCADO: 'Avançado',
 };
 
-// Dark-mode: tints and light text legible on dark surfaces
 const nivelStyles: Record<NivelExperienciaKey, { bg: string; color: string; chipColor: string }> = {
-  INICIANTE: {
-    bg: 'rgba(59, 130, 246, 0.15)',
-    color: '#93C5FD',
-    chipColor: '#3B82F6',
-  },
-  INTERMEDIARIO: {
-    bg: 'rgba(245, 158, 11, 0.15)',
-    color: '#FCD34D',
-    chipColor: '#F59E0B',
-  },
-  AVANCADO: {
-    bg: 'rgba(16, 185, 129, 0.15)',
-    color: '#6EE7B7',
-    chipColor: '#10B981',
-  },
+  INICIANTE:    { bg: `${categorical.cat1}26`,        color: categorical.cat1,        chipColor: categorical.cat1 },
+  INTERMEDIARIO:{ bg: `${semantic.warning[500]}26`,   color: semantic.warning[300],   chipColor: semantic.warning[500] },
+  AVANCADO:     { bg: `${semantic.success[500]}26`,   color: semantic.success[500],   chipColor: semantic.success[500] },
 };
 
 const getInitials = (name: string) =>
@@ -82,24 +70,24 @@ const calcularStatus = (atleta: Atleta): AtletaStatus => {
 
 const statusStyles: Record<AtletaStatus, { bg: string; border: string; badgeBg: string; badgeColor: string; label: string }> = {
   EM_DIA: {
-    bg: 'rgba(52, 192, 100, 0.08)',
-    border: '#34c064',
-    badgeBg: 'rgba(52, 192, 100, 0.15)',
-    badgeColor: '#1a6b37',
+    bg:         `${semantic.success[500]}14`,
+    border:      semantic.success[500],
+    badgeBg:    `${semantic.success[500]}26`,
+    badgeColor:  semantic.success[700],
     label: 'Em Dia',
   },
   ATENCAO: {
-    bg: 'rgba(231, 76, 60, 0.08)',
-    border: '#e74c3c',
-    badgeBg: 'rgba(231, 76, 60, 0.15)',
-    badgeColor: '#8a1a1a',
+    bg:         `${semantic.danger[500]}14`,
+    border:      semantic.danger[500],
+    badgeBg:    `${semantic.danger[500]}26`,
+    badgeColor:  semantic.danger[700],
     label: 'Atenção',
   },
   SEM_ROTINA: {
-    bg: 'rgba(52, 152, 219, 0.08)',
-    border: '#3498db',
-    badgeBg: 'rgba(52, 152, 219, 0.15)',
-    badgeColor: '#1a5f8a',
+    bg:         `${categorical.cat1}14`,
+    border:      categorical.cat1,
+    badgeBg:    `${categorical.cat1}26`,
+    badgeColor:  semantic.info[700],
     label: 'Sem Rotina',
   },
 };
@@ -224,8 +212,8 @@ export default function AtletaStatusRow({ atleta, onEditAtleta }: AtletaStatusRo
               label="Lesão"
               size="small"
               sx={{
-                bgcolor: 'rgba(231, 76, 60, 0.2)',
-                color: '#e74c3c',
+                bgcolor: `${semantic.danger[500]}33`,
+                color: semantic.danger[500],
                 fontWeight: 600,
                 fontSize: '0.7rem',
               }}

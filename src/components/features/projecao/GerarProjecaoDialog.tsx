@@ -35,6 +35,7 @@ import {
     TARGET_DISTANCES,
 } from '../../../types/RaceProjection';
 import ProjecaoResultadoDialog from './ProjecaoResultadoDialog';
+import { primary } from '../../../theme/tokens';
 
 interface GerarProjecaoDialogProps {
     open: boolean;
@@ -216,7 +217,7 @@ const GerarProjecaoDialog: React.FC<GerarProjecaoDialogProps> = ({
                     <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1, mb: 1 }}>
                             <Chip
-                                icon={<TrendingUpIcon sx={{ fontSize: 14, color: '#b1e92d !important' }} />}
+                                icon={<TrendingUpIcon sx={{ fontSize: 14, color: `${primary[500]} !important` }} />}
                                 label="Projeção de Prova"
                                 size="small"
                                 sx={{

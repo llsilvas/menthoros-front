@@ -37,6 +37,7 @@ import {
 } from '../../../types/RaceProjection';
 import ConfidenceBadge from './ConfidenceBadge';
 import MarcarOficialButton from './MarcarOficialButton';
+import { primary } from '../../../theme/tokens';
 
 interface ProjecaoResultadoDialogProps {
     open: boolean;
@@ -113,7 +114,7 @@ const ProjecaoResultadoDialog: React.FC<ProjecaoResultadoDialogProps> = ({
                 <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1, mb: 1 }}>
                         <Chip
-                            icon={<TrendingUpIcon sx={{ fontSize: 14, color: '#b1e92d !important' }} />}
+                            icon={<TrendingUpIcon sx={{ fontSize: 14, color: `${primary[500]} !important` }} />}
                             label="Resultado da Projeção"
                             size="small"
                             sx={{ bgcolor: 'rgba(255,255,255,0.12)', color: '#e8eaed', fontWeight: 700, border: '1px solid rgba(255,255,255,0.12)' }}
@@ -128,17 +129,17 @@ const ProjecaoResultadoDialog: React.FC<ProjecaoResultadoDialogProps> = ({
                                     : overallConfidence === 'MEDIUM'
                                         ? 'rgba(243,156,18,0.25)'
                                         : 'rgba(231,76,60,0.25)',
-                                color: overallConfidence === 'HIGH' ? '#b1e92d' : overallConfidence === 'MEDIUM' ? '#f9c74f' : '#ff6b6b',
+                                color: overallConfidence === 'HIGH' ? primary[500] : overallConfidence === 'MEDIUM' ? '#f9c74f' : '#ff6b6b',
                                 fontWeight: 700,
                                 border: '1px solid rgba(255,255,255,0.15)',
                             }}
                         />
                         {currentSnapshot.isOfficial && (
                             <Chip
-                                icon={<CheckCircleIcon sx={{ fontSize: 13, color: '#b1e92d !important' }} />}
+                                icon={<CheckCircleIcon sx={{ fontSize: 13, color: `${primary[500]} !important` }} />}
                                 label="Oficial"
                                 size="small"
-                                sx={{ bgcolor: 'rgba(177,233,45,0.18)', color: '#b1e92d', fontWeight: 700, border: '1px solid rgba(177,233,45,0.3)' }}
+                                sx={{ bgcolor: `${primary[500]}2E`, color: primary[500], fontWeight: 700, border: `1px solid ${primary[500]}4D` }}
                             />
                         )}
                     </Box>

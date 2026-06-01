@@ -28,7 +28,7 @@ import PlanosDialog from '../../components/features/planos/planosDialog';
 import ProvasDialog from '../../components/features/provas/ProvasDialog';
 import SyncStravaButton from '../../components/features/strava/SyncStravaButton';
 import GerarProjecaoDialog from '../../components/features/projecao/GerarProjecaoDialog';
-import { primary, surface } from '../../theme/tokens';
+import { primary, surface, semantic, categorical } from '../../theme/tokens';
 import { elevation } from '../../shared/design-tokens';
 
 type NivelExperienciaKey = 'INICIANTE' | 'INTERMEDIARIO' | 'AVANCADO';
@@ -39,26 +39,10 @@ const nivelLabels: Record<NivelExperienciaKey, string> = {
   AVANCADO: 'Avançado',
 };
 
-// Dark-mode color palette: tints and light text on dark surfaces
 const nivelStyles: Record<NivelExperienciaKey, { bg: string; color: string; rowBg: string; rowBorder: string }> = {
-  INICIANTE: {
-    bg: 'rgba(59, 130, 246, 0.15)',
-    color: '#93C5FD',
-    rowBg: 'rgba(59, 130, 246, 0.06)',
-    rowBorder: '#3B82F6',
-  },
-  INTERMEDIARIO: {
-    bg: 'rgba(245, 158, 11, 0.15)',
-    color: '#FCD34D',
-    rowBg: 'rgba(245, 158, 11, 0.06)',
-    rowBorder: '#F59E0B',
-  },
-  AVANCADO: {
-    bg: 'rgba(16, 185, 129, 0.15)',
-    color: '#6EE7B7',
-    rowBg: 'rgba(16, 185, 129, 0.06)',
-    rowBorder: '#10B981',
-  },
+  INICIANTE:    { bg: `${categorical.cat1}26`,        color: categorical.cat1,       rowBg: `${categorical.cat1}0F`,       rowBorder: categorical.cat1 },
+  INTERMEDIARIO:{ bg: `${semantic.warning[500]}26`,   color: semantic.warning[300],  rowBg: `${semantic.warning[500]}0F`,  rowBorder: semantic.warning[500] },
+  AVANCADO:     { bg: `${semantic.success[500]}26`,   color: semantic.success[500],  rowBg: `${semantic.success[500]}0F`,  rowBorder: semantic.success[500] },
 };
 
 const diasFormatados = {
@@ -359,10 +343,10 @@ const AtletasList: React.FC = () => {
                   const nivelStyle = nivelStyles[nivelKey];
                   const rowTone = atleta.temLesao
                     ? {
-                        bg: 'rgba(239, 68, 68, 0.08)',
-                        border: '#EF4444',
-                        chipBg: 'rgba(239, 68, 68, 0.15)',
-                        chipColor: '#FCA5A5',
+                        bg:       `${semantic.danger[500]}14`,
+                        border:    semantic.danger[500],
+                        chipBg:   `${semantic.danger[500]}26`,
+                        chipColor: semantic.danger[300],
                         label: 'Atenção',
                       }
                     : {
@@ -514,12 +498,12 @@ const AtletasList: React.FC = () => {
                           onClick={() => handleDelete(atleta.id)}
                           sx={{
                             width: 32, height: 32,
-                            border: '1px solid rgba(239,68,68,0.30)',
+                            border: `1px solid ${semantic.danger[500]}4D`,
                             borderRadius: 1,
-                            bgcolor: 'rgba(239,68,68,0.05)',
+                            bgcolor: `${semantic.danger[500]}0D`,
                           }}
                         >
-                          <DeleteIcon sx={{ fontSize: 17, color: '#EF4444' }} />
+                          <DeleteIcon sx={{ fontSize: 17, color: semantic.danger[500] }} />
                         </IconButton>
                       </Box>
                     </Box>

@@ -10,7 +10,7 @@ import {
   Person as PersonIcon,
 } from '@mui/icons-material';
 import { useUserInfo } from '../../../hooks/useUserInfo';
-import { glassSx, glassSxHover, transitions } from '../../../theme/tokens';
+import { glassSx, glassSxHover, transitions, primary } from '../../../theme/tokens';
 
 export default function AssessmentInfoCard() {
   const userInfo = useUserInfo();
@@ -44,7 +44,7 @@ export default function AssessmentInfoCard() {
             gap: 1.5,
           }}
         >
-          <BusinessCenterIcon sx={{ fontSize: 24, color: '#b1e92d' }} />
+          <BusinessCenterIcon sx={{ fontSize: 24, color: primary[500] }} />
           <Box sx={{ minWidth: 0, flex: 1 }}>
             <Typography
               variant="h6"
@@ -120,8 +120,8 @@ export default function AssessmentInfoCard() {
               label={primaryRole}
               size="small"
               sx={{
-                bgcolor: 'rgba(177, 233, 45, 0.2)',
-                color: '#b1e92d',
+                bgcolor: `33`,
+                color: primary[500],
                 fontWeight: 700,
                 fontSize: '0.75rem',
               }}

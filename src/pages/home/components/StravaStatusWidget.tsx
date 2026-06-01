@@ -14,7 +14,7 @@ import {
 } from '@mui/icons-material';
 import type { StravaStatusGlobal } from '../../../types/Metricas';
 import { StravaService } from '../../../services/StravaService';
-import { glassAzulSx, glassAzulSxHover, transitions } from '../../../theme/tokens';
+import { glassAzulSx, glassAzulSxHover, transitions, primary } from '../../../theme/tokens';
 
 export default function StravaStatusWidget() {
   const [status, setStatus] = useState<StravaStatusGlobal | null>(null);
@@ -54,7 +54,7 @@ export default function StravaStatusWidget() {
             gap: 1,
           }}
         >
-          <SyncIcon sx={{ fontSize: 24, color: '#b1e92d' }} />
+          <SyncIcon sx={{ fontSize: 24, color: primary[500] }} />
           <Typography
             variant="h6"
             sx={{

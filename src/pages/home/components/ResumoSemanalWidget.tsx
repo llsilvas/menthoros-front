@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Box, CircularProgress, Paper, Stack, Typography } from '@mui/material';
 import { MetricasService } from '../../../services/MetricasService';
 import type { ResumoSemanalTreino } from '../../../types/Metricas';
-import { glassAzulSx, glassAzulSxHover, transitions } from '../../../theme/tokens';
+import { glassAzulSx, glassAzulSxHover, transitions, primary } from '../../../theme/tokens';
 
 interface ResumoSemanalWidgetProps {
   atletaId: string;
@@ -57,7 +57,7 @@ export default function ResumoSemanalWidget({ atletaId, atletaNome }: ResumoSema
               variant="h5"
               sx={{
                 fontWeight: 700,
-                color: '#b1e92d',
+                color: primary[500],
                 mb: 0.5,
               }}
             >
@@ -79,7 +79,7 @@ export default function ResumoSemanalWidget({ atletaId, atletaNome }: ResumoSema
               variant="h5"
               sx={{
                 fontWeight: 700,
-                color: '#b1e92d',
+                color: primary[500],
                 mb: 0.5,
               }}
             >
@@ -101,7 +101,7 @@ export default function ResumoSemanalWidget({ atletaId, atletaNome }: ResumoSema
               variant="h5"
               sx={{
                 fontWeight: 700,
-                color: '#b1e92d',
+                color: primary[500],
                 mb: 0.5,
               }}
             >
@@ -123,7 +123,7 @@ export default function ResumoSemanalWidget({ atletaId, atletaNome }: ResumoSema
               variant="h5"
               sx={{
                 fontWeight: 700,
-                color: '#b1e92d',
+                color: primary[500],
                 mb: 0.5,
               }}
             >

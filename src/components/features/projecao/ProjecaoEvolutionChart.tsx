@@ -15,7 +15,7 @@ import {
     formatDistanceLabel,
     formatSeconds,
 } from '../../../types/RaceProjection';
-import { glassAzulSx, glassAzulSxHover, transitions } from '../../../theme/tokens';
+import { glassAzulSx, glassAzulSxHover, transitions, primary } from '../../../theme/tokens';
 
 interface ProjecaoEvolutionChartProps {
     atletaId: string;
@@ -27,7 +27,7 @@ interface ChartPoint {
     [key: string]: string | number | undefined;
 }
 
-const LINE_COLORS = ['#b1e92d', '#3498db', '#e74c3c', '#f39c12'];
+const LINE_COLORS = [primary[500], '#3498db', '#e74c3c', '#f39c12'];
 
 const ProjecaoEvolutionChart: React.FC<ProjecaoEvolutionChartProps> = ({ atletaId, provaId }) => {
     const { historico, loading, fetchHistorico } = useRaceProjection();
@@ -76,7 +76,7 @@ const ProjecaoEvolutionChart: React.FC<ProjecaoEvolutionChartProps> = ({ atletaI
     if (loading) {
         return (
             <Paper sx={{ p: 2.5, borderRadius: 1, ...glassAzulSx }}>
-                <CircularProgress size={24} sx={{ color: '#b1e92d' }} />
+                <CircularProgress size={24} sx={{ color: primary[500] }} />
             </Paper>
         );
     }
@@ -123,7 +123,7 @@ const ProjecaoEvolutionChart: React.FC<ProjecaoEvolutionChartProps> = ({ atletaI
                                 {formatDistanceLabel(dist)}: {formatSeconds(entry.value as number)}
                             </Typography>
                             {delta != null && (
-                                <Typography variant="caption" sx={{ color: delta < 0 ? '#b1e92d' : '#e74c3c', fontWeight: 700 }}>
+                                <Typography variant="caption" sx={{ color: delta < 0 ? primary[500] : '#e74c3c', fontWeight: 700 }}>
                                     ({delta < 0 ? '' : '+'}{formatSeconds(Math.abs(delta))})
                                 </Typography>
                             )}
