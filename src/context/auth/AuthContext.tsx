@@ -22,10 +22,27 @@ const isTokenExpired = (token: string): boolean => {
   }
 };
 
+const hasRequiredClaims = (token: string): boolean => {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    if (payload.tenant_id || payload.tenantId || payload.organizationId) return true;
+    if (payload.organization && typeof payload.organization === 'object') {
+      const org = Object.values(payload.organization)[0] as any;
+      if (org?.tenant_id) return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+};
+
+const isTokenValid = (token: string): boolean =>
+  Boolean(token) && !isTokenExpired(token) && hasRequiredClaims(token);
+
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [isAuthenticated, setIsAuthenticated] = useState(() => {
         const token = readToken();
-        return Boolean(token) && !isTokenExpired(token);
+        return isTokenValid(token);
     });
 
     useEffect(() => {
@@ -36,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         const checkTokenExpiration = () => {
             const token = readToken();
-            if (token && isTokenExpired(token)) {
+            if (token && !isTokenValid(token)) {
                 setIsAuthenticated(false);
                 localStorage.removeItem(TOKEN_STORAGE_KEY);
             }

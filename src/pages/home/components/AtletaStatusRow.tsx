@@ -27,21 +27,22 @@ const nivelLabels: Record<NivelExperienciaKey, string> = {
   AVANCADO: 'Avançado',
 };
 
+// Dark-mode: tints and light text legible on dark surfaces
 const nivelStyles: Record<NivelExperienciaKey, { bg: string; color: string; chipColor: string }> = {
   INICIANTE: {
-    bg: 'rgba(52, 152, 219, 0.12)',
-    color: '#1a5f8a',
-    chipColor: '#3498db',
+    bg: 'rgba(59, 130, 246, 0.15)',
+    color: '#93C5FD',
+    chipColor: '#3B82F6',
   },
   INTERMEDIARIO: {
-    bg: 'rgba(179, 255, 0, 0.14)',
-    color: '#486500',
-    chipColor: '#9fcf21',
+    bg: 'rgba(245, 158, 11, 0.15)',
+    color: '#FCD34D',
+    chipColor: '#F59E0B',
   },
   AVANCADO: {
-    bg: 'rgba(243, 156, 18, 0.12)',
-    color: '#8a5a00',
-    chipColor: '#e0a12b',
+    bg: 'rgba(16, 185, 129, 0.15)',
+    color: '#6EE7B7',
+    chipColor: '#10B981',
   },
 };
 
@@ -239,7 +240,7 @@ export default function AtletaStatusRow({ atleta, onEditAtleta }: AtletaStatusRo
             <FitnessCenterIcon
               sx={{
                 fontSize: 18,
-                color: '#b1e92d',
+                color: '#D4FF3A',
                 opacity: 0.8,
               }}
             />
@@ -283,7 +284,7 @@ export default function AtletaStatusRow({ atleta, onEditAtleta }: AtletaStatusRo
               border: '1px solid rgba(255,255,255,0.2)',
               borderRadius: 1,
               bgcolor: 'rgba(255,255,255,0.08)',
-              color: '#b1e92d',
+              color: '#D4FF3A',
               '&:hover': {
                 bgcolor: 'rgba(255,255,255,0.12)',
               },
@@ -301,7 +302,7 @@ export default function AtletaStatusRow({ atleta, onEditAtleta }: AtletaStatusRo
               border: '1px solid rgba(255,255,255,0.2)',
               borderRadius: 1,
               bgcolor: 'rgba(255,255,255,0.08)',
-              color: '#b1e92d',
+              color: '#D4FF3A',
               '&:hover': {
                 bgcolor: 'rgba(255,255,255,0.12)',
               },

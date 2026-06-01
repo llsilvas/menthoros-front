@@ -15,7 +15,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { Link } from 'react-router';
 import DashboardSidebarContext from '../../context/DashboardSidebarContext';
 import { MINI_DRAWER_WIDTH } from '../../constants/constants';
-import { sidebar as sidebarTokens, gradients } from '../../theme/tokens';
+import { sidebar as sidebarTokens, gradients, primary } from '../../theme/tokens';
 
 export interface DashboardSidebarPageItemProps {
   id: string;
@@ -135,7 +135,7 @@ export default function DashboardSidebarPageItem({
               backgroundColor: sidebarTokens.selectedBg,
               borderLeft: `3px solid ${sidebarTokens.selectedBorder}`,
               '&:hover': {
-                backgroundColor: 'rgba(177, 233, 45, 0.25)',
+                backgroundColor: `${primary[500]}40`,
                 color: sidebarTokens.textHover,
               },
             },

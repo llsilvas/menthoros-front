@@ -18,6 +18,7 @@ import {
     EditOutlined as EditIcon,
     DeleteOutline as DeleteIcon,
     EmojiEvents as EmojiEventsIcon,
+    TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
 import { alpha } from '@mui/material/styles';
 import { useTheme } from '@mui/material/styles';
@@ -41,9 +42,10 @@ interface ProvasDialogProps {
     onClose: () => void;
     atletaId: string;
     atletaNome: string;
+    onGerarProjecao?: (provaId: string) => void;
 }
 
-const ProvasDialog: React.FC<ProvasDialogProps> = ({ open, onClose, atletaId, atletaNome }) => {
+const ProvasDialog: React.FC<ProvasDialogProps> = ({ open, onClose, atletaId, atletaNome, onGerarProjecao }) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const {
@@ -176,21 +178,37 @@ const ProvasDialog: React.FC<ProvasDialogProps> = ({ open, onClose, atletaId, at
             field: 'actions',
             type: 'actions',
             headerName: 'Ações',
-            width: 90,
-            getActions: (params: GridRowParams) => [
-                <GridActionsCellItem
-                    key="edit"
-                    icon={<EditIcon />}
-                    label="Editar"
-                    onClick={() => handleOpenForm(params.row as Prova)}
-                />,
-                <GridActionsCellItem
-                    key="delete"
-                    icon={<DeleteIcon />}
-                    label="Excluir"
-                    onClick={() => handleDelete(params.row.id, params.row.nomeProva)}
-                />,
-            ],
+            width: 120,
+            getActions: (params: GridRowParams) => {
+                const prova = params.row as Prova;
+                const isFutura = (prova.diasFaltando ?? -1) >= 0;
+                const actions = [
+                    <GridActionsCellItem
+                        key="edit"
+                        icon={<EditIcon />}
+                        label="Editar"
+                        onClick={() => handleOpenForm(prova)}
+                    />,
+                    <GridActionsCellItem
+                        key="delete"
+                        icon={<DeleteIcon />}
+                        label="Excluir"
+                        onClick={() => handleDelete(prova.id, prova.nomeProva)}
+                    />,
+                ];
+                if (isFutura && onGerarProjecao) {
+                    actions.unshift(
+                        <GridActionsCellItem
+                            key="projetar"
+                            icon={<TrendingUpIcon sx={{ color: '#b3ff00' }} />}
+                            label="Projetar Tempo"
+                            showInMenu={false}
+                            onClick={() => onGerarProjecao(prova.id)}
+                        />
+                    );
+                }
+                return actions;
+            },
         },
     ];
 

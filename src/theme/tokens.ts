@@ -1,135 +1,123 @@
-/**
- * Design Tokens - Menthoros Dashboard
- *
- * Paleta azul gradient com efeitos glassmorphism.
- * Todos os tokens centralizados aqui para consistencia.
- */
+import { primary, surface, semantic, categorical, elevation } from '../shared/design-tokens';
 
-// ── Cores principais ──────────────────────────────────────────────
+export { primary, surface, semantic, categorical } from '../shared/design-tokens';
+
+// ── MUI theme palette values ──────────────────────────────────────────────────
 export const colors = {
   primary: {
-    main: '#0e3147',
-    dark: '#082130',
-    light: '#1a4a66',
-    contrastText: '#ffffff',
+    main:         primary[500],  // #D4FF3A — brand lime
+    light:        primary[400],
+    dark:         primary[600],
+    contrastText: surface[900],  // navy on lime buttons
   },
   secondary: {
-    main: '#b1e92d',
-    light: '#c5f05a',
-    dark: '#8bc120',
-    contrastText: '#0e3147',
+    main:         surface[700],
+    light:        surface[600],
+    dark:         surface[800],
+    contrastText: surface[50],
   },
 } as const;
 
-// ── Gradientes ────────────────────────────────────────────────────
-export const gradients = {
-  background: 'linear-gradient(135deg, #082130 0%, #0e3147 50%, #1a4a66 100%)',
-  sidebar: 'linear-gradient(180deg, #082130 0%, #0e3147 100%)',
-  header: 'linear-gradient(90deg, #082130 0%, #0e3147 100%)',
-} as const;
-
-// ── Glassmorphism ─────────────────────────────────────────────────
-export const glass = {
-  background: 'rgba(255, 255, 255, 0.60)',
-  backgroundHover: 'rgba(255, 255, 255, 0.68)',
-  backgroundActive: 'rgba(255, 255, 255, 0.75)',
-  border: 'rgba(255, 255, 255, 0.30)',
-  borderHover: 'rgba(255, 255, 255, 0.81)',
-  backdropFilter: 'blur(10px)',
-  boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
-} as const;
-
-export const glassAzul = {
-  background: 'rgba(26, 74, 102, 0.35)',
-  backgroundHover: 'rgba(26, 74, 102, 0.45)',
-  border: 'rgba(177, 233, 45, 0.25)',
-  borderHover: 'rgba(177, 233, 45, 0.40)',
-  backdropFilter: 'blur(10px)',
-  boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
-} as const;
-
-// ── Textos ────────────────────────────────────────────────────────
+// ── Text hierarchy (dark-first) ───────────────────────────────────────────────
 export const text = {
-  primary: '#082130',
-  secondary: '#0e3147',
-  muted: 'rgba(14, 49, 71, 0.7)',
-  disabled: 'rgba(14, 49, 71, 0.38)',
-  icon: '#0e3147',
-  iconMuted: 'rgba(14, 49, 71, 0.6)',
+  primary:   surface[50],   // #F8FAFC — off-white
+  secondary: surface[400],  // #94A3B8 — muted
+  muted:     surface[500],  // #64748B
+  disabled:  surface[600],  // #475569
+  icon:      surface[400],
+  iconMuted: surface[500],
 } as const;
 
-// ── Sidebar ───────────────────────────────────────────────────────
+// ── Surface backgrounds ───────────────────────────────────────────────────────
+export const backgrounds = {
+  canvas:  elevation.base,    // #0A1628 — page canvas
+  panel:   elevation.panel,   // #0E1B30 — side panels
+  card:    elevation.card,    // #131F35 — cards
+  highest: elevation.highest, // #1A2940 — modals, dropdowns
+} as const;
+
+// ── Sidebar ───────────────────────────────────────────────────────────────────
 export const sidebar = {
-  text: '#a4cff3',
-  textHover: '#ffffff',
-  selectedBg: 'rgba(177, 233, 45, 0.15)',
-  selectedBorder: '#b1e92d',
-  selectedIcon: '#b1e92d',
-  hoverBg: 'rgba(255, 255, 255, 0.08)',
-  headerColor: '#b1e92d',
-  divider: 'rgba(255, 255, 255, 0.12)',
+  text:           surface[400],            // muted
+  textHover:      surface[50],             // off-white
+  selectedBg:     `${primary[500]}26`,     // lime 15% opacity
+  selectedBorder: primary[500],            // canonical lime
+  selectedIcon:   primary[500],
+  hoverBg:        `${surface[0]}14`,       // white 8%
+  headerColor:    primary[500],
+  divider:        `${surface[0]}1F`,       // white 12%
 } as const;
 
-// ── Componentes de conteudo ───────────────────────────────────────
+// ── Card / content ────────────────────────────────────────────────────────────
 export const content = {
-  cardBg: 'rgba(255, 255, 255, 0.08)',
-  cardBgHover: 'rgba(255, 255, 255, 0.12)',
-  cardBorder: 'rgba(255, 255, 255, 0.15)',
-  inputBg: 'rgba(255, 255, 255, 0.06)',
-  inputBorder: 'rgba(255, 255, 255, 0.2)',
-  inputBorderFocus: 'rgba(255, 255, 255, 0.4)',
-  divider: 'rgba(255, 255, 255, 0.12)',
-  tableBgHover: 'rgba(255, 255, 255, 0.04)',
+  cardBg:           `${surface[0]}14`,     // white 8%
+  cardBgHover:      `${surface[0]}1F`,     // white 12%
+  cardBorder:       `${surface[0]}26`,     // white 15%
+  inputBg:          `${surface[0]}0F`,     // white 6%
+  inputBorder:      `${surface[0]}33`,     // white 20%
+  inputBorderFocus: `${surface[0]}66`,     // white 40%
+  divider:          `${surface[0]}1F`,     // white 12%
+  tableBgHover:     `${surface[0]}0A`,     // white 4%
 } as const;
 
-// ── Transicoes ────────────────────────────────────────────────────
+// ── Gradients (minimal — prefer flat bg-shift for elevation) ──────────────────
+export const gradients = {
+  // Kept only for sidebar which uses a subtle gradient per nav convention
+  sidebar: `linear-gradient(180deg, ${surface[900]} 0%, ${surface[850]} 100%)`,
+  header:  surface[900],
+  // background is now flat dark canvas (no gradient)
+  background: surface[900],
+} as const;
+
+// ── Transitions ───────────────────────────────────────────────────────────────
 export const transitions = {
   default: 'all 0.3s ease',
-  fast: 'all 0.15s ease',
+  fast:    'all 0.15s ease',
 } as const;
 
-// ── Bordas ────────────────────────────────────────────────────────
+// ── Border radius (numeric px for MUI, string for CSS) ───────────────────────
 export const radius = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 24,
+  sm: 6,
+  md: 8,
+  lg: 12,
+  xl: 16,
 } as const;
 
-// ── Helper: aplica glassmorphism via sx ───────────────────────────
+// ── Zone palette (Z1–Z5) — unchanged ─────────────────────────────────────────
+export const zones = {
+  Z1: { color: '#c8cdd4', fill: 'rgba(200, 205, 212, 0.18)', border: '#c8cdd4', label: 'Recuperação' },
+  Z2: { color: primary[500], fill: `${primary[500]}2E`, border: primary[500], label: 'Base' },
+  Z3: { color: categorical.cat1, fill: `${categorical.cat1}2E`, border: categorical.cat1, label: 'Tempo' },
+  Z4: { color: semantic.warning[500], fill: `${semantic.warning[500]}2E`, border: semantic.warning[500], label: 'Limiar' },
+  Z5: { color: semantic.danger[500], fill: `${semantic.danger[500]}2E`, border: semantic.danger[500], label: 'VO₂ Máx' },
+} as const;
+
+export type ZoneKey = keyof typeof zones;
+
+// ── Glass helpers — dark glass only (not white glass) ────────────────────────
+export const glass = {
+  background:      `${surface[0]}14`,    // white 8%
+  backgroundHover: `${surface[0]}1F`,    // white 12%
+  backgroundActive:`${surface[0]}26`,    // white 15%
+  border:          `${surface[0]}26`,    // white 15%
+  borderHover:     `${surface[0]}40`,    // white 25%
+  backdropFilter:  'blur(10px)',
+  boxShadow:       '0 8px 32px 0 rgba(0, 0, 0, 0.4)',
+} as const;
+
 export const glassSx = {
-  backgroundColor: glass.background,
-  backdropFilter: glass.backdropFilter,
-  WebkitBackdropFilter: glass.backdropFilter,
-  border: `1px solid ${glass.border}`,
-  boxShadow: glass.boxShadow,
+  backgroundColor:       glass.background,
+  backdropFilter:        glass.backdropFilter,
+  WebkitBackdropFilter:  glass.backdropFilter,
+  border:                `1px solid ${glass.border}`,
+  boxShadow:             glass.boxShadow,
 } as const;
 
 export const glassSxHover = {
   backgroundColor: glass.backgroundHover,
-  border: `1px solid ${glass.borderHover}`,
+  border:          `1px solid ${glass.borderHover}`,
 } as const;
 
-export const glassAzulSx = {
-  backgroundColor: glassAzul.background,
-  backdropFilter: glassAzul.backdropFilter,
-  WebkitBackdropFilter: glassAzul.backdropFilter,
-  border: `1px solid ${glassAzul.border}`,
-  boxShadow: glassAzul.boxShadow,
-} as const;
-
-export const glassAzulSxHover = {
-  backgroundColor: glassAzul.backgroundHover,
-  border: `1px solid ${glassAzul.borderHover}`,
-} as const;
-
-// ── Zone palette (Z1–Z5) ──────────────────────────────────────────
-export const zones = {
-  Z1: { color: '#c8cdd4', fill: 'rgba(200, 205, 212, 0.18)', border: '#c8cdd4', label: 'Recuperação' },
-  Z2: { color: '#b3ff00', fill: 'rgba(179, 255, 0, 0.18)',   border: '#b3ff00', label: 'Base' },
-  Z3: { color: '#3498db', fill: 'rgba(52, 152, 219, 0.18)',  border: '#3498db', label: 'Tempo' },
-  Z4: { color: '#f39c12', fill: 'rgba(243, 156, 18, 0.18)',  border: '#f39c12', label: 'Limiar' },
-  Z5: { color: '#e74c3c', fill: 'rgba(231, 76, 60, 0.18)',   border: '#e74c3c', label: 'VO₂ Máx' },
-} as const;
-
-export type ZoneKey = keyof typeof zones;
+// glassAzulSx kept as alias of glassSx for backward compat (same appearance)
+export const glassAzulSx    = glassSx;
+export const glassAzulSxHover = glassSxHover;

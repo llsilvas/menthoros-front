@@ -11,9 +11,9 @@ import MenuIcon from '@mui/icons-material/Menu';
 import MenuOpenIcon from '@mui/icons-material/MenuOpen';
 import Stack from '@mui/material/Stack';
 import { Link } from 'react-router';
-import ThemeSwitcher from './ThemeSwitcher';
 import { useUserInfo } from '../../hooks/useUserInfo';
-import { gradients, glass } from '../../theme/tokens';
+import { glass, primary, surface } from '../../theme/tokens';
+import { elevation } from '../../shared/design-tokens';
 
 const AppBar = styled(MuiAppBar)(({ theme }) => ({
   borderWidth: 0,
@@ -21,7 +21,7 @@ const AppBar = styled(MuiAppBar)(({ theme }) => ({
   borderStyle: 'solid',
   borderColor: glass.border,
   boxShadow: 'none',
-  background: gradients.header,
+  background: elevation.base,
   backdropFilter: glass.backdropFilter,
   WebkitBackdropFilter: glass.backdropFilter,
   zIndex: theme.zIndex.drawer + 1,
@@ -136,9 +136,6 @@ export default function DashboardHeader({
             spacing={1}
             sx={{ marginLeft: 'auto' }}
           >
-            <Stack direction="row" alignItems="center">
-              <ThemeSwitcher />
-            </Stack>
             <Stack
               direction="row"
               alignItems="center"
@@ -149,11 +146,11 @@ export default function DashboardHeader({
                 sx={{
                   width: 36,
                   height: 36,
-                  bgcolor: '#b1e92d',
-                  color: '#0e3147',
+                  bgcolor: primary[500],
+                  color: surface[900],
                   fontWeight: 700,
                   fontSize: '0.875rem',
-                  border: '1px solid rgba(255,255,255,0.35)',
+                  border: `1px solid rgba(255,255,255,0.20)`,
                   flexShrink: 0,
                 }}
               >
@@ -169,7 +166,7 @@ export default function DashboardHeader({
                   sx={{
                     fontSize: '0.9rem',
                     fontWeight: 600,
-                    color: 'white',
+                    color: surface[50],
                     lineHeight: 1.2,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
@@ -182,7 +179,7 @@ export default function DashboardHeader({
                   sx={{
                     fontSize: '0.75rem',
                     fontWeight: 600,
-                    color: '#b1e92d',
+                    color: primary[500],
                     lineHeight: 1.2,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
