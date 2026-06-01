@@ -33,12 +33,14 @@ import {
     Delete as DeleteIcon,
     FitnessCenterOutlined as EtapasIcon
 } from '@mui/icons-material';
-import { TreinoService } from '../../api/services/TreinoService';
-import type { TreinoRealizado, EtapaRealizadaInput } from '../../types/TreinoRealizado';
-import { TIPO_ETAPA_OPTIONS, criarEtapasFromPlanejadas } from '../../types/TreinoRealizado';
-import type { TreinoPlanejado } from '../../types/TreinoPlanejado';
-import { getSafeValue, getSafeNumber } from '../../utils/safeValues';
+import { TreinoService } from '../../../api/services/TreinoService';
+import type { TreinoRealizado, EtapaRealizadaInput } from '../../../types/TreinoRealizado';
+import { TIPO_ETAPA_OPTIONS, criarEtapasFromPlanejadas } from '../../../types/TreinoRealizado';
+import type { TreinoPlanejado } from '../../../types/TreinoPlanejado';
+import { getSafeValue, getSafeNumber } from '../../../utils/safeValues';
 import { useTheme } from '@mui/material/styles';
+import { primary, surface, content } from '../../../theme/tokens';
+import { elevation } from '../../../shared/design-tokens';
 
 interface TreinoRealizadoDialogProps {
     open: boolean;
@@ -99,9 +101,8 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
             backgroundImage: 'linear-gradient(90deg, #a5d6a7 0%, #ffe0b2 55%, #ef9a9a 100%)',
         },
         '& .MuiSlider-thumb': {
-            bgcolor: 'background.paper',
-            border: '2px solid',
-            borderColor: 'grey.400',
+            bgcolor: elevation.card,
+            border: `2px solid ${surface[500]}`,
             boxShadow: 'none',
         },
     } as const;
@@ -312,7 +313,8 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
                     sx: {
                         overflow: 'hidden',
                         borderRadius: 1,
-                        backgroundColor: '#ffffff',
+                        backgroundColor: elevation.base,
+                        border: `1px solid ${content.cardBorder}`,
                     },
                 },
             }}
@@ -325,15 +327,15 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
                     px: { xs: 2, md: 3 },
                     py: { xs: 2, md: 2.25 },
                     pr: { xs: 7, md: 8 },
-                    color: 'white',
-                    background: 'linear-gradient(135deg, #082130 0%, #0e3147 55%, #133c56 100%)',
-                    borderBottom: '1px solid rgba(255,255,255,0.08)',
+                    color: surface[50],
+                    background: `linear-gradient(135deg, ${elevation.base} 0%, ${elevation.panel} 55%, ${elevation.card} 100%)`,
+                    borderBottom: `1px solid ${content.divider}`,
                 }}
             >
                 <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1, mb: 1 }}>
                         <Chip
-                            icon={<CheckCircleIcon sx={{ fontSize: '0.9rem !important', color: '#b3ff00 !important' }} />}
+                            icon={<CheckCircleIcon sx={{ fontSize: '0.9rem !important', color: `${primary[500]} !important` }} />}
                             label="Conclusão de treino"
                             size="small"
                             sx={{
@@ -382,7 +384,7 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
                 sx={{
                     p: 0,
                     background:
-                        'radial-gradient(circle at top right, rgba(179,233,45,0.08), transparent 24%), linear-gradient(180deg, #eef3f8 0%, #e8edf4 100%)',
+                        elevation.base,
                 }}
             >
                 <Stack spacing={2.5} sx={{ p: { xs: 1.5, md: 3 } }}>
@@ -392,8 +394,8 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
                     sx={{
                         p: 2,
                         borderRadius: 1,
-                        borderColor: '#d1d5db',
-                        background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.94) 100%)',
+                        borderColor: content.cardBorder,
+                        bgcolor: elevation.card,
                     }}
                 >
                     <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
@@ -541,7 +543,7 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
                         </Grid>
                     </Box>
 
-                    <Accordion elevation={0} disableGutters sx={{ border: '1px solid', borderColor: 'divider' }}>
+                    <Accordion elevation={0} disableGutters sx={{ border: '1px solid', borderColor: content.cardBorder }}>
                         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                             <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
                                 Detalhes avançados
@@ -629,7 +631,7 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
                     <Accordion
                         elevation={0}
                         disableGutters
-                        sx={{ border: '1px solid', borderColor: 'divider' }}
+                        sx={{ border: '1px solid', borderColor: content.cardBorder }}
                         defaultExpanded={etapasRealizadas.length > 0}
                     >
                         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -838,8 +840,8 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
                             sx={{
                                 p: 2,
                                 borderRadius: 1,
-                                bgcolor: 'rgba(255, 255, 255, 0.96)',
-                                borderColor: '#d1d5db',
+                                bgcolor: elevation.card,
+                                borderColor: content.cardBorder,
                             }}
                         >
                             <Stack spacing={2}>
@@ -949,9 +951,9 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
                 </Stack>
             </DialogContent>
 
-            <DialogActions sx={{ px: { xs: 2, md: 3 }, py: 2, background: '#f8fafc', borderTop: '1px solid #e2e8f0', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: 1 }}>
+            <DialogActions sx={{ px: { xs: 2, md: 3 }, py: 2, background: elevation.panel, borderTop: `1px solid `, flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: 1 }}>
                 <Box sx={{ flexGrow: 1 }}>
-                    <Typography variant="caption" sx={{ color: '#6b7a8d' }}>
+                    <Typography variant="caption" sx={{ color: surface[400] }}>
                         Mesmo dimensionamento e linguagem visual dos demais dialogs do fluxo.
                     </Typography>
                 </Box>

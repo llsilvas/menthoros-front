@@ -41,7 +41,7 @@ import {
 } from '../../../types/PlanoSemanal';
 import type { MetodoGeracaoPlano, PlanoStatus } from '../../../types/PlanoSemanal';
 import type { TreinoPlanejado } from '../../../types/TreinoPlanejado';
-import TreinoRealizadoDialog from '../TreinoRealizadoDialog';
+import TreinoRealizadoDialog from './TreinoRealizadoDialog';
 import DetalheTreinoDialog from './DetalheTreinoDialog';
 import TreinoCard from './TreinoCard';
 import { getSafeValue, getSafeNumber } from '../../../utils/safeValues';
