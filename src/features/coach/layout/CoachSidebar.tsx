@@ -25,6 +25,7 @@ import {
   sidebar,
   surface,
 } from '../../../theme/tokens';
+import { elevation } from '../../../shared/design-tokens';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -257,7 +258,7 @@ function TenantSwitcher({
         slotProps={{
           paper: {
             sx: {
-              bgcolor: '#1A2940',
+              bgcolor: elevation.highest,
               border: `1px solid ${content.cardBorder}`,
               boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
               minWidth: 200,
@@ -449,6 +450,12 @@ export default function CoachSidebar({
               <Box
                 component="button"
                 onClick={() => onNavigate(route)}
+                onKeyDown={(e: React.KeyboardEvent) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onNavigate(route);
+                  }
+                }}
                 aria-current={isActive ? 'page' : undefined}
                 sx={{
                   display: 'flex',

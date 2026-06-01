@@ -1,4 +1,5 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState } from 'react';
+import { useDebounce } from '../../../shared/hooks/useDebounce';
 import {
   Box,
   Typography,
@@ -185,19 +186,11 @@ function BulkBar({ count }: { count: number }) {
 
 export default function CoachAthletesPage() {
   const [searchRaw, setSearchRaw] = useState('');
-  const [search, setSearch]       = useState('');
   const [activeView, setActiveView] = useState<ViewKey>('all');
   const [statusFilter, setStatusFilter] = useState<AthleteStatus | 'all'>('all');
   const [selection, setSelection]   = useState<GridRowSelectionModel>({ type: 'include', ids: new Set() });
 
-  // Debounced search
-  const searchTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setSearchRaw(val);
-    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-    searchTimerRef.current = setTimeout(() => setSearch(val), 300);
-  }, []);
+  const search = useDebounce(searchRaw, 300);
 
   // Computed rows
   const rows = useMemo(() => {
@@ -396,7 +389,7 @@ export default function CoachAthletesPage() {
             size="small"
             placeholder="Buscar atleta..."
             value={searchRaw}
-            onChange={handleSearchChange}
+            onChange={(e) => setSearchRaw(e.target.value)}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
