@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Box, CircularProgress, Paper, Stack, Typography } from '@mui/material';
 import { ProvaService } from '../../../api/services/ProvaService';
 import type { ProvaProxima } from '../../../types/Metricas';
-import { glassAzulSx, glassAzulSxHover, transitions } from '../../../theme/tokens';
+import { glassAzulSx, glassAzulSxHover, transitions, primary } from '../../../theme/tokens';
 
 interface ProvasProximasWidgetProps {
   atletas?: any[];
@@ -84,8 +84,8 @@ export default function ProvasProximasWidget(_props: ProvasProximasWidgetProps) 
             sx={{
               p: 1.5,
               borderRadius: 1,
-              backgroundColor: 'rgba(177, 233, 45, 0.05)',
-              borderLeft: '3px solid #b1e92d',
+              backgroundColor: `${primary[500]}0D`,
+              borderLeft: `3px solid ${primary[500]}`,
             }}
           >
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -127,7 +127,7 @@ export default function ProvasProximasWidget(_props: ProvasProximasWidgetProps) 
                   variant="h6"
                   sx={{
                     fontWeight: 700,
-                    color: '#b1e92d',
+                    color: primary[500],
                     mb: 0.5,
                   }}
                 >

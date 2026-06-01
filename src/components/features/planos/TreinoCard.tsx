@@ -35,7 +35,8 @@ import type { TreinoPlanejado } from '../../../types/TreinoPlanejado';
 import type { AnaliseWorkout } from '../../../types/AnaliseWorkout';
 import { PRIMARY_CAUSE_LABEL } from '../../../types/AnaliseWorkout';
 import { getSafeValue, getSafeNumber } from '../../../utils/safeValues';
-import { glassSx, glass } from '../../../theme/tokens';
+import { glassSx, glass, semantic, surface, content } from '../../../theme/tokens';
+import { elevation } from '../../../shared/design-tokens';
 
 interface TreinoCardProps {
     treino: TreinoPlanejado;
@@ -127,11 +128,11 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                 display: 'flex',
                 flexDirection: 'column',
                 border: isRealizado || isPerdido ? '2px solid' : `1px solid ${glass.border}`,
-                borderColor: isRealizado ? 'success.main' : isPerdido ? 'error.main' : undefined,
+                borderColor: isRealizado ? semantic.success[500] : isPerdido ? semantic.danger[500] : undefined,
                 bgcolor: isRealizado
-                    ? 'rgba(76, 175, 80, 0.25)'
+                    ? `${semantic.success[500]}40`
                     : isPerdido
-                    ? 'rgba(244, 67, 54, 0.08)'
+                    ? `${semantic.danger[500]}14`
                     : glass.background,
             }}
         >
@@ -241,8 +242,8 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                         py: 1.5,
                         mx: 2,
                         mb: 2,
-                        background: 'linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 152, 0, 0.08) 100%)',
-                        border: '1px solid rgba(255, 152, 0, 0.3)',
+                        background: `linear-gradient(135deg, ${`rgba(245,158,11,0.12)`} 0%, ${`rgba(245,158,11,0.06)`} 100%)`,
+                        border: `1px solid rgba(245,158,11,0.25)`,
                         borderRadius: 1.5,
                         backdropFilter: 'blur(8px)',
                     }}
@@ -255,7 +256,7 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                         <Typography
                             variant="caption"
                             sx={{
-                                color: 'rgba(0, 0, 0, 0.7)',
+                                color: 'rgba(255,255,255,0.7)',
                                 fontWeight: 600,
                                 textTransform: 'uppercase',
                                 letterSpacing: 0.5,
@@ -291,7 +292,7 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                             <Typography
                                 variant="body2"
                                 sx={{
-                                    color: 'rgba(0, 0, 0, 0.75)',
+                                    color: 'rgba(255,255,255,0.8)',
                                     lineHeight: 1.5,
                                     display: expandedInsight ? 'block' : '-webkit-box',
                                     WebkitLineClamp: expandedInsight ? 'unset' : 2,
@@ -304,11 +305,11 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                             </Typography>
 
                             {expandedInsight && analise.recommendation && (
-                                <Box sx={{ mt: 1, pt: 1, borderTop: '1px solid rgba(255,152,0,0.2)' }}>
-                                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'rgba(0,0,0,0.6)' }}>
+                                <Box sx={{ mt: 1, pt: 1, borderTop: '1px solid rgba(245,158,11,0.2)' }}>
+                                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>
                                         Recomendação
                                     </Typography>
-                                    <Typography variant="body2" sx={{ color: 'rgba(0,0,0,0.75)', lineHeight: 1.5 }}>
+                                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)', lineHeight: 1.5 }}>
                                         {analise.recommendation}
                                     </Typography>
                                     {analise.primaryCause && (
@@ -327,7 +328,7 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                                 sx={{
                                     mt: 0.5,
                                     textTransform: 'none',
-                                    color: 'rgba(255, 152, 0, 0.9)',
+                                    color: 'rgba(245,158,11,0.9)',
                                     fontSize: '0.75rem',
                                     p: 0,
                                     '&:hover': { bgcolor: 'transparent' },
@@ -424,13 +425,22 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                 onClose={() => setRpeDialogOpen(false)}
                 maxWidth="xs"
                 fullWidth
+                slotProps={{
+                    paper: {
+                        sx: {
+                            bgcolor: elevation.card,
+                            border: `1px solid ${content.cardBorder}`,
+                            borderRadius: 1,
+                        },
+                    },
+                }}
             >
-                <DialogTitle sx={{ pb: 1 }}>
+                <DialogTitle sx={{ pb: 1, borderBottom: `1px solid ${content.divider}` }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <RpeIcon color="action" />
-                        <Typography variant="h6">Percepção de Esforço (RPE)</Typography>
+                        <RpeIcon sx={{ color: surface[400] }} />
+                        <Typography variant="h6" sx={{ color: surface[50] }}>Percepção de Esforço (RPE)</Typography>
                     </Box>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" sx={{ color: surface[400] }}>
                         Como você avalia o esforço deste treino?
                     </Typography>
                 </DialogTitle>
@@ -443,7 +453,7 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                             >
                                 {rpeValue}
                             </Typography>
-                            <Typography variant="h5" sx={{ alignSelf: 'flex-end', color: 'text.secondary', ml: 0.5 }}>
+                            <Typography variant="h5" sx={{ alignSelf: 'flex-end', color: surface[400], ml: 0.5 }}>
                                 /10
                             </Typography>
                         </Box>
@@ -456,20 +466,20 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                             marks={RPE_MARKS}
                             sx={{
                                 color: getRpeColor(rpeValue),
-                                '& .MuiSlider-markLabel': { fontSize: '0.7rem' },
+                                '& .MuiSlider-markLabel': { fontSize: '0.7rem', color: surface[400] },
                             }}
                         />
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
-                            <Typography variant="caption" color="text.secondary">Muito leve</Typography>
-                            <Typography variant="caption" color="text.secondary">Máximo</Typography>
+                            <Typography variant="caption" sx={{ color: surface[400] }}>Muito leve</Typography>
+                            <Typography variant="caption" sx={{ color: surface[400] }}>Máximo</Typography>
                         </Box>
                     </Box>
                 </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 2 }}>
+                <DialogActions sx={{ px: 3, pb: 2, borderTop: `1px solid ${content.divider}` }}>
                     <Button
                         onClick={() => setRpeDialogOpen(false)}
                         disabled={savingRpe}
-                        color="inherit"
+                        sx={{ color: surface[400] }}
                     >
                         Cancelar
                     </Button>
@@ -489,7 +499,7 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                                 setSavingRpe(false);
                             }
                         }}
-                        sx={{ bgcolor: getRpeColor(rpeValue), '&:hover': { bgcolor: getRpeColor(rpeValue), filter: 'brightness(0.9)' } }}
+                        sx={{ bgcolor: getRpeColor(rpeValue), color: surface[50], '&:hover': { bgcolor: getRpeColor(rpeValue), filter: 'brightness(0.9)' } }}
                     >
                         {savingRpe ? 'Salvando…' : 'Salvar RPE'}
                     </Button>

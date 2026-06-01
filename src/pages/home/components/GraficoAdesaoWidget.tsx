@@ -12,7 +12,7 @@ import {
 } from 'recharts';
 import { MetricasService } from '../../../services/MetricasService';
 import type { AdesaoDiaria } from '../../../types/Metricas';
-import { glassAzulSx, glassAzulSxHover, transitions } from '../../../theme/tokens';
+import { glassAzulSx, glassAzulSxHover, transitions, primary } from '../../../theme/tokens';
 
 interface GraficoAdesaoWidgetProps {}
 
@@ -127,11 +127,11 @@ export default function GraficoAdesaoWidget({}: GraficoAdesaoWidgetProps) {
 
   const semanaAtualIndex = adesaoDiaria.semanas.length - 1;
   const cores = [
-    '#b1e92d',
-    'rgba(177, 233, 45, 0.5)',
-    'rgba(177, 233, 45, 0.4)',
-    'rgba(177, 233, 45, 0.3)',
-    'rgba(177, 233, 45, 0.2)',
+    primary[500],
+    '`${primary[500]} 0.5)',
+    '`${primary[500]} 0.4)',
+    '`${primary[500]} 0.3)',
+    '`${primary[500]} 0.2)',
   ];
 
   return (
@@ -188,7 +188,7 @@ export default function GraficoAdesaoWidget({}: GraficoAdesaoWidgetProps) {
           {adesaoDiaria.semanas.map((_, index) => {
             const labelSemana = index === semanaAtualIndex ? 'Semana atual' : `Sem -${semanaAtualIndex - index}`;
             const strokeWidth = index === semanaAtualIndex ? 2.5 : 1.5;
-            const cor = cores[index] || 'rgba(177, 233, 45, 0.2)';
+            const cor = cores[index] || '`${primary[500]} 0.2)';
 
             return (
               <Line

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Box, CircularProgress, LinearProgress, Paper, Stack, Typography } from '@mui/material';
 import { MetricasService } from '../../../services/MetricasService';
 import type { AdesaoSemanal } from '../../../types/Metricas';
-import { glassAzulSx, glassAzulSxHover, transitions } from '../../../theme/tokens';
+import { glassAzulSx, glassAzulSxHover, transitions, primary } from '../../../theme/tokens';
 
 interface TaxaAdesaoWidgetProps {
   atletaId: string;
@@ -56,7 +56,7 @@ export default function TaxaAdesaoWidget({ atletaId, atletaNome }: TaxaAdesaoWid
             <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
               Semana Atual
             </Typography>
-            <Typography variant="caption" sx={{ color: '#b1e92d', fontWeight: 700 }}>
+            <Typography variant="caption" sx={{ color: primary[500], fontWeight: 700 }}>
               {adesao.semanaAtual.percentualRealizacao.toFixed(1)}%
             </Typography>
           </Box>
@@ -66,9 +66,9 @@ export default function TaxaAdesaoWidget({ atletaId, atletaNome }: TaxaAdesaoWid
             sx={{
               height: 8,
               borderRadius: 4,
-              backgroundColor: 'rgba(177, 233, 45, 0.2)',
+              backgroundColor: `33`,
               '& .MuiLinearProgress-bar': {
-                backgroundColor: '#b1e92d',
+                backgroundColor: primary[500],
               },
             }}
           />
@@ -89,7 +89,7 @@ export default function TaxaAdesaoWidget({ atletaId, atletaNome }: TaxaAdesaoWid
             <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
               Média Últimas 4 Semanas
             </Typography>
-            <Typography variant="caption" sx={{ color: '#b1e92d', fontWeight: 700 }}>
+            <Typography variant="caption" sx={{ color: primary[500], fontWeight: 700 }}>
               {adesao.mediaUltimas4Semanas.toFixed(1)}%
             </Typography>
           </Box>
@@ -99,9 +99,9 @@ export default function TaxaAdesaoWidget({ atletaId, atletaNome }: TaxaAdesaoWid
             sx={{
               height: 8,
               borderRadius: 4,
-              backgroundColor: 'rgba(177, 233, 45, 0.2)',
+              backgroundColor: `33`,
               '& .MuiLinearProgress-bar': {
-                backgroundColor: '#b1e92d',
+                backgroundColor: primary[500],
               },
             }}
           />
@@ -138,16 +138,16 @@ export default function TaxaAdesaoWidget({ atletaId, atletaNome }: TaxaAdesaoWid
                     flex: 1,
                     height: 6,
                     borderRadius: 3,
-                    backgroundColor: 'rgba(177, 233, 45, 0.2)',
+                    backgroundColor: `33`,
                     '& .MuiLinearProgress-bar': {
-                      backgroundColor: '#b1e92d',
+                      backgroundColor: primary[500],
                     },
                   }}
                 />
                 <Typography
                   variant="caption"
                   sx={{
-                    color: '#b1e92d',
+                    color: primary[500],
                     minWidth: 40,
                     textAlign: 'right',
                     fontSize: '0.7rem',

@@ -4,7 +4,7 @@ import { Navigate, useNavigate } from 'react-router';
 import { ROUTES } from '../../constants/routes';
 import { useAuth } from '../../context/auth/AuthContext';
 import { AuthService } from '../../services/auth/AuthService';
-import { gradients, glassAzulSx, glassAzulSxHover, transitions } from '../../theme/tokens';
+import { gradients, glassAzulSx, glassAzulSxHover, transitions, primary } from '../../theme/tokens';
 import logoMenthoros from '../../assets/icons/menthoros_navbar.png';
 
 export default function LoginPage() {
@@ -105,13 +105,13 @@ export default function LoginPage() {
               '& .MuiOutlinedInput-root': {
                 color: '#ffffff',
                 '& fieldset': {
-                  borderColor: 'rgba(177, 233, 45, 0.3)',
+                  borderColor: `4D`,
                 },
                 '&:hover fieldset': {
-                  borderColor: 'rgba(177, 233, 45, 0.5)',
+                  borderColor: `4D`,
                 },
                 '&.Mui-focused fieldset': {
-                  borderColor: '#b1e92d',
+                  borderColor: primary[500],
                 },
               },
               '& .MuiOutlinedInput-input::placeholder': {
@@ -135,13 +135,13 @@ export default function LoginPage() {
               '& .MuiOutlinedInput-root': {
                 color: '#ffffff',
                 '& fieldset': {
-                  borderColor: 'rgba(177, 233, 45, 0.3)',
+                  borderColor: `4D`,
                 },
                 '&:hover fieldset': {
-                  borderColor: 'rgba(177, 233, 45, 0.5)',
+                  borderColor: `4D`,
                 },
                 '&.Mui-focused fieldset': {
-                  borderColor: '#b1e92d',
+                  borderColor: primary[500],
                 },
               },
               '& .MuiOutlinedInput-input::placeholder': {
@@ -163,7 +163,7 @@ export default function LoginPage() {
             disabled={submitting || !username || !password}
             fullWidth
             sx={{
-              bgcolor: '#b1e92d',
+              bgcolor: primary[500],
               color: '#0e3147',
               fontWeight: 700,
               fontSize: '1rem',
@@ -173,7 +173,7 @@ export default function LoginPage() {
                 bgcolor: '#c5f05a',
               },
               '&:disabled': {
-                bgcolor: 'rgba(177, 233, 45, 0.5)',
+                bgcolor: `33`,
                 color: 'rgba(14, 49, 71, 0.5)',
               },
             }}
