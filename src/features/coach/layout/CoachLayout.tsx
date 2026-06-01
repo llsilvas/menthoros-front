@@ -1,56 +1,23 @@
 import { Box } from '@mui/material';
-import { Outlet } from 'react-router';
-import { surface, content } from '../../../theme/tokens';
+import { Outlet, useLocation, useNavigate } from 'react-router';
 import { elevation } from '../../../shared/design-tokens';
+import type { CoachRoute } from '../../../constants/routes';
+import CoachSidebar from './CoachSidebar';
 
-// CoachSidebar will replace this placeholder in the standardize-coach-shell-ux sprint
-function CoachSidebarPlaceholder() {
-  return (
-    <Box
-      sx={{
-        width: 240,
-        flexShrink: 0,
-        height: '100%',
-        bgcolor: elevation.panel,
-        borderRight: `1px solid ${content.cardBorder}`,
-        display: 'flex',
-        flexDirection: 'column',
-        p: 2,
-        gap: 1,
-      }}
-    >
-      <Box
-        sx={{
-          height: 40,
-          borderRadius: 1,
-          bgcolor: `${surface[0]}0A`,
-          border: `1px solid ${content.cardBorder}`,
-          mb: 2,
-        }}
-      />
-      {['Inbox', 'Atletas', 'Calendário', 'Insights'].map((label) => (
-        <Box
-          key={label}
-          sx={{
-            height: 36,
-            borderRadius: 1,
-            bgcolor: `${surface[0]}06`,
-            border: `1px solid ${content.cardBorder}`,
-            display: 'flex',
-            alignItems: 'center',
-            px: 1.5,
-            fontSize: '0.85rem',
-            color: surface[400],
-          }}
-        >
-          {label}
-        </Box>
-      ))}
-    </Box>
-  );
-}
+// Mock para desenvolvimento — será substituído por dados reais do contexto de autenticação
+const mockCoach = { id: 'mock', name: 'Coach', avatarUrl: undefined };
+const mockTenant = { id: 'mock', name: 'Assessoria Piloto', athleteCount: 0 };
 
 export default function CoachLayout() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const activeRoute = (location.pathname as CoachRoute) ?? '/coach/inbox';
+
+  const handleNavigate = (route: CoachRoute) => {
+    navigate(route);
+  };
+
   return (
     <Box
       sx={{
@@ -60,7 +27,12 @@ export default function CoachLayout() {
         overflow: 'hidden',
       }}
     >
-      <CoachSidebarPlaceholder />
+      <CoachSidebar
+        activeRoute={activeRoute}
+        coach={mockCoach}
+        currentTenant={mockTenant}
+        onNavigate={handleNavigate}
+      />
       <Box sx={{ flex: 1, overflow: 'auto' }}>
         <Outlet />
       </Box>
