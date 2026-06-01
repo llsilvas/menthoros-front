@@ -32,7 +32,8 @@ import { useTheme } from '@mui/material/styles';
 import { TreinoService } from '../../../api/services/TreinoService';
 import type { TreinoPlanejado, EtapaTreino } from '../../../types/TreinoPlanejado';
 import { getSafeValue, getSafeNumber, getSafeLabel, getSafeColor } from '../../../utils/safeValues';
-import { glass, text, zones } from '../../../theme/tokens';
+import { glass, text, zones, primary, surface, semantic, categorical, content } from '../../../theme/tokens';
+import { elevation } from '../../../shared/design-tokens';
 import { WorkoutTimelineChart, toWorkoutBlocks } from './WorkoutTimelineChart';
 
 interface DetalheTreinoDialogProps {
@@ -86,13 +87,13 @@ const MetricCard: React.FC<{
     label: string;
     value: string;
     accent?: string;
-}> = ({ icon, label, value, accent = '#3498db' }) => (
+}> = ({ icon, label, value, accent = categorical.cat1 }) => (
     <Box
         sx={{
             height: '100%',
             borderRadius: 1,
-            border: '1px solid #d1d5db',
-            background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+            border: `1px solid ${content.cardBorder}`,
+            bgcolor: elevation.card,
             p: 1.75,
         }}
     >
@@ -104,7 +105,7 @@ const MetricCard: React.FC<{
                     borderRadius: 1,
                     display: 'grid',
                     placeItems: 'center',
-                    bgcolor: alpha(accent, 0.12),
+                    bgcolor: alpha(accent, 0.15),
                     color: accent,
                     flexShrink: 0,
                 }}
@@ -112,10 +113,10 @@ const MetricCard: React.FC<{
                 {icon}
             </Box>
             <Box sx={{ minWidth: 0 }}>
-                <Typography variant="caption" sx={{ color: '#6b7a8d', display: 'block' }}>
+                <Typography variant="caption" sx={{ color: surface[400], display: 'block' }}>
                     {label}
                 </Typography>
-                <Typography variant="body1" sx={{ fontWeight: 800, color: '#1a2535' }}>
+                <Typography variant="body1" sx={{ fontWeight: 800, color: surface[50], fontVariantNumeric: 'tabular-nums' }}>
                     {value}
                 </Typography>
             </Box>
@@ -236,7 +237,8 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                     sx: {
                         overflow: 'hidden',
                         borderRadius: 1,
-                        backgroundColor: '#ffffff',
+                        backgroundColor: elevation.base,
+                        border: `1px solid ${content.cardBorder}`,
                     },
                 },
             }}
@@ -249,9 +251,9 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                     px: { xs: 2, md: 3 },
                     py: { xs: 2, md: 2.25 },
                     pr: { xs: 7, md: 8 },
-                    color: 'white',
-                    background: 'linear-gradient(135deg, #082130 0%, #0e3147 55%, #133c56 100%)',
-                    borderBottom: '1px solid rgba(255,255,255,0.08)',
+                    color: surface[50],
+                    background: `linear-gradient(135deg, ${elevation.base} 0%, ${elevation.panel} 55%, ${elevation.card} 100%)`,
+                    borderBottom: `1px solid ${content.divider}`,
                 }}
             >
                 <Box sx={{ flexGrow: 1, minWidth: 0 }}>
@@ -327,8 +329,7 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                 dividers
                 sx={{
                     p: 0,
-                    background:
-                        'radial-gradient(circle at top right, rgba(179,233,45,0.08), transparent 24%), linear-gradient(180deg, #eef3f8 0%, #e8edf4 100%)',
+                    background: elevation.base,
                 }}
             >
                 {loadingDetalhes ? (
@@ -343,9 +344,8 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                         <Box
                             sx={{
                                 borderRadius: 1,
-                                border: '1px solid rgba(255,255,255,0.7)',
-                                background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.94) 100%)',
-                                boxShadow: 'none',
+                                border: `1px solid ${content.cardBorder}`,
+                                bgcolor: elevation.card,
                                 p: { xs: 2, md: 2.5 },
                             }}
                         >
@@ -365,12 +365,12 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                             fontFamily: 'Syne, sans-serif',
                                             fontSize: '1.1rem',
                                             fontWeight: 800,
-                                            color: '#1a2535',
+                                            color: surface[50],
                                         }}
                                     >
                                         Panorama do treino
                                     </Typography>
-                                    <Typography variant="body2" sx={{ mt: 0.5, color: '#6b7a8d' }}>
+                                    <Typography variant="body2" sx={{ mt: 0.5, color: surface[400] }}>
                                         Leitura rápida do contexto, intensidade e duração planejada.
                                     </Typography>
                                 </Box>
@@ -378,13 +378,13 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                 <Box
                                     sx={{
                                         borderRadius: 1,
-                                        border: '1px solid #d1d5db',
-                                        bgcolor: 'white',
+                                        border: `1px solid ${content.cardBorder}`,
+                                        bgcolor: elevation.panel,
                                         px: 1.5,
                                         py: 1,
                                     }}
                                 >
-                                    <Typography variant="caption" sx={{ color: '#6b7a8d', mr: 1 }}>
+                                    <Typography variant="caption" sx={{ color: surface[400], mr: 1 }}>
                                         Duração total
                                     </Typography>
                                     <Typography
@@ -392,7 +392,7 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                         sx={{
                                             fontFamily: 'Space Mono, monospace',
                                             fontWeight: 700,
-                                            color: '#1a2535',
+                                            color: surface[50],
                                         }}
                                     >
                                         {formatDuration(totalDuration)}
@@ -405,8 +405,8 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                     label={diaSemanaLabel}
                                     size="small"
                                     sx={{
-                                        bgcolor: alpha('#3498db', 0.1),
-                                        color: '#1a5f8a',
+                                        bgcolor: `${categorical.cat1}26`,
+                                        color: categorical.cat1,
                                         fontWeight: 700,
                                     }}
                                 />
@@ -416,8 +416,8 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                         label={dateLabel}
                                         size="small"
                                         sx={{
-                                            bgcolor: 'rgba(15, 23, 42, 0.04)',
-                                            color: '#475569',
+                                            bgcolor: elevation.panel,
+                                            color: surface[400],
                                         }}
                                     />
                                 )}
@@ -477,7 +477,7 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                         icon={<RunIcon fontSize="small" />}
                                         label="Distância"
                                         value={`${getSafeNumber(dados.distanciaKm)} km`}
-                                        accent="#3498db"
+                                        accent={categorical.cat1}
                                     />
                                 </Grid>
                                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -485,7 +485,7 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                         icon={<ScheduleIcon fontSize="small" />}
                                         label="Duração"
                                         value={formatDuration(getNumericValue(dados.duracaoMin))}
-                                        accent="#1f9d8b"
+                                        accent={categorical.cat6}
                                     />
                                 </Grid>
                                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -493,7 +493,7 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                         icon={<SpeedIcon fontSize="small" />}
                                         label="Ritmo alvo"
                                         value={String(getSafeValue(dados.ritmoAlvo) || 'N/A')}
-                                        accent="#f39c12"
+                                        accent={semantic.warning[500]}
                                     />
                                 </Grid>
                                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -501,7 +501,7 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                         icon={<TrendingUpIcon fontSize="small" />}
                                         label="Intensidade"
                                         value={intensidadePercent}
-                                        accent="#b3ff00"
+                                        accent={primary[500]}
                                     />
                                 </Grid>
                             </Grid>
@@ -515,27 +515,27 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                             variant="outlined"
                                             sx={{
                                                 borderRadius: 1,
-                                                borderColor: '#d1d5db',
-                                                background: 'linear-gradient(180deg, #ffffff 0%, #f8fbf3 100%)',
+                                                borderColor: `${primary[500]}33`,
+                                                bgcolor: `${primary[500]}0A`,
                                                 boxShadow: 'none',
                                             }}
                                         >
                                             <CardContent sx={{ p: 2 }}>
                                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                                                    <AiIcon sx={{ color: '#b3ff00' }} />
+                                                    <AiIcon sx={{ color: primary[500] }} />
                                                     <Typography
                                                         sx={{
                                                             fontSize: '0.8rem',
                                                             fontWeight: 800,
                                                             textTransform: 'uppercase',
                                                             letterSpacing: '0.05em',
-                                                            color: '#6b7a8d',
+                                                            color: surface[400],
                                                         }}
                                                     >
                                                         Insight da IA
                                                     </Typography>
                                                 </Box>
-                                                <Typography variant="body2" sx={{ color: '#374151', lineHeight: 1.6 }}>
+                                                <Typography variant="body2" sx={{ color: surface[50], lineHeight: 1.6 }}>
                                                     {dados.justificativaIa}
                                                 </Typography>
                                             </CardContent>
@@ -547,8 +547,8 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                             variant="outlined"
                                             sx={{
                                                 borderRadius: 1,
-                                                borderColor: '#d1d5db',
-                                                background: '#ffffff',
+                                                borderColor: content.cardBorder,
+                                                bgcolor: elevation.card,
                                                 overflow: 'hidden',
                                                 boxShadow: 'none',
                                             }}
@@ -561,7 +561,7 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                                             fontWeight: 800,
                                                             textTransform: 'uppercase',
                                                             letterSpacing: '0.08em',
-                                                            color: '#6b7a8d',
+                                                            color: surface[400],
                                                             mb: 0.5,
                                                         }}
                                                     >
@@ -572,7 +572,7 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                                             fontFamily: 'Syne, sans-serif',
                                                             fontSize: '1.05rem',
                                                             fontWeight: 800,
-                                                            color: '#1a2535',
+                                                            color: surface[50],
                                                         }}
                                                     >
                                                         Timeline do treino
@@ -589,8 +589,8 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                                         <Box
                                                             sx={{
                                                                 borderRadius: 1,
-                                                                border: '1px solid #d1d5db',
-                                                                bgcolor: '#fff',
+                                                                border: `1px solid ${content.cardBorder}`,
+                                                                bgcolor: elevation.panel,
                                                                 p: 1.5,
                                                             }}
                                                         >
@@ -600,13 +600,13 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                                                     fontWeight: 800,
                                                                     textTransform: 'uppercase',
                                                                     letterSpacing: '0.05em',
-                                                                    color: '#6b7a8d',
+                                                                    color: surface[400],
                                                                     mb: 0.75,
                                                                 }}
                                                             >
                                                                 Leitura rápida
                                                             </Typography>
-                                                            <Typography variant="body2" sx={{ color: '#374151', lineHeight: 1.6 }}>
+                                                            <Typography variant="body2" sx={{ color: surface[50], lineHeight: 1.6 }}>
                                                                 A composição destaca a progressão do treino e facilita comparar
                                                                 duração entre aquecimento, bloco principal e encerramento.
                                                             </Typography>
@@ -616,8 +616,8 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                                         <Box
                                                             sx={{
                                                                 borderRadius: 1,
-                                                                border: '1px solid #d1d5db',
-                                                                background: 'linear-gradient(180deg, #ffffff 0%, #f8fbf3 100%)',
+                                                                border: `1px solid ${content.cardBorder}`,
+                                                                bgcolor: elevation.panel,
                                                                 p: 1.5,
                                                             }}
                                                         >
@@ -627,15 +627,15 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                                                     fontWeight: 800,
                                                                     textTransform: 'uppercase',
                                                                     letterSpacing: '0.05em',
-                                                                    color: '#6b7a8d',
+                                                                    color: surface[400],
                                                                     mb: 0.75,
                                                                 }}
                                                             >
                                                                 Resumo estrutural
                                                             </Typography>
-                                                            <Typography variant="body2" sx={{ color: '#374151', lineHeight: 1.6 }}>
+                                                            <Typography variant="body2" sx={{ color: surface[50], lineHeight: 1.6 }}>
                                                                 {blocks.length} bloco(s) planejado(s) com duração total de{' '}
-                                                                <Box component="span" sx={{ fontWeight: 800, color: '#1a2535' }}>
+                                                                <Box component="span" sx={{ fontWeight: 800, color: primary[500] }}>
                                                                     {formatDuration(totalDuration)}
                                                                 </Box>
                                                                 .
@@ -652,8 +652,8 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                             variant="outlined"
                                             sx={{
                                                 borderRadius: 1,
-                                                borderColor: '#d1d5db',
-                                                background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+                                                borderColor: content.cardBorder,
+                                                bgcolor: elevation.card,
                                                 boxShadow: 'none',
                                             }}
                                         >
@@ -664,13 +664,13 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                                         fontWeight: 800,
                                                         textTransform: 'uppercase',
                                                         letterSpacing: '0.05em',
-                                                        color: '#6b7a8d',
+                                                        color: surface[400],
                                                         mb: 1,
                                                     }}
                                                 >
                                                     Observações
                                                 </Typography>
-                                                <Typography variant="body2" sx={{ color: '#374151', lineHeight: 1.7 }}>
+                                                <Typography variant="body2" sx={{ color: surface[50], lineHeight: 1.7 }}>
                                                     {observacaoPrincipal}
                                                 </Typography>
                                             </CardContent>
@@ -686,8 +686,8 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                             variant="outlined"
                                             sx={{
                                                 borderRadius: 1,
-                                                borderColor: '#d1d5db',
-                                                background: '#fff',
+                                                borderColor: content.cardBorder,
+                                                bgcolor: elevation.card,
                                                 boxShadow: 'none',
                                             }}
                                         >
@@ -698,7 +698,7 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                                         fontWeight: 800,
                                                         textTransform: 'uppercase',
                                                         letterSpacing: '0.05em',
-                                                        color: '#6b7a8d',
+                                                        color: surface[400],
                                                         mb: 1,
                                                     }}
                                                 >
@@ -715,8 +715,8 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                                 variant="outlined"
                                                 sx={{
                                                     borderRadius: 1,
-                                                    borderColor: '#d1d5db',
-                                                    background: '#fff',
+                                                    borderColor: content.cardBorder,
+                                                    bgcolor: elevation.card,
                                                     boxShadow: 'none',
                                                 }}
                                             >
@@ -728,7 +728,7 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                                                 fontWeight: 800,
                                                                 textTransform: 'uppercase',
                                                                 letterSpacing: '0.05em',
-                                                                color: '#6b7a8d',
+                                                                color: surface[400],
                                                             }}
                                                         >
                                                             Blocos
@@ -754,7 +754,7 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                                                 <Box
                                                                     key={etapa.id ?? `etapa-card-${index}`}
                                                                     sx={{
-                                                                        border: '1px solid #d1d5db',
+                                                                        border: `1px solid `,
                                                                         borderLeft: `3px solid ${stageColor}`,
                                                                         borderRadius: 1,
                                                                         bgcolor: alpha(stageColor, 0.06),
@@ -763,11 +763,11 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                                                 >
                                                                     <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1, mb: 0.75 }}>
                                                                         <Box sx={{ minWidth: 0 }}>
-                                                                            <Typography variant="body2" sx={{ fontWeight: 700, color: '#1a2535' }}>
+                                                                            <Typography variant="body2" sx={{ fontWeight: 700, color: surface[50] }}>
                                                                                 {getSafeLabel(etapa.tipoEtapa)}
                                                                             </Typography>
                                                                             {etapa.descricaoEtapa && (
-                                                                                <Typography variant="caption" sx={{ color: '#6b7a8d', display: 'block', mt: 0.25 }}>
+                                                                                <Typography variant="caption" sx={{ color: surface[400], display: 'block', mt: 0.25 }}>
                                                                                     {etapa.descricaoEtapa}
                                                                                 </Typography>
                                                                             )}
@@ -786,7 +786,7 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
 
                                                                     {metric && (
                                                                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-                                                                            <Typography variant="caption" sx={{ color: '#6b7a8d' }}>
+                                                                            <Typography variant="caption" sx={{ color: surface[400] }}>
                                                                                 {metric.label}
                                                                             </Typography>
                                                                             <Typography
@@ -794,7 +794,7 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                                                                 sx={{
                                                                                     fontFamily: 'Space Mono, monospace',
                                                                                     fontWeight: 700,
-                                                                                    color: '#1a2535',
+                                                                                    color: surface[50],
                                                                                 }}
                                                                             >
                                                                                 {metric.value}
@@ -812,8 +812,8 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                                 variant="outlined"
                                                 sx={{
                                                     borderRadius: 1,
-                                                    borderColor: '#d1d5db',
-                                                    background: '#fff',
+                                                    borderColor: content.cardBorder,
+                                                    bgcolor: elevation.card,
                                                     boxShadow: 'none',
                                                 }}
                                             >
@@ -824,7 +824,7 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                                             fontWeight: 800,
                                                             textTransform: 'uppercase',
                                                             letterSpacing: '0.05em',
-                                                            color: '#6b7a8d',
+                                                            color: surface[400],
                                                             mb: 1.5,
                                                         }}
                                                     >
@@ -839,20 +839,20 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                                             return (
                                                                 <Box key={`distribution-${block.id}`}>
                                                                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                                                                        <Typography variant="caption" sx={{ color: '#6b7a8d' }}>
+                                                                        <Typography variant="caption" sx={{ color: surface[400] }}>
                                                                             {block.label}
                                                                         </Typography>
                                                                         <Typography
                                                                             variant="caption"
                                                                             sx={{
                                                                                 fontFamily: 'Space Mono, monospace',
-                                                                                color: '#6b7a8d',
+                                                                                color: surface[400],
                                                                             }}
                                                                         >
                                                                             {pct}%
                                                                         </Typography>
                                                                     </Box>
-                                                                    <Box sx={{ height: 6, borderRadius: 999, bgcolor: '#edf2f7' }}>
+                                                                    <Box sx={{ height: 6, borderRadius: 999, bgcolor: surface[700] }}>
                                                                         <Box
                                                                             sx={{
                                                                                 width: `${pct}%`,
@@ -877,11 +877,11 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                 )}
             </DialogContent>
 
-            <DialogActions sx={{ px: { xs: 2, md: 3 }, py: 2, background: '#f8fafc', borderTop: '1px solid #e2e8f0', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: 1 }}>
+            <DialogActions sx={{ px: { xs: 2, md: 3 }, py: 2, background: elevation.panel, borderTop: `1px solid `, flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: 1 }}>
                 <Box sx={{ flexGrow: 1 }}>
                     {dados.tssPlanejado != null && (
-                        <Typography variant="caption" sx={{ color: '#6b7a8d' }}>
-                            TSS planejado: <Box component="span" sx={{ fontWeight: 700, color: '#1a2535' }}>{dados.tssPlanejado}</Box>
+                        <Typography variant="caption" sx={{ color: surface[400] }}>
+                            TSS planejado: <Box component="span" sx={{ fontWeight: 700, color: surface[50] }}>{dados.tssPlanejado}</Box>
                         </Typography>
                     )}
                 </Box>
