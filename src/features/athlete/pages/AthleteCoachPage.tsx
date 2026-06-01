@@ -1,34 +1,31 @@
-import { Box, Typography } from '@mui/material';
-import { Forum as CoachIcon } from '@mui/icons-material';
-import { primary, surface } from '../../../theme/tokens';
-import { elevation } from '../../../shared/design-tokens';
+import { Box } from '@mui/material';
+import CoachChatPanel from '../components/CoachChatPanel';
+import type { CoachInfo } from '../components/CoachChatPanel';
 
-// Layout previsto (spec refine-athlete-shell-ux):
-//   CoachChatPanel — lista de mensagens estilo WhatsApp
-//   MessageBubble  — variants: texto | áudio (com player + transcrição Whisper) | ajuste-de-plano
-//   AudioRecorder  — gravação de voz com feedback visual (waveform)
-//   PlanAdjustmentCard — notificação inline de ajustes feitos pelo coach
-//   Realtime via WebSocket/SSE (alinhar com backend)
+const mockCoach: CoachInfo = {
+  id: 'coach-1',
+  name: 'Coach Menthoros',
+  isOnline: true,
+};
+
 export default function AthleteCoachPage() {
   return (
-    <Box sx={{ minHeight: '100%', bgcolor: elevation.base, p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-        <CoachIcon sx={{ color: primary[500], fontSize: 28 }} />
-        <Box>
-          <Typography variant="h5" sx={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, color: surface[50] }}>
-            Coach
-          </Typography>
-          <Typography variant="body2" sx={{ color: surface[400] }}>
-            Comunicação com seu treinador
-          </Typography>
-        </Box>
-      </Box>
-
-      <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px dashed ${surface[700]}`, borderRadius: 1 }}>
-        <Typography sx={{ color: surface[500], fontSize: '0.9rem' }}>
-          Em construção — CoachChatPanel + MessageBubble + AudioRecorder + PlanAdjustmentCard
-        </Typography>
-      </Box>
+    <Box
+      sx={{
+        height: '100%',
+        minHeight: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        p: 2,
+      }}
+    >
+      <CoachChatPanel
+        athleteId="athlete-1"
+        coach={mockCoach}
+        messages={[]}
+        onSendText={async (text) => console.log('send text:', text)}
+        onSendAudio={async (_blob, ms) => console.log('send audio:', ms, 'ms')}
+      />
     </Box>
   );
 }
