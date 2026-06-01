@@ -29,7 +29,6 @@ import {
     DirectionsRun as RunIcon,
     Refresh as RefreshIcon,
 } from '@mui/icons-material';
-import { alpha } from '@mui/material/styles';
 import { useTheme } from '@mui/material/styles';
 import { usePlanoSemanal } from '../../../hooks/usePlanoSemanal';
 import { AtletasService } from '../../../api/services/AtletasService';
@@ -46,6 +45,8 @@ import TreinoRealizadoDialog from '../TreinoRealizadoDialog';
 import DetalheTreinoDialog from './DetalheTreinoDialog';
 import TreinoCard from './TreinoCard';
 import { getSafeValue, getSafeNumber } from '../../../utils/safeValues';
+import { primary, surface, semantic, categorical, content } from '../../../theme/tokens';
+import { elevation } from '../../../shared/design-tokens';
 
 interface PlanosDialogProps {
     open: boolean;
@@ -110,17 +111,17 @@ const SummaryMetric: React.FC<{
     <Box
         sx={{
             borderRadius: 1,
-            border: '1px solid #d1d5db',
-            background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+            border: `1px solid ${content.cardBorder}`,
+            bgcolor: elevation.card,
             p: 1.75,
             textAlign: 'center',
             height: '100%',
         }}
     >
-        <Typography variant="h4" sx={{ fontWeight: 'bold', color: accent, lineHeight: 1.1 }}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold', color: accent, lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>
             {value}
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+        <Typography variant="body2" sx={{ color: surface[400], mt: 0.5 }}>
             {label}
         </Typography>
     </Box>
@@ -285,7 +286,8 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                     sx: {
                         overflow: 'hidden',
                         borderRadius: 1,
-                        backgroundColor: '#ffffff',
+                        backgroundColor: elevation.base,
+                        border: `1px solid ${content.cardBorder}`,
                     },
                 },
             }}
@@ -298,9 +300,9 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                     px: { xs: 2, md: 3 },
                     py: { xs: 2, md: 2.25 },
                     pr: { xs: 7, md: 8 },
-                    color: 'white',
-                    background: 'linear-gradient(135deg, #082130 0%, #0e3147 55%, #133c56 100%)',
-                    borderBottom: '1px solid rgba(255,255,255,0.08)',
+                    color: surface[50],
+                    background: `linear-gradient(135deg, ${elevation.base} 0%, ${elevation.panel} 55%, ${elevation.card} 100%)`,
+                    borderBottom: `1px solid ${content.divider}`,
                 }}
             >
                 <Box sx={{ flexGrow: 1, minWidth: 0 }}>
@@ -320,9 +322,9 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                                 label="Plano ativo"
                                 size="small"
                                 sx={{
-                                    bgcolor: alpha('#b3ff00', 0.16),
-                                    color: '#f8fafc',
-                                    border: `1px solid ${alpha('#b3ff00', 0.28)}`,
+                                    bgcolor: `${primary[500]}26`,
+                                    color: primary[500],
+                                    border: `1px solid ${primary[500]}4D`,
                                     fontWeight: 700,
                                 }}
                             />
@@ -373,11 +375,9 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                                 minHeight: { xs: 38, md: 32 },
                             },
                             '& .MuiToggleButton-root.Mui-selected': {
-                                color: '#082130',
-                                bgcolor: '#ffffff',
-                                '&:hover': {
-                                    bgcolor: '#ffffff',
-                                },
+                                color: surface[900],
+                                bgcolor: primary[500],
+                                '&:hover': { bgcolor: primary[400] },
                             },
                         }}
                     >
@@ -434,14 +434,12 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                         size="small"
                         sx={{
                             width: { xs: '100%', sm: 'auto' },
-                            bgcolor: '#b3ff00',
-                            color: '#082130',
+                            bgcolor: primary[500],
+                            color: surface[900],
                             fontWeight: 700,
                             fontSize: { xs: '0.78rem', md: '0.8125rem' },
                             minHeight: { xs: 38, md: 32 },
-                            '&:hover': {
-                                bgcolor: '#c8ff4d',
-                            },
+                            '&:hover': { bgcolor: primary[400] },
                         }}
                     >
                         {loading ? 'Gerando...' : 'Gerar Plano'}
@@ -472,8 +470,7 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
             <DialogContent
                 sx={{
                     p: 0,
-                    background:
-                        'radial-gradient(circle at top right, rgba(179,233,45,0.08), transparent 24%), linear-gradient(180deg, #eef3f8 0%, #e8edf4 100%)',
+                    background: elevation.base,
                 }}
             >
                 {loading && (
@@ -530,11 +527,11 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                                         borderRadius: 1,
                                         overflow: 'hidden',
                                         cursor: 'pointer',
-                                        borderColor: planoSemanalIdSelecionado === plano.id ? 'primary.main' : '#d1d5db',
-                                        background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+                                        bgcolor: elevation.card,
+                                        borderColor: planoSemanalIdSelecionado === plano.id ? primary[500] : content.cardBorder,
                                         transition: 'border-color 0.15s ease, transform 0.15s ease',
                                         '&:hover': {
-                                            borderColor: alpha('#1976d2', 0.5),
+                                            borderColor: `${primary[500]}80`,
                                             transform: 'translateY(-1px)',
                                         },
                                     }}
@@ -549,13 +546,13 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                                                         fontWeight: 800,
                                                         textTransform: 'uppercase',
                                                         letterSpacing: '0.05em',
-                                                        color: '#6b7a8d',
+                                                        color: surface[400],
                                                         mb: 0.5,
                                                     }}
                                                 >
                                                     Semana planejada
                                                 </Typography>
-                                                <Typography variant="h6" component="h3" sx={{ fontWeight: 700, color: '#1a2535' }}>
+                                                <Typography variant="h6" component="h3" sx={{ fontWeight: 700, color: surface[50] }}>
                                                     {formatarPeriodoSemana(getSafeValue(plano.semanaInicio) as string, getSafeValue(plano.semanaFim) as string)}
                                                 </Typography>
                                             </Box>
@@ -575,13 +572,13 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                                         {/* Volumes */}
                                         <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
                                             <Grid size={{ xs: 12, sm: 4 }}>
-                                                <SummaryMetric value={volumePlanejado} label="Volume Planejado (km)" accent="#1976d2" />
+                                                <SummaryMetric value={volumePlanejado} label="Volume Planejado (km)" accent={categorical.cat1} />
                                             </Grid>
                                             <Grid size={{ xs: 12, sm: 4 }}>
-                                                <SummaryMetric value={volumeRealizado} label="Volume Realizado (km)" accent="#2e7d32" />
+                                                <SummaryMetric value={volumeRealizado} label="Volume Realizado (km)" accent={semantic.success[500]} />
                                             </Grid>
                                             <Grid size={{ xs: 12, sm: 4 }}>
-                                                <SummaryMetric value={getSafeNumber(plano.volumeAlvoKm)} label="Volume Alvo (km)" accent="#ed6c02" />
+                                                <SummaryMetric value={getSafeNumber(plano.volumeAlvoKm)} label="Volume Alvo (km)" accent={semantic.warning[500]} />
                                             </Grid>
                                         </Grid>
 
@@ -590,16 +587,16 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                                             sx={{
                                                 mb: 2.5,
                                                 borderRadius: 1,
-                                                border: '1px solid #d1d5db',
-                                                bgcolor: '#fff',
+                                                border: `1px solid ${content.cardBorder}`,
+                                                bgcolor: elevation.panel,
                                                 p: 1.5,
                                             }}
                                         >
                                             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                                                <Typography variant="body2" color="text.secondary">
+                                                <Typography variant="body2" sx={{ color: surface[400] }}>
                                                     Progresso do Volume
                                                 </Typography>
-                                                <Typography variant="body2" color="text.secondary">
+                                                <Typography variant="body2" sx={{ color: surface[400] }}>
                                                     {progresso}%
                                                 </Typography>
                                             </Box>
@@ -609,11 +606,11 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                                                 sx={{
                                                     height: 8,
                                                     borderRadius: 4,
-                                                    backgroundColor: '#e0e0e0',
+                                                    backgroundColor: surface[700],
                                                     '& .MuiLinearProgress-bar': {
                                                         borderRadius: 4,
-                                                        backgroundColor: '#2e7d32'
-                                                    }
+                                                        backgroundColor: semantic.success[500],
+                                                    },
                                                 }}
                                             />
                                         </Box>
@@ -691,8 +688,8 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                                                 <Box
                                                     sx={{
                                                         borderRadius: 1,
-                                                        border: '1px solid #d1d5db',
-                                                        bgcolor: '#fff',
+                                                        border: `1px solid ${content.cardBorder}`,
+                                                        bgcolor: elevation.panel,
                                                         p: 1.5,
                                                     }}
                                                 >
@@ -725,7 +722,7 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                     </Stack>
                 )}
             </DialogContent>
-            <DialogActions sx={{ px: { xs: 2, md: 3 }, py: 2, background: '#f8fafc', borderTop: '1px solid #e2e8f0', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: 1 }}>
+            <DialogActions sx={{ px: { xs: 2, md: 3 }, py: 2, background: elevation.panel, borderTop: `1px solid ${content.divider}`, flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: 1 }}>
                 {/* <Box sx={{ flexGrow: 1 }}>
                     <Typography variant="caption" sx={{ color: '#6b7a8d' }}>
                         Visual alinhado ao detalhe do treino para manter consistência entre lista e drill-down.

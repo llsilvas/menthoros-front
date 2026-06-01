@@ -241,8 +241,8 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                         py: 1.5,
                         mx: 2,
                         mb: 2,
-                        background: 'linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 152, 0, 0.08) 100%)',
-                        border: '1px solid rgba(255, 152, 0, 0.3)',
+                        background: `linear-gradient(135deg, ${`rgba(245,158,11,0.12)`} 0%, ${`rgba(245,158,11,0.06)`} 100%)`,
+                        border: `1px solid rgba(245,158,11,0.25)`,
                         borderRadius: 1.5,
                         backdropFilter: 'blur(8px)',
                     }}
@@ -255,7 +255,7 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                         <Typography
                             variant="caption"
                             sx={{
-                                color: 'rgba(0, 0, 0, 0.7)',
+                                color: 'rgba(255,255,255,0.7)',
                                 fontWeight: 600,
                                 textTransform: 'uppercase',
                                 letterSpacing: 0.5,
@@ -291,7 +291,7 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                             <Typography
                                 variant="body2"
                                 sx={{
-                                    color: 'rgba(0, 0, 0, 0.75)',
+                                    color: 'rgba(255,255,255,0.8)',
                                     lineHeight: 1.5,
                                     display: expandedInsight ? 'block' : '-webkit-box',
                                     WebkitLineClamp: expandedInsight ? 'unset' : 2,
@@ -304,11 +304,11 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                             </Typography>
 
                             {expandedInsight && analise.recommendation && (
-                                <Box sx={{ mt: 1, pt: 1, borderTop: '1px solid rgba(255,152,0,0.2)' }}>
-                                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'rgba(0,0,0,0.6)' }}>
+                                <Box sx={{ mt: 1, pt: 1, borderTop: '1px solid rgba(245,158,11,0.2)' }}>
+                                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>
                                         Recomendação
                                     </Typography>
-                                    <Typography variant="body2" sx={{ color: 'rgba(0,0,0,0.75)', lineHeight: 1.5 }}>
+                                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)', lineHeight: 1.5 }}>
                                         {analise.recommendation}
                                     </Typography>
                                     {analise.primaryCause && (
@@ -327,7 +327,7 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                                 sx={{
                                     mt: 0.5,
                                     textTransform: 'none',
-                                    color: 'rgba(255, 152, 0, 0.9)',
+                                    color: 'rgba(245,158,11,0.9)',
                                     fontSize: '0.75rem',
                                     p: 0,
                                     '&:hover': { bgcolor: 'transparent' },
