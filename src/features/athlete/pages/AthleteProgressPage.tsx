@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import {
   Box,
+  CircularProgress,
   Tabs,
   Tab,
   Typography,
@@ -9,8 +10,24 @@ import {
 import { TrendingUp as ProgressIcon } from '@mui/icons-material';
 import { primary, surface, glassSx } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
-import { PMCChart, type PMCDataPoint } from '../components/PMCChart';
-import { ZoneDistributionInsight } from '../components/ZoneDistributionInsight';
+import type { PMCDataPoint } from '../components/PMCChart';
+
+// Lazy load: recharts é pesado (~300KB) — carrega só quando a tab é acessada
+const PMCChart = lazy(() =>
+  import('../components/PMCChart').then(m => ({ default: m.PMCChart }))
+);
+const ZoneDistributionInsight = lazy(() =>
+  import('../components/ZoneDistributionInsight').then(m => ({ default: m.ZoneDistributionInsight }))
+);
+
+function ChartSkeleton() {
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 240, gap: 1.5 }}>
+      <CircularProgress size={24} sx={{ color: primary[500] }} />
+      <Typography sx={{ color: surface[400], fontSize: '0.85rem' }}>Carregando gráfico…</Typography>
+    </Box>
+  );
+}
 
 // ── Mock data helpers ─────────────────────────────────────────────────────────
 
@@ -109,17 +126,23 @@ function TabOverview() {
 }
 
 function TabForma() {
-  return <PMCChart data={MOCK_PMC} range="12w" />;
+  return (
+    <Suspense fallback={<ChartSkeleton />}>
+      <PMCChart data={MOCK_PMC} range="12w" />
+    </Suspense>
+  );
 }
 
 function TabVolume() {
   return (
-    <ZoneDistributionInsight
-      distribution={MOCK_ZONES.distribution}
-      totalDuration={MOCK_ZONES.totalDuration}
-      periodLabel={MOCK_ZONES.periodLabel}
-      insight={MOCK_ZONES.insight}
-    />
+    <Suspense fallback={<ChartSkeleton />}>
+      <ZoneDistributionInsight
+        distribution={MOCK_ZONES.distribution}
+        totalDuration={MOCK_ZONES.totalDuration}
+        periodLabel={MOCK_ZONES.periodLabel}
+        insight={MOCK_ZONES.insight}
+      />
+    </Suspense>
   );
 }
 
