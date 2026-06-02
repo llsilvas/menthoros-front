@@ -13,6 +13,13 @@ export const ROUTES = {
     COACH_ATHLETES: '/coach/athletes',
     COACH_CALENDAR: '/coach/calendar',
     COACH_INSIGHTS: '/coach/insights',
+
+    // Athlete shell (refine-athlete-shell-ux)
+    ATHLETE_HOME:     '/athlete/home',
+    ATHLETE_PLAN:     '/athlete/plan',
+    ATHLETE_PROGRESS: '/athlete/progress',
+    ATHLETE_COACH:    '/athlete/coach',
+    ATHLETE_PROFILE:  '/athlete/profile',
 } as const;
 
 export type CoachRoute =
@@ -20,3 +27,10 @@ export type CoachRoute =
     | '/coach/athletes'
     | '/coach/calendar'
     | '/coach/insights';
+
+export type AthleteRoute =
+    | '/athlete/home'
+    | '/athlete/plan'
+    | '/athlete/progress'
+    | '/athlete/coach'
+    | '/athlete/profile';

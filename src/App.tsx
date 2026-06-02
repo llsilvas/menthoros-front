@@ -13,6 +13,12 @@ import CoachInboxPage from './features/coach/pages/CoachInboxPage';
 import CoachAthletesPage from './features/coach/pages/CoachAthletesPage';
 import CoachCalendarPage from './features/coach/pages/CoachCalendarPage';
 import CoachInsightsPage from './features/coach/pages/CoachInsightsPage';
+import AthleteLayout from './features/athlete/layout/AthleteLayout';
+import AthleteHomePage from './features/athlete/pages/AthleteHomePage';
+import AthletePlanPage from './features/athlete/pages/AthletePlanPage';
+import AthleteProgressPage from './features/athlete/pages/AthleteProgressPage';
+import AthleteCoachPage from './features/athlete/pages/AthleteCoachPage';
+import AthleteProfilePage from './features/athlete/pages/AthleteProfilePage';
 import { colors, text, content, backgrounds } from './theme/tokens';
 
 const theme = createTheme({
@@ -172,6 +178,18 @@ const router = createHashRouter([
           { path: 'athletes', element: <CoachAthletesPage /> },
           { path: 'calendar', element: <CoachCalendarPage /> },
           { path: 'insights', element: <CoachInsightsPage /> },
+        ],
+      },
+      // Athlete shell — refine-athlete-shell-ux
+      {
+        path: 'athlete',
+        element: <AthleteLayout />,
+        children: [
+          { path: 'home',     element: <AthleteHomePage /> },
+          { path: 'plan',     element: <AthletePlanPage /> },
+          { path: 'progress', element: <AthleteProgressPage /> },
+          { path: 'coach',    element: <AthleteCoachPage /> },
+          { path: 'profile',  element: <AthleteProfilePage /> },
         ],
       },
     ],
