@@ -57,6 +57,7 @@ export function AthleteBottomNav({
             onClick={() => onNavigate(route)}
             sx={{
               flex: 1,
+              minHeight: 44, // touch target mínimo (WCAG 2.5.5)
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',

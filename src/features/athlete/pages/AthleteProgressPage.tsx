@@ -7,7 +7,7 @@ import {
   Typography,
   Tooltip as MuiTooltip,
 } from '@mui/material';
-import { TrendingUp as ProgressIcon } from '@mui/icons-material';
+import { TrendingUp as ProgressIcon, InfoOutlined as InfoIcon } from '@mui/icons-material';
 import { primary, surface, glassSx } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import type { PMCDataPoint } from '../components/PMCChart';
@@ -91,9 +91,12 @@ function KpiCard({ label, value, unit, tooltip }: KpiData) {
   return (
     <Box sx={{ ...glassSx, borderRadius: 1, p: 2 }}>
       <MuiTooltip title={tooltip} placement="top">
-        <Typography sx={{ color: surface[400], fontSize: '0.75rem', cursor: 'help' }}>
-          {label} ℹ️
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, cursor: 'help' }}>
+          <Typography sx={{ color: surface[400], fontSize: '0.75rem' }}>
+            {label}
+          </Typography>
+          <InfoIcon sx={{ fontSize: 13, color: surface[500] }} />
+        </Box>
       </MuiTooltip>
       <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5, mt: 0.5 }}>
         <Typography sx={{ color: surface[50], fontSize: '1.5rem', fontWeight: 800 }}>

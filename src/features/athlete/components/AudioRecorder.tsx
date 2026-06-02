@@ -246,6 +246,9 @@ export function AudioRecorder({
               '70%':  { boxShadow: `0 0 0 10px ${semantic.danger[500]}00` },
               '100%': { boxShadow: `0 0 0 0 ${semantic.danger[500]}00` },
             },
+            '@media (prefers-reduced-motion: reduce)': {
+              animation: 'none',
+            },
           }}
         >
           <Stop sx={{ color: semantic.danger[500], fontSize: '1.5rem' }} />
