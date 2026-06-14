@@ -148,8 +148,9 @@ The new shells contain placeholder mock data (e.g. `MOCK_TODAY`, ~40 occurrences
 Run from `apps/menthoros-front`. Required before delivery:
 
 ```bash
-npm run lint     # eslint .
-npm run build    # tsc -b && vite build  (type-check + build)
+npm run lint        # eslint .
+npm run build       # tsc -b && vite build  (type-check + build)
+npm run test:run    # vitest run (unit/component)
 ```
 
 Run E2E when the task affects critical user flows (auth, listings, dashboards):
@@ -159,7 +160,14 @@ npm run test:e2e        # playwright test
 npm run test:e2e:ui     # interactive
 ```
 
-> There is **no unit-test runner configured yet** (no Vitest). Do not reference `npm run test` — it does not exist. If a change introduces unit tests, set up Vitest + `@testing-library/react` first (and add the `test` script) as part of that change's scope.
+### Unit/component tests (Vitest + Testing Library)
+
+Vitest **is configured** — `vite.config.ts` has a `test` block (jsdom env, globals, setup in `src/test/setup.ts`). After pulling the new deps, run `npm install` once.
+
+- **Pure util/hook:** plain Vitest (`*.test.ts`) — reference: `src/utils/safeValues.test.ts`.
+- **Component:** `@testing-library/react` (`render`, `screen`, `userEvent`) in `*.test.tsx`; test observable behavior (what the user sees/does), not implementation details.
+- **Critical end-to-end flow:** Playwright (`tests/e2e/`).
+- Commands: `npm run test` (watch), `npm run test:run` (CI/one-shot), `npm run coverage`.
 
 ## Definition of Done (Frontend Task)
 
@@ -168,7 +176,7 @@ A frontend task is done only if:
 1. Implementation matches the active OpenSpec change scope.
 2. The corresponding `tasks.md` item is updated.
 3. UI behavior and API usage align with current contracts (generated client regenerated if the backend changed).
-4. `npm run lint` and `npm run build` pass; `npm run test:e2e` passes when the task touches a critical flow.
+4. `npm run lint`, `npm run build` and `npm run test:run` pass; `npm run test:e2e` passes when the task touches a critical flow.
 5. No leftover `MOCK_*` in delivered screens (or documented as a follow-up).
 6. No intentional out-of-scope modifications were introduced.
 
