@@ -37,4 +37,20 @@ describe('useCoachRoster', () => {
         expect(result.current.roster).toEqual([]);
         expect(result.current.loading).toBe(false);
     });
+
+    it('mantém loading=true durante a busca e false ao concluir', async () => {
+        vi.mocked(CoachDashboardService.getRoster).mockResolvedValue([]);
+
+        const { result } = renderHook(() => useCoachRoster());
+        let pending!: Promise<void>;
+        act(() => {
+            pending = result.current.fetchRoster();
+        });
+        expect(result.current.loading).toBe(true);
+
+        await act(async () => {
+            await pending;
+        });
+        expect(result.current.loading).toBe(false);
+    });
 });

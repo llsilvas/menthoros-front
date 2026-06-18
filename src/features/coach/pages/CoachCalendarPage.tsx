@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { addDays, format, parseISO } from 'date-fns';
+import { addDays, addWeeks, format, parseISO, startOfISOWeek } from 'date-fns';
 import { Alert, Box, Button, ButtonGroup, CircularProgress, Tooltip, Typography } from '@mui/material';
 import {
   ChevronLeft as ChevronLeftIcon,
@@ -18,14 +18,8 @@ import type { WorkoutType } from '../adapters/workoutType';
 
 /** Datas (seg→dom) da semana com o `offset` informado, em ISO `yyyy-MM-dd` (referência local). */
 function getWeekDates(offset = 0): string[] {
-  const today = new Date();
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - today.getDay() + 1 + offset * 7);
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
-    return format(d, 'yyyy-MM-dd');
-  });
+  const monday = addWeeks(startOfISOWeek(new Date()), offset);
+  return Array.from({ length: 7 }, (_, i) => format(addDays(monday, i), 'yyyy-MM-dd'));
 }
 
 /** 7 datas (seg→dom) a partir da segunda informada pelo backend (`semanaInicio`). */

@@ -38,4 +38,24 @@ describe('useCoachInsights', () => {
         expect(result.current.error).toBeInstanceOf(Error);
         expect(result.current.insights).toBeNull();
     });
+
+    it('mantém loading=true durante a busca e false ao concluir', async () => {
+        vi.mocked(CoachDashboardService.getInsights).mockResolvedValue({
+            kpis: { totalAtletas: 0, ativos: 0, emAtencao: 0, pausados: 0, treinosPlanejadosSemana: 0 },
+            tendenciaCargaSemanal: [],
+            topAtletas: [],
+        });
+
+        const { result } = renderHook(() => useCoachInsights());
+        let pending!: Promise<void>;
+        act(() => {
+            pending = result.current.fetchInsights();
+        });
+        expect(result.current.loading).toBe(true);
+
+        await act(async () => {
+            await pending;
+        });
+        expect(result.current.loading).toBe(false);
+    });
 });

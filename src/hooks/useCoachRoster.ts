@@ -5,7 +5,7 @@ import type { CoachAtletaResumo } from '../types/Coach';
 /** Roster do coach (`GET /api/v1/coach/atletas`). */
 export const useCoachRoster = () => {
     const [roster, setRoster] = useState<CoachAtletaResumo[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
 
     const fetchRoster = useCallback(async () => {

@@ -8,6 +8,6 @@ export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
 export { AtletasService } from './services/AtletasService';
-export { CoachDashboardService } from './services/CoachDashboardService';
+export { CoachDashboardService } from './services/CoachDashboardService'; // curado à mão — não remover ao regenerar
 export { PlanoSemanalService } from './services/PlanoSemanalService';
 export { TreinoService } from './services/TreinoService';

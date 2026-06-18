@@ -5,7 +5,7 @@ import type { CoachCalendario } from '../types/Coach';
 /** Calendário semanal do coach (`GET /api/v1/coach/calendario-semanal`). `from` = dia da semana desejada. */
 export const useCoachCalendar = () => {
     const [calendario, setCalendario] = useState<CoachCalendario | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
 
     const fetchCalendario = useCallback(async (from?: string) => {

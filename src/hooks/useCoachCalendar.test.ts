@@ -38,4 +38,24 @@ describe('useCoachCalendar', () => {
         expect(result.current.error).toBeInstanceOf(Error);
         expect(result.current.calendario).toBeNull();
     });
+
+    it('mantém loading=true durante a busca e false ao concluir', async () => {
+        vi.mocked(CoachDashboardService.getCalendario).mockResolvedValue({
+            semanaInicio: '2026-06-15',
+            semanaFim: '2026-06-21',
+            treinos: [],
+        });
+
+        const { result } = renderHook(() => useCoachCalendar());
+        let pending!: Promise<void>;
+        act(() => {
+            pending = result.current.fetchCalendario();
+        });
+        expect(result.current.loading).toBe(true);
+
+        await act(async () => {
+            await pending;
+        });
+        expect(result.current.loading).toBe(false);
+    });
 });

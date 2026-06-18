@@ -5,7 +5,7 @@ import type { CoachInsights } from '../types/Coach';
 /** Insights agregados do coach (`GET /api/v1/coach/insights`). `from`/`to` = intervalo opcional. */
 export const useCoachInsights = () => {
     const [insights, setInsights] = useState<CoachInsights | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
 
     const fetchInsights = useCallback(async (from?: string, to?: string) => {

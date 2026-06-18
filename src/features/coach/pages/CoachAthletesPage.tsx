@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { differenceInCalendarDays, parseISO } from 'date-fns';
+import { parseISO } from 'date-fns';
 import { useDebounce } from '../../../shared/hooks/useDebounce';
 import {
   Box,
@@ -34,7 +34,7 @@ import type { TrainingPhase } from '../../../shared/components/PhaseIndicator';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { MetricCell } from '../../../shared/components/MetricCell';
 import { useCoachRoster } from '../../../hooks/useCoachRoster';
-import { deriveRosterKpis } from '../adapters/rosterKpis';
+import { deriveRosterKpis, daysSinceLastActivity, INACTIVITY_THRESHOLD_DAYS } from '../adapters/rosterKpis';
 import type { CoachAtletaStatus } from '../../../types/Coach';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -63,19 +63,18 @@ const STATUS_LABEL: Record<CoachAtletaStatus, string> = {
   paused:  'Pausado',
 };
 
-const TRAINING_PHASES: readonly string[] = ['BASE', 'BUILD', 'ESPECIFICO', 'TAPER', 'RECOVERY'];
+/** TSB a partir do qual a célula é marcada como perigo (sobrecarga). */
+const TSB_DANGER_THRESHOLD = -30;
+
+const TRAINING_PHASES: readonly TrainingPhase[] = ['BASE', 'BUILD', 'ESPECIFICO', 'TAPER', 'RECOVERY'];
 
 function asTrainingPhase(fase?: string): TrainingPhase | null {
-  return fase && TRAINING_PHASES.includes(fase) ? (fase as TrainingPhase) : null;
+  return fase && (TRAINING_PHASES as readonly string[]).includes(fase) ? (fase as TrainingPhase) : null;
 }
 
 function formatDate(iso: string): string {
   const d = parseISO(iso);
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-}
-
-function daysSince(iso: string, hoje: Date): number {
-  return differenceInCalendarDays(hoje, parseISO(iso));
 }
 
 // ── View filter definitions ────────────────────────────────────────────────────
@@ -302,14 +301,14 @@ export default function CoachAthletesPage() {
       headerAlign: 'left',
       align: 'left',
       cellClassName: (params: GridCellParams<AthleteRow>) =>
-        params.row.tsb != null && params.row.tsb < -30 ? 'tsb-danger' : '',
+        params.row.tsb != null && params.row.tsb < TSB_DANGER_THRESHOLD ? 'tsb-danger' : '',
       renderCell: ({ row }) => (
         <Box
           sx={{
             display: 'flex',
             alignItems: 'center',
             height: '100%',
-            color: row.tsb != null && row.tsb < -30 ? semantic.danger[500] : 'inherit',
+            color: row.tsb != null && row.tsb < TSB_DANGER_THRESHOLD ? semantic.danger[500] : 'inherit',
           }}
         >
           <MetricCell value={row.tsb ?? '—'} size="sm" tooltip="Balanço de Estresse de Treino" />
@@ -343,8 +342,8 @@ export default function CoachAthletesPage() {
             </Box>
           );
         }
-        const days = daysSince(row.lastActivity, hoje);
-        const color = days >= 7 ? semantic.warning[500] : surface[400];
+        const days = daysSinceLastActivity(row.lastActivity, hoje) ?? 0;
+        const color = days >= INACTIVITY_THRESHOLD_DAYS ? semantic.warning[500] : surface[400];
         return (
           <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}>
             <Typography sx={{ fontSize: '0.8rem', color: surface[50] }}>
@@ -534,7 +533,7 @@ export default function CoachAthletesPage() {
             minHeight: 0,
             borderRadius: 2,
             overflow: 'hidden',
-            border: `1px solid rgba(255,255,255,0.10)`,
+            border: `1px solid ${surface[0]}1A`,
             // TSB danger cell class
             '& .tsb-danger': {
               backgroundColor: `${semantic.danger[500]}1A`,
