@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { differenceInCalendarDays, parseISO } from 'date-fns';
 import { useDebounce } from '../../../shared/hooks/useDebounce';
 import {
   Box,
@@ -8,6 +9,8 @@ import {
   Button,
   Chip,
   Stack,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
 import {
   People as PeopleIcon,
@@ -29,59 +32,50 @@ import { CoachAthleteAvatar } from '../components/CoachAthleteAvatar';
 import { PhaseIndicator } from '../../../shared/components/PhaseIndicator';
 import type { TrainingPhase } from '../../../shared/components/PhaseIndicator';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
-import type { StatusBadgeVariant } from '../../../shared/components/StatusBadge';
 import { MetricCell } from '../../../shared/components/MetricCell';
+import { useCoachRoster } from '../../../hooks/useCoachRoster';
+import { deriveRosterKpis } from '../adapters/rosterKpis';
+import type { CoachAtletaStatus } from '../../../types/Coach';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Sport = 'running' | 'cycling' | 'triathlon';
-type Phase = TrainingPhase;
-type AthleteStatus = Extract<StatusBadgeVariant, 'active' | 'warning' | 'danger' | 'paused'>;
-
-interface MockAthlete {
+/** Linha da grade de atletas (view-model do roster real). */
+interface AthleteRow {
   id: string;
   name: string;
-  sport: Sport;
-  phase: Phase;
-  ctl: number;
-  atl: number;
-  tsb: number;
-  status: AthleteStatus;
-  lastActivity: string;
+  phase?: string;
+  status: CoachAtletaStatus;
+  ctl?: number;
+  atl?: number;
+  tsb?: number;
   weeklyVolume: number;
+  lastActivity?: string;
 }
 
-type ViewKey = 'all' | 'at-risk' | 'taper' | 'runners';
-
-// ── Mock data ─────────────────────────────────────────────────────────────────
-
-const MOCK_ATHLETES: MockAthlete[] = [
-  { id: '1', name: 'Carlos Mendes',  sport: 'running',   phase: 'BUILD',     ctl: 82,  atl: 90,  tsb: -8,  status: 'warning', lastActivity: '2026-06-01', weeklyVolume: 68  },
-  { id: '2', name: 'Ana Lima',       sport: 'running',   phase: 'BASE',      ctl: 55,  atl: 48,  tsb: 7,   status: 'active',  lastActivity: '2026-06-01', weeklyVolume: 42  },
-  { id: '3', name: 'Rafael Costa',   sport: 'triathlon', phase: 'TAPER',     ctl: 95,  atl: 70,  tsb: 25,  status: 'active',  lastActivity: '2026-05-31', weeklyVolume: 55  },
-  { id: '4', name: 'Lucia Ferreira', sport: 'running',   phase: 'RECOVERY',  ctl: 40,  atl: 38,  tsb: 2,   status: 'paused',  lastActivity: '2026-05-28', weeklyVolume: 20  },
-  { id: '5', name: 'Pedro Alves',    sport: 'cycling',   phase: 'BUILD',     ctl: 110, atl: 145, tsb: -35, status: 'danger',  lastActivity: '2026-06-01', weeklyVolume: 210 },
-  { id: '6', name: 'Marina Silva',   sport: 'running',   phase: 'BASE',      ctl: 62,  atl: 55,  tsb: 7,   status: 'active',  lastActivity: '2026-05-31', weeklyVolume: 50  },
-];
+type ViewKey = 'all' | 'at-risk' | 'taper';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const STATUS_LABEL: Record<AthleteStatus, string> = {
+const STATUS_LABEL: Record<CoachAtletaStatus, string> = {
   active:  'Ativo',
   warning: 'Atenção',
   danger:  'Alerta',
   paused:  'Pausado',
 };
 
+const TRAINING_PHASES: readonly string[] = ['BASE', 'BUILD', 'ESPECIFICO', 'TAPER', 'RECOVERY'];
+
+function asTrainingPhase(fase?: string): TrainingPhase | null {
+  return fase && TRAINING_PHASES.includes(fase) ? (fase as TrainingPhase) : null;
+}
+
 function formatDate(iso: string): string {
-  const d = new Date(iso + 'T00:00:00');
+  const d = parseISO(iso);
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 }
 
-function daysSince(iso: string): number {
-  const then = new Date(iso + 'T00:00:00').getTime();
-  const now  = new Date('2026-06-01T00:00:00').getTime();
-  return Math.floor((now - then) / 86_400_000);
+function daysSince(iso: string, hoje: Date): number {
+  return differenceInCalendarDays(hoje, parseISO(iso));
 }
 
 // ── View filter definitions ────────────────────────────────────────────────────
@@ -89,14 +83,13 @@ function daysSince(iso: string): number {
 interface ViewDef {
   key: ViewKey;
   label: string;
-  filter: (a: MockAthlete) => boolean;
+  filter: (a: AthleteRow) => boolean;
 }
 
 const VIEWS: ViewDef[] = [
-  { key: 'all',     label: 'Todos',        filter: () => true },
-  { key: 'at-risk', label: 'Em risco',     filter: (a) => a.status === 'danger' || a.status === 'warning' },
-  { key: 'taper',   label: 'Em taper',     filter: (a) => a.phase === 'TAPER' },
-  { key: 'runners', label: 'Maratonistas', filter: (a) => a.sport === 'running' },
+  { key: 'all',     label: 'Todos',    filter: () => true },
+  { key: 'at-risk', label: 'Em risco', filter: (a) => a.status === 'danger' || a.status === 'warning' },
+  { key: 'taper',   label: 'Em taper', filter: (a) => a.phase === 'TAPER' },
 ];
 
 // ── KPI Card ──────────────────────────────────────────────────────────────────
@@ -187,34 +180,53 @@ function BulkBar({ count }: { count: number }) {
 export default function CoachAthletesPage() {
   const [searchRaw, setSearchRaw] = useState('');
   const [activeView, setActiveView] = useState<ViewKey>('all');
-  const [statusFilter, setStatusFilter] = useState<AthleteStatus | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<CoachAtletaStatus | 'all'>('all');
   const [selection, setSelection]   = useState<GridRowSelectionModel>({ type: 'include', ids: new Set() });
 
   const search = useDebounce(searchRaw, 300);
 
+  const { roster, loading, error, fetchRoster } = useCoachRoster();
+  useEffect(() => {
+    fetchRoster();
+  }, [fetchRoster]);
+
+  const hoje = useMemo(() => new Date(), []);
+
+  // Roster real → view-model da grade
+  const athletes = useMemo<AthleteRow[]>(
+    () =>
+      roster.map((a) => ({
+        id: a.atletaId,
+        name: a.nome,
+        phase: a.fase,
+        status: a.status,
+        ctl: a.ctl,
+        atl: a.atl,
+        tsb: a.tsb,
+        weeklyVolume: a.weeklyVolume,
+        lastActivity: a.lastActivity,
+      })),
+    [roster],
+  );
+
   // Computed rows
   const rows = useMemo(() => {
     const viewFilter = VIEWS.find((v) => v.key === activeView)?.filter ?? (() => true);
-    return MOCK_ATHLETES.filter((a) => {
+    return athletes.filter((a) => {
       if (!viewFilter(a)) return false;
       if (statusFilter !== 'all' && a.status !== statusFilter) return false;
       if (search && !a.name.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
-  }, [activeView, statusFilter, search]);
+  }, [athletes, activeView, statusFilter, search]);
 
-  // KPIs (always over full dataset)
-  const kpis = useMemo(() => ({
-    total:   MOCK_ATHLETES.length,
-    atRisk:  MOCK_ATHLETES.filter((a) => a.status === 'danger' || a.status === 'warning').length,
-    inTaper: MOCK_ATHLETES.filter((a) => a.phase === 'TAPER').length,
-    noActivity7d: MOCK_ATHLETES.filter((a) => daysSince(a.lastActivity) >= 7).length,
-  }), []);
+  // KPIs (sempre sobre o roster completo)
+  const kpis = useMemo(() => deriveRosterKpis(roster, hoje), [roster, hoje]);
 
   const selectedCount = selection.type === 'include' ? selection.ids.size : 0;
 
   // Column definitions
-  const columns: GridColDef<MockAthlete>[] = useMemo(() => [
+  const columns: GridColDef<AthleteRow>[] = useMemo(() => [
     {
       field: 'name',
       headerName: 'Atleta',
@@ -233,11 +245,18 @@ export default function CoachAthletesPage() {
       field: 'phase',
       headerName: 'Fase',
       width: 130,
-      renderCell: ({ row }) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
-          <PhaseIndicator phase={row.phase} variant="pill" />
-        </Box>
-      ),
+      renderCell: ({ row }) => {
+        const phase = asTrainingPhase(row.phase);
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+            {phase ? (
+              <PhaseIndicator phase={phase} variant="pill" />
+            ) : (
+              <Typography sx={{ fontSize: '0.8rem', color: surface[500] }}>—</Typography>
+            )}
+          </Box>
+        );
+      },
     },
     {
       field: 'status',
@@ -258,7 +277,7 @@ export default function CoachAthletesPage() {
       align: 'left',
       renderCell: ({ row }) => (
         <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
-          <MetricCell value={row.ctl} size="sm" tooltip="Carga de Treino Crônica" />
+          <MetricCell value={row.ctl ?? '—'} size="sm" tooltip="Carga de Treino Crônica" />
         </Box>
       ),
     },
@@ -271,7 +290,7 @@ export default function CoachAthletesPage() {
       align: 'left',
       renderCell: ({ row }) => (
         <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
-          <MetricCell value={row.atl} size="sm" tooltip="Carga de Treino Aguda" />
+          <MetricCell value={row.atl ?? '—'} size="sm" tooltip="Carga de Treino Aguda" />
         </Box>
       ),
     },
@@ -282,18 +301,18 @@ export default function CoachAthletesPage() {
       type: 'number',
       headerAlign: 'left',
       align: 'left',
-      cellClassName: (params: GridCellParams<MockAthlete>) =>
-        params.row.tsb < -30 ? 'tsb-danger' : '',
+      cellClassName: (params: GridCellParams<AthleteRow>) =>
+        params.row.tsb != null && params.row.tsb < -30 ? 'tsb-danger' : '',
       renderCell: ({ row }) => (
         <Box
           sx={{
             display: 'flex',
             alignItems: 'center',
             height: '100%',
-            color: row.tsb < -30 ? semantic.danger[500] : 'inherit',
+            color: row.tsb != null && row.tsb < -30 ? semantic.danger[500] : 'inherit',
           }}
         >
-          <MetricCell value={row.tsb} size="sm" tooltip="Balanço de Estresse de Treino" />
+          <MetricCell value={row.tsb ?? '—'} size="sm" tooltip="Balanço de Estresse de Treino" />
         </Box>
       ),
     },
@@ -317,7 +336,14 @@ export default function CoachAthletesPage() {
       headerName: 'Última atividade',
       width: 140,
       renderCell: ({ row }) => {
-        const days = daysSince(row.lastActivity);
+        if (!row.lastActivity) {
+          return (
+            <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+              <Typography sx={{ fontSize: '0.78rem', color: surface[500] }}>Sem atividade</Typography>
+            </Box>
+          );
+        }
+        const days = daysSince(row.lastActivity, hoje);
         const color = days >= 7 ? semantic.warning[500] : surface[400];
         return (
           <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}>
@@ -331,9 +357,9 @@ export default function CoachAthletesPage() {
         );
       },
     },
-  ], []);
+  ], [hoje]);
 
-  const statusOptions: Array<{ value: AthleteStatus | 'all'; label: string }> = [
+  const statusOptions: Array<{ value: CoachAtletaStatus | 'all'; label: string }> = [
     { value: 'all',     label: 'Todos os status' },
     { value: 'active',  label: 'Ativo'   },
     { value: 'warning', label: 'Atenção' },
@@ -373,7 +399,7 @@ export default function CoachAthletesPage() {
             >
               Atletas{' '}
               <Typography component="span" sx={{ fontWeight: 400, color: surface[500], fontSize: '1rem' }}>
-                ({MOCK_ATHLETES.length})
+                ({roster.length})
               </Typography>
             </Typography>
             <Typography variant="body2" sx={{ color: surface[400] }}>
@@ -408,7 +434,7 @@ export default function CoachAthletesPage() {
             select
             size="small"
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as AthleteStatus | 'all')}
+            onChange={(e) => setStatusFilter(e.target.value as CoachAtletaStatus | 'all')}
             SelectProps={{ native: true }}
             sx={{ width: 150, '& .MuiInputBase-input': { fontSize: '0.85rem' } }}
           >
@@ -485,54 +511,71 @@ export default function CoachAthletesPage() {
       {/* ── Bulk action bar (visible when selection > 0) ── */}
       {selectedCount > 0 && <BulkBar count={selectedCount} />}
 
-      {/* ── DataGrid ── */}
-      <Box
-        sx={{
-          flex: 1,
-          minHeight: 0,
-          borderRadius: 2,
-          overflow: 'hidden',
-          border: `1px solid rgba(255,255,255,0.10)`,
-          // TSB danger cell class
-          '& .tsb-danger': {
-            backgroundColor: `${semantic.danger[500]}1A`,
-          },
-        }}
-      >
-        <DataGrid<MockAthlete>
-          rows={rows}
-          columns={columns}
-          checkboxSelection
-          disableRowSelectionOnClick
-          rowSelectionModel={selection}
-          onRowSelectionModelChange={setSelection}
-          rowHeight={52}
-          columnHeaderHeight={44}
-          pageSizeOptions={[10, 25, 50]}
-          initialState={{
-            pagination: { paginationModel: { pageSize: 10 } },
-          }}
-          localeText={{
-            noRowsLabel: 'Nenhum atleta encontrado',
-            footerRowSelected: (count) =>
-              count === 1 ? `${count} atleta selecionado` : `${count} atletas selecionados`,
-          }}
+      {/* ── Conteúdo: erro / carregando / grade ── */}
+      {error ? (
+        <Alert
+          severity="error"
+          action={
+            <Button color="inherit" size="small" onClick={() => fetchRoster()}>
+              Tentar novamente
+            </Button>
+          }
+        >
+          Não foi possível carregar o roster da assessoria.
+        </Alert>
+      ) : loading && roster.length === 0 ? (
+        <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <Box
           sx={{
-            border: 'none',
-            height: '100%',
-            fontFamily: 'inherit',
-            '& .MuiDataGrid-row': {
-              cursor: 'default',
-            },
-            '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': {
-              outline: 'none',
-            },
-            '& .MuiDataGrid-columnHeader:focus, & .MuiDataGrid-columnHeader:focus-within': {
-              outline: 'none',
+            flex: 1,
+            minHeight: 0,
+            borderRadius: 2,
+            overflow: 'hidden',
+            border: `1px solid rgba(255,255,255,0.10)`,
+            // TSB danger cell class
+            '& .tsb-danger': {
+              backgroundColor: `${semantic.danger[500]}1A`,
             },
           }}
-        />
-      </Box>
+        >
+          <DataGrid<AthleteRow>
+            rows={rows}
+            columns={columns}
+            checkboxSelection
+            disableRowSelectionOnClick
+            rowSelectionModel={selection}
+            onRowSelectionModelChange={setSelection}
+            rowHeight={52}
+            columnHeaderHeight={44}
+            pageSizeOptions={[10, 25, 50]}
+            initialState={{
+              pagination: { paginationModel: { pageSize: 10 } },
+            }}
+            localeText={{
+              noRowsLabel: 'Nenhum atleta na sua assessoria ainda',
+              footerRowSelected: (count) =>
+                count === 1 ? `${count} atleta selecionado` : `${count} atletas selecionados`,
+            }}
+            sx={{
+              border: 'none',
+              height: '100%',
+              fontFamily: 'inherit',
+              '& .MuiDataGrid-row': {
+                cursor: 'default',
+              },
+              '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': {
+                outline: 'none',
+              },
+              '& .MuiDataGrid-columnHeader:focus, & .MuiDataGrid-columnHeader:focus-within': {
+                outline: 'none',
+              },
+            }}
+          />
+        </Box>
+      )}
     </Box>
   );
 }
