@@ -112,11 +112,30 @@ export function useAtletas() {
 
 ## API Client & Types Standards
 
-- The client in `src/api` is **generated** by `npm run generate:api` (OpenAPI → axios). **Never hand-edit files under `src/api`** — they are overwritten on regeneration.
-- When the backend contract changes: regenerate (`npm run generate:api`, requires the backend running at `http://localhost:8099`) rather than patching types by hand.
-- **Generated types are the source of truth** for request/response shapes. `src/types` holds only domain/UI types not covered by the API. Do not redeclare a generated type in `src/types`.
-- Do not silently change request/response assumptions. If an endpoint behavior changed, ensure OpenSpec and impacted docs are updated.
-- Auth/tenant headers are configured centrally in `main.tsx` via `OpenAPI.HEADERS` (it injects both `Authorization` and `X-Tenant-ID`) — do not set these headers per-call.
+- O cliente em `src/api` é um **cliente curado à mão sobre o OpenAPI** (não saída crua do gerador).
+  `npm run generate:api` (`openapi-typescript-codegen --client axios --useUnionTypes`, backend em
+  `http://localhost:8099`) é a **base/referência** — mas o cliente versionado é mantido como uma
+  **fachada** que corrige limitações do OpenAPI do backend e melhora a ergonomia. Por isso a regen
+  **não** deve sobrescrever cegamente `src/api`.
+- **Por que curado (não cru):** o gerado (a) tipa endpoints de coleção como **objeto único** quando o
+  `@ApiResponse` omite `array` (ver convenção no `CLAUDE.md` backend); (b) gera **todos os campos
+  opcionais** (DTOs sem `required`); (c) deriva **nomes de método** do operationId, menos ergonômicos;
+  (d) pode expor operações que o front não consome. A fachada curada endereça (a)–(d).
+- **Fluxo quando o contrato muda:** gere para um diretório *scratch* como referência
+  (`generate:api`), e **porte à mão** as mudanças necessárias para o cliente curado — preservando
+  nomes de método, tipos estreitados (ex.: arrays de lista, unions de status) e a remoção de
+  operações não usadas. **Não** commitar a saída crua por cima.
+- `--useUnionTypes` é obrigatório no `generate:api` (gera union types em vez de `enum`/`namespace`,
+  que violam `erasableSyntaxOnly` do tsconfig).
+- `src/types` guarda tipos de domínio/UI (ex.: refinamentos de union, view-models) — pode estreitar
+  um tipo do contrato quando agrega valor de UI (ex.: `status: 'active'|'warning'|...`).
+- Auth/tenant headers são configurados central em `main.tsx` via `OpenAPI.HEADERS` (injeta
+  `Authorization` + `X-Tenant-ID`) — não setar por chamada.
+
+> Adoção do cliente cru-gerado em todas as features (eliminar a fachada) foi avaliada na change
+> `fix-openapi-client-generation` e **adiada**: degrada a tipagem (campos all-optional) e esbarra em
+> endpoints curados que não existem mais no backend. Migrar, se desejado, é incremental por-feature
+> com testes.
 
 ## Design System Standards
 
