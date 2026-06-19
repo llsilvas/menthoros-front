@@ -40,6 +40,23 @@ describe('ManualTrainingForm', () => {
             expect(screen.getByText('Regenerativo')).toBeInTheDocument();
         });
 
+        it('chip CONTINUO está marcado como aria-checked=true por padrão', () => {
+            renderForm();
+            const chip = screen.getByText('Corrida contínua').closest('[role="radio"]');
+            expect(chip).toHaveAttribute('aria-checked', 'true');
+        });
+
+        it('chip não selecionado tem aria-checked=false', () => {
+            renderForm();
+            const chip = screen.getByText('Intervalado').closest('[role="radio"]');
+            expect(chip).toHaveAttribute('aria-checked', 'false');
+        });
+
+        it('grupo de chips tem role="radiogroup"', () => {
+            renderForm();
+            expect(screen.getByRole('radiogroup', { name: 'Tipo de treino' })).toBeInTheDocument();
+        });
+
         it('exibe warning quando há treino hoje', () => {
             renderForm({ hasTreinoHoje: true });
             expect(screen.getByText(/Você já registrou um treino hoje/)).toBeInTheDocument();
@@ -51,14 +68,28 @@ describe('ManualTrainingForm', () => {
         });
 
         it('campo distância fica oculto quando tipo é REGENERATIVO', async () => {
+            const user = userEvent.setup();
             renderForm();
-            const regChip = screen.getByText('Regenerativo');
-            await userEvent.click(regChip);
+            await user.click(screen.getByText('Regenerativo'));
             expect(screen.queryByText(/Distância/)).not.toBeInTheDocument();
         });
 
         it('campo distância aparece para tipo CONTINUO', () => {
             renderForm();
+            expect(screen.getByText('Distância (km) — opcional')).toBeInTheDocument();
+        });
+
+        it('campo distância aparece para tipo INTERVALADO', async () => {
+            const user = userEvent.setup();
+            renderForm();
+            await user.click(screen.getByText('Intervalado'));
+            expect(screen.getByText('Distância (km) — opcional')).toBeInTheDocument();
+        });
+
+        it('campo distância aparece para tipo TREINO_LONGO', async () => {
+            const user = userEvent.setup();
+            renderForm();
+            await user.click(screen.getByText('Treino longo'));
             expect(screen.getByText('Distância (km) — opcional')).toBeInTheDocument();
         });
     });
@@ -78,18 +109,30 @@ describe('ManualTrainingForm', () => {
         });
 
         it('está desabilitado quando duracaoMinutos está vazio', async () => {
+            const user = userEvent.setup();
             renderForm();
             const input = screen.getByLabelText(/Duração/i);
-            await userEvent.clear(input);
+            await user.clear(input);
+            const btn = screen.getByRole('button', { name: /Registrar treino/ });
+            expect(btn).toBeDisabled();
+        });
+
+        it('está desabilitado quando duracaoMinutos excede 600', async () => {
+            const user = userEvent.setup();
+            renderForm();
+            const input = screen.getByLabelText(/Duração/i);
+            await user.clear(input);
+            await user.type(input, '601');
             const btn = screen.getByRole('button', { name: /Registrar treino/ });
             expect(btn).toBeDisabled();
         });
 
         it('chama onSubmit com dados corretos quando form é válido', async () => {
+            const user = userEvent.setup();
             renderForm();
             const btn = screen.getByRole('button', { name: /Registrar treino/ });
             expect(btn).not.toBeDisabled();
-            await userEvent.click(btn);
+            await user.click(btn);
             expect(onSubmit).toHaveBeenCalledOnce();
             const arg = onSubmit.mock.calls[0][0];
             expect(arg.tipo).toBe('CONTINUO');
@@ -98,19 +141,66 @@ describe('ManualTrainingForm', () => {
         });
 
         it('omite distanciaKm quando campo está vazio', async () => {
+            const user = userEvent.setup();
             renderForm();
             const btn = screen.getByRole('button', { name: /Registrar treino/ });
-            await userEvent.click(btn);
+            await user.click(btn);
             const arg = onSubmit.mock.calls[0][0];
             expect(arg.distanciaKm).toBeUndefined();
+        });
+
+        it('omite distanciaKm quando valor é zero', async () => {
+            const user = userEvent.setup();
+            renderForm();
+            const distInput = screen.getByLabelText('Distância (km)');
+            await user.clear(distInput);
+            await user.type(distInput, '0');
+            const btn = screen.getByRole('button', { name: /Registrar treino/ });
+            await user.click(btn);
+            const arg = onSubmit.mock.calls[0][0];
+            expect(arg.distanciaKm).toBeUndefined();
+        });
+
+        it('inclui distanciaKm quando valor é positivo', async () => {
+            const user = userEvent.setup();
+            renderForm();
+            const distInput = screen.getByLabelText('Distância (km)');
+            await user.clear(distInput);
+            await user.type(distInput, '10');
+            const btn = screen.getByRole('button', { name: /Registrar treino/ });
+            await user.click(btn);
+            const arg = onSubmit.mock.calls[0][0];
+            expect(arg.distanciaKm).toBe(10);
+        });
+
+        it('reseta tipo para CONTINUO após submit bem-sucedido', async () => {
+            const user = userEvent.setup();
+            renderForm();
+            await user.click(screen.getByText('Intervalado'));
+            const intervChip = screen.getByText('Intervalado').closest('[role="radio"]');
+            expect(intervChip).toHaveAttribute('aria-checked', 'true');
+            await user.click(screen.getByRole('button', { name: /Registrar treino/ }));
+            const continuoChip = screen.getByText('Corrida contínua').closest('[role="radio"]');
+            expect(continuoChip).toHaveAttribute('aria-checked', 'true');
+        });
+
+        it('altera aria-checked ao trocar tipo', async () => {
+            const user = userEvent.setup();
+            renderForm();
+            await user.click(screen.getByText('Fartlek'));
+            const fartlekChip = screen.getByText('Fartlek').closest('[role="radio"]');
+            const continuoChip = screen.getByText('Corrida contínua').closest('[role="radio"]');
+            expect(fartlekChip).toHaveAttribute('aria-checked', 'true');
+            expect(continuoChip).toHaveAttribute('aria-checked', 'false');
         });
     });
 
     describe('campo observações', () => {
-        it('trunca em 500 caracteres', async () => {
+        it('trunca em 500 caracteres', () => {
             renderForm();
             const textarea = screen.getByPlaceholderText(/Como foi o treino/);
             const long = 'a'.repeat(600);
+            // fireEvent.change simula mutação programática sem passar pelas camadas de userEvent
             fireEvent.change(textarea, { target: { value: long } });
             expect(screen.getByText('500/500')).toBeInTheDocument();
         });

@@ -6,16 +6,16 @@ export const useManualTraining = (dias = 7) => {
     const [recentes, setRecentes] = useState<TreinoRealizadoDto[]>([]);
     const [isFetching, setIsFetching] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [error, setError] = useState<Error | null>(null);
+    const [fetchError, setFetchError] = useState<Error | null>(null);
 
     const fetchRecentes = useCallback(async () => {
         try {
             setIsFetching(true);
-            setError(null);
+            setFetchError(null);
             const data = await ManualTrainingService.listarRecentes(dias);
             setRecentes(data);
         } catch (err) {
-            setError(err instanceof Error ? err : new Error('Erro ao buscar treinos recentes'));
+            setFetchError(err instanceof Error ? err : new Error('Erro ao buscar treinos recentes'));
         } finally {
             setIsFetching(false);
         }
@@ -23,19 +23,16 @@ export const useManualTraining = (dias = 7) => {
 
     const registrar = useCallback(async (input: TreinoManualInput): Promise<TreinoRealizadoDto> => {
         setIsSubmitting(true);
-        setError(null);
         try {
             const salvo = await ManualTrainingService.registrar(input);
             await fetchRecentes();
             return salvo;
         } catch (err) {
-            const error = err instanceof Error ? err : new Error('Erro ao registrar treino');
-            setError(error);
-            throw error;
+            throw err instanceof Error ? err : new Error('Erro ao registrar treino');
         } finally {
             setIsSubmitting(false);
         }
     }, [fetchRecentes]);
 
-    return { recentes, isFetching, isSubmitting, error, registrar, fetchRecentes };
+    return { recentes, isFetching, isSubmitting, fetchError, registrar, fetchRecentes };
 };

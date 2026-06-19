@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useMemo } from 'react';
-import { Alert, Box, Snackbar, Typography } from '@mui/material';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, Box, CircularProgress, Snackbar, Typography } from '@mui/material';
 import { isSameDay, parseISO } from 'date-fns';
-import { useState } from 'react';
-import { surface, glassSx } from '../../../theme/tokens';
+import { surface, glassSx, primary } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import { useManualTraining } from '../../../hooks/useManualTraining';
 import { ManualTrainingForm } from '../components/ManualTrainingForm';
@@ -10,7 +9,7 @@ import { RecentTrainingsList } from '../components/RecentTrainingsList';
 import type { TreinoManualInput } from '../../../types/TreinoManual';
 
 export default function ManualTrainingFormPage() {
-    const { recentes, isSubmitting, error: fetchError, registrar, fetchRecentes } = useManualTraining(7);
+    const { recentes, isFetching, isSubmitting, fetchError, registrar, fetchRecentes } = useManualTraining(7);
     const [toast, setToast] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
         open: false,
         message: '',
@@ -46,7 +45,6 @@ export default function ManualTrainingFormPage() {
                 gap: 3,
             }}
         >
-            {/* Header */}
             <Box>
                 <Typography
                     sx={{
@@ -63,7 +61,6 @@ export default function ManualTrainingFormPage() {
                 </Typography>
             </Box>
 
-            {/* Formulário */}
             <Box sx={{ ...glassSx, borderRadius: 2, p: 2.5 }}>
                 <ManualTrainingForm
                     loading={isSubmitting}
@@ -72,7 +69,6 @@ export default function ManualTrainingFormPage() {
                 />
             </Box>
 
-            {/* Treinos recentes */}
             <Box>
                 <Typography
                     sx={{
@@ -91,10 +87,15 @@ export default function ManualTrainingFormPage() {
                         Erro ao carregar treinos recentes. Tente novamente.
                     </Alert>
                 )}
-                <RecentTrainingsList treinos={recentes} />
+                {isFetching ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                        <CircularProgress size={24} sx={{ color: primary[500] }} />
+                    </Box>
+                ) : (
+                    <RecentTrainingsList treinos={recentes} />
+                )}
             </Box>
 
-            {/* Toast de confirmação */}
             <Snackbar
                 open={toast.open}
                 autoHideDuration={4000}

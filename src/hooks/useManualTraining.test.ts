@@ -38,7 +38,7 @@ describe('useManualTraining', () => {
 
             expect(result.current.recentes).toHaveLength(1);
             expect(result.current.recentes[0].tipoTreino).toBe('CONTINUO');
-            expect(result.current.error).toBeNull();
+            expect(result.current.fetchError).toBeNull();
             expect(result.current.isFetching).toBe(false);
         });
 
@@ -49,16 +49,16 @@ describe('useManualTraining', () => {
             await act(async () => { await result.current.fetchRecentes(); });
 
             expect(result.current.recentes).toEqual([]);
-            expect(result.current.error).toBeNull();
+            expect(result.current.fetchError).toBeNull();
         });
 
-        it('popula error quando listagem falha', async () => {
+        it('popula fetchError quando listagem falha', async () => {
             vi.mocked(ManualTrainingService.listarRecentes).mockRejectedValue(new Error('timeout'));
 
             const { result } = renderHook(() => useManualTraining());
             await act(async () => { await result.current.fetchRecentes(); });
 
-            expect(result.current.error).toBeInstanceOf(Error);
+            expect(result.current.fetchError).toBeInstanceOf(Error);
             expect(result.current.recentes).toEqual([]);
             expect(result.current.isFetching).toBe(false);
         });
@@ -80,7 +80,7 @@ describe('useManualTraining', () => {
             expect(result.current.isSubmitting).toBe(false);
         });
 
-        it('propaga error e seta state quando POST falha', async () => {
+        it('propaga o erro e não seta fetchError quando POST falha', async () => {
             vi.mocked(ManualTrainingService.registrar).mockRejectedValue(new Error('422'));
 
             const { result } = renderHook(() => useManualTraining());
@@ -88,7 +88,7 @@ describe('useManualTraining', () => {
                 await expect(result.current.registrar(INPUT)).rejects.toThrow('422');
             });
 
-            expect(result.current.error).toBeInstanceOf(Error);
+            expect(result.current.fetchError).toBeNull();
             expect(result.current.isSubmitting).toBe(false);
         });
 
