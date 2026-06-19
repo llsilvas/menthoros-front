@@ -6,6 +6,7 @@ import type { CoachRoute } from '../../../constants/routes';
 import CoachSidebar from './CoachSidebar';
 import { useCurrentUser } from '../../../hooks/useCurrentUser';
 import { useAttentionQueue } from '../../../hooks/useAttentionQueue';
+import { useCoachPlanPendingCount } from '../../../hooks/useCoachPlanPendingCount';
 import type { CoachAttentionItem } from '../../../types/Coach';
 
 export interface CoachLayoutOutletContext {
@@ -21,6 +22,7 @@ export default function CoachLayout() {
 
   const { coach, tenant, fetchCurrentUser } = useCurrentUser();
   const { queue, loading: queueLoading, error: queueError, fetchQueue } = useAttentionQueue();
+  const reviewBadgeCount = useCoachPlanPendingCount();
 
   useEffect(() => {
     fetchCurrentUser();
@@ -54,6 +56,7 @@ export default function CoachLayout() {
         coach={coach}
         currentTenant={tenant}
         inboxBadgeCount={queue.length}
+        reviewBadgeCount={reviewBadgeCount}
         onNavigate={handleNavigate}
       />
       <Box sx={{ flex: 1, overflow: 'auto' }}>
