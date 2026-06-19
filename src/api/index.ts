@@ -11,3 +11,4 @@ export { AtletasService } from './services/AtletasService';
 export { CoachDashboardService } from './services/CoachDashboardService'; // curado à mão — não remover ao regenerar
 export { PlanoSemanalService } from './services/PlanoSemanalService';
 export { TreinoService } from './services/TreinoService';
+export { UsuarioService } from './services/UsuarioService'; // curado à mão — não remover ao regenerar

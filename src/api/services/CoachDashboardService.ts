@@ -1,4 +1,4 @@
-import type { CoachAtletaResumo, CoachCalendario, CoachInsights } from '../../types/Coach';
+import type { CoachAtletaResumo, CoachAttentionItem, CoachCalendario, CoachInsights } from '../../types/Coach';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -51,6 +51,19 @@ export class CoachDashboardService {
                 'from': from,
                 'to': to,
             },
+        });
+    }
+
+    /**
+     * Fila de atenção do coach: atletas do tenant que exigem ação imediata,
+     * ordenados por severidade e priorityScore.
+     * @returns CoachAttentionItem[] fila ordenada (severidade CRITICA antes de ALTA)
+     * @throws ApiError
+     */
+    public static getAttentionQueue(): CancelablePromise<Array<CoachAttentionItem>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/coach/attention-queue',
         });
     }
 }
