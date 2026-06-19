@@ -77,3 +77,42 @@ export interface CoachInsights {
     tendenciaCargaSemanal: PontoCargaSemanal[];
     topAtletas: TopAtleta[];
 }
+
+// ── Fila de atenção (`GET /api/v1/coach/attention-queue`) ─────────────────────
+
+export type AttentionSeverity = 'CRITICA' | 'ALTA' | 'MEDIA';
+
+export type AttentionReason =
+    | 'FADIGA'
+    | 'SOBRECARGA'
+    | 'SEM_PLANO'
+    | 'ADERENCIA'
+    | 'INATIVIDADE'
+    | 'ZONAS_VENCIDAS';
+
+export type ExplanationConfidence = 'HIGH' | 'MEDIUM' | 'LOW';
+
+export interface RecommendationExplanation {
+    rationale: string;
+    sourceRules: string[];
+    confidence: ExplanationConfidence;
+}
+
+export interface AttentionEvidence {
+    label: string;
+    value: string;
+}
+
+/** Item da fila de atenção do coach (`GET /api/v1/coach/attention-queue`). */
+export interface CoachAttentionItem {
+    atletaId: string;
+    athleteName: string;
+    severity: AttentionSeverity;
+    priorityScore: number;
+    primaryReason: AttentionReason;
+    suggestedAction: string;
+    /** ISO 8601 Instant serializado como string. */
+    generatedAt: string;
+    evidence: AttentionEvidence[];
+    explanation?: RecommendationExplanation;
+}
