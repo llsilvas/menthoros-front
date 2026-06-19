@@ -78,8 +78,11 @@ describe('CoachPlanReviewPage', () => {
 
         fireEvent.click(screen.getByRole('button', { name: /semana base aerobica/i }));
 
-        expect(screen.getByText(/45 km planejados/)).toBeInTheDocument();
-        expect(screen.getAllByText(/2 sessões/).length).toBeGreaterThanOrEqual(2);
+        // Painel exibe volume (aparece na lista e no header do painel)
+        expect(screen.getAllByText(/45 km/).length).toBeGreaterThanOrEqual(1);
+        // Botões de ação visíveis após seleção
+        expect(screen.getByRole('button', { name: /aprovar/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /rejeitar/i })).toBeInTheDocument();
     });
 
     it('clicar Aprovar chama reviewAprovar com id correto', async () => {

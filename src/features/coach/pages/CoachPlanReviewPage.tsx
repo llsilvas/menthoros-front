@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Alert, Box, CircularProgress, Snackbar, Typography } from '@mui/material';
 import { useOutletContext } from 'react-router';
+import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import { PlanoPendenteItem } from '../components/PlanoPendenteItem';
 import { PlanoDetalhePanel } from '../components/PlanoDetalhePanel';
-import { content, surface } from '../../../theme/tokens';
+import { primary, surface, content, semantic } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
 
@@ -19,7 +20,7 @@ export default function CoachPlanReviewPage() {
     } = useOutletContext<CoachLayoutOutletContext>();
 
     const [selectedId, setSelectedId] = useState<string | null>(null);
-    const [toast, setToast] = useState<string | null>(null);
+    const [toast, setToast] = useState<{ msg: string; severity: 'success' | 'error' } | null>(null);
 
     // Mantém seleção válida ao remover plano da lista
     useEffect(() => {
@@ -34,64 +35,99 @@ export default function CoachPlanReviewPage() {
     const handleAprovar = async () => {
         if (!selected) return;
         await aprovar(selected.id);
-        setToast('Plano aprovado com sucesso');
+        setToast({ msg: 'Plano aprovado com sucesso', severity: 'success' });
     };
 
     const handleRejeitar = async (motivo: string) => {
         if (!selected) return;
         await rejeitar(selected.id, motivo);
-        setToast('Plano rejeitado');
+        setToast({ msg: 'Plano rejeitado', severity: 'success' });
     };
 
-    // ── Estados de loading e erro ──────────────────────────────────────────
+    // ── Loading ────────────────────────────────────────────────────────────────
 
     if (isFetching) {
         return (
-            <Box
-                sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}
-            >
-                <CircularProgress size={40} />
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                <CircularProgress
+                    size={32}
+                    thickness={2}
+                    sx={{ color: primary[500] }}
+                />
             </Box>
         );
     }
 
+    // ── Erro de fetch ──────────────────────────────────────────────────────────
+
     if (fetchError) {
         return (
-            <Box sx={{ p: 3 }}>
-                <Alert severity="error" variant="outlined">
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', p: 4 }}>
+                <Alert
+                    severity="error"
+                    variant="outlined"
+                    sx={{
+                        maxWidth: 440,
+                        borderColor: `${semantic.danger[500]}50`,
+                        '& .MuiAlert-message': { fontSize: '0.85rem' },
+                    }}
+                >
                     {fetchError.message}
                 </Alert>
             </Box>
         );
     }
 
-    // ── Empty state global ─────────────────────────────────────────────────
+    // ── Empty state ────────────────────────────────────────────────────────────
 
     if (pendentes.length === 0) {
         return (
             <Box
                 sx={{
-                    display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', justifyContent: 'center',
-                    height: '100%', gap: 1.5, px: 3,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: '100%',
+                    gap: 2,
+                    px: 4,
                 }}
             >
-                <Typography
+                <Box
                     sx={{
-                        fontSize: '1.25rem', fontWeight: 700, color: surface[50],
-                        fontFamily: 'Syne, sans-serif',
+                        width: 56,
+                        height: 56,
+                        borderRadius: '50%',
+                        bgcolor: `${primary[500]}10`,
+                        border: `1px solid ${primary[500]}28`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                     }}
                 >
-                    Nenhum plano aguardando revisão
-                </Typography>
-                <Typography sx={{ fontSize: '0.875rem', color: surface[400], textAlign: 'center' }}>
-                    Os planos gerados pela IA aparecerão aqui para aprovação.
-                </Typography>
+                    <AutoAwesomeOutlinedIcon sx={{ fontSize: 24, color: primary[500], opacity: 0.7 }} />
+                </Box>
+                <Box sx={{ textAlign: 'center' }}>
+                    <Typography
+                        sx={{
+                            fontFamily: 'Syne, sans-serif',
+                            fontSize: '1.1rem',
+                            fontWeight: 700,
+                            color: surface[300],
+                            mb: 0.75,
+                        }}
+                    >
+                        Nenhum plano aguardando revisão
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.82rem', color: surface[500], maxWidth: 300 }}>
+                        Quando a IA gerar novos planos para seus atletas, eles aparecerão aqui para aprovação.
+                    </Typography>
+                </Box>
             </Box>
         );
     }
 
-    // ── Layout 2-colunas ───────────────────────────────────────────────────
+    // ── Layout principal ───────────────────────────────────────────────────────
 
     return (
         <Box
@@ -103,40 +139,55 @@ export default function CoachPlanReviewPage() {
                 bgcolor: elevation.base,
             }}
         >
-            {/* Coluna esquerda — lista de pendentes */}
+            {/* ── Coluna esquerda: fila de revisão ───────────────────── */}
             <Box
                 sx={{
-                    width: 320,
+                    width: 296,
                     flexShrink: 0,
                     display: 'flex',
                     flexDirection: 'column',
                     borderRight: `1px solid ${content.divider}`,
                     overflow: 'hidden',
+                    bgcolor: `${surface[0]}04`,
                 }}
             >
+                {/* Header da lista */}
                 <Box
                     sx={{
-                        px: 2, py: 1.5,
+                        px: 2,
+                        py: 1.75,
                         borderBottom: `1px solid ${content.divider}`,
                         flexShrink: 0,
                     }}
                 >
                     <Typography
                         sx={{
-                            fontSize: '0.75rem', fontWeight: 600, color: surface[400],
-                            textTransform: 'uppercase', letterSpacing: '0.06em',
+                            fontFamily: 'Syne, sans-serif',
+                            fontSize: '0.65rem',
+                            fontWeight: 700,
+                            color: surface[500],
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.1em',
+                            mb: 0.25,
                         }}
                     >
+                        Fila de Revisão
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.72rem', color: surface[600] }}>
                         {pendentes.length} {pendentes.length === 1 ? 'plano pendente' : 'planos pendentes'}
                     </Typography>
                 </Box>
 
+                {/* Lista */}
                 <Box
                     sx={{
-                        flex: 1, overflowY: 'auto',
-                        display: 'flex', flexDirection: 'column',
-                        gap: 1, p: 1.5,
-                        '&::-webkit-scrollbar': { width: 4 },
+                        flex: 1,
+                        overflowY: 'auto',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 0.75,
+                        p: 1.5,
+                        '&::-webkit-scrollbar': { width: 3 },
                         '&::-webkit-scrollbar-track': { bgcolor: 'transparent' },
                         '&::-webkit-scrollbar-thumb': { bgcolor: surface[700], borderRadius: 2 },
                     }}
@@ -152,7 +203,7 @@ export default function CoachPlanReviewPage() {
                 </Box>
             </Box>
 
-            {/* Coluna direita — painel de detalhe */}
+            {/* ── Coluna direita: painel de detalhe ──────────────────── */}
             <PlanoDetalhePanel
                 plano={selected}
                 isActing={isActing}
@@ -160,31 +211,42 @@ export default function CoachPlanReviewPage() {
                 onRejeitar={handleRejeitar}
             />
 
-            {/* Toast de confirmação de ação */}
+            {/* Toasts */}
             <Snackbar
                 open={!!toast}
-                autoHideDuration={3000}
+                autoHideDuration={3500}
                 onClose={() => setToast(null)}
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
             >
                 <Alert
-                    severity="success"
+                    severity={toast?.severity ?? 'success'}
                     variant="filled"
                     onClose={() => setToast(null)}
-                    sx={{ fontSize: '0.85rem' }}
+                    sx={{
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        ...(toast?.severity === 'success' && {
+                            bgcolor: primary[500],
+                            color: surface[900],
+                            '& .MuiAlert-icon': { color: surface[900] },
+                        }),
+                    }}
                 >
-                    {toast}
+                    {toast?.msg}
                 </Alert>
             </Snackbar>
 
-            {/* Toast de erro de ação */}
             {actionError && (
                 <Snackbar
                     open={!!actionError}
                     autoHideDuration={5000}
                     anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
                 >
-                    <Alert severity="error" variant="filled" sx={{ fontSize: '0.85rem' }}>
+                    <Alert
+                        severity="error"
+                        variant="filled"
+                        sx={{ fontSize: '0.82rem', fontWeight: 600 }}
+                    >
                         {actionError.message}
                     </Alert>
                 </Snackbar>
