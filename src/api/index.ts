@@ -12,3 +12,4 @@ export { CoachDashboardService } from './services/CoachDashboardService'; // cur
 export { PlanoSemanalService } from './services/PlanoSemanalService';
 export { TreinoService } from './services/TreinoService';
 export { UsuarioService } from './services/UsuarioService'; // curado à mão — não remover ao regenerar
+export { SugestaoService } from './services/SugestaoService'; // curado à mão — não remover ao regenerar
