@@ -1,121 +1,177 @@
-import { useEffect, useState } from 'react';
-import { Box, Button, CircularProgress, Typography } from '@mui/material';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import InboxIcon from '@mui/icons-material/Inbox';
+import { useCallback, useEffect, useState } from 'react';
+import { Box, Button, CircularProgress, Tab, Tabs, Typography } from '@mui/material';
+import { CheckCircle as CheckCircleIcon } from '@mui/icons-material';
 import { SugestaoService } from '../../../api/services/SugestaoService';
-import { useCoachSugestoes } from '../../../hooks/useCoachSugestoes';
+import { ConfidenceBar } from '../../../shared/components/ConfidenceBar';
+import { SuggestionTypeBadge } from '../../../shared/components/SuggestionTypeBadge';
+import type { SuggestionType } from '../../../shared/components/SuggestionTypeBadge';
+import { CoachAthleteAvatar } from '../components/CoachAthleteAvatar';
 import { elevation } from '../../../shared/design-tokens';
-import { content, semantic, surface } from '../../../theme/tokens';
-import type { SugestaoCoachOutputDto, SugestaoConfidence, SugestaoTipo } from '../../../types/SugestaoCoach';
+import { content, primary, semantic, surface } from '../../../theme/tokens';
+import type { SugestaoCoachOutputDto, SugestaoConfidence, SugestaoStatus, SugestaoTipo } from '../../../types/SugestaoCoach';
 
-// ── Configuração de exibição ──────────────────────────────────────────────────
+// ── Adaptadores de tipo (API uppercase → componentes lowercase) ───────────────
 
-const TIPO_LABEL: Record<SugestaoTipo, string> = {
-    PLAN_ADJUST: 'Ajuste de Plano',
-    RECOVERY:    'Recuperação',
-    NEW_PLAN:    'Novo Plano',
-};
+function toSuggestionType(tipo: SugestaoTipo): SuggestionType {
+    const map: Record<SugestaoTipo, SuggestionType> = {
+        PLAN_ADJUST: 'plan_adjust',
+        RECOVERY:    'recovery',
+        NEW_PLAN:    'new_plan',
+    };
+    return map[tipo];
+}
 
-const CONFIDENCE_CONFIG: Record<SugestaoConfidence, { color: string; label: string }> = {
-    HIGH:   { color: semantic.danger[500],  label: 'Alta confiança'  },
-    MEDIUM: { color: semantic.warning[500], label: 'Média confiança' },
-    LOW:    { color: semantic.info[500],    label: 'Baixa confiança' },
-};
+function toConfidenceValue(confidence: SugestaoConfidence): number {
+    return { HIGH: 90, MEDIUM: 65, LOW: 35 }[confidence];
+}
 
-// ── Sub-componentes ───────────────────────────────────────────────────────────
+// ── Tipos e constantes do filtro ──────────────────────────────────────────────
 
-function TipoChip({ tipo }: { tipo: SugestaoTipo }) {
+type FilterOption = 'all' | SugestaoStatus;
+
+interface FilterChip { value: FilterOption; label: string }
+
+const FILTER_CHIPS: FilterChip[] = [
+    { value: 'all',      label: 'Todas'      },
+    { value: 'PENDING',  label: 'Pendentes'  },
+    { value: 'APPROVED', label: 'Aprovadas'  },
+    { value: 'REJECTED', label: 'Rejeitadas' },
+];
+
+// ── Coluna de filtros (80px) ──────────────────────────────────────────────────
+
+function FilterColumn({
+    activeFilter,
+    onFilterChange,
+}: {
+    activeFilter: FilterOption;
+    onFilterChange: (f: FilterOption) => void;
+}) {
     return (
         <Box
-            component="span"
             sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                px: 0.75,
-                py: 0.25,
-                borderRadius: '4px',
-                bgcolor: `${surface[0]}1A`,
-                border: `1px solid ${content.cardBorder}`,
-                color: surface[300],
-                fontSize: '0.65rem',
-                fontWeight: 600,
-                letterSpacing: '0.04em',
-                textTransform: 'uppercase',
+                width: 80,
                 flexShrink: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 1,
+                py: 2,
+                px: 0.5,
+                borderRight: `1px solid ${content.divider}`,
             }}
         >
-            {TIPO_LABEL[tipo]}
+            {FILTER_CHIPS.map((chip) => {
+                const isActive = activeFilter === chip.value;
+                return (
+                    <Box
+                        key={chip.value}
+                        component="button"
+                        onClick={() => onFilterChange(chip.value)}
+                        sx={{
+                            display:         'flex',
+                            alignItems:      'center',
+                            justifyContent:  'center',
+                            textAlign:       'center',
+                            border:          'none',
+                            borderRadius:    '6px',
+                            cursor:          'pointer',
+                            px:              0.75,
+                            py:              0.75,
+                            fontSize:        '0.7rem',
+                            fontWeight:      500,
+                            lineHeight:      1.3,
+                            transition:      'background-color 0.15s ease, color 0.15s ease',
+                            backgroundColor: isActive ? primary[500] : surface[700],
+                            color:           isActive ? surface[900] : surface[400],
+                            '&:hover': {
+                                backgroundColor: isActive ? primary[400] : surface[600],
+                            },
+                        }}
+                    >
+                        {chip.label}
+                    </Box>
+                );
+            })}
         </Box>
     );
 }
 
-function ConfidenceChip({ confidence }: { confidence: SugestaoConfidence }) {
-    const { color, label } = CONFIDENCE_CONFIG[confidence];
-    return (
-        <Box
-            component="span"
-            sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                px: 0.75,
-                py: 0.25,
-                borderRadius: '4px',
-                border: `1px solid ${color}`,
-                bgcolor: `${color}1A`,
-                color,
-                fontSize: '0.65rem',
-                fontWeight: 700,
-                letterSpacing: '0.04em',
-                textTransform: 'uppercase',
-                flexShrink: 0,
-            }}
-        >
-            {label}
-        </Box>
-    );
-}
+// ── Card da lista (coluna central) ────────────────────────────────────────────
 
-// ── Painel esquerdo: lista ────────────────────────────────────────────────────
-
-interface SugestaoListItemProps {
+function SuggestionCard({
+    item,
+    isSelected,
+    onClick,
+}: {
     item: SugestaoCoachOutputDto;
-    selected: boolean;
+    isSelected: boolean;
     onClick: () => void;
-}
-
-function SugestaoListItem({ item, selected, onClick }: SugestaoListItemProps) {
+}) {
     return (
         <Box
             onClick={onClick}
             sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 0.5,
-                p: 1.5,
-                borderRadius: '8px',
-                cursor: 'pointer',
-                border: `1px solid ${selected ? semantic.info[500] : content.cardBorder}`,
-                bgcolor: selected ? elevation.highest : elevation.card,
-                transition: 'background 0.15s, border-color 0.15s',
+                display:         'flex',
+                flexDirection:   'column',
+                gap:             1,
+                px:              1.5,
+                py:              1.25,
+                cursor:          'pointer',
+                borderRadius:    '8px',
+                border:          `1px solid ${isSelected ? primary[500] : content.cardBorder}`,
+                backgroundColor: isSelected ? `${primary[500]}0D` : elevation.card,
+                transition: 'border-color 0.15s ease, background-color 0.15s ease',
                 '&:hover': {
-                    bgcolor: elevation.highest,
-                    borderColor: selected ? semantic.info[500] : surface[600],
+                    borderColor:     primary[500],
+                    backgroundColor: `${primary[500]}0D`,
                 },
             }}
         >
-            <TipoChip tipo={item.tipo} />
-            <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: surface[50], lineHeight: 1.3 }}>
-                {item.athleteName}
-            </Typography>
+            {/* Linha 1: avatar + nome + badge de tipo */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CoachAthleteAvatar
+                    athlete={{ id: item.atletaId, name: item.athleteName }}
+                    size="sm"
+                    status="none"
+                />
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography
+                        sx={{
+                            fontSize:     '0.8rem',
+                            fontWeight:   600,
+                            color:        surface[50],
+                            overflow:     'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace:   'nowrap',
+                            lineHeight:   1.3,
+                        }}
+                    >
+                        {item.athleteName}
+                    </Typography>
+                    <Box sx={{ mt: 0.25 }}>
+                        <SuggestionTypeBadge type={toSuggestionType(item.tipo)} size="sm" />
+                    </Box>
+                </Box>
+            </Box>
+
+            {/* Linha 2: barra de confiança */}
+            <ConfidenceBar
+                value={toConfidenceValue(item.confidence)}
+                size="sm"
+                showLabel={false}
+                showPercentage={true}
+            />
+
+            {/* Linha 3: resumo truncado */}
             <Typography
                 sx={{
-                    fontSize: '0.72rem',
-                    color: surface[400],
-                    lineHeight: 1.4,
-                    display: '-webkit-box',
+                    fontSize:        '0.75rem',
+                    color:           surface[400],
+                    display:         '-webkit-box',
                     WebkitLineClamp: 2,
                     WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
+                    overflow:        'hidden',
+                    lineHeight:      1.4,
                 }}
             >
                 {item.summary}
@@ -124,177 +180,216 @@ function SugestaoListItem({ item, selected, onClick }: SugestaoListItemProps) {
     );
 }
 
-// ── Painel direito: detalhe ───────────────────────────────────────────────────
+// ── Painel de revisão (coluna direita) ────────────────────────────────────────
 
-interface DetalhePanelProps {
-    sugestao: SugestaoCoachOutputDto | null;
-    onAprovar: () => Promise<void>;
-    onRejeitar: () => Promise<void>;
+function ReviewPanel({
+    item,
+    aprovando,
+    rejeitando,
+    onAprovar,
+    onRejeitar,
+}: {
+    item: SugestaoCoachOutputDto;
     aprovando: boolean;
     rejeitando: boolean;
-}
-
-function DetalhePanel({ sugestao, onAprovar, onRejeitar, aprovando, rejeitando }: DetalhePanelProps) {
-    if (!sugestao) {
-        return (
-            <Box
-                sx={{
-                    flex: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 1.5,
-                    px: 4,
-                    color: surface[600],
-                }}
-            >
-                <InboxIcon sx={{ fontSize: 48 }} />
-                <Typography sx={{ fontSize: '0.875rem' }}>
-                    Selecione uma sugestão para ver o detalhe
-                </Typography>
-            </Box>
-        );
-    }
-
+    onAprovar: () => void;
+    onRejeitar: () => void;
+}) {
+    const [activeTab, setActiveTab] = useState(0);
     const busy = aprovando || rejeitando;
+    const isPending = item.status === 'PENDING';
 
     return (
-        <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2, height: '100%', overflowY: 'auto' }}>
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
             {/* Cabeçalho */}
-            <Box>
-                <Typography
-                    sx={{
-                        fontSize: '1.1rem',
-                        fontWeight: 700,
-                        color: surface[50],
-                        fontFamily: 'Syne, sans-serif',
-                        mb: 0.75,
-                    }}
-                >
-                    {sugestao.athleteName}
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                    <ConfidenceChip confidence={sugestao.confidence} />
-                    <TipoChip tipo={sugestao.tipo} />
+            <Box
+                sx={{
+                    px: 2.5, py: 2,
+                    borderBottom: `1px solid ${content.divider}`,
+                    display: 'flex', alignItems: 'flex-start', gap: 1.5,
+                    flexShrink: 0,
+                }}
+            >
+                <CoachAthleteAvatar
+                    athlete={{ id: item.atletaId, name: item.athleteName }}
+                    size="md"
+                    status="none"
+                />
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                        <Typography
+                            sx={{ fontSize: '1.05rem', fontWeight: 700, color: surface[50], fontFamily: 'Syne, sans-serif' }}
+                        >
+                            {item.athleteName}
+                        </Typography>
+                        <SuggestionTypeBadge type={toSuggestionType(item.tipo)} size="md" />
+                    </Box>
+                    <Box sx={{ mt: 0.5 }}>
+                        <ConfidenceBar
+                            value={toConfidenceValue(item.confidence)}
+                            size="sm"
+                            showLabel={true}
+                            showPercentage={true}
+                        />
+                    </Box>
                 </Box>
             </Box>
 
-            {/* Resumo */}
-            <Box>
-                <Typography
+            {/* Tabs */}
+            <Box sx={{ borderBottom: `1px solid ${content.divider}`, flexShrink: 0 }}>
+                <Tabs
+                    value={activeTab}
+                    onChange={(_, v: number) => setActiveTab(v)}
                     sx={{
-                        fontSize: '0.875rem',
-                        fontWeight: 600,
-                        color: surface[100],
-                        lineHeight: 1.55,
+                        minHeight: 40,
+                        px: 2,
+                        '& .MuiTab-root': {
+                            minHeight: 40,
+                            fontSize: '0.8rem',
+                            fontWeight: 500,
+                            color: surface[400],
+                            textTransform: 'none',
+                            px: 1.5,
+                            py: 0,
+                        },
+                        '& .Mui-selected': { color: primary[500] },
+                        '& .MuiTabs-indicator': { backgroundColor: primary[500] },
                     }}
                 >
-                    {sugestao.summary}
-                </Typography>
+                    <Tab label="Detalhes" />
+                    <Tab label="Raciocínio da IA" />
+                </Tabs>
             </Box>
 
-            {/* Raciocínio */}
-            {sugestao.reasoning?.rationale && (
-                <Box
-                    sx={{
-                        p: 1.5,
-                        borderRadius: '6px',
-                        bgcolor: `${surface[0]}0A`,
-                        border: `1px solid ${content.cardBorder}`,
-                    }}
-                >
-                    <Typography
+            {/* Conteúdo das tabs */}
+            <Box sx={{ flex: 1, overflow: 'auto', px: 2.5, py: 2 }}>
+                {activeTab === 0 && (
+                    <Box
                         sx={{
-                            fontSize: '0.775rem',
-                            color: surface[400],
-                            lineHeight: 1.55,
-                            fontStyle: 'italic',
+                            p: 2, borderRadius: '8px',
+                            border: `1px solid ${content.cardBorder}`,
+                            backgroundColor: elevation.card,
                         }}
                     >
-                        {sugestao.reasoning.rationale}
-                    </Typography>
-                </Box>
-            )}
+                        <Typography
+                            sx={{
+                                fontSize: '0.7rem', fontWeight: 600, color: surface[500],
+                                textTransform: 'uppercase', letterSpacing: '0.06em', mb: 1,
+                            }}
+                        >
+                            Resumo da sugestão
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.9rem', color: surface[100], lineHeight: 1.6 }}>
+                            {item.summary}
+                        </Typography>
+                        <Typography sx={{ mt: 1.5, fontSize: '0.75rem', color: surface[500] }}>
+                            Criado em {new Date(item.createdAt).toLocaleDateString('pt-BR')}
+                        </Typography>
+                    </Box>
+                )}
 
-            {/* Botões de ação */}
-            <Box sx={{ display: 'flex', gap: 1.5, mt: 'auto', pt: 1 }}>
+                {activeTab === 1 && (
+                    <Box
+                        sx={{
+                            p: 2, borderRadius: '8px',
+                            border: `1px solid ${content.cardBorder}`,
+                            backgroundColor: elevation.card,
+                        }}
+                    >
+                        <Typography
+                            sx={{
+                                fontSize: '0.7rem', fontWeight: 600, color: surface[500],
+                                textTransform: 'uppercase', letterSpacing: '0.06em', mb: 1,
+                            }}
+                        >
+                            Raciocínio da IA
+                        </Typography>
+                        {item.reasoning?.rationale ? (
+                            <Typography sx={{ fontSize: '0.9rem', color: surface[100], lineHeight: 1.7 }}>
+                                {item.reasoning.rationale}
+                            </Typography>
+                        ) : (
+                            <Typography sx={{ fontSize: '0.85rem', color: surface[500], fontStyle: 'italic' }}>
+                                Raciocínio não disponível para esta sugestão.
+                            </Typography>
+                        )}
+                    </Box>
+                )}
+            </Box>
+
+            {/* Rodapé de ações */}
+            <Box
+                sx={{
+                    px: 2.5, py: 2,
+                    borderTop: `1px solid ${content.divider}`,
+                    display: 'flex', gap: 1.5,
+                    flexShrink: 0, flexWrap: 'wrap',
+                }}
+            >
                 <Button
                     variant="contained"
-                    size="small"
-                    disabled={busy}
                     onClick={onAprovar}
+                    disabled={!isPending || busy}
                     sx={{
                         bgcolor: semantic.success[500],
-                        '&:hover': { bgcolor: semantic.success[700] },
-                        '&:disabled': { bgcolor: `${semantic.success[500]}80` },
                         color: '#fff',
                         fontWeight: 600,
+                        fontSize: '0.8rem',
+                        textTransform: 'none',
+                        px: 2.5,
                         minWidth: 100,
+                        '&:hover': { bgcolor: semantic.success[700] },
+                        '&.Mui-disabled': { bgcolor: surface[700], color: surface[500] },
                     }}
                 >
-                    {aprovando ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : 'Aprovar'}
+                    {aprovando
+                        ? <CircularProgress size={14} sx={{ color: '#fff' }} />
+                        : 'Aprovar'}
                 </Button>
                 <Button
                     variant="outlined"
-                    size="small"
-                    disabled={busy}
                     onClick={onRejeitar}
+                    disabled={!isPending || busy}
                     sx={{
                         borderColor: semantic.danger[500],
                         color: semantic.danger[500],
-                        '&:hover': { bgcolor: `${semantic.danger[500]}1A`, borderColor: semantic.danger[500] },
                         fontWeight: 600,
+                        fontSize: '0.8rem',
+                        textTransform: 'none',
+                        px: 2.5,
                         minWidth: 100,
+                        '&:hover': { borderColor: semantic.danger[300], backgroundColor: `${semantic.danger[500]}14` },
+                        '&.Mui-disabled': { borderColor: surface[700], color: surface[500] },
                     }}
                 >
-                    {rejeitando ? <CircularProgress size={14} sx={{ color: semantic.danger[500] }} /> : 'Rejeitar'}
+                    {rejeitando
+                        ? <CircularProgress size={14} sx={{ color: semantic.danger[500] }} />
+                        : 'Rejeitar'}
                 </Button>
             </Box>
         </Box>
     );
 }
 
-// ── Estados auxiliares ────────────────────────────────────────────────────────
+// ── Empty state ───────────────────────────────────────────────────────────────
 
 function EmptyState() {
     return (
         <Box
             sx={{
                 flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 1.5,
-                px: 3,
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                gap: 1.5, px: 3,
             }}
         >
             <CheckCircleIcon sx={{ fontSize: 56, color: semantic.success[500] }} />
-            <Typography sx={{ fontSize: '1.1rem', fontWeight: 700, color: surface[50], fontFamily: 'Syne, sans-serif' }}>
-                Nenhuma sugestão pendente
+            <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, color: surface[50], fontFamily: 'Syne, sans-serif' }}>
+                Tudo em dia!
             </Typography>
             <Typography sx={{ fontSize: '0.875rem', color: surface[400], textAlign: 'center' }}>
-                O sistema não identificou ações prioritárias no momento.
+                Nenhuma validação pendente — bom trabalho.
             </Typography>
-        </Box>
-    );
-}
-
-function ErrorState({ onRetry }: { onRetry: () => void }) {
-    return (
-        <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-            <Typography sx={{ color: semantic.danger[500], fontSize: '0.875rem' }}>
-                Não foi possível carregar as sugestões.
-            </Typography>
-            <Button
-                variant="outlined"
-                size="small"
-                onClick={onRetry}
-                sx={{ alignSelf: 'flex-start', borderColor: semantic.danger[500], color: semantic.danger[500] }}
-            >
-                Tentar novamente
-            </Button>
         </Box>
     );
 }
@@ -302,43 +397,73 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
 // ── Page principal ────────────────────────────────────────────────────────────
 
 export default function CoachInboxPage() {
-    const { sugestoes, loading, error, fetchSugestoes } = useCoachSugestoes();
-    const [selected, setSelected] = useState<SugestaoCoachOutputDto | null>(null);
-    const [aprovando, setAprovando] = useState(false);
-    const [rejeitando, setRejeitando] = useState(false);
+    const [allSugestoes, setAllSugestoes] = useState<SugestaoCoachOutputDto[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [activeFilter, setActiveFilter] = useState<FilterOption>('PENDING');
+    const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [aprovandoIds, setAprovandoIds] = useState<Set<string>>(new Set());
+    const [rejeitandoIds, setRejeitandoIds] = useState<Set<string>>(new Set());
 
-    useEffect(() => {
-        fetchSugestoes();
-    }, [fetchSugestoes]);
-
-    // Mantém seleção sincronizada se a lista mudar (ex.: item aprovado desaparece)
-    useEffect(() => {
-        if (selected && !sugestoes.some((s) => s.id === selected.id)) {
-            setSelected(null);
+    const fetchAll = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const [pending, approved, rejected] = await Promise.all([
+                SugestaoService.listar('PENDING'),
+                SugestaoService.listar('APPROVED'),
+                SugestaoService.listar('REJECTED'),
+            ]);
+            setAllSugestoes([...pending, ...approved, ...rejected]);
+        } catch {
+            setError('Não foi possível carregar as sugestões.');
+        } finally {
+            setLoading(false);
         }
-    }, [sugestoes, selected]);
+    }, []);
+
+    useEffect(() => { fetchAll(); }, [fetchAll]);
+
+    // Lista filtrada + seleção
+    const filtered = activeFilter === 'all'
+        ? allSugestoes
+        : allSugestoes.filter((s) => s.status === activeFilter);
+
+    // Mantém seleção válida ao mudar filtro
+    useEffect(() => {
+        if (filtered.length === 0) { setSelectedId(null); return; }
+        if (!filtered.find((s) => s.id === selectedId)) {
+            setSelectedId(filtered[0].id);
+        }
+    }, [filtered, selectedId]);
+
+    const selected = filtered.find((s) => s.id === selectedId) ?? null;
 
     const handleAprovar = async () => {
         if (!selected) return;
-        setAprovando(true);
+        const id = selected.id;
+        setAprovandoIds((prev) => new Set(prev).add(id));
         try {
-            await SugestaoService.aprovar(selected.id);
-            await fetchSugestoes();
+            await SugestaoService.aprovar(id);
+            await fetchAll();
         } finally {
-            setAprovando(false);
+            setAprovandoIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
         }
     };
 
     const handleRejeitar = async () => {
         if (!selected) return;
-        setRejeitando(true);
+        const id = selected.id;
+        setRejeitandoIds((prev) => new Set(prev).add(id));
         try {
-            await SugestaoService.rejeitar(selected.id);
-            await fetchSugestoes();
+            await SugestaoService.rejeitar(id);
+            await fetchAll();
         } finally {
-            setRejeitando(false);
+            setRejeitandoIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
         }
     };
+
+    // ── Render ──────────────────────────────────────────────────────────────
 
     if (loading) {
         return (
@@ -349,61 +474,82 @@ export default function CoachInboxPage() {
     }
 
     if (error) {
-        return <ErrorState onRetry={fetchSugestoes} />;
-    }
-
-    if (sugestoes.length === 0) {
-        return <EmptyState />;
+        return (
+            <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <Typography sx={{ color: semantic.danger[500], fontSize: '0.875rem' }}>{error}</Typography>
+                <Button
+                    variant="outlined" size="small" onClick={fetchAll}
+                    sx={{ alignSelf: 'flex-start', borderColor: semantic.danger[500], color: semantic.danger[500] }}
+                >
+                    Tentar novamente
+                </Button>
+            </Box>
+        );
     }
 
     return (
-        <Box sx={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
-            {/* Painel esquerdo: lista (30%) */}
+        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'row', overflow: 'hidden', bgcolor: elevation.base }}>
+            {/* Coluna 1 — Filtros (~80px) */}
+            <FilterColumn activeFilter={activeFilter} onFilterChange={setActiveFilter} />
+
+            {/* Coluna 2 — Lista de sugestões (~360px) */}
             <Box
                 sx={{
-                    width: '30%',
-                    minWidth: 220,
-                    maxWidth: 320,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 0.75,
-                    p: 2,
+                    width: 360, flexShrink: 0,
+                    display: 'flex', flexDirection: 'column',
                     borderRight: `1px solid ${content.divider}`,
-                    overflowY: 'auto',
+                    overflow: 'hidden',
                 }}
             >
-                <Typography
+                <Box sx={{ px: 2, py: 1.5, borderBottom: `1px solid ${content.divider}`, flexShrink: 0 }}>
+                    <Typography
+                        sx={{
+                            fontSize: '0.75rem', fontWeight: 600, color: surface[400],
+                            textTransform: 'uppercase', letterSpacing: '0.06em',
+                        }}
+                    >
+                        {filtered.length} {filtered.length === 1 ? 'sugestão' : 'sugestões'}
+                    </Typography>
+                </Box>
+                <Box
                     sx={{
-                        fontSize: '0.72rem',
-                        fontWeight: 600,
-                        color: surface[400],
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.06em',
-                        mb: 0.5,
+                        flex: 1, overflowY: 'auto',
+                        display: 'flex', flexDirection: 'column',
+                        gap: 1, p: 1.5,
+                        '&::-webkit-scrollbar': { width: 4 },
+                        '&::-webkit-scrollbar-track': { bgcolor: 'transparent' },
+                        '&::-webkit-scrollbar-thumb': { bgcolor: surface[700], borderRadius: 2 },
                     }}
                 >
-                    {sugestoes.length} {sugestoes.length === 1 ? 'sugestão' : 'sugestões'} pendentes
-                </Typography>
-                {sugestoes.map((s) => (
-                    <SugestaoListItem
-                        key={s.id}
-                        item={s}
-                        selected={selected?.id === s.id}
-                        onClick={() => setSelected(s)}
-                    />
-                ))}
+                    {filtered.length === 0 ? (
+                        <Typography sx={{ fontSize: '0.8rem', color: surface[500], textAlign: 'center', mt: 4 }}>
+                            Nenhuma sugestão encontrada.
+                        </Typography>
+                    ) : (
+                        filtered.map((s) => (
+                            <SuggestionCard
+                                key={s.id}
+                                item={s}
+                                isSelected={s.id === selectedId}
+                                onClick={() => setSelectedId(s.id)}
+                            />
+                        ))
+                    )}
+                </Box>
             </Box>
 
-            {/* Painel direito: detalhe (70%) */}
-            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <DetalhePanel
-                    sugestao={selected}
+            {/* Coluna 3 — Painel de revisão (flex-1) */}
+            {selected ? (
+                <ReviewPanel
+                    item={selected}
+                    aprovando={aprovandoIds.has(selected.id)}
+                    rejeitando={rejeitandoIds.has(selected.id)}
                     onAprovar={handleAprovar}
                     onRejeitar={handleRejeitar}
-                    aprovando={aprovando}
-                    rejeitando={rejeitando}
                 />
-            </Box>
+            ) : (
+                <EmptyState />
+            )}
         </Box>
     );
 }
