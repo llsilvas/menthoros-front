@@ -13,3 +13,4 @@ export { PlanoSemanalService } from './services/PlanoSemanalService';
 export { TreinoService } from './services/TreinoService';
 export { UsuarioService } from './services/UsuarioService'; // curado à mão — não remover ao regenerar
 export { SugestaoService } from './services/SugestaoService'; // curado à mão — não remover ao regenerar
+export { ManualTrainingService } from './services/ManualTrainingService'; // curado à mão — não remover ao regenerar

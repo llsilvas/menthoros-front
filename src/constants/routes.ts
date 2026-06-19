@@ -15,11 +15,12 @@ export const ROUTES = {
     COACH_INSIGHTS: '/coach/insights',
 
     // Athlete shell (refine-athlete-shell-ux)
-    ATHLETE_HOME:     '/athlete/home',
-    ATHLETE_PLAN:     '/athlete/plan',
-    ATHLETE_PROGRESS: '/athlete/progress',
-    ATHLETE_COACH:    '/athlete/coach',
-    ATHLETE_PROFILE:  '/athlete/profile',
+    ATHLETE_HOME:         '/athlete/home',
+    ATHLETE_PLAN:         '/athlete/plan',
+    ATHLETE_PROGRESS:     '/athlete/progress',
+    ATHLETE_COACH:        '/athlete/coach',
+    ATHLETE_PROFILE:      '/athlete/profile',
+    ATHLETE_TRAINING_LOG: '/athlete/training/log',
 } as const;
 
 export type CoachRoute =
@@ -33,4 +34,5 @@ export type AthleteRoute =
     | '/athlete/plan'
     | '/athlete/progress'
     | '/athlete/coach'
-    | '/athlete/profile';
+    | '/athlete/profile'
+    | '/athlete/training/log';

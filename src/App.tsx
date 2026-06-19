@@ -20,6 +20,7 @@ import AthletePlanPage from './features/athlete/pages/AthletePlanPage';
 import AthleteProgressPage from './features/athlete/pages/AthleteProgressPage';
 import AthleteCoachPage from './features/athlete/pages/AthleteCoachPage';
 import AthleteProfilePage from './features/athlete/pages/AthleteProfilePage';
+import ManualTrainingFormPage from './features/athlete/pages/ManualTrainingFormPage';
 import { colors, text, content, backgrounds } from './theme/tokens';
 
 const theme = createTheme({
@@ -186,11 +187,12 @@ const router = createHashRouter([
         path: 'athlete',
         element: <AthleteLayout />,
         children: [
-          { path: 'home',     element: <AthleteHomePage /> },
-          { path: 'plan',     element: <AthletePlanPage /> },
-          { path: 'progress', element: <AthleteProgressPage /> },
-          { path: 'coach',    element: <AthleteCoachPage /> },
-          { path: 'profile',  element: <AthleteProfilePage /> },
+          { path: 'home',          element: <AthleteHomePage /> },
+          { path: 'plan',          element: <AthletePlanPage /> },
+          { path: 'progress',      element: <AthleteProgressPage /> },
+          { path: 'coach',         element: <AthleteCoachPage /> },
+          { path: 'profile',       element: <AthleteProfilePage /> },
+          { path: 'training/log',  element: <ManualTrainingFormPage /> },
         ],
       },
     ],
