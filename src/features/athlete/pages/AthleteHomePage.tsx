@@ -184,7 +184,7 @@ export default function AthleteHomePage() {
           py: 1.5,
           '&:hover': {
             borderColor: primary[400],
-            bgcolor: 'rgba(212,255,58,0.08)',
+            bgcolor: `${primary[500]}14`,
           },
         }}
       >

@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { Alert, Box, Snackbar, Typography } from '@mui/material';
 import { isSameDay, parseISO } from 'date-fns';
+import { useState } from 'react';
 import { surface, glassSx } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import { useManualTraining } from '../../../hooks/useManualTraining';
@@ -9,7 +10,7 @@ import { RecentTrainingsList } from '../components/RecentTrainingsList';
 import type { TreinoManualInput } from '../../../types/TreinoManual';
 
 export default function ManualTrainingFormPage() {
-    const { recentes, loading, registrar, fetchRecentes } = useManualTraining(7);
+    const { recentes, isSubmitting, error: fetchError, registrar, fetchRecentes } = useManualTraining(7);
     const [toast, setToast] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
         open: false,
         message: '',
@@ -20,8 +21,10 @@ export default function ManualTrainingFormPage() {
         fetchRecentes();
     }, [fetchRecentes]);
 
-    const hoje = new Date();
-    const hasTreinoHoje = recentes.some((t) => isSameDay(parseISO(t.dataTreino), hoje));
+    const hasTreinoHoje = useMemo(
+        () => recentes.some((t) => isSameDay(parseISO(t.dataTreino), new Date())),
+        [recentes]
+    );
 
     const handleSubmit = useCallback(async (input: TreinoManualInput) => {
         try {
@@ -63,7 +66,7 @@ export default function ManualTrainingFormPage() {
             {/* Formulário */}
             <Box sx={{ ...glassSx, borderRadius: 2, p: 2.5 }}>
                 <ManualTrainingForm
-                    loading={loading}
+                    loading={isSubmitting}
                     hasTreinoHoje={hasTreinoHoje}
                     onSubmit={handleSubmit}
                 />
@@ -83,6 +86,11 @@ export default function ManualTrainingFormPage() {
                 >
                     Últimos 7 dias
                 </Typography>
+                {fetchError && (
+                    <Alert severity="error" sx={{ mb: 1.5, fontSize: '0.85rem' }}>
+                        Erro ao carregar treinos recentes. Tente novamente.
+                    </Alert>
+                )}
                 <RecentTrainingsList treinos={recentes} />
             </Box>
 

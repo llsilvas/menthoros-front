@@ -26,10 +26,10 @@ describe('ManualTrainingForm', () => {
             renderForm();
 
             expect(screen.getByText('Tipo de treino')).toBeInTheDocument();
-            expect(screen.getByText('Data do treino')).toBeInTheDocument();
-            expect(screen.getByText('Duração (minutos)')).toBeInTheDocument();
+            expect(screen.getAllByText('Data do treino').length).toBeGreaterThan(0);
+            expect(screen.getAllByText('Duração (minutos)').length).toBeGreaterThan(0);
             expect(screen.getByText(/Percepção de esforço/)).toBeInTheDocument();
-            expect(screen.getByText(/Observações/)).toBeInTheDocument();
+            expect(screen.getByText('Observações (opcional)')).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /Registrar treino/ })).toBeInTheDocument();
         });
 
@@ -59,7 +59,7 @@ describe('ManualTrainingForm', () => {
 
         it('campo distância aparece para tipo CONTINUO', () => {
             renderForm();
-            expect(screen.getByText(/Distância/)).toBeInTheDocument();
+            expect(screen.getByText('Distância (km) — opcional')).toBeInTheDocument();
         });
     });
 
@@ -75,6 +75,14 @@ describe('ManualTrainingForm', () => {
         it('está desabilitado quando loading=true', () => {
             renderForm({ loading: true });
             expect(screen.getByRole('button', { name: /Registrando/ })).toBeDisabled();
+        });
+
+        it('está desabilitado quando duracaoMinutos está vazio', async () => {
+            renderForm();
+            const input = screen.getByLabelText(/Duração/i);
+            await userEvent.clear(input);
+            const btn = screen.getByRole('button', { name: /Registrar treino/ });
+            expect(btn).toBeDisabled();
         });
 
         it('chama onSubmit com dados corretos quando form é válido', async () => {

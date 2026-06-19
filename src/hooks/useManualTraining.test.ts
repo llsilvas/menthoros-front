@@ -39,7 +39,7 @@ describe('useManualTraining', () => {
             expect(result.current.recentes).toHaveLength(1);
             expect(result.current.recentes[0].tipoTreino).toBe('CONTINUO');
             expect(result.current.error).toBeNull();
-            expect(result.current.loading).toBe(false);
+            expect(result.current.isFetching).toBe(false);
         });
 
         it('retorna lista vazia quando não há treinos no período', async () => {
@@ -60,7 +60,7 @@ describe('useManualTraining', () => {
 
             expect(result.current.error).toBeInstanceOf(Error);
             expect(result.current.recentes).toEqual([]);
-            expect(result.current.loading).toBe(false);
+            expect(result.current.isFetching).toBe(false);
         });
     });
 
@@ -77,7 +77,7 @@ describe('useManualTraining', () => {
             expect(ManualTrainingService.registrar).toHaveBeenCalledWith(INPUT);
             expect(ManualTrainingService.listarRecentes).toHaveBeenCalled();
             expect(result.current.recentes).toHaveLength(1);
-            expect(result.current.loading).toBe(false);
+            expect(result.current.isSubmitting).toBe(false);
         });
 
         it('propaga error e seta state quando POST falha', async () => {
@@ -89,7 +89,7 @@ describe('useManualTraining', () => {
             });
 
             expect(result.current.error).toBeInstanceOf(Error);
-            expect(result.current.loading).toBe(false);
+            expect(result.current.isSubmitting).toBe(false);
         });
 
         it('não atualiza recentes quando POST falha', async () => {

@@ -4,24 +4,25 @@ import type { TreinoManualInput, TreinoRealizadoDto } from '../types/TreinoManua
 
 export const useManualTraining = (dias = 7) => {
     const [recentes, setRecentes] = useState<TreinoRealizadoDto[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [isFetching, setIsFetching] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<Error | null>(null);
 
     const fetchRecentes = useCallback(async () => {
         try {
-            setLoading(true);
+            setIsFetching(true);
             setError(null);
             const data = await ManualTrainingService.listarRecentes(dias);
             setRecentes(data);
         } catch (err) {
             setError(err instanceof Error ? err : new Error('Erro ao buscar treinos recentes'));
         } finally {
-            setLoading(false);
+            setIsFetching(false);
         }
     }, [dias]);
 
     const registrar = useCallback(async (input: TreinoManualInput): Promise<TreinoRealizadoDto> => {
-        setLoading(true);
+        setIsSubmitting(true);
         setError(null);
         try {
             const salvo = await ManualTrainingService.registrar(input);
@@ -32,9 +33,9 @@ export const useManualTraining = (dias = 7) => {
             setError(error);
             throw error;
         } finally {
-            setLoading(false);
+            setIsSubmitting(false);
         }
     }, [fetchRecentes]);
 
-    return { recentes, loading, error, registrar, fetchRecentes };
+    return { recentes, isFetching, isSubmitting, error, registrar, fetchRecentes };
 };

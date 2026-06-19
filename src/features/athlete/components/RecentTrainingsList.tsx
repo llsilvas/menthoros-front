@@ -9,9 +9,10 @@ interface RecentTrainingsListProps {
     treinos: TreinoRealizadoDto[];
 }
 
-function duracaoLabel(duracaoMin: string): string {
+function duracaoLabel(duracaoMin: string | null | undefined): string {
+    if (!duracaoMin || !duracaoMin.includes(':')) return duracaoMin ?? '—';
     const parts = duracaoMin.split(':').map(Number);
-    if (parts.length === 3 && (parts[0] > 0)) {
+    if (parts.length === 3 && parts[0] > 0) {
         return `${parts[0]}h${parts[1].toString().padStart(2, '0')}`;
     }
     const totalMin = parts.length === 3
@@ -52,22 +53,24 @@ export function RecentTrainingsList({ treinos }: RecentTrainingsListProps) {
                         gap: 1,
                     }}
                 >
-                    {/* Linha superior: tipo + data + badge Manual */}
+                    {/* Linha superior: tipo + data + badge de fonte */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                         <Typography sx={{ color: surface[50], fontWeight: 700, fontSize: '0.9rem', flex: 1 }}>
                             {TIPO_TREINO_LABELS[t.tipoTreino] ?? t.tipoTreino}
                         </Typography>
-                        <Chip
-                            label="Manual"
-                            size="small"
-                            sx={{
-                                bgcolor: 'rgba(212,255,58,0.12)',
-                                color: primary[500],
-                                fontWeight: 700,
-                                fontSize: '0.7rem',
-                                height: 20,
-                            }}
-                        />
+                        {t.fonteDados && (
+                            <Chip
+                                label={t.fonteDados.label}
+                                size="small"
+                                sx={{
+                                    bgcolor: `${primary[500]}1F`,
+                                    color: primary[500],
+                                    fontWeight: 700,
+                                    fontSize: '0.7rem',
+                                    height: 20,
+                                }}
+                            />
+                        )}
                         <Typography sx={{ color: surface[400], fontSize: '0.78rem' }}>
                             {format(parseISO(t.dataTreino), "d 'de' MMM", { locale: ptBR })}
                         </Typography>

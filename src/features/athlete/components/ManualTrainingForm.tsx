@@ -11,7 +11,7 @@ import {
 import { format, subDays } from 'date-fns';
 import type { TipoTreino, TreinoManualInput } from '../../../types/TreinoManual';
 import { TIPO_TREINO_LABELS } from '../../../types/TreinoManual';
-import { primary, surface, content, glassSx } from '../../../theme/tokens';
+import { primary, surface, content, backgrounds } from '../../../theme/tokens';
 
 const TIPOS = Object.keys(TIPO_TREINO_LABELS) as TipoTreino[];
 
@@ -83,15 +83,20 @@ export function ManualTrainingForm({ loading, hasTreinoHoje, onSubmit }: ManualT
             {/* Tipo de treino */}
             <Box>
                 <SectionLabel>Tipo de treino</SectionLabel>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                <Box
+                    role="radiogroup"
+                    aria-label="Tipo de treino"
+                    sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}
+                >
                     {TIPOS.map((t) => (
                         <Chip
                             key={t}
                             label={TIPO_TREINO_LABELS[t]}
                             onClick={() => setTipo(t)}
+                            aria-pressed={tipo === t}
                             sx={{
                                 bgcolor: tipo === t ? primary[500] : content.cardBg,
-                                color: tipo === t ? '#0A1628' : surface[200],
+                                color: tipo === t ? backgrounds.canvas : surface[200],
                                 fontWeight: tipo === t ? 700 : 400,
                                 border: `1px solid ${tipo === t ? primary[500] : content.cardBorder}`,
                                 '&:hover': {
@@ -109,6 +114,7 @@ export function ManualTrainingForm({ loading, hasTreinoHoje, onSubmit }: ManualT
                 <SectionLabel>Data do treino</SectionLabel>
                 <TextField
                     type="date"
+                    label="Data do treino"
                     value={data}
                     onChange={(e) => setData(e.target.value)}
                     fullWidth
@@ -122,6 +128,7 @@ export function ManualTrainingForm({ loading, hasTreinoHoje, onSubmit }: ManualT
                 <SectionLabel>Duração (minutos)</SectionLabel>
                 <TextField
                     type="number"
+                    label="Duração (minutos)"
                     value={duracaoMinutos}
                     onChange={(e) => {
                         const v = e.target.value === '' ? '' : Number(e.target.value);
@@ -139,6 +146,7 @@ export function ManualTrainingForm({ loading, hasTreinoHoje, onSubmit }: ManualT
                     <SectionLabel>Distância (km) — opcional</SectionLabel>
                     <TextField
                         type="number"
+                        label="Distância (km)"
                         value={distanciaKm}
                         onChange={(e) => {
                             const v = e.target.value === '' ? '' : Number(e.target.value);
@@ -191,6 +199,7 @@ export function ManualTrainingForm({ loading, hasTreinoHoje, onSubmit }: ManualT
                 <TextField
                     multiline
                     rows={3}
+                    label="Observações"
                     value={observacoes}
                     onChange={(e) => setObservacoes(e.target.value.slice(0, 500))}
                     fullWidth
@@ -207,7 +216,7 @@ export function ManualTrainingForm({ loading, hasTreinoHoje, onSubmit }: ManualT
                 fullWidth
                 sx={{
                     bgcolor: primary[500],
-                    color: '#0A1628',
+                    color: backgrounds.canvas,
                     fontWeight: 700,
                     fontSize: '1rem',
                     py: 1.5,
@@ -245,6 +254,3 @@ const inputSx = {
     '& .MuiInputLabel-root.Mui-focused': { color: primary[500] },
     '& .MuiFormHelperText-root': { color: surface[500] },
 };
-
-// compat re-export for glassSx usage
-export { glassSx };
