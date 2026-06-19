@@ -86,6 +86,7 @@ function RejeicaoModal({ open, isActing, onClose, onConfirmar }: RejeicaoModalPr
     const handleConfirmar = () => {
         if (!motivo.trim()) return;
         onConfirmar(motivo.trim());
+        setMotivo('');
     };
 
     const handleClose = () => {

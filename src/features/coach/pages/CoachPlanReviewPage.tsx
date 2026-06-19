@@ -1,19 +1,25 @@
 import { useEffect, useState } from 'react';
 import { Alert, Box, CircularProgress, Snackbar, Typography } from '@mui/material';
-import { useCoachPlanReview } from '../../../hooks/useCoachPlanReview';
+import { useOutletContext } from 'react-router';
 import { PlanoPendenteItem } from '../components/PlanoPendenteItem';
 import { PlanoDetalhePanel } from '../components/PlanoDetalhePanel';
 import { content, surface } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
+import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
 
 export default function CoachPlanReviewPage() {
-    const { pendentes, isFetching, isActing, fetchError, fetchPendentes, aprovar, rejeitar } =
-        useCoachPlanReview();
+    const {
+        reviewPendentes: pendentes,
+        reviewIsFetching: isFetching,
+        reviewIsActing: isActing,
+        reviewFetchError: fetchError,
+        reviewActionError: actionError,
+        reviewAprovar: aprovar,
+        reviewRejeitar: rejeitar,
+    } = useOutletContext<CoachLayoutOutletContext>();
 
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [toast, setToast] = useState<string | null>(null);
-
-    useEffect(() => { fetchPendentes(); }, [fetchPendentes]);
 
     // Mantém seleção válida ao remover plano da lista
     useEffect(() => {
@@ -154,7 +160,7 @@ export default function CoachPlanReviewPage() {
                 onRejeitar={handleRejeitar}
             />
 
-            {/* Toast de confirmação */}
+            {/* Toast de confirmação de ação */}
             <Snackbar
                 open={!!toast}
                 autoHideDuration={3000}
@@ -170,6 +176,19 @@ export default function CoachPlanReviewPage() {
                     {toast}
                 </Alert>
             </Snackbar>
+
+            {/* Toast de erro de ação */}
+            {actionError && (
+                <Snackbar
+                    open={!!actionError}
+                    autoHideDuration={5000}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                >
+                    <Alert severity="error" variant="filled" sx={{ fontSize: '0.85rem' }}>
+                        {actionError.message}
+                    </Alert>
+                </Snackbar>
+            )}
         </Box>
     );
 }

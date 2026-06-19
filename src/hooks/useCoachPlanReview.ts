@@ -7,6 +7,7 @@ export const useCoachPlanReview = () => {
     const [isFetching, setIsFetching] = useState(false);
     const [isActing, setIsActing] = useState(false);
     const [fetchError, setFetchError] = useState<Error | null>(null);
+    const [actionError, setActionError] = useState<Error | null>(null);
 
     const fetchPendentes = useCallback(async () => {
         try {
@@ -24,8 +25,11 @@ export const useCoachPlanReview = () => {
     const aprovar = useCallback(async (id: string) => {
         try {
             setIsActing(true);
+            setActionError(null);
             await CoachPlanoReviewService.aprovar(id);
             setPendentes(prev => prev.filter(p => p.id !== id));
+        } catch (err) {
+            setActionError(err instanceof Error ? err : new Error('Erro ao aprovar plano'));
         } finally {
             setIsActing(false);
         }
@@ -34,12 +38,15 @@ export const useCoachPlanReview = () => {
     const rejeitar = useCallback(async (id: string, motivo: string) => {
         try {
             setIsActing(true);
+            setActionError(null);
             await CoachPlanoReviewService.rejeitar(id, motivo);
             setPendentes(prev => prev.filter(p => p.id !== id));
+        } catch (err) {
+            setActionError(err instanceof Error ? err : new Error('Erro ao rejeitar plano'));
         } finally {
             setIsActing(false);
         }
     }, []);
 
-    return { pendentes, isFetching, isActing, fetchError, fetchPendentes, aprovar, rejeitar };
+    return { pendentes, isFetching, isActing, fetchError, actionError, fetchPendentes, aprovar, rejeitar };
 };

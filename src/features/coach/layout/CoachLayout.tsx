@@ -6,14 +6,23 @@ import type { CoachRoute } from '../../../constants/routes';
 import CoachSidebar from './CoachSidebar';
 import { useCurrentUser } from '../../../hooks/useCurrentUser';
 import { useAttentionQueue } from '../../../hooks/useAttentionQueue';
-import { useCoachPlanPendingCount } from '../../../hooks/useCoachPlanPendingCount';
+import { useCoachPlanReview } from '../../../hooks/useCoachPlanReview';
 import type { CoachAttentionItem } from '../../../types/Coach';
+import type { PlanoSemanalDto } from '../../../types/PlanoReview';
 
 export interface CoachLayoutOutletContext {
   queue: CoachAttentionItem[];
   queueLoading: boolean;
   queueError: Error | null;
   refetchQueue: () => Promise<void>;
+  reviewPendentes: PlanoSemanalDto[];
+  reviewIsFetching: boolean;
+  reviewIsActing: boolean;
+  reviewFetchError: Error | null;
+  reviewActionError: Error | null;
+  reviewFetchPendentes: () => Promise<void>;
+  reviewAprovar: (id: string) => Promise<void>;
+  reviewRejeitar: (id: string, motivo: string) => Promise<void>;
 }
 
 export default function CoachLayout() {
@@ -22,12 +31,22 @@ export default function CoachLayout() {
 
   const { coach, tenant, fetchCurrentUser } = useCurrentUser();
   const { queue, loading: queueLoading, error: queueError, fetchQueue } = useAttentionQueue();
-  const reviewBadgeCount = useCoachPlanPendingCount();
+  const {
+    pendentes,
+    isFetching: reviewIsFetching,
+    isActing: reviewIsActing,
+    fetchError: reviewFetchError,
+    actionError: reviewActionError,
+    fetchPendentes,
+    aprovar,
+    rejeitar,
+  } = useCoachPlanReview();
 
   useEffect(() => {
     fetchCurrentUser();
     fetchQueue();
-  }, [fetchCurrentUser, fetchQueue]);
+    fetchPendentes();
+  }, [fetchCurrentUser, fetchQueue, fetchPendentes]);
 
   const activeRoute = (location.pathname as CoachRoute) ?? '/coach/inbox';
 
@@ -40,6 +59,14 @@ export default function CoachLayout() {
     queueLoading,
     queueError,
     refetchQueue: fetchQueue,
+    reviewPendentes: pendentes,
+    reviewIsFetching,
+    reviewIsActing,
+    reviewFetchError,
+    reviewActionError,
+    reviewFetchPendentes: fetchPendentes,
+    reviewAprovar: aprovar,
+    reviewRejeitar: rejeitar,
   };
 
   return (
@@ -56,7 +83,7 @@ export default function CoachLayout() {
         coach={coach}
         currentTenant={tenant}
         inboxBadgeCount={queue.length}
-        reviewBadgeCount={reviewBadgeCount}
+        reviewBadgeCount={pendentes.length}
         onNavigate={handleNavigate}
       />
       <Box sx={{ flex: 1, overflow: 'auto' }}>

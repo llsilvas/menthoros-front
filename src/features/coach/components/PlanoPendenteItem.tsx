@@ -27,7 +27,10 @@ export function PlanoPendenteItem({ plano, selecionado, onSelect }: PlanoPendent
             tabIndex={0}
             onClick={onSelect}
             onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') onSelect();
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onSelect();
+                }
             }}
             sx={{
                 display: 'flex',

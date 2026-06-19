@@ -109,4 +109,39 @@ describe('useCoachPlanReview', () => {
         await act(async () => { await pending; });
         expect(result.current.isActing).toBe(false);
     });
+
+    it('popula actionError quando aprovar falha', async () => {
+        vi.mocked(CoachPlanoReviewService.aprovar).mockRejectedValue(new Error('servidor indisponível'));
+
+        const { result } = renderHook(() => useCoachPlanReview());
+        await act(async () => { await result.current.aprovar('plano-1'); });
+
+        expect(result.current.actionError).toBeInstanceOf(Error);
+        expect(result.current.actionError?.message).toContain('servidor indisponível');
+        expect(result.current.isActing).toBe(false);
+    });
+
+    it('popula actionError quando rejeitar falha', async () => {
+        vi.mocked(CoachPlanoReviewService.rejeitar).mockRejectedValue(new Error('timeout'));
+
+        const { result } = renderHook(() => useCoachPlanReview());
+        await act(async () => { await result.current.rejeitar('plano-1', 'motivo'); });
+
+        expect(result.current.actionError).toBeInstanceOf(Error);
+        expect(result.current.actionError?.message).toContain('timeout');
+        expect(result.current.isActing).toBe(false);
+    });
+
+    it('reseta actionError no início de uma nova ação', async () => {
+        vi.mocked(CoachPlanoReviewService.aprovar)
+            .mockRejectedValueOnce(new Error('erro anterior'))
+            .mockResolvedValueOnce({ ...STUB, reviewStatus: 'APROVADO' });
+
+        const { result } = renderHook(() => useCoachPlanReview());
+        await act(async () => { await result.current.aprovar('plano-1'); });
+        expect(result.current.actionError).toBeInstanceOf(Error);
+
+        await act(async () => { await result.current.aprovar('plano-1'); });
+        expect(result.current.actionError).toBeNull();
+    });
 });
