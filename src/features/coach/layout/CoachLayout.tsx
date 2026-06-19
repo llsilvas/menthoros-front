@@ -6,13 +6,21 @@ import type { CoachRoute } from '../../../constants/routes';
 import CoachSidebar from './CoachSidebar';
 import { useCurrentUser } from '../../../hooks/useCurrentUser';
 import { useAttentionQueue } from '../../../hooks/useAttentionQueue';
+import type { CoachAttentionItem } from '../../../types/Coach';
+
+export interface CoachLayoutOutletContext {
+  queue: CoachAttentionItem[];
+  queueLoading: boolean;
+  queueError: Error | null;
+  refetchQueue: () => Promise<void>;
+}
 
 export default function CoachLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
   const { coach, tenant, fetchCurrentUser } = useCurrentUser();
-  const { queue, fetchQueue } = useAttentionQueue();
+  const { queue, loading: queueLoading, error: queueError, fetchQueue } = useAttentionQueue();
 
   useEffect(() => {
     fetchCurrentUser();
@@ -23,6 +31,13 @@ export default function CoachLayout() {
 
   const handleNavigate = (route: CoachRoute) => {
     navigate(route);
+  };
+
+  const outletContext: CoachLayoutOutletContext = {
+    queue,
+    queueLoading,
+    queueError,
+    refetchQueue: fetchQueue,
   };
 
   return (
@@ -42,7 +57,7 @@ export default function CoachLayout() {
         onNavigate={handleNavigate}
       />
       <Box sx={{ flex: 1, overflow: 'auto' }}>
-        <Outlet />
+        <Outlet context={outletContext} />
       </Box>
     </Box>
   );

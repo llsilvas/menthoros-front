@@ -1,36 +1,37 @@
-import { useEffect } from 'react';
-import {
-  Box,
-  CircularProgress,
-  Typography,
-} from '@mui/material';
+import { Button, Box, CircularProgress, Typography } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import { useAttentionQueue } from '../../../hooks/useAttentionQueue';
+import { useOutletContext } from 'react-router';
 import { CoachAthleteAvatar } from '../components/CoachAthleteAvatar';
 import { elevation } from '../../../shared/design-tokens';
 import { content, semantic, surface } from '../../../theme/tokens';
-import type { AttentionSeverity, CoachAttentionItem } from '../../../types/Coach';
+import type { AttentionReason, AttentionSeverity, CoachAttentionItem } from '../../../types/Coach';
+import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const REASON_LABEL: Record<string, string> = {
-  FADIGA: 'Fadiga',
-  SOBRECARGA: 'Sobrecarga',
-  SEM_PLANO: 'Sem plano',
-  ADERENCIA: 'Aderência',
-  INATIVIDADE: 'Inatividade',
-  ZONAS_VENCIDAS: 'Zonas vencidas',
+const SEVERITY_CONFIG: Record<AttentionSeverity, { color: string; label: string }> = {
+  CRITICA: { color: semantic.danger[500],  label: 'Crítica' },
+  ALTA:    { color: semantic.warning[500], label: 'Alta'    },
+  MEDIA:   { color: semantic.info[500],    label: 'Média'   },
 };
 
-function severityColor(severity: AttentionSeverity): string {
-  return severity === 'CRITICA' ? semantic.danger[500] : semantic.warning[500];
-}
+const REASON_LABEL: Record<AttentionReason, string> = {
+  FADIGA:        'Fadiga',
+  SOBRECARGA:    'Sobrecarga',
+  SEM_PLANO:     'Sem plano',
+  ADERENCIA:     'Aderência',
+  INATIVIDADE:   'Inatividade',
+  ZONAS_VENCIDAS:'Zonas vencidas',
+};
 
 // ── Sub-componentes ───────────────────────────────────────────────────────────
 
-function SeverityChip({ severity }: { severity: AttentionSeverity }) {
-  const color = severityColor(severity);
-  const label = severity === 'CRITICA' ? 'Crítica' : 'Alta';
+interface SeverityChipProps {
+  severity: AttentionSeverity;
+}
+
+function SeverityChip({ severity }: SeverityChipProps) {
+  const { color, label } = SEVERITY_CONFIG[severity];
   return (
     <Box
       component="span"
@@ -55,7 +56,11 @@ function SeverityChip({ severity }: { severity: AttentionSeverity }) {
   );
 }
 
-function AttentionQueueItem({ item }: { item: CoachAttentionItem }) {
+interface AttentionQueueItemProps {
+  item: CoachAttentionItem;
+}
+
+function AttentionQueueItem({ item }: AttentionQueueItemProps) {
   return (
     <Box
       sx={{
@@ -97,7 +102,7 @@ function AttentionQueueItem({ item }: { item: CoachAttentionItem }) {
                 fontWeight: 500,
               }}
             >
-              {REASON_LABEL[item.primaryReason] ?? item.primaryReason}
+              {REASON_LABEL[item.primaryReason]}
             </Typography>
           </Box>
         </Box>
@@ -184,14 +189,33 @@ function EmptyState() {
   );
 }
 
+interface ErrorStateProps {
+  onRetry: () => void;
+}
+
+function ErrorState({ onRetry }: ErrorStateProps) {
+  return (
+    <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+      <Typography sx={{ color: semantic.danger[500], fontSize: '0.875rem' }}>
+        Não foi possível carregar a fila de atenção.
+      </Typography>
+      <Button
+        variant="outlined"
+        size="small"
+        onClick={onRetry}
+        sx={{ alignSelf: 'flex-start', borderColor: semantic.danger[500], color: semantic.danger[500] }}
+      >
+        Tentar novamente
+      </Button>
+    </Box>
+  );
+}
+
 // ── Page principal ────────────────────────────────────────────────────────────
 
 export default function CoachAttentionQueuePage() {
-  const { queue, loading, error, fetchQueue } = useAttentionQueue();
-
-  useEffect(() => {
-    fetchQueue();
-  }, [fetchQueue]);
+  const { queue, queueLoading: loading, queueError: error, refetchQueue } =
+    useOutletContext<CoachLayoutOutletContext>();
 
   if (loading) {
     return (
@@ -202,13 +226,7 @@ export default function CoachAttentionQueuePage() {
   }
 
   if (error) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Typography sx={{ color: semantic.danger[500], fontSize: '0.875rem' }}>
-          Não foi possível carregar a fila de atenção. Tente novamente.
-        </Typography>
-      </Box>
-    );
+    return <ErrorState onRetry={refetchQueue} />;
   }
 
   if (queue.length === 0) {
