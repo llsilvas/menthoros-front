@@ -9,7 +9,8 @@ import ReconciliacaoPage from './pages/reconciliacao/ReconciliacaoPage';
 import LoginPage from './pages/auth/LoginPage';
 import LandingPage from './pages/landing/LandingPage';
 import CoachLayout from './features/coach/layout/CoachLayout';
-import CoachAttentionQueuePage from './features/coach/pages/CoachAttentionQueuePage';
+// CoachAttentionQueuePage: sem rota em v1 — aguardando add-coach-queue-route
+import CoachInboxPage from './features/coach/pages/CoachInboxPage';
 import CoachAthletesPage from './features/coach/pages/CoachAthletesPage';
 import CoachCalendarPage from './features/coach/pages/CoachCalendarPage';
 import CoachInsightsPage from './features/coach/pages/CoachInsightsPage';
@@ -174,7 +175,7 @@ const router = createHashRouter([
         path: 'coach',
         element: <CoachLayout />,
         children: [
-          { path: 'inbox',    element: <CoachAttentionQueuePage /> },
+          { path: 'inbox',    element: <CoachInboxPage /> },
           { path: 'athletes', element: <CoachAthletesPage /> },
           { path: 'calendar', element: <CoachCalendarPage /> },
           { path: 'insights', element: <CoachInsightsPage /> },
