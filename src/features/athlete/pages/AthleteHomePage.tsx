@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Box, Tooltip, Typography } from '@mui/material';
+import { Box, Button, Tooltip, Typography } from '@mui/material';
+import { useNavigate } from 'react-router';
 import { TodayHeroCard } from '../components/TodayHeroCard';
 import { ReadinessCard } from '../components/ReadinessCard';
 import { QuickCheckInModal } from '../components/QuickCheckInModal';
 import type { QuickCheckInData } from '../components/QuickCheckInModal';
-import { glassSx, surface } from '../../../theme/tokens';
+import { glassSx, surface, primary } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
+import { ROUTES } from '../../../constants/routes';
 
 // ── Mock data ────────────────────────────────────────────────────────────────
 
@@ -98,6 +100,7 @@ function MetricCard({ label, value, unit, tooltip }: MetricCardData) {
 // ── AthleteHomePage ───────────────────────────────────────────────────────────
 
 export default function AthleteHomePage() {
+  const navigate = useNavigate();
   const [checkInOpen, setCheckInOpen] = useState(false);
 
   function handleCheckInSubmit(data: QuickCheckInData) {
@@ -168,6 +171,25 @@ export default function AthleteHomePage() {
           ))}
         </Box>
       </Box>
+
+      {/* Ação rápida: registrar treino de hoje */}
+      <Button
+        variant="outlined"
+        fullWidth
+        onClick={() => navigate(ROUTES.ATHLETE_TRAINING_LOG)}
+        sx={{
+          borderColor: primary[500],
+          color: primary[500],
+          fontWeight: 700,
+          py: 1.5,
+          '&:hover': {
+            borderColor: primary[400],
+            bgcolor: 'rgba(212,255,58,0.08)',
+          },
+        }}
+      >
+        Registrar treino de hoje
+      </Button>
 
       {/* QuickCheckInModal — fora do fluxo de scroll */}
       <QuickCheckInModal
