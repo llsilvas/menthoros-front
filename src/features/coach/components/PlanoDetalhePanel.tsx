@@ -11,7 +11,12 @@ import {
     Typography,
 } from '@mui/material';
 import PlaylistAddCheckIcon from '@mui/icons-material/PlaylistAddCheck';
-import type { PlanoSemanalDto, TreinoPlanejadoDto } from '../../../types/PlanoReview';
+import type { DiaSemanaDto, PlanoSemanalDto, TreinoPlanejadoDto } from '../../../types/PlanoReview';
+
+function resolverDiaSemana(dia: string | DiaSemanaDto): string {
+    if (typeof dia === 'string') return dia;
+    return dia.short ?? dia.label ?? dia.value;
+}
 import { content, semantic, surface } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 
@@ -47,7 +52,7 @@ function SessaoRow({ treino }: { treino: TreinoPlanejadoDto }) {
             }}
         >
             <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: surface[400], minWidth: 64 }}>
-                {treino.diaSemana}
+                {resolverDiaSemana(treino.diaSemana)}
             </Typography>
             <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: surface[100] }}>
