@@ -43,6 +43,7 @@ export interface PlanoSemanalDto {
     treinosPlanejados?: TreinoPlanejadoDto[];
     reviewStatus: PlanoReviewStatus;
     reviewComment?: string;
+    atletaNome?: string;
 }
 
 /** Payload do endpoint POST /{id}/rejeitar. */

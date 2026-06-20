@@ -86,24 +86,21 @@ export function PlanoPendenteItem({ plano, selecionado, onSelect }: PlanoPendent
                     </Typography>
                 </Box>
 
-                {/* Objetivo */}
-                {plano.objetivoSemanal && (
-                    <Typography
-                        sx={{
-                            fontSize: '0.78rem',
-                            fontWeight: 600,
-                            color: selecionado ? surface[50] : surface[200],
-                            lineHeight: 1.3,
-                            mb: 1,
-                            overflow: 'hidden',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                        }}
-                    >
-                        {plano.objetivoSemanal}
-                    </Typography>
-                )}
+                {/* Nome do atleta */}
+                <Typography
+                    sx={{
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        color: selecionado ? surface[50] : surface[200],
+                        lineHeight: 1.3,
+                        mb: 1,
+                        overflow: 'hidden',
+                        whiteSpace: 'nowrap',
+                        textOverflow: 'ellipsis',
+                    }}
+                >
+                    {plano.atletaNome ?? '—'}
+                </Typography>
 
                 {/* Footer stats */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>

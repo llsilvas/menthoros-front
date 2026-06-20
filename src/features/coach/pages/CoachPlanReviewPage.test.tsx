@@ -19,6 +19,7 @@ const STUB: PlanoSemanalDto = {
     volumeAlvoKm: 45,
     status: 'PLANEJADO',
     reviewStatus: 'AGUARDANDO_REVISAO',
+    atletaNome: 'Ana Silva',
     objetivoSemanal: 'Semana base aerobica',
     treinosPlanejados: [
         { diaSemana: 'SEGUNDA', tipoTreino: 'FACIL', distanciaKm: 10 },
@@ -44,6 +45,11 @@ function mockContext(overrides: Partial<CoachLayoutOutletContext> = {}) {
     });
 }
 
+// Seleciona o card pelo nome do atleta (acessible name do role=button)
+function clickCard() {
+    fireEvent.click(screen.getByRole('button', { name: /ana silva/i }));
+}
+
 describe('CoachPlanReviewPage', () => {
     beforeEach(() => vi.clearAllMocks());
 
@@ -65,22 +71,20 @@ describe('CoachPlanReviewPage', () => {
         expect(screen.getByText('Falha na rede')).toBeInTheDocument();
     });
 
-    it('renderiza lista de planos pendentes', () => {
+    it('renderiza nome do atleta e contador na lista', () => {
         mockContext({ reviewPendentes: [STUB] });
         render(<CoachPlanReviewPage />);
-        expect(screen.getByText('Semana base aerobica')).toBeInTheDocument();
+        expect(screen.getByText('Ana Silva')).toBeInTheDocument();
         expect(screen.getByText('1 plano pendente')).toBeInTheDocument();
     });
 
-    it('selecionar plano exibe painel de detalhe com sessões', () => {
+    it('selecionar plano exibe painel de detalhe com botões de ação', () => {
         mockContext({ reviewPendentes: [STUB] });
         render(<CoachPlanReviewPage />);
 
-        fireEvent.click(screen.getByRole('button', { name: /semana base aerobica/i }));
+        clickCard();
 
-        // Painel exibe volume (aparece na lista e no header do painel)
         expect(screen.getAllByText(/45 km/).length).toBeGreaterThanOrEqual(1);
-        // Botões de ação visíveis após seleção
         expect(screen.getByRole('button', { name: /aprovar/i })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /rejeitar/i })).toBeInTheDocument();
     });
@@ -90,7 +94,7 @@ describe('CoachPlanReviewPage', () => {
         mockContext({ reviewPendentes: [STUB], reviewAprovar });
         render(<CoachPlanReviewPage />);
 
-        fireEvent.click(screen.getByRole('button', { name: /semana base aerobica/i }));
+        clickCard();
         fireEvent.click(screen.getByRole('button', { name: /aprovar/i }));
 
         await waitFor(() => expect(reviewAprovar).toHaveBeenCalledWith('plano-1'));
@@ -100,7 +104,7 @@ describe('CoachPlanReviewPage', () => {
         mockContext({ reviewPendentes: [STUB] });
         render(<CoachPlanReviewPage />);
 
-        fireEvent.click(screen.getByRole('button', { name: /semana base aerobica/i }));
+        clickCard();
         fireEvent.click(screen.getByRole('button', { name: /rejeitar/i }));
 
         expect(screen.getByText('Rejeitar plano')).toBeInTheDocument();
@@ -112,7 +116,7 @@ describe('CoachPlanReviewPage', () => {
         mockContext({ reviewPendentes: [STUB], reviewRejeitar });
         render(<CoachPlanReviewPage />);
 
-        fireEvent.click(screen.getByRole('button', { name: /semana base aerobica/i }));
+        clickCard();
         fireEvent.click(screen.getByRole('button', { name: /rejeitar/i }));
 
         fireEvent.change(screen.getByLabelText(/motivo da rejeição/i), {
