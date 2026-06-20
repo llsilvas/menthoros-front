@@ -64,8 +64,8 @@ export function CurrentWeekPlan({ plano, onGerarPlano, onRevisarPlano }: Current
                 sx={{
                     p: 2,
                     borderRadius: 2,
-                    border: `1px solid ${semantic.info[500] ?? '#2196F3'}`,
-                    backgroundColor: 'rgba(33,150,243,0.08)',
+                    border: `1px solid ${semantic.info[500]}`,
+                    backgroundColor: `${semantic.info[500]}14`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -73,7 +73,7 @@ export function CurrentWeekPlan({ plano, onGerarPlano, onRevisarPlano }: Current
                 }}
             >
                 <Stack direction="row" alignItems="center" spacing={1}>
-                    <HourglassIcon sx={{ color: semantic.info[500] ?? '#2196F3', fontSize: 20 }} />
+                    <HourglassIcon sx={{ color: semantic.info[500], fontSize: 20 }} />
                     <Typography variant="body2">Plano gerado aguardando revisão</Typography>
                 </Stack>
                 <Button variant="outlined" size="small" onClick={onRevisarPlano}>

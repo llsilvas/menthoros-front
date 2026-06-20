@@ -19,7 +19,7 @@ const STATUS_COLORS: Record<string, string> = {
     PENDENTE:   semantic.warning[400],
     ACEITA:     semantic.success[500],
     REJEITADA:  semantic.danger[500],
-    EXPIRADA:   '#6B7280',
+    EXPIRADA:   categorical.cat8,
 };
 
 export function RecentSuggestionsPanel({ sugestoes }: RecentSuggestionsPanelProps) {

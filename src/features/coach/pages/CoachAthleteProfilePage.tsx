@@ -60,7 +60,7 @@ export default function CoachAthleteProfilePage() {
     const navigate = useNavigate();
     const [pmcRange, setPmcRange] = useState<PMCRange>('12w');
 
-    const { profile, isLoading, error, fetchProfile } = useAthleteProfile(atletaId ?? '');
+    const { profile, isLoading, error, fetchProfile } = useAthleteProfile(atletaId);
 
     const pmcData: PMCDataPoint[] = useMemo(
         () =>

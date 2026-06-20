@@ -45,6 +45,15 @@ describe('useAthleteProfile', () => {
         expect(result.current.isLoading).toBe(false);
     });
 
+    it('não dispara fetch quando atletaId é undefined', () => {
+        const { result } = renderHook(() => useAthleteProfile(undefined));
+
+        expect(result.current.profile).toBeNull();
+        expect(result.current.isLoading).toBe(false);
+        expect(result.current.error).toBeNull();
+        expect(vi.mocked(CoachAthleteProfileService.getProfile)).not.toHaveBeenCalled();
+    });
+
     it('popula error genérico na falha de rede', async () => {
         vi.mocked(CoachAthleteProfileService.getProfile).mockRejectedValue(new Error('network'));
 

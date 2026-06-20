@@ -3,12 +3,13 @@ import { CoachAthleteProfileService } from '../api/services/CoachAthleteProfileS
 import { ApiError } from '../api/core/ApiError';
 import type { AtletaPerfilCoachDto } from '../types/AtletaPerfilCoach';
 
-export const useAthleteProfile = (atletaId: string) => {
+export const useAthleteProfile = (atletaId: string | undefined) => {
     const [profile, setProfile] = useState<AtletaPerfilCoachDto | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<Error | null>(null);
 
     const fetchProfile = useCallback(async () => {
+        if (!atletaId) return;
         try {
             setIsLoading(true);
             setError(null);
