@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router';
 import { parseISO } from 'date-fns';
 import { useDebounce } from '../../../shared/hooks/useDebounce';
 import {
@@ -177,6 +178,7 @@ function BulkBar({ count }: { count: number }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function CoachAthletesPage() {
+  const navigate = useNavigate();
   const [searchRaw, setSearchRaw] = useState('');
   const [activeView, setActiveView] = useState<ViewKey>('all');
   const [statusFilter, setStatusFilter] = useState<CoachAtletaStatus | 'all'>('all');
@@ -547,6 +549,10 @@ export default function CoachAthletesPage() {
             disableRowSelectionOnClick
             rowSelectionModel={selection}
             onRowSelectionModelChange={setSelection}
+            onRowClick={(params, event) => {
+                if ((event.target as HTMLElement).closest('[data-field="__check__"]')) return;
+                navigate(`/coach/athletes/${params.id}`);
+            }}
             rowHeight={52}
             columnHeaderHeight={44}
             pageSizeOptions={[10, 25, 50]}
@@ -563,7 +569,7 @@ export default function CoachAthletesPage() {
               height: '100%',
               fontFamily: 'inherit',
               '& .MuiDataGrid-row': {
-                cursor: 'default',
+                cursor: 'pointer',
               },
               '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': {
                 outline: 'none',

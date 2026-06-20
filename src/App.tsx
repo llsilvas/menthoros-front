@@ -15,6 +15,7 @@ import CoachAthletesPage from './features/coach/pages/CoachAthletesPage';
 import CoachCalendarPage from './features/coach/pages/CoachCalendarPage';
 import CoachInsightsPage from './features/coach/pages/CoachInsightsPage';
 import CoachPlanReviewPage from './features/coach/pages/CoachPlanReviewPage';
+import CoachAthleteProfilePage from './features/coach/pages/CoachAthleteProfilePage';
 import AthleteLayout from './features/athlete/layout/AthleteLayout';
 import AthleteHomePage from './features/athlete/pages/AthleteHomePage';
 import AthletePlanPage from './features/athlete/pages/AthletePlanPage';
@@ -180,6 +181,7 @@ const router = createHashRouter([
           { path: 'inbox',               element: <CoachInboxPage /> },
           { path: 'planos/revisao',      element: <CoachPlanReviewPage /> },
           { path: 'athletes', element: <CoachAthletesPage /> },
+          { path: 'athletes/:atletaId', element: <CoachAthleteProfilePage /> },
           { path: 'calendar', element: <CoachCalendarPage /> },
           { path: 'insights', element: <CoachInsightsPage /> },
         ],
