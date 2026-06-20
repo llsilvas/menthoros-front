@@ -19,9 +19,8 @@ const STUB: PlanoSemanalDto = {
 
 // Configura listarPorStatus para retornar STUB apenas em AGUARDANDO_REVISAO
 function mockFetchAguardando(stub: PlanoSemanalDto = STUB) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.mocked(CoachPlanoReviewService.listarPorStatus).mockImplementation((status) =>
-        Promise.resolve(status === 'AGUARDANDO_REVISAO' ? [stub] : []) as any
+        Promise.resolve(status === 'AGUARDANDO_REVISAO' ? [stub] : []) as unknown as ReturnType<typeof CoachPlanoReviewService.listarPorStatus>
     );
 }
 
@@ -171,9 +170,8 @@ describe('useCoachPlanReview', () => {
 
     it('setFilter muda o filtro ativo e a vista filtrada', async () => {
         const aprovado: PlanoSemanalDto = { ...STUB, reviewStatus: 'APROVADO' };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         vi.mocked(CoachPlanoReviewService.listarPorStatus).mockImplementation((status) =>
-            Promise.resolve(status === 'APROVADO' ? [aprovado] : []) as any
+            Promise.resolve(status === 'APROVADO' ? [aprovado] : []) as unknown as ReturnType<typeof CoachPlanoReviewService.listarPorStatus>
         );
 
         const { result } = renderHook(() => useCoachPlanReview());
