@@ -1,7 +1,7 @@
 import type { TreinoPlanejado, CreateTreinoPlanejado } from './TreinoPlanejado';
 
-// Enums e tipos base
-export type PlanoStatus = 'ATIVO' | 'CONCLUIDO' | 'CANCELADO' | 'PAUSADO';
+// Enums e tipos base — espelha PlanoStatus.java no backend
+export type PlanoStatus = 'PLANEJADO' | 'INICIADO' | 'EM_ANDAMENTO' | 'ATIVO' | 'CONCLUIDO';
 
 export type MetodoGeracaoPlano = 'PROXIMA_SEMANA' | 'SEMANA_ATUAL';
 
@@ -10,20 +10,20 @@ export interface PlanoSemanal {
   id?: string;
   atletaId: string;
   planoTreinoId?: string;
-  semanaInicio: string; // ISO date string (LocalDate)
-  semanaFim: string; // ISO date string (LocalDate)
+  semanaInicio: string;
+  semanaFim: string;
   volumePlanejadoKm: number;
   volumeRealizadoKm: number;
   volumeAlvoKm: number;
-  tsbInicio?: number; // Training Stress Balance
-  tsbFim?: number; // Training Stress Balance
+  tsbInicio?: number;
+  tsbFim?: number;
   status: PlanoStatus;
   observacoes?: string;
   objetivoSemanal?: string;
   treinosPlanejados?: TreinoPlanejado[];
 }
 
-// Interface para cria��o de Plano Semanal
+// Interface para criacao de Plano Semanal
 export interface CreatePlanoSemanal {
   atletaId: string;
   planoTreinoId?: string;
@@ -40,7 +40,7 @@ export interface CreatePlanoSemanal {
   treinosPlanejados?: CreateTreinoPlanejado[];
 }
 
-// Interface para atualiza��o de Plano Semanal
+// Interface para atualizacao de Plano Semanal
 export interface UpdatePlanoSemanal extends Partial<CreatePlanoSemanal> {
   id: string;
 }
@@ -55,7 +55,6 @@ export interface PlanoSemanalFilters {
   volumeMaxKm?: number;
 }
 
-// Fun��es utilit�rias
 export const calcularProgressoVolume = (realizado: number, planejado: number): number => {
   if (planejado === 0) return 0;
   return Math.round((realizado / planejado) * 100);
@@ -69,23 +68,25 @@ export const formatarPeriodoSemana = (inicio: string, fim: string): string => {
 };
 
 export const obterStatusColor = (status: PlanoStatus): string => {
-  const statusColors = {
-    ATIVO: '#1976d2', // blue
-    CONCLUIDO: '#388e3c', // green
-    CANCELADO: '#d32f2f', // red
-    PAUSADO: '#f57c00' // orange
+  const statusColors: Record<PlanoStatus, string> = {
+    PLANEJADO: '#9e9e9e',
+    INICIADO: '#1976d2',
+    EM_ANDAMENTO: '#f57c00',
+    ATIVO: '#1976d2',
+    CONCLUIDO: '#388e3c',
   };
 
-  return statusColors[status] || '#666666';
+  return statusColors[status] ?? '#666666';
 };
 
 export const obterStatusLabel = (status: PlanoStatus): string => {
-  const statusLabels = {
+  const statusLabels: Record<PlanoStatus, string> = {
+    PLANEJADO: 'Planejado',
+    INICIADO: 'Iniciado',
+    EM_ANDAMENTO: 'Em andamento',
     ATIVO: 'Ativo',
-    CONCLUIDO: 'Conclu�do',
-    CANCELADO: 'Cancelado',
-    PAUSADO: 'Pausado'
+    CONCLUIDO: 'Concluido',
   };
 
-  return statusLabels[status] || status;
+  return statusLabels[status] ?? status;
 };

@@ -15,6 +15,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import InboxIcon from '@mui/icons-material/Inbox';
 import InsightsIcon from '@mui/icons-material/Insights';
 import PeopleIcon from '@mui/icons-material/People';
+import RateReviewIcon from '@mui/icons-material/RateReview';
 
 import type { CoachRoute } from '../../../constants/routes';
 import {
@@ -47,6 +48,7 @@ export interface CoachSidebarProps {
   currentTenant: TenantInfo;
   availableTenants?: TenantInfo[];
   inboxBadgeCount?: number;
+  reviewBadgeCount?: number;
   onNavigate: (route: CoachRoute) => void;
   onTenantSwitch?: (tenantId: string) => void;
 }
@@ -60,10 +62,11 @@ type NavItemDef = {
 };
 
 const NAV_ITEMS: NavItemDef[] = [
-  { route: '/coach/inbox',    label: 'Inbox',      Icon: InboxIcon },
-  { route: '/coach/athletes', label: 'Atletas',    Icon: PeopleIcon },
-  { route: '/coach/calendar', label: 'Calendário', Icon: CalendarMonthIcon },
-  { route: '/coach/insights', label: 'Insights',   Icon: InsightsIcon },
+  { route: '/coach/inbox',           label: 'Inbox',             Icon: InboxIcon },
+  { route: '/coach/athletes',        label: 'Atletas',           Icon: PeopleIcon },
+  { route: '/coach/calendar',        label: 'Calendário',        Icon: CalendarMonthIcon },
+  { route: '/coach/insights',        label: 'Insights',          Icon: InsightsIcon },
+  { route: '/coach/planos/revisao',  label: 'Revisão de planos', Icon: RateReviewIcon },
 ];
 
 // ── Dimensions ────────────────────────────────────────────────────────────────
@@ -307,6 +310,7 @@ export default function CoachSidebar({
   currentTenant,
   availableTenants,
   inboxBadgeCount = 0,
+  reviewBadgeCount = 0,
   onNavigate,
   onTenantSwitch,
 }: CoachSidebarProps) {
@@ -439,7 +443,9 @@ export default function CoachSidebar({
         {NAV_ITEMS.map(({ route, label, Icon }) => {
           const isActive = activeRoute === route;
           const isInbox = route === '/coach/inbox';
-          const showBadge = isInbox && inboxBadgeCount > 0;
+          const isReview = route === '/coach/planos/revisao';
+          const badgeCount = isInbox ? inboxBadgeCount : (isReview ? reviewBadgeCount : 0);
+          const showBadge = badgeCount > 0;
 
           const itemContent = (
             <Box
@@ -485,7 +491,7 @@ export default function CoachSidebar({
                 <Box sx={{ position: 'relative', flexShrink: 0, display: 'flex' }}>
                   <Icon sx={{ fontSize: 20 }} />
                   {collapsed && showBadge && (
-                    <InboxBadge count={inboxBadgeCount} position="icon-overlay" />
+                    <InboxBadge count={badgeCount} position="icon-overlay" />
                   )}
                 </Box>
 
@@ -506,7 +512,7 @@ export default function CoachSidebar({
                     </Typography>
 
                     {showBadge && (
-                      <InboxBadge count={inboxBadgeCount} position="inline" />
+                      <InboxBadge count={badgeCount} position="inline" />
                     )}
                   </>
                 )}

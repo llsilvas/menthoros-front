@@ -13,6 +13,7 @@ export const ROUTES = {
     COACH_ATHLETES: '/coach/athletes',
     COACH_CALENDAR: '/coach/calendar',
     COACH_INSIGHTS: '/coach/insights',
+    COACH_PLAN_REVIEW: '/coach/planos/revisao',
 
     // Athlete shell (refine-athlete-shell-ux)
     ATHLETE_HOME:         '/athlete/home',
@@ -27,7 +28,8 @@ export type CoachRoute =
     | '/coach/inbox'
     | '/coach/athletes'
     | '/coach/calendar'
-    | '/coach/insights';
+    | '/coach/insights'
+    | '/coach/planos/revisao';
 
 export type AthleteRoute =
     | '/athlete/home'
