@@ -367,6 +367,20 @@ export function PlanoDetalhePanel({ plano, isActing, onAprovar, onRejeitar }: Pl
                 >
                     {plano.atletaNome ?? 'Atleta'}
                 </Typography>
+
+                <Typography
+                    sx={{
+                        fontFamily: 'Syne, sans-serif',
+                        fontSize: '0.80rem',
+                        fontWeight: 300,
+                        color: surface[50],
+                        lineHeight: 1.35,
+                        letterSpacing: '-0.01em',
+                        mb: 0,
+                    }}
+                >
+                    {plano.objetivoSemanal ?? 'Atleta'}
+                </Typography>
             </Box>
 
             {/* ── Métricas ──────────────────────────────────────────────── */}
