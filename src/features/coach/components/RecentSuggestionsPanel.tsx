@@ -1,10 +1,10 @@
 import { Box, Button, Chip, List, ListItem, ListItemText, Typography } from '@mui/material';
-import { useNavigate } from 'react-router';
 import type { SugestaoRecenteDto } from '../../../types/AtletaPerfilCoach';
 import { semantic, categorical } from '../../../theme/tokens';
 
 interface RecentSuggestionsPanelProps {
     sugestoes: SugestaoRecenteDto[];
+    onVerTodas?: () => void;
 }
 
 const TIPO_COLORS: Record<string, string> = {
@@ -22,8 +22,7 @@ const STATUS_COLORS: Record<string, string> = {
     EXPIRADA:   categorical.cat8,
 };
 
-export function RecentSuggestionsPanel({ sugestoes }: RecentSuggestionsPanelProps) {
-    const navigate = useNavigate();
+export function RecentSuggestionsPanel({ sugestoes, onVerTodas }: RecentSuggestionsPanelProps) {
 
     if (sugestoes.length === 0) {
         return (
@@ -51,7 +50,7 @@ export function RecentSuggestionsPanel({ sugestoes }: RecentSuggestionsPanelProp
                                 size="small"
                                 variant="text"
                                 sx={{ fontSize: '0.75rem', minWidth: 0, px: 1 }}
-                                onClick={() => navigate('/coach/inbox')}
+                                onClick={onVerTodas}
                             >
                                 Ver
                             </Button>

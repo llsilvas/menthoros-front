@@ -60,7 +60,7 @@ export default function CoachAthleteProfilePage() {
     const navigate = useNavigate();
     const [pmcRange, setPmcRange] = useState<PMCRange>('12w');
 
-    const { profile, isLoading, error, fetchProfile } = useAthleteProfile(atletaId);
+    const { profile, isLoading, error, errorKind, fetchProfile } = useAthleteProfile(atletaId);
 
     const pmcData: PMCDataPoint[] = useMemo(
         () =>
@@ -122,7 +122,7 @@ export default function CoachAthleteProfilePage() {
                         status="none"
                     />
                     <Box>
-                        <Typography variant="h5" sx={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, color: surface[50] }}>
+                        <Typography variant="h5" sx={{ fontWeight: 800, color: surface[50] }}>
                             {profile.nomeAtleta}
                         </Typography>
                         <Typography variant="body2" sx={{ color: surface[400] }}>
@@ -148,14 +148,14 @@ export default function CoachAthleteProfilePage() {
             {/* ── Erro ── */}
             {error && (
                 <Alert
-                    severity={error.message.includes('timeout') ? 'warning' : 'error'}
+                    severity={errorKind === 'timeout' ? 'warning' : 'error'}
                     action={
                         <Button color="inherit" size="small" onClick={() => fetchProfile()}>
                             Tentar novamente
                         </Button>
                     }
                 >
-                    {error.message.includes('timeout')
+                    {errorKind === 'timeout'
                         ? 'O servidor demorou para responder. Tente novamente.'
                         : 'Não foi possível carregar o perfil do atleta.'}
                 </Alert>
@@ -216,7 +216,10 @@ export default function CoachAthleteProfilePage() {
                     {/* Sugestões recentes — 6 colunas */}
                     <Grid size={{ xs: 12, md: 6 }}>
                         <SectionCard title="Sugestões recentes">
-                            <RecentSuggestionsPanel sugestoes={profile.sugestoesRecentes} />
+                            <RecentSuggestionsPanel
+                                sugestoes={profile.sugestoesRecentes}
+                                onVerTodas={() => navigate('/coach/inbox')}
+                            />
                         </SectionCard>
                     </Grid>
                 </Grid>

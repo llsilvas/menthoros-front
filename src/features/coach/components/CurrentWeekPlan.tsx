@@ -85,8 +85,8 @@ export function CurrentWeekPlan({ plano, onGerarPlano, onRevisarPlano }: Current
 
     return (
         <Grid container spacing={1}>
-            {plano.treinos.map((t, i) => (
-                <Grid key={i} size={{ xs: 6, sm: 4, md: 3, lg: 12 / 7 }}>
+            {plano.treinos.map((t) => (
+                <Grid key={t.diaSemana} size={{ xs: 6, sm: 4, md: 3, lg: 12 / 7 }}>
                     <TreinoCard treino={t} />
                 </Grid>
             ))}

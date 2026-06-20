@@ -33,7 +33,7 @@ export function RecentSignalsPanel({ sinais }: RecentSignalsPanelProps) {
                 const ago = formatDistanceToNow(parseISO(s.geradoEm), { addSuffix: true, locale: ptBR });
                 return (
                     <ListItem
-                        key={i}
+                        key={s.geradoEm}
                         disableGutters
                         divider={i < sinais.length - 1}
                         sx={{ py: 1, alignItems: 'flex-start', gap: 1 }}

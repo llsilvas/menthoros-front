@@ -6,6 +6,9 @@ import * as useAthleteProfileModule from '../../../hooks/useAthleteProfile';
 import type { AtletaPerfilCoachDto } from '../../../types/AtletaPerfilCoach';
 
 vi.mock('../../../hooks/useAthleteProfile');
+vi.mock('../../athlete/components/PMCChart', () => ({
+    default: () => <div data-testid="pmc-chart" />,
+}));
 
 // ── Stub ──────────────────────────────────────────────────────────────────────
 
@@ -32,7 +35,7 @@ const STUB_PROFILE: AtletaPerfilCoachDto = {
         { motivo: 'ADERENCIA', severidade: 'MEDIA', geradoEm: '2026-06-15T10:00:00Z', acaoSugerida: 'Verificar rotina', sugestaoId: null },
     ],
     sugestoesRecentes: [
-        { id: 'sug-1', tipo: 'NOVO_PLANO', status: 'PENDENTE', criadoEm: '2026-06-14T08:00:00Z' },
+        { id: 'sug-1', tipo: 'NOVO_PLANO', status: 'PENDING', criadoEm: '2026-06-14T08:00:00Z' },
     ],
     recordes: [],
     geradoEm: '2026-06-20T12:00:00Z',
@@ -44,6 +47,7 @@ function mockHook(overrides: Partial<ReturnType<typeof useAthleteProfileModule.u
         profile: null,
         isLoading: false,
         error: null,
+        errorKind: null,
         fetchProfile: vi.fn(),
         ...overrides,
     });
@@ -123,8 +127,8 @@ describe('CoachAthleteProfilePage', () => {
         expect(screen.getByText(/Não foi possível carregar/i)).toBeInTheDocument();
     });
 
-    it('exibe alerta de timeout para error.message contendo "timeout"', () => {
-        mockHook({ error: new Error('timeout'), profile: null });
+    it('exibe alerta de timeout quando errorKind é "timeout"', () => {
+        mockHook({ error: new Error('timeout'), errorKind: 'timeout', profile: null });
         renderPage();
         expect(screen.getByText(/servidor demorou/i)).toBeInTheDocument();
     });

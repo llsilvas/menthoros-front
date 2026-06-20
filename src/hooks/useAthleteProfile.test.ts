@@ -51,37 +51,49 @@ describe('useAthleteProfile', () => {
         expect(result.current.profile).toBeNull();
         expect(result.current.isLoading).toBe(false);
         expect(result.current.error).toBeNull();
+        expect(result.current.errorKind).toBeNull();
         expect(vi.mocked(CoachAthleteProfileService.getProfile)).not.toHaveBeenCalled();
     });
 
-    it('popula error genérico na falha de rede', async () => {
-        vi.mocked(CoachAthleteProfileService.getProfile).mockRejectedValue(new Error('network'));
+    it('não dispara fetch quando atletaId é string vazia', () => {
+        const { result } = renderHook(() => useAthleteProfile(''));
 
-        const { result } = renderHook(() => useAthleteProfile('uuid-1'));
-        await act(async () => {});
-
-        expect(result.current.error).toBeInstanceOf(Error);
         expect(result.current.profile).toBeNull();
         expect(result.current.isLoading).toBe(false);
+        expect(result.current.error).toBeNull();
+        expect(result.current.errorKind).toBeNull();
+        expect(vi.mocked(CoachAthleteProfileService.getProfile)).not.toHaveBeenCalled();
     });
 
-    it('error.message contém "timeout" em HTTP 504', async () => {
+    it('errorKind é "timeout" em HTTP 504', async () => {
         vi.mocked(CoachAthleteProfileService.getProfile).mockRejectedValue(makeApiError(504));
 
         const { result } = renderHook(() => useAthleteProfile('uuid-1'));
         await act(async () => {});
 
+        expect(result.current.errorKind).toBe('timeout');
         expect(result.current.error?.message).toContain('timeout');
         expect(result.current.profile).toBeNull();
     });
 
-    it('error.message contém "timeout" em HTTP 408', async () => {
+    it('errorKind é "timeout" em HTTP 408', async () => {
         vi.mocked(CoachAthleteProfileService.getProfile).mockRejectedValue(makeApiError(408));
 
         const { result } = renderHook(() => useAthleteProfile('uuid-1'));
         await act(async () => {});
 
+        expect(result.current.errorKind).toBe('timeout');
         expect(result.current.error?.message).toContain('timeout');
+    });
+
+    it('errorKind é "server_error" em falha genérica de rede', async () => {
+        vi.mocked(CoachAthleteProfileService.getProfile).mockRejectedValue(new Error('network'));
+
+        const { result } = renderHook(() => useAthleteProfile('uuid-1'));
+        await act(async () => {});
+
+        expect(result.current.errorKind).toBe('server_error');
+        expect(result.current.error).toBeInstanceOf(Error);
     });
 
     it('refetch atualiza profile ao chamar fetchProfile manualmente', async () => {

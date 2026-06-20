@@ -42,7 +42,8 @@ export function AdherenceChart({ semanas }: AdherenceChartProps) {
                         </Box>
                         <LinearProgress
                             variant="determinate"
-                            value={s.percentual}
+                            value={Math.min(s.percentual, 100)}
+                            aria-label={`Aderência semana ${label}: ${s.percentual}%`}
                             sx={{
                                 height: 6,
                                 borderRadius: 3,

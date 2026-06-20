@@ -20,7 +20,7 @@ export interface TreinoPlanejadoResumoDto {
     diaSemana: string;
     tipoTreino: string;
     distanciaKm: number;
-    statusExecucao: string;
+    statusExecucao: 'PENDENTE' | 'REALIZADO' | 'PERDIDO' | 'CANCELADO';
 }
 
 /** Plano semanal vigente do atleta. */
@@ -35,7 +35,7 @@ export interface PlanoVigenteDto {
 /** Sinal recente da fila de atenção do coach para este atleta. */
 export interface SinalRecenteDto {
     motivo: string;
-    severidade: string;
+    severidade: 'CRITICA' | 'ALTA' | 'MEDIA' | 'BAIXA';
     geradoEm: string;
     acaoSugerida: string;
     sugestaoId: string | null;
@@ -44,8 +44,8 @@ export interface SinalRecenteDto {
 /** Sugestão recente gerada pelo job para este atleta. */
 export interface SugestaoRecenteDto {
     id: string;
-    tipo: string;
-    status: string;
+    tipo: 'NOVO_PLANO' | 'AJUSTE_PLANO' | 'LONG_RUN' | 'DESCANSO' | 'SIMULADO' | 'RECOVERY';
+    status: 'PENDING' | 'APPROVED' | 'REJECTED';
     criadoEm: string;
 }
 

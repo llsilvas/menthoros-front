@@ -549,7 +549,10 @@ export default function CoachAthletesPage() {
             disableRowSelectionOnClick
             rowSelectionModel={selection}
             onRowSelectionModelChange={setSelection}
-            onRowClick={(params) => navigate(`/coach/athletes/${params.id}`)}
+            onRowClick={(params, event) => {
+                if ((event.target as HTMLElement).closest('[data-field="__check__"]')) return;
+                navigate(`/coach/athletes/${params.id}`);
+            }}
             rowHeight={52}
             columnHeaderHeight={44}
             pageSizeOptions={[10, 25, 50]}
