@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { CoachPlanoReviewService } from '../api/services/CoachPlanoReviewService';
+import { resolveReviewStatus } from '../types/PlanoReview';
 import type { PlanoReviewStatus, PlanoSemanalDto } from '../types/PlanoReview';
 
 export type ReviewFilter = PlanoReviewStatus | 'all';
@@ -16,7 +17,7 @@ export const useCoachPlanReview = () => {
     const pendentes = useMemo(() =>
         activeFilter === 'all'
             ? allPlanos
-            : allPlanos.filter(p => p.reviewStatus === activeFilter),
+            : allPlanos.filter(p => resolveReviewStatus(p.reviewStatus) === activeFilter),
         [allPlanos, activeFilter]
     );
 

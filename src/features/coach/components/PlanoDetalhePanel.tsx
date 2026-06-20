@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import AssignmentLateOutlinedIcon from '@mui/icons-material/AssignmentLateOutlined';
+import { resolveReviewStatus } from '../../../types/PlanoReview';
 import type { DiaSemanaDto, PlanoSemanalDto, TreinoPlanejadoDto } from '../../../types/PlanoReview';
 import { primary, surface, semantic, content } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
@@ -327,8 +328,9 @@ export function PlanoDetalhePanel({ plano, isActing, onAprovar, onRejeitar }: Pl
     const sessoes = plano.treinosPlanejados ?? [];
     const maxKm = Math.max(...sessoes.map((s) => s.distanciaKm), 0);
     const periodo = `${formatarData(plano.semanaInicio)} – ${formatarData(plano.semanaFim)}`;
-    const isAguardando = plano.reviewStatus === 'AGUARDANDO_REVISAO';
-    const chipStyle = STATUS_CHIP[plano.reviewStatus] ?? STATUS_CHIP.AGUARDANDO_REVISAO;
+    const reviewStatusValue = resolveReviewStatus(plano.reviewStatus);
+    const isAguardando = reviewStatusValue === 'AGUARDANDO_REVISAO';
+    const chipStyle = STATUS_CHIP[reviewStatusValue] ?? STATUS_CHIP.AGUARDANDO_REVISAO;
 
     const handleRejeitar = (motivo: string) => {
         setModalAberto(false);

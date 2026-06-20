@@ -8,6 +8,7 @@ import { useCurrentUser } from '../../../hooks/useCurrentUser';
 import { useAttentionQueue } from '../../../hooks/useAttentionQueue';
 import { useCoachPlanReview } from '../../../hooks/useCoachPlanReview';
 import type { CoachAttentionItem } from '../../../types/Coach';
+import { resolveReviewStatus } from '../../../types/PlanoReview';
 import type { PlanoSemanalDto } from '../../../types/PlanoReview';
 import type { ReviewFilter } from '../../../hooks/useCoachPlanReview';
 
@@ -60,7 +61,7 @@ export default function CoachLayout() {
     navigate(route);
   };
 
-  const reviewBadgeCount = allPlanos.filter(p => p.reviewStatus === 'AGUARDANDO_REVISAO').length;
+  const reviewBadgeCount = allPlanos.filter(p => resolveReviewStatus(p.reviewStatus) === 'AGUARDANDO_REVISAO').length;
 
   const outletContext: CoachLayoutOutletContext = {
     queue,

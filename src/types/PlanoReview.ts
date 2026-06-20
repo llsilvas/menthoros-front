@@ -4,6 +4,21 @@ export type { PlanoStatus };
 /** Status de revisão do plano pelo coach — espelha `PlanoReviewStatus` do backend. */
 export type PlanoReviewStatus = 'AGUARDANDO_REVISAO' | 'APROVADO' | 'REJEITADO';
 
+/** Shape do enum PlanoReviewStatus serializado pelo backend com @JsonFormat(OBJECT). */
+export interface PlanoReviewStatusDto {
+    value: string;
+    label: string;
+    description?: string;
+    color?: string;
+    active?: boolean;
+}
+
+/** Extrai o valor string de um reviewStatus que pode chegar como string ou objeto. */
+export function resolveReviewStatus(status: string | PlanoReviewStatusDto): PlanoReviewStatus {
+    const raw = typeof status === 'string' ? status : status.value;
+    return raw as PlanoReviewStatus;
+}
+
 /** Shape do enum DiaSemana serializado pelo backend com @JsonFormat(OBJECT). */
 export interface DiaSemanaDto {
     value: string;
@@ -41,7 +56,7 @@ export interface PlanoSemanalDto {
     observacoes?: string;
     objetivoSemanal?: string;
     treinosPlanejados?: TreinoPlanejadoDto[];
-    reviewStatus: PlanoReviewStatus;
+    reviewStatus: string | PlanoReviewStatusDto;
     reviewComment?: string;
     atletaNome?: string;
 }
