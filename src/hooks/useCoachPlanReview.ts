@@ -38,27 +38,31 @@ export const useCoachPlanReview = () => {
         }
     }, []);
 
-    const aprovar = useCallback(async (id: string) => {
+    const aprovar = useCallback(async (id: string): Promise<boolean> => {
         try {
             setIsActing(true);
             setActionError(null);
             await CoachPlanoReviewService.aprovar(id);
             await fetchPendentes();
+            return true;
         } catch (err) {
             setActionError(err instanceof Error ? err : new Error('Erro ao aprovar plano'));
+            return false;
         } finally {
             setIsActing(false);
         }
     }, [fetchPendentes]);
 
-    const rejeitar = useCallback(async (id: string, motivo: string) => {
+    const rejeitar = useCallback(async (id: string, motivo: string): Promise<boolean> => {
         try {
             setIsActing(true);
             setActionError(null);
             await CoachPlanoReviewService.rejeitar(id, motivo);
             await fetchPendentes();
+            return true;
         } catch (err) {
             setActionError(err instanceof Error ? err : new Error('Erro ao rejeitar plano'));
+            return false;
         } finally {
             setIsActing(false);
         }

@@ -12,7 +12,7 @@ interface PlanoPendenteItemProps {
 function formatarSemana(inicio: string, fim: string): { mes: string; periodo: string } {
     const di = new Date(`${inicio}T00:00:00`);
     const df = new Date(`${fim}T00:00:00`);
-    const mes = di.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })
+    const mes = di.toLocaleDateString('pt-BR', { month: 'long' })
         .replace('.', '').toUpperCase();
     const periodo = `${di.getDate()} – ${df.getDate()}`;
     return { mes, periodo };
@@ -62,6 +62,17 @@ export function PlanoPendenteItem({ plano, selecionado, onSelect }: PlanoPendent
             <Box sx={{ flex: 1, px: 1.5, py: 1.25, minWidth: 0 }}>
                 {/* Header row */}
                 <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', mb: 0.75 }}>
+                    
+                    <Typography
+                        sx={{
+                            fontFamily: '"JetBrains Mono", "Fira Code", monospace',
+                            fontSize: '0.65rem',
+                            color: surface[400],
+                            letterSpacing: '0.04em',
+                        }}
+                    >
+                        {periodo}
+                    </Typography>
                     <Typography
                         sx={{
                             fontFamily: 'Syne, sans-serif',
@@ -73,16 +84,6 @@ export function PlanoPendenteItem({ plano, selecionado, onSelect }: PlanoPendent
                         }}
                     >
                         {mes}
-                    </Typography>
-                    <Typography
-                        sx={{
-                            fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-                            fontSize: '0.65rem',
-                            color: surface[400],
-                            letterSpacing: '0.04em',
-                        }}
-                    >
-                        {periodo}
                     </Typography>
                 </Box>
 

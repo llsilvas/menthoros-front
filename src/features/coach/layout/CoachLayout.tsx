@@ -25,8 +25,8 @@ export interface CoachLayoutOutletContext {
   reviewActiveFilter: ReviewFilter;
   reviewSetFilter: (f: ReviewFilter) => void;
   reviewFetchPendentes: () => Promise<void>;
-  reviewAprovar: (id: string) => Promise<void>;
-  reviewRejeitar: (id: string, motivo: string) => Promise<void>;
+  reviewAprovar: (id: string) => Promise<boolean>;
+  reviewRejeitar: (id: string, motivo: string) => Promise<boolean>;
 }
 
 export default function CoachLayout() {
