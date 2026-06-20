@@ -15,3 +15,4 @@ export { UsuarioService } from './services/UsuarioService'; // curado à mão �
 export { SugestaoService } from './services/SugestaoService'; // curado à mão — não remover ao regenerar
 export { ManualTrainingService } from './services/ManualTrainingService'; // curado à mão — não remover ao regenerar
 export { CoachPlanoReviewService } from './services/CoachPlanoReviewService'; // curado à mão — não remover ao regenerar
+export { CoachAthleteProfileService } from './services/CoachAthleteProfileService'; // curado à mão — não remover ao regenerar
