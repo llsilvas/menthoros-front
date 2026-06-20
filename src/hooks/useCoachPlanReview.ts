@@ -1,22 +1,37 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { CoachPlanoReviewService } from '../api/services/CoachPlanoReviewService';
-import type { PlanoSemanalDto } from '../types/PlanoReview';
+import type { PlanoReviewStatus, PlanoSemanalDto } from '../types/PlanoReview';
+
+export type ReviewFilter = PlanoReviewStatus | 'all';
 
 export const useCoachPlanReview = () => {
-    const [pendentes, setPendentes] = useState<PlanoSemanalDto[]>([]);
+    const [allPlanos, setAllPlanos] = useState<PlanoSemanalDto[]>([]);
+    const [activeFilter, setActiveFilter] = useState<ReviewFilter>('AGUARDANDO_REVISAO');
     const [isFetching, setIsFetching] = useState(false);
     const [isActing, setIsActing] = useState(false);
     const [fetchError, setFetchError] = useState<Error | null>(null);
     const [actionError, setActionError] = useState<Error | null>(null);
 
+    // Vista filtrada — derivada sem re-fetch
+    const pendentes = useMemo(() =>
+        activeFilter === 'all'
+            ? allPlanos
+            : allPlanos.filter(p => p.reviewStatus === activeFilter),
+        [allPlanos, activeFilter]
+    );
+
     const fetchPendentes = useCallback(async () => {
         try {
             setIsFetching(true);
             setFetchError(null);
-            const data = await CoachPlanoReviewService.listarPendentes();
-            setPendentes(data);
+            const [aguardando, aprovados, rejeitados] = await Promise.all([
+                CoachPlanoReviewService.listarPorStatus('AGUARDANDO_REVISAO'),
+                CoachPlanoReviewService.listarPorStatus('APROVADO'),
+                CoachPlanoReviewService.listarPorStatus('REJEITADO'),
+            ]);
+            setAllPlanos([...aguardando, ...aprovados, ...rejeitados]);
         } catch (err) {
-            setFetchError(err instanceof Error ? err : new Error('Erro ao buscar planos pendentes'));
+            setFetchError(err instanceof Error ? err : new Error('Erro ao buscar planos'));
         } finally {
             setIsFetching(false);
         }
@@ -27,26 +42,38 @@ export const useCoachPlanReview = () => {
             setIsActing(true);
             setActionError(null);
             await CoachPlanoReviewService.aprovar(id);
-            setPendentes(prev => prev.filter(p => p.id !== id));
+            await fetchPendentes();
         } catch (err) {
             setActionError(err instanceof Error ? err : new Error('Erro ao aprovar plano'));
         } finally {
             setIsActing(false);
         }
-    }, []);
+    }, [fetchPendentes]);
 
     const rejeitar = useCallback(async (id: string, motivo: string) => {
         try {
             setIsActing(true);
             setActionError(null);
             await CoachPlanoReviewService.rejeitar(id, motivo);
-            setPendentes(prev => prev.filter(p => p.id !== id));
+            await fetchPendentes();
         } catch (err) {
             setActionError(err instanceof Error ? err : new Error('Erro ao rejeitar plano'));
         } finally {
             setIsActing(false);
         }
-    }, []);
+    }, [fetchPendentes]);
 
-    return { pendentes, isFetching, isActing, fetchError, actionError, fetchPendentes, aprovar, rejeitar };
+    return {
+        allPlanos,
+        pendentes,
+        activeFilter,
+        setFilter: setActiveFilter,
+        isFetching,
+        isActing,
+        fetchError,
+        actionError,
+        fetchPendentes,
+        aprovar,
+        rejeitar,
+    };
 };

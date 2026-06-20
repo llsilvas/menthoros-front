@@ -17,11 +17,23 @@ const STUB: PlanoSemanalDto = {
     reviewStatus: 'AGUARDANDO_REVISAO',
 };
 
+// Configura listarPorStatus para retornar STUB apenas em AGUARDANDO_REVISAO
+function mockFetchAguardando(stub: PlanoSemanalDto = STUB) {
+    vi.mocked(CoachPlanoReviewService.listarPorStatus).mockImplementation((status) =>
+        Promise.resolve(status === 'AGUARDANDO_REVISAO' ? [stub] : [])
+    );
+}
+
+// Configura listarPorStatus para retornar lista vazia em todos os statuses
+function mockFetchVazio() {
+    vi.mocked(CoachPlanoReviewService.listarPorStatus).mockResolvedValue([]);
+}
+
 describe('useCoachPlanReview', () => {
     beforeEach(() => vi.clearAllMocks());
 
-    it('popula pendentes no sucesso', async () => {
-        vi.mocked(CoachPlanoReviewService.listarPendentes).mockResolvedValue([STUB]);
+    it('popula pendentes (AGUARDANDO_REVISAO) no sucesso', async () => {
+        mockFetchAguardando();
 
         const { result } = renderHook(() => useCoachPlanReview());
         await act(async () => { await result.current.fetchPendentes(); });
@@ -32,8 +44,8 @@ describe('useCoachPlanReview', () => {
         expect(result.current.isFetching).toBe(false);
     });
 
-    it('retorna lista vazia quando não há pendentes', async () => {
-        vi.mocked(CoachPlanoReviewService.listarPendentes).mockResolvedValue([]);
+    it('retorna lista vazia quando não há planos no filtro ativo', async () => {
+        mockFetchVazio();
 
         const { result } = renderHook(() => useCoachPlanReview());
         await act(async () => { await result.current.fetchPendentes(); });
@@ -43,7 +55,7 @@ describe('useCoachPlanReview', () => {
     });
 
     it('popula fetchError na falha de listagem', async () => {
-        vi.mocked(CoachPlanoReviewService.listarPendentes).mockRejectedValue(new Error('boom'));
+        vi.mocked(CoachPlanoReviewService.listarPorStatus).mockRejectedValue(new Error('boom'));
 
         const { result } = renderHook(() => useCoachPlanReview());
         await act(async () => { await result.current.fetchPendentes(); });
@@ -54,7 +66,7 @@ describe('useCoachPlanReview', () => {
     });
 
     it('mantém isFetching=true durante busca e false ao concluir', async () => {
-        vi.mocked(CoachPlanoReviewService.listarPendentes).mockResolvedValue([]);
+        mockFetchVazio();
 
         const { result } = renderHook(() => useCoachPlanReview());
         let pending!: Promise<void>;
@@ -64,8 +76,15 @@ describe('useCoachPlanReview', () => {
         expect(result.current.isFetching).toBe(false);
     });
 
-    it('remove plano da lista após aprovar', async () => {
-        vi.mocked(CoachPlanoReviewService.listarPendentes).mockResolvedValue([STUB]);
+    it('remove plano do filtro AGUARDANDO após aprovar (refetch)', async () => {
+        // Primeiro fetch: STUB em AGUARDANDO
+        // Após aprovação, refetch retorna lista vazia (plano virou APROVADO)
+        vi.mocked(CoachPlanoReviewService.listarPorStatus)
+            .mockResolvedValueOnce([STUB])  // AGUARDANDO — primeiro fetchAll
+            .mockResolvedValueOnce([])       // APROVADO   — primeiro fetchAll
+            .mockResolvedValueOnce([])       // REJEITADO  — primeiro fetchAll
+            .mockResolvedValue([]);          // todos statuses após approve
+
         vi.mocked(CoachPlanoReviewService.aprovar).mockResolvedValue({ ...STUB, reviewStatus: 'APROVADO' });
 
         const { result } = renderHook(() => useCoachPlanReview());
@@ -78,12 +97,15 @@ describe('useCoachPlanReview', () => {
         expect(result.current.isActing).toBe(false);
     });
 
-    it('remove plano da lista após rejeitar', async () => {
-        vi.mocked(CoachPlanoReviewService.listarPendentes).mockResolvedValue([STUB]);
+    it('remove plano do filtro AGUARDANDO após rejeitar (refetch)', async () => {
+        vi.mocked(CoachPlanoReviewService.listarPorStatus)
+            .mockResolvedValueOnce([STUB])
+            .mockResolvedValueOnce([])
+            .mockResolvedValueOnce([])
+            .mockResolvedValue([]);
+
         vi.mocked(CoachPlanoReviewService.rejeitar).mockResolvedValue({
-            ...STUB,
-            reviewStatus: 'REJEITADO',
-            reviewComment: 'Volume excessivo',
+            ...STUB, reviewStatus: 'REJEITADO', reviewComment: 'Volume excessivo',
         });
 
         const { result } = renderHook(() => useCoachPlanReview());
@@ -97,7 +119,7 @@ describe('useCoachPlanReview', () => {
     });
 
     it('mantém isActing=true durante ação e false ao concluir', async () => {
-        vi.mocked(CoachPlanoReviewService.listarPendentes).mockResolvedValue([STUB]);
+        mockFetchAguardando();
         vi.mocked(CoachPlanoReviewService.aprovar).mockResolvedValue({ ...STUB, reviewStatus: 'APROVADO' });
 
         const { result } = renderHook(() => useCoachPlanReview());
@@ -133,6 +155,7 @@ describe('useCoachPlanReview', () => {
     });
 
     it('reseta actionError no início de uma nova ação', async () => {
+        mockFetchVazio();
         vi.mocked(CoachPlanoReviewService.aprovar)
             .mockRejectedValueOnce(new Error('erro anterior'))
             .mockResolvedValueOnce({ ...STUB, reviewStatus: 'APROVADO' });
@@ -143,5 +166,25 @@ describe('useCoachPlanReview', () => {
 
         await act(async () => { await result.current.aprovar('plano-1'); });
         expect(result.current.actionError).toBeNull();
+    });
+
+    it('setFilter muda o filtro ativo e a vista filtrada', async () => {
+        const aprovado: PlanoSemanalDto = { ...STUB, reviewStatus: 'APROVADO' };
+        vi.mocked(CoachPlanoReviewService.listarPorStatus).mockImplementation((status) =>
+            Promise.resolve(status === 'APROVADO' ? [aprovado] : [])
+        );
+
+        const { result } = renderHook(() => useCoachPlanReview());
+        await act(async () => { await result.current.fetchPendentes(); });
+
+        // Filtro padrão: AGUARDANDO_REVISAO → vazio
+        expect(result.current.activeFilter).toBe('AGUARDANDO_REVISAO');
+        expect(result.current.pendentes).toHaveLength(0);
+
+        // Muda para APROVADO → mostra o plano aprovado
+        act(() => { result.current.setFilter('APROVADO'); });
+        expect(result.current.activeFilter).toBe('APROVADO');
+        expect(result.current.pendentes).toHaveLength(1);
+        expect(result.current.pendentes[0].reviewStatus).toBe('APROVADO');
     });
 });

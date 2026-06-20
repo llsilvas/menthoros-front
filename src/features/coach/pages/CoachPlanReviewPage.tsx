@@ -7,6 +7,85 @@ import { PlanoDetalhePanel } from '../components/PlanoDetalhePanel';
 import { primary, surface, content, semantic } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
+import type { ReviewFilter } from '../../../hooks/useCoachPlanReview';
+
+// ── Coluna de filtros ────────────────────────────────────────────────────────
+
+interface FilterChip { value: ReviewFilter; label: string }
+
+const FILTER_CHIPS: FilterChip[] = [
+    { value: 'AGUARDANDO_REVISAO', label: 'Aguardando' },
+    { value: 'APROVADO',           label: 'Aprovados'  },
+    { value: 'REJEITADO',          label: 'Rejeitados' },
+    { value: 'all',                label: 'Todos'      },
+];
+
+function FilterColumn({
+    activeFilter,
+    onFilterChange,
+}: {
+    activeFilter: ReviewFilter;
+    onFilterChange: (f: ReviewFilter) => void;
+}) {
+    return (
+        <Box
+            sx={{
+                width: 80,
+                flexShrink: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 1,
+                py: 2,
+                px: 0.5,
+                borderRight: `1px solid ${content.divider}`,
+            }}
+        >
+            {FILTER_CHIPS.map((chip) => {
+                const isActive = activeFilter === chip.value;
+                return (
+                    <Box
+                        key={chip.value}
+                        component="button"
+                        onClick={() => onFilterChange(chip.value)}
+                        sx={{
+                            display:         'flex',
+                            alignItems:      'center',
+                            justifyContent:  'center',
+                            textAlign:       'center',
+                            border:          'none',
+                            borderRadius:    '6px',
+                            cursor:          'pointer',
+                            px:              0.75,
+                            py:              0.75,
+                            fontSize:        '0.7rem',
+                            fontWeight:      500,
+                            lineHeight:      1.3,
+                            transition:      'background-color 0.15s ease, color 0.15s ease',
+                            backgroundColor: isActive ? primary[500] : surface[700],
+                            color:           isActive ? surface[900] : surface[400],
+                            '&:hover': {
+                                backgroundColor: isActive ? primary[400] : surface[600],
+                            },
+                        }}
+                    >
+                        {chip.label}
+                    </Box>
+                );
+            })}
+        </Box>
+    );
+}
+
+// ── Empty state labels por filtro ────────────────────────────────────────────
+
+const EMPTY_LABEL: Record<ReviewFilter, string> = {
+    AGUARDANDO_REVISAO: 'Nenhum plano aguardando revisão',
+    APROVADO:           'Nenhum plano aprovado ainda',
+    REJEITADO:          'Nenhum plano rejeitado',
+    all:                'Nenhum plano encontrado',
+};
+
+// ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function CoachPlanReviewPage() {
     const {
@@ -15,6 +94,8 @@ export default function CoachPlanReviewPage() {
         reviewIsActing: isActing,
         reviewFetchError: fetchError,
         reviewActionError: actionError,
+        reviewActiveFilter: activeFilter,
+        reviewSetFilter: setFilter,
         reviewAprovar: aprovar,
         reviewRejeitar: rejeitar,
     } = useOutletContext<CoachLayoutOutletContext>();
@@ -22,7 +103,7 @@ export default function CoachPlanReviewPage() {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [toast, setToast] = useState<{ msg: string; severity: 'success' | 'error' } | null>(null);
 
-    // Mantém seleção válida ao remover plano da lista
+    // Mantém seleção válida ao remover plano da lista ou mudar filtro
     useEffect(() => {
         if (!selectedId) return;
         if (!pendentes.find((p) => p.id === selectedId)) {
@@ -49,11 +130,7 @@ export default function CoachPlanReviewPage() {
     if (isFetching) {
         return (
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-                <CircularProgress
-                    size={32}
-                    thickness={2}
-                    sx={{ color: primary[500] }}
-                />
+                <CircularProgress size={32} thickness={2} sx={{ color: primary[500] }} />
             </Box>
         );
     }
@@ -78,68 +155,15 @@ export default function CoachPlanReviewPage() {
         );
     }
 
-    // ── Empty state ────────────────────────────────────────────────────────────
-
-    if (pendentes.length === 0) {
-        return (
-            <Box
-                sx={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    height: '100%',
-                    gap: 2,
-                    px: 4,
-                }}
-            >
-                <Box
-                    sx={{
-                        width: 56,
-                        height: 56,
-                        borderRadius: '50%',
-                        bgcolor: `${primary[500]}10`,
-                        border: `1px solid ${primary[500]}28`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                    }}
-                >
-                    <AutoAwesomeOutlinedIcon sx={{ fontSize: 24, color: primary[500], opacity: 0.7 }} />
-                </Box>
-                <Box sx={{ textAlign: 'center' }}>
-                    <Typography
-                        sx={{
-                            fontFamily: 'Syne, sans-serif',
-                            fontSize: '1.1rem',
-                            fontWeight: 700,
-                            color: surface[300],
-                            mb: 0.75,
-                        }}
-                    >
-                        Nenhum plano aguardando revisão
-                    </Typography>
-                    <Typography sx={{ fontSize: '0.82rem', color: surface[500], maxWidth: 300 }}>
-                        Quando a IA gerar novos planos para seus atletas, eles aparecerão aqui para aprovação.
-                    </Typography>
-                </Box>
-            </Box>
-        );
-    }
-
     // ── Layout principal ───────────────────────────────────────────────────────
 
     return (
-        <Box
-            sx={{
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'row',
-                overflow: 'hidden',
-                bgcolor: elevation.base,
-            }}
-        >
-            {/* ── Coluna esquerda: fila de revisão ───────────────────── */}
+        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'row', overflow: 'hidden', bgcolor: elevation.base }}>
+
+            {/* Coluna 1 — Filtros (80px) */}
+            <FilterColumn activeFilter={activeFilter} onFilterChange={setFilter} />
+
+            {/* Coluna 2 — Fila de revisão (296px) */}
             <Box
                 sx={{
                     width: 296,
@@ -152,14 +176,7 @@ export default function CoachPlanReviewPage() {
                 }}
             >
                 {/* Header da lista */}
-                <Box
-                    sx={{
-                        px: 2,
-                        py: 1.75,
-                        borderBottom: `1px solid ${content.divider}`,
-                        flexShrink: 0,
-                    }}
-                >
+                <Box sx={{ px: 2, py: 1.75, borderBottom: `1px solid ${content.divider}`, flexShrink: 0 }}>
                     <Typography
                         sx={{
                             fontFamily: 'Syne, sans-serif',
@@ -174,11 +191,11 @@ export default function CoachPlanReviewPage() {
                         Fila de Revisão
                     </Typography>
                     <Typography sx={{ fontSize: '0.72rem', color: surface[600] }}>
-                        {pendentes.length} {pendentes.length === 1 ? 'plano pendente' : 'planos pendentes'}
+                        {pendentes.length} {pendentes.length === 1 ? 'plano' : 'planos'}
                     </Typography>
                 </Box>
 
-                {/* Lista */}
+                {/* Lista ou empty state inline */}
                 <Box
                     sx={{
                         flex: 1,
@@ -192,18 +209,51 @@ export default function CoachPlanReviewPage() {
                         '&::-webkit-scrollbar-thumb': { bgcolor: surface[700], borderRadius: 2 },
                     }}
                 >
-                    {pendentes.map((plano) => (
-                        <PlanoPendenteItem
-                            key={plano.id}
-                            plano={plano}
-                            selecionado={plano.id === selectedId}
-                            onSelect={() => setSelectedId(plano.id)}
-                        />
-                    ))}
+                    {pendentes.length === 0 ? (
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flex: 1,
+                                gap: 1.5,
+                                py: 4,
+                                opacity: 0.6,
+                            }}
+                        >
+                            <Box
+                                sx={{
+                                    width: 40,
+                                    height: 40,
+                                    borderRadius: '50%',
+                                    bgcolor: `${primary[500]}10`,
+                                    border: `1px solid ${primary[500]}28`,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                }}
+                            >
+                                <AutoAwesomeOutlinedIcon sx={{ fontSize: 18, color: primary[500] }} />
+                            </Box>
+                            <Typography sx={{ fontSize: '0.75rem', color: surface[500], textAlign: 'center', px: 1 }}>
+                                {EMPTY_LABEL[activeFilter]}
+                            </Typography>
+                        </Box>
+                    ) : (
+                        pendentes.map((plano) => (
+                            <PlanoPendenteItem
+                                key={plano.id}
+                                plano={plano}
+                                selecionado={plano.id === selectedId}
+                                onSelect={() => setSelectedId(plano.id)}
+                            />
+                        ))
+                    )}
                 </Box>
             </Box>
 
-            {/* ── Coluna direita: painel de detalhe ──────────────────── */}
+            {/* Coluna 3 — Painel de detalhe (flex-1) */}
             <PlanoDetalhePanel
                 plano={selected}
                 isActing={isActing}
@@ -242,11 +292,7 @@ export default function CoachPlanReviewPage() {
                     autoHideDuration={5000}
                     anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
                 >
-                    <Alert
-                        severity="error"
-                        variant="filled"
-                        sx={{ fontSize: '0.82rem', fontWeight: 600 }}
-                    >
+                    <Alert severity="error" variant="filled" sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
                         {actionError.message}
                     </Alert>
                 </Snackbar>

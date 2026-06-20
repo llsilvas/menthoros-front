@@ -9,6 +9,7 @@ import { useAttentionQueue } from '../../../hooks/useAttentionQueue';
 import { useCoachPlanReview } from '../../../hooks/useCoachPlanReview';
 import type { CoachAttentionItem } from '../../../types/Coach';
 import type { PlanoSemanalDto } from '../../../types/PlanoReview';
+import type { ReviewFilter } from '../../../hooks/useCoachPlanReview';
 
 export interface CoachLayoutOutletContext {
   queue: CoachAttentionItem[];
@@ -20,6 +21,8 @@ export interface CoachLayoutOutletContext {
   reviewIsActing: boolean;
   reviewFetchError: Error | null;
   reviewActionError: Error | null;
+  reviewActiveFilter: ReviewFilter;
+  reviewSetFilter: (f: ReviewFilter) => void;
   reviewFetchPendentes: () => Promise<void>;
   reviewAprovar: (id: string) => Promise<void>;
   reviewRejeitar: (id: string, motivo: string) => Promise<void>;
@@ -32,7 +35,10 @@ export default function CoachLayout() {
   const { coach, tenant, fetchCurrentUser } = useCurrentUser();
   const { queue, loading: queueLoading, error: queueError, fetchQueue } = useAttentionQueue();
   const {
+    allPlanos,
     pendentes,
+    activeFilter: reviewActiveFilter,
+    setFilter: reviewSetFilter,
     isFetching: reviewIsFetching,
     isActing: reviewIsActing,
     fetchError: reviewFetchError,
@@ -54,12 +60,16 @@ export default function CoachLayout() {
     navigate(route);
   };
 
+  const reviewBadgeCount = allPlanos.filter(p => p.reviewStatus === 'AGUARDANDO_REVISAO').length;
+
   const outletContext: CoachLayoutOutletContext = {
     queue,
     queueLoading,
     queueError,
     refetchQueue: fetchQueue,
     reviewPendentes: pendentes,
+    reviewActiveFilter,
+    reviewSetFilter,
     reviewIsFetching,
     reviewIsActing,
     reviewFetchError,
@@ -83,7 +93,7 @@ export default function CoachLayout() {
         coach={coach}
         currentTenant={tenant}
         inboxBadgeCount={queue.length}
-        reviewBadgeCount={pendentes.length}
+        reviewBadgeCount={reviewBadgeCount}
         onNavigate={handleNavigate}
       />
       <Box sx={{ flex: 1, overflow: 'auto' }}>

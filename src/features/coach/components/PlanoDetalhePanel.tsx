@@ -313,6 +313,12 @@ interface PlanoDetalhePanelProps {
     onRejeitar: (motivo: string) => void;
 }
 
+const STATUS_CHIP: Record<string, { label: string; color: string; bg: string }> = {
+    AGUARDANDO_REVISAO: { label: 'AGUARDANDO REVISÃO', color: '#F59E0B', bg: '#F59E0B22' },
+    APROVADO:           { label: 'APROVADO',            color: '#10B981', bg: '#10B98122' },
+    REJEITADO:          { label: 'REJEITADO',           color: '#EF4444', bg: '#EF444422' },
+};
+
 export function PlanoDetalhePanel({ plano, isActing, onAprovar, onRejeitar }: PlanoDetalhePanelProps) {
     const [modalAberto, setModalAberto] = useState(false);
 
@@ -321,6 +327,8 @@ export function PlanoDetalhePanel({ plano, isActing, onAprovar, onRejeitar }: Pl
     const sessoes = plano.treinosPlanejados ?? [];
     const maxKm = Math.max(...sessoes.map((s) => s.distanciaKm), 0);
     const periodo = `${formatarData(plano.semanaInicio)} – ${formatarData(plano.semanaFim)}`;
+    const isAguardando = plano.reviewStatus === 'AGUARDANDO_REVISAO';
+    const chipStyle = STATUS_CHIP[plano.reviewStatus] ?? STATUS_CHIP.AGUARDANDO_REVISAO;
 
     const handleRejeitar = (motivo: string) => {
         setModalAberto(false);
@@ -342,16 +350,16 @@ export function PlanoDetalhePanel({ plano, isActing, onAprovar, onRejeitar }: Pl
                 }}
             >
                 <Chip
-                    label="AGUARDANDO REVISÃO"
+                    label={chipStyle.label}
                     size="small"
                     sx={{
                         height: 18,
                         fontSize: '0.6rem',
                         fontWeight: 700,
                         letterSpacing: '0.08em',
-                        bgcolor: `#F59E0B22`,
-                        color: '#F59E0B',
-                        border: `1px solid #F59E0B33`,
+                        bgcolor: chipStyle.bg,
+                        color: chipStyle.color,
+                        border: `1px solid ${chipStyle.color}33`,
                         borderRadius: '4px',
                         mb: 1,
                         '& .MuiChip-label': { px: 1 },
@@ -444,7 +452,7 @@ export function PlanoDetalhePanel({ plano, isActing, onAprovar, onRejeitar }: Pl
                 <Button
                     variant="contained"
                     onClick={onAprovar}
-                    disabled={isActing}
+                    disabled={isActing || !isAguardando}
                     startIcon={isActing ? undefined : <CheckCircleOutlineIcon sx={{ fontSize: 16 }} />}
                     sx={{
                         bgcolor: primary[500],
@@ -469,7 +477,7 @@ export function PlanoDetalhePanel({ plano, isActing, onAprovar, onRejeitar }: Pl
                 <Button
                     variant="outlined"
                     onClick={() => setModalAberto(true)}
-                    disabled={isActing}
+                    disabled={isActing || !isAguardando}
                     sx={{
                         borderColor: `${semantic.danger[500]}60`,
                         color: semantic.danger[500],

@@ -34,6 +34,8 @@ function mockContext(overrides: Partial<CoachLayoutOutletContext> = {}) {
         queueError: null,
         refetchQueue: vi.fn(),
         reviewPendentes: [],
+        reviewActiveFilter: 'AGUARDANDO_REVISAO',
+        reviewSetFilter: vi.fn(),
         reviewIsFetching: false,
         reviewIsActing: false,
         reviewFetchError: null,
@@ -53,8 +55,8 @@ function clickCard() {
 describe('CoachPlanReviewPage', () => {
     beforeEach(() => vi.clearAllMocks());
 
-    it('exibe estado vazio quando não há planos pendentes', () => {
-        mockContext({ reviewPendentes: [] });
+    it('exibe estado vazio quando não há planos no filtro ativo', () => {
+        mockContext({ reviewPendentes: [], reviewActiveFilter: 'AGUARDANDO_REVISAO' });
         render(<CoachPlanReviewPage />);
         expect(screen.getByText('Nenhum plano aguardando revisão')).toBeInTheDocument();
     });
@@ -75,7 +77,7 @@ describe('CoachPlanReviewPage', () => {
         mockContext({ reviewPendentes: [STUB] });
         render(<CoachPlanReviewPage />);
         expect(screen.getByText('Ana Silva')).toBeInTheDocument();
-        expect(screen.getByText('1 plano pendente')).toBeInTheDocument();
+        expect(screen.getByText('1 plano')).toBeInTheDocument();
     });
 
     it('selecionar plano exibe painel de detalhe com botões de ação', () => {

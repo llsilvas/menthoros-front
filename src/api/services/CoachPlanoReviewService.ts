@@ -1,4 +1,4 @@
-import type { PlanoSemanalDto } from '../../types/PlanoReview';
+import type { PlanoReviewStatus, PlanoSemanalDto } from '../../types/PlanoReview';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -18,6 +18,20 @@ export class CoachPlanoReviewService {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/coach/planos/pendentes',
+        });
+    }
+
+    /**
+     * Lista planos do tenant pelo status de revisão informado.
+     * @param status AGUARDANDO_REVISAO | APROVADO | REJEITADO
+     * @returns lista de planos com o status informado
+     * @throws ApiError
+     */
+    public static listarPorStatus(status: PlanoReviewStatus): CancelablePromise<Array<PlanoSemanalDto>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/coach/planos/revisao',
+            query: { status },
         });
     }
 
