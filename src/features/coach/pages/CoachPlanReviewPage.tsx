@@ -115,14 +115,14 @@ export default function CoachPlanReviewPage() {
 
     const handleAprovar = async () => {
         if (!selected) return;
-        await aprovar(selected.id);
-        setToast({ msg: 'Plano aprovado com sucesso', severity: 'success' });
+        const ok = await aprovar(selected.id);
+        if (ok) setToast({ msg: 'Plano aprovado com sucesso', severity: 'success' });
     };
 
     const handleRejeitar = async (motivo: string) => {
         if (!selected) return;
-        await rejeitar(selected.id, motivo);
-        setToast({ msg: 'Plano rejeitado', severity: 'success' });
+        const ok = await rejeitar(selected.id, motivo);
+        if (ok) setToast({ msg: 'Plano rejeitado', severity: 'success' });
     };
 
     // ── Loading ────────────────────────────────────────────────────────────────
