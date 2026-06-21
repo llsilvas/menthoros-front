@@ -79,6 +79,12 @@ function TreinoTag({ treino }: { treino: TreinoPlanejadoDto }) {
             }}
         >
             <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: cor, flexShrink: 0 }} />
+            {treino.editadoPeloCoach && (
+                <Box
+                    data-testid="chip-editado-coach"
+                    sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: semantic.warning[500], flexShrink: 0 }}
+                />
+            )}
             <Typography
                 sx={{
                     fontFamily: '"JetBrains Mono", monospace',
