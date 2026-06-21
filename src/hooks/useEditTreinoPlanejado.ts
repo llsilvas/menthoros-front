@@ -4,18 +4,14 @@ import type { TreinoPlanejadoDto, TreinoPlanejadoPatch } from '../types/PlanoRev
 
 export const useEditTreinoPlanejado = () => {
     const [isSaving, setIsSaving] = useState(false);
-    const [saveError, setSaveError] = useState<Error | null>(null);
 
     const editarTreino = useCallback(
         async (planoId: string, treinoId: string, patch: TreinoPlanejadoPatch): Promise<TreinoPlanejadoDto> => {
             setIsSaving(true);
-            setSaveError(null);
             try {
                 return await CoachPlanoReviewService.editarTreino(planoId, treinoId, patch);
             } catch (err) {
-                const error = err instanceof Error ? err : new Error('Erro ao editar treino');
-                setSaveError(error);
-                throw error;
+                throw err instanceof Error ? err : new Error('Erro ao editar treino');
             } finally {
                 setIsSaving(false);
             }
@@ -23,5 +19,5 @@ export const useEditTreinoPlanejado = () => {
         [],
     );
 
-    return { isSaving, saveError, editarTreino };
+    return { isSaving, editarTreino };
 };

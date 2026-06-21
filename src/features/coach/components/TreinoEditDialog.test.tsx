@@ -27,7 +27,7 @@ describe('TreinoEditDialog', () => {
             <TreinoEditDialog
                 open
                 treino={TREINO}
-                planoId="plano-1"
+
                 isSaving={false}
                 onClose={onClose}
                 onSave={onSave}
@@ -47,7 +47,7 @@ describe('TreinoEditDialog', () => {
             <TreinoEditDialog
                 open
                 treino={TREINO}
-                planoId="plano-1"
+
                 isSaving={false}
                 onClose={onClose}
                 onSave={onSave}
@@ -73,7 +73,7 @@ describe('TreinoEditDialog', () => {
             <TreinoEditDialog
                 open
                 treino={TREINO}
-                planoId="plano-1"
+
                 isSaving={false}
                 onClose={onClose}
                 onSave={onSave}
@@ -91,7 +91,7 @@ describe('TreinoEditDialog', () => {
             <TreinoEditDialog
                 open
                 treino={TREINO}
-                planoId="plano-1"
+
                 isSaving
                 onClose={onClose}
                 onSave={onSave}
@@ -101,12 +101,29 @@ describe('TreinoEditDialog', () => {
         expect(screen.getByRole('button', { name: /salvar/i })).toBeDisabled();
     });
 
+    it('Salvar sem alterações chama onClose sem chamar onSave', () => {
+        render(
+            <TreinoEditDialog
+                open
+                treino={TREINO}
+                isSaving={false}
+                onClose={onClose}
+                onSave={onSave}
+            />,
+        );
+
+        fireEvent.click(screen.getByRole('button', { name: /salvar/i }));
+
+        expect(onClose).toHaveBeenCalledOnce();
+        expect(onSave).not.toHaveBeenCalled();
+    });
+
     it('não exibe campos quando open=false', () => {
         render(
             <TreinoEditDialog
                 open={false}
                 treino={TREINO}
-                planoId="plano-1"
+
                 isSaving={false}
                 onClose={onClose}
                 onSave={onSave}

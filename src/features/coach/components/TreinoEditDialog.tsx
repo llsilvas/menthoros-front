@@ -20,8 +20,12 @@ import type { TreinoPlanejadoDto, TreinoPlanejadoPatch } from '../../../types/Pl
 
 function parseDuracaoMinutos(iso?: string): string {
     if (!iso) return '';
-    const match = iso.match(/PT(\d+)M/);
-    return match ? match[1] : '';
+    const match = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
+    if (!match) return '';
+    const h = parseInt(match[1] ?? '0', 10);
+    const m = parseInt(match[2] ?? '0', 10);
+    const total = h * 60 + m;
+    return total > 0 ? String(total) : '';
 }
 
 function toIso8601(minutos: string): string | undefined {
@@ -47,7 +51,6 @@ const TIPOS_TREINO = [
 export interface TreinoEditDialogProps {
     open: boolean;
     treino: TreinoPlanejadoDto;
-    planoId: string;
     isSaving: boolean;
     onClose: () => void;
     onSave: (patch: TreinoPlanejadoPatch) => void;
@@ -95,6 +98,11 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
         if (!isNaN(tssNum) && tssNum !== treino.tssPlanejado) patch.tssPlanejado = tssNum;
 
         if (observacao !== treino.observacao) patch.observacao = observacao || undefined;
+
+        if (Object.keys(patch).length === 0) {
+            onClose();
+            return;
+        }
 
         onSave(patch);
     };

@@ -34,7 +34,7 @@ export interface TreinoPlanejadoDto {
     diaSemana: string | DiaSemanaDto;
     tipoTreino: string;
     distanciaKm: number;
-    duracaoMin?: string;
+    duracaoMin?: string;       // ISO-8601, e.g. "PT90M" ou "PT1H30M"
     zonaAlvo?: string;
     observacao?: string;
     justificativaIa?: string;

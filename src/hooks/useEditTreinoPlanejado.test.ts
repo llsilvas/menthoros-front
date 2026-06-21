@@ -22,10 +22,9 @@ const TREINO_ATUALIZADO: TreinoPlanejadoDto = {
 describe('useEditTreinoPlanejado', () => {
     beforeEach(() => vi.clearAllMocks());
 
-    it('inicia com isSaving=false e saveError=null', () => {
+    it('inicia com isSaving=false', () => {
         const { result } = renderHook(() => useEditTreinoPlanejado());
         expect(result.current.isSaving).toBe(false);
-        expect(result.current.saveError).toBeNull();
     });
 
     it('seta isSaving=true durante a chamada e false ao terminar', async () => {
@@ -63,10 +62,9 @@ describe('useEditTreinoPlanejado', () => {
         });
 
         expect(treino).toEqual(TREINO_ATUALIZADO);
-        expect(result.current.saveError).toBeNull();
     });
 
-    it('seta saveError e rethrows em falha de API', async () => {
+    it('lança erro ao consumidor em falha de API', async () => {
         const apiError = new Error('422 Plano não está em revisão');
         vi.mocked(CoachPlanoReviewService.editarTreino).mockRejectedValue(apiError);
 
@@ -76,26 +74,17 @@ describe('useEditTreinoPlanejado', () => {
             await expect(result.current.editarTreino(PLANO_ID, TREINO_ID, PATCH)).rejects.toThrow(apiError);
         });
 
-        expect(result.current.saveError).toBe(apiError);
         expect(result.current.isSaving).toBe(false);
     });
 
-    it('limpa saveError ao iniciar nova chamada', async () => {
-        const apiError = new Error('Erro anterior');
-        vi.mocked(CoachPlanoReviewService.editarTreino)
-            .mockRejectedValueOnce(apiError)
-            .mockResolvedValueOnce(TREINO_ATUALIZADO);
+    it('encapsula erros não-Error em Error padrão', async () => {
+        vi.mocked(CoachPlanoReviewService.editarTreino).mockRejectedValue('string error');
 
         const { result } = renderHook(() => useEditTreinoPlanejado());
 
         await act(async () => {
-            await result.current.editarTreino(PLANO_ID, TREINO_ID, PATCH).catch(() => {});
+            await expect(result.current.editarTreino(PLANO_ID, TREINO_ID, PATCH))
+                .rejects.toThrow('Erro ao editar treino');
         });
-        expect(result.current.saveError).toBe(apiError);
-
-        await act(async () => {
-            await result.current.editarTreino(PLANO_ID, TREINO_ID, PATCH);
-        });
-        expect(result.current.saveError).toBeNull();
     });
 });

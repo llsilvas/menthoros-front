@@ -10,7 +10,7 @@ import { elevation } from '../../../shared/design-tokens';
 import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
 import type { ReviewFilter } from '../../../hooks/useCoachPlanReview';
 import { useEditTreinoPlanejado } from '../../../hooks/useEditTreinoPlanejado';
-import type { TreinoPlanejadoDto, TreinoPlanejadoPatch } from '../../../types/PlanoReview';
+import type { TreinoPlanejadoPatch } from '../../../types/PlanoReview';
 
 // ── Coluna de filtros ────────────────────────────────────────────────────────
 
@@ -106,7 +106,7 @@ export default function CoachPlanReviewPage() {
 
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [toast, setToast] = useState<{ msg: string; severity: 'success' | 'error' } | null>(null);
-    const [editingTreino, setEditingTreino] = useState<TreinoPlanejadoDto | null>(null);
+    const [editingTreinoId, setEditingTreinoId] = useState<string | null>(null);
 
     const { isSaving: isEditSaving, editarTreino } = useEditTreinoPlanejado();
 
@@ -119,6 +119,10 @@ export default function CoachPlanReviewPage() {
     }, [pendentes, selectedId]);
 
     const selected = pendentes.find((p) => p.id === selectedId) ?? null;
+
+    const editingTreino = editingTreinoId
+        ? (selected?.treinosPlanejados?.find((t) => t.id === editingTreinoId) ?? null)
+        : null;
 
     const handleAprovar = async () => {
         if (!selected) return;
@@ -133,15 +137,14 @@ export default function CoachPlanReviewPage() {
     };
 
     const handleAbrirEdicao = (treinoId: string) => {
-        const treino = selected?.treinosPlanejados?.find((t) => t.id === treinoId) ?? null;
-        setEditingTreino(treino);
+        setEditingTreinoId(treinoId);
     };
 
     const handleSalvarEdicao = async (patch: TreinoPlanejadoPatch) => {
-        if (!selected || !editingTreino?.id) return;
+        if (!selected || !editingTreinoId) return;
         try {
-            await editarTreino(selected.id, editingTreino.id, patch);
-            setEditingTreino(null);
+            await editarTreino(selected.id, editingTreinoId, patch);
+            setEditingTreinoId(null);
             await reviewFetchPendentes();
             setToast({ msg: 'Treino atualizado com sucesso', severity: 'success' });
         } catch {
@@ -287,13 +290,12 @@ export default function CoachPlanReviewPage() {
             />
 
             {/* Dialog de edição de treino */}
-            {editingTreino && selected && (
+            {editingTreino && (
                 <TreinoEditDialog
-                    open={!!editingTreino}
+                    open
                     treino={editingTreino}
-                    planoId={selected.id}
                     isSaving={isEditSaving}
-                    onClose={() => setEditingTreino(null)}
+                    onClose={() => setEditingTreinoId(null)}
                     onSave={handleSalvarEdicao}
                 />
             )}

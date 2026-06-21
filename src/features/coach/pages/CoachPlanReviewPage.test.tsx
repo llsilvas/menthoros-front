@@ -50,8 +50,8 @@ function mockContext(overrides: Partial<CoachLayoutOutletContext> = {}) {
         reviewFetchError: null,
         reviewActionError: null,
         reviewFetchPendentes: vi.fn().mockResolvedValue(undefined),
-        reviewAprovar: vi.fn().mockResolvedValue(undefined),
-        reviewRejeitar: vi.fn().mockResolvedValue(undefined),
+        reviewAprovar: vi.fn().mockResolvedValue(true),
+        reviewRejeitar: vi.fn().mockResolvedValue(true),
         ...overrides,
     });
 }
@@ -66,7 +66,6 @@ const mockEditarTreino = vi.fn();
 function stubEditHook(isSaving = false) {
     vi.mocked(useEditHook.useEditTreinoPlanejado).mockReturnValue({
         isSaving,
-        saveError: null,
         editarTreino: mockEditarTreino,
     });
 }
@@ -154,6 +153,34 @@ describe('CoachPlanReviewPage', () => {
     });
 
     // ── Edição de treino ─────────────────────────────────────────────────────
+
+    it('clicar editar → salvar chama editarTreino e reviewFetchPendentes', async () => {
+        const reviewFetchPendentes = vi.fn().mockResolvedValue(undefined);
+        mockEditarTreino.mockResolvedValue({ id: 'treino-1', diaSemana: 'SEGUNDA', tipoTreino: 'FACIL', distanciaKm: 15, editadoPeloCoach: true });
+        mockContext({ reviewPendentes: [STUB], reviewFetchPendentes });
+        render(<CoachPlanReviewPage />);
+
+        clickCard();
+
+        // Abre o dialog clicando no primeiro botão de edição
+        const editButtons = screen.getAllByRole('button', { name: /editar treino/i });
+        fireEvent.click(editButtons[0]);
+
+        // Dialog deve estar visível
+        expect(screen.getByText('Editar treino')).toBeInTheDocument();
+
+        // Muda distância para gerar um patch não vazio
+        const distInput = screen.getByDisplayValue('10');
+        fireEvent.change(distInput, { target: { value: '15' } });
+
+        // Salva
+        fireEvent.click(screen.getByRole('button', { name: /salvar/i }));
+
+        await waitFor(() => {
+            expect(mockEditarTreino).toHaveBeenCalledWith('plano-1', 'treino-1', expect.objectContaining({ distanciaKm: 15 }));
+            expect(reviewFetchPendentes).toHaveBeenCalled();
+        });
+    });
 
     it('botão editar presente quando plano AGUARDANDO_REVISAO e treino tem id', () => {
         mockContext({ reviewPendentes: [STUB] });
