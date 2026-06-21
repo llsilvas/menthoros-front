@@ -35,8 +35,24 @@ export interface TreinoPlanejadoDto {
     tipoTreino: string;
     distanciaKm: number;
     duracaoMin?: string;
+    zonaAlvo?: string;
     observacao?: string;
     justificativaIa?: string;
+    tssPlanejado?: number;
+    percepcaoEsforcoEsperada?: number;
+    editadoPeloCoach?: boolean;
+}
+
+/** Campos editáveis de um treino planejado durante revisão. Campos undefined são ignorados (patch semântico). */
+export interface TreinoPlanejadoPatch {
+    tipoTreino?: string;
+    descricao?: string;
+    distanciaKm?: number;
+    duracaoMin?: string; // ISO-8601: "PT90M"
+    zonaAlvo?: string;
+    tssPlanejado?: number;
+    percepcaoEsforcoEsperada?: number;
+    observacao?: string;
 }
 
 /**
