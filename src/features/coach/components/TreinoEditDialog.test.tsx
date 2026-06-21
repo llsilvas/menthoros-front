@@ -57,12 +57,15 @@ describe('TreinoEditDialog', () => {
         const distInput = screen.getByDisplayValue('10');
         fireEvent.change(distInput, { target: { value: '15' } });
 
+        const durInput = screen.getByDisplayValue('60');
+        fireEvent.change(durInput, { target: { value: '90' } });
+
         fireEvent.click(screen.getByRole('button', { name: /salvar/i }));
 
         expect(onSave).toHaveBeenCalledOnce();
         const patch: TreinoPlanejadoPatch = onSave.mock.calls[0][0];
         expect(patch.distanciaKm).toBe(15);
-        expect(patch.duracaoMin).toBe('PT60M'); // convertido de volta para ISO-8601
+        expect(patch.duracaoMin).toBe('PT90M'); // convertido de volta para ISO-8601
     });
 
     it('botão Cancelar chama onClose sem chamar onSave', () => {

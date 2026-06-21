@@ -31,7 +31,9 @@ describe('useEditTreinoPlanejado', () => {
     it('seta isSaving=true durante a chamada e false ao terminar', async () => {
         let resolvePromise!: (v: TreinoPlanejadoDto) => void;
         const pendingPromise = new Promise<TreinoPlanejadoDto>((r) => { resolvePromise = r; });
-        vi.mocked(CoachPlanoReviewService.editarTreino).mockReturnValue(pendingPromise as any);
+        vi.mocked(CoachPlanoReviewService.editarTreino).mockReturnValue(
+            pendingPromise as unknown as ReturnType<typeof CoachPlanoReviewService.editarTreino>,
+        );
 
         const { result } = renderHook(() => useEditTreinoPlanejado());
 
@@ -51,7 +53,7 @@ describe('useEditTreinoPlanejado', () => {
     });
 
     it('retorna TreinoPlanejadoDto atualizado em sucesso', async () => {
-        vi.mocked(CoachPlanoReviewService.editarTreino).mockResolvedValue(TREINO_ATUALIZADO as any);
+        vi.mocked(CoachPlanoReviewService.editarTreino).mockResolvedValue(TREINO_ATUALIZADO);
 
         const { result } = renderHook(() => useEditTreinoPlanejado());
         let treino!: TreinoPlanejadoDto;
@@ -82,7 +84,7 @@ describe('useEditTreinoPlanejado', () => {
         const apiError = new Error('Erro anterior');
         vi.mocked(CoachPlanoReviewService.editarTreino)
             .mockRejectedValueOnce(apiError)
-            .mockResolvedValueOnce(TREINO_ATUALIZADO as any);
+            .mockResolvedValueOnce(TREINO_ATUALIZADO);
 
         const { result } = renderHook(() => useEditTreinoPlanejado());
 

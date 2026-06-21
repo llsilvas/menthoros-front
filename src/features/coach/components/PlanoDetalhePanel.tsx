@@ -7,9 +7,11 @@ import {
     DialogActions,
     DialogContent,
     DialogTitle,
+    IconButton,
     TextField,
     Typography,
 } from '@mui/material';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import { resolveReviewStatus } from '../../../types/PlanoReview';
 import type { DiaSemanaDto, PlanoSemanalDto, TreinoPlanejadoDto } from '../../../types/PlanoReview';
 import { primary, surface, semantic, content } from '../../../theme/tokens';
@@ -290,6 +292,7 @@ interface PlanoDetalhePanelProps {
     isActing: boolean;
     onAprovar: () => void;
     onRejeitar: (motivo: string) => void;
+    onEditarTreino?: (treinoId: string) => void;
 }
 
 const STATUS_COLOR: Record<string, string> = {
@@ -304,7 +307,7 @@ const STATUS_LABEL: Record<string, string> = {
     REJEITADO: 'Rejeitado',
 };
 
-export function PlanoDetalhePanel({ plano, isActing, onAprovar, onRejeitar }: PlanoDetalhePanelProps) {
+export function PlanoDetalhePanel({ plano, isActing, onAprovar, onRejeitar, onEditarTreino }: PlanoDetalhePanelProps) {
     const [modalAberto, setModalAberto] = useState(false);
 
     if (!plano) return <EstadoVazio />;
@@ -429,7 +432,23 @@ export function PlanoDetalhePanel({ plano, isActing, onAprovar, onRejeitar }: Pl
                 ) : (
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
                         {sessoes.map((t, i) => (
-                            <TreinoTag key={t.id ?? i} treino={t} />
+                            <Box key={t.id ?? i} sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+                                <TreinoTag treino={t} />
+                                {isAguardando && t.id && onEditarTreino && (
+                                    <IconButton
+                                        size="small"
+                                        aria-label="Editar treino"
+                                        onClick={() => onEditarTreino(t.id!)}
+                                        sx={{
+                                            color: surface[500],
+                                            p: 0.25,
+                                            '&:hover': { color: primary[500] },
+                                        }}
+                                    >
+                                        <EditOutlinedIcon sx={{ fontSize: 13 }} />
+                                    </IconButton>
+                                )}
+                            </Box>
                         ))}
                     </Box>
                 )}
