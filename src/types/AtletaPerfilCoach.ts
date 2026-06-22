@@ -17,10 +17,14 @@ export interface AderenciasSemanalDto {
 
 /** Resumo de um treino planejado na semana vigente. */
 export interface TreinoPlanejadoResumoDto {
+    id?: string;
     diaSemana: string;
     tipoTreino: string;
     distanciaKm: number;
     statusExecucao: 'PENDENTE' | 'REALIZADO' | 'PERDIDO' | 'CANCELADO';
+    duracaoMin?: string;   // ISO-8601, ex: "PT60M" ou "PT1H30M"
+    zonaAlvo?: string;
+    percepcaoEsforcoEsperada?: number;
 }
 
 /** Plano semanal vigente do atleta. */
