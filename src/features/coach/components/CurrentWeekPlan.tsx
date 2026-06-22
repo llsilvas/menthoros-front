@@ -54,6 +54,7 @@ function toDialogTreino(t: TreinoPlanejadoResumoDto): TreinoPlanejadoDto {
         duracaoMin: t.duracaoMin,
         zonaAlvo: t.zonaAlvo,
         percepcaoEsforcoEsperada: t.percepcaoEsforcoEsperada,
+        etapas: t.etapas,
     };
 }
 

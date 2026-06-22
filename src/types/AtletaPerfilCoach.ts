@@ -1,3 +1,5 @@
+import type { EtapaTreinoDto } from './PlanoReview';
+
 /** Ponto PMC retornado pelo backend (datas como strings ISO). */
 export interface PmcPontoRaw {
     data: string;
@@ -25,6 +27,7 @@ export interface TreinoPlanejadoResumoDto {
     duracaoMin?: string;   // ISO-8601, ex: "PT60M" ou "PT1H30M"
     zonaAlvo?: string;
     percepcaoEsforcoEsperada?: number;
+    etapas?: EtapaTreinoDto[];
 }
 
 /** Plano semanal vigente do atleta. */
