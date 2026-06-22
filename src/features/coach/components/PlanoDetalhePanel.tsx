@@ -85,108 +85,129 @@ function TreinoTag({ treino, onEditar }: { treino: TreinoPlanejadoDto; onEditar?
     return (
         <Box
             sx={{
+                position: 'relative',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 0.5,
-                px: 1.25,
-                pt: 0.875,
-                pb: 1,
-                borderRadius: '8px',
-                border: `1px solid ${cor}30`,
-                bgcolor: `${cor}0A`,
                 flexShrink: 0,
-                minWidth: 72,
+                minWidth: 80,
+                borderRadius: '6px',
+                // Borda esquerda grossa na cor do tipo — elemento visual dominante
+                borderLeft: `3px solid ${cor}`,
+                borderTop: `1px solid ${cor}20`,
+                borderRight: `1px solid ${cor}14`,
+                borderBottom: `1px solid ${cor}14`,
+                bgcolor: `${cor}07`,
+                backgroundImage: `linear-gradient(160deg, ${cor}0D 0%, transparent 55%)`,
+                overflow: 'hidden',
             }}
         >
-            {/* Cabeçalho: dia + abrev + editar */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: cor, flexShrink: 0 }} />
-                    {treino.editadoPeloCoach && (
-                        <Box
-                            data-testid="chip-editado-coach"
-                            sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: semantic.warning[500], flexShrink: 0 }}
-                        />
-                    )}
-                    <Typography
-                        sx={{
-                            fontFamily: '"JetBrains Mono", monospace',
-                            fontSize: '0.6rem',
-                            fontWeight: 700,
-                            color: surface[300],
-                            letterSpacing: '0.08em',
-                            lineHeight: 1,
-                        }}
-                    >
-                        {dia}
-                    </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-                    <Typography
-                        sx={{
-                            fontSize: '0.55rem',
-                            fontWeight: 600,
-                            color: surface[600],
-                            letterSpacing: '0.06em',
-                            lineHeight: 1,
-                        }}
-                    >
-                        {abbrev}
-                    </Typography>
+            {/* Stripe decorativa no topo */}
+            <Box sx={{ height: '2px', background: `linear-gradient(90deg, ${cor}50, transparent)` }} />
+
+            <Box sx={{ px: 1.25, pt: 0.75, pb: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+
+                {/* Dia da semana — label primário */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        {treino.editadoPeloCoach && (
+                            <Box
+                                data-testid="chip-editado-coach"
+                                sx={{
+                                    width: 4,
+                                    height: 4,
+                                    borderRadius: '50%',
+                                    bgcolor: semantic.warning[400],
+                                    boxShadow: `0 0 4px ${semantic.warning[500]}`,
+                                }}
+                            />
+                        )}
+                        <Typography
+                            sx={{
+                                fontFamily: '"JetBrains Mono", monospace',
+                                fontSize: '0.62rem',
+                                fontWeight: 700,
+                                color: surface[200],
+                                letterSpacing: '0.12em',
+                                lineHeight: 1,
+                            }}
+                        >
+                            {dia}
+                        </Typography>
+                    </Box>
                     {onEditar && (
                         <IconButton
                             size="small"
                             aria-label="Editar treino"
                             onClick={onEditar}
-                            sx={{ p: 0.25, color: surface[600], '&:hover': { color: primary[400] } }}
+                            sx={{
+                                p: 0.125,
+                                color: surface[700],
+                                borderRadius: '3px',
+                                '&:hover': { color: cor, bgcolor: `${cor}18` },
+                            }}
                         >
                             <EditOutlinedIcon sx={{ fontSize: 10 }} />
                         </IconButton>
                     )}
                 </Box>
-            </Box>
 
-            {/* Distância em destaque */}
-            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.25, lineHeight: 1 }}>
-                <Typography
-                    sx={{
-                        fontFamily: '"JetBrains Mono", monospace',
-                        fontSize: '1.1rem',
-                        fontWeight: 800,
-                        color: cor,
-                        letterSpacing: '-0.02em',
-                        lineHeight: 1,
-                    }}
-                >
-                    {treino.distanciaKm}
-                </Typography>
-                <Typography
-                    sx={{
-                        fontFamily: '"JetBrains Mono", monospace',
-                        fontSize: '0.58rem',
-                        fontWeight: 600,
-                        color: `${cor}90`,
-                        lineHeight: 1,
-                    }}
-                >
-                    km
-                </Typography>
-            </Box>
+                {/* Distância — hero number */}
+                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.25 }}>
+                    <Typography
+                        sx={{
+                            fontFamily: '"JetBrains Mono", monospace',
+                            fontSize: '1.45rem',
+                            fontWeight: 800,
+                            color: cor,
+                            letterSpacing: '-0.04em',
+                            lineHeight: 1,
+                            textShadow: `0 0 20px ${cor}40`,
+                        }}
+                    >
+                        {treino.distanciaKm}
+                    </Typography>
+                    <Typography
+                        sx={{
+                            fontFamily: '"JetBrains Mono", monospace',
+                            fontSize: '0.56rem',
+                            fontWeight: 600,
+                            color: `${cor}70`,
+                            lineHeight: 1,
+                            mb: '2px',
+                        }}
+                    >
+                        km
+                    </Typography>
+                </Box>
 
-            {/* Métricas adicionais */}
-            {metaItems.length > 0 && (
-                <Typography
-                    sx={{
-                        fontSize: '0.57rem',
-                        fontWeight: 500,
-                        color: surface[600],
-                        letterSpacing: '0.02em',
-                        lineHeight: 1,
-                    }}
-                >
-                    {metaItems.join(' · ')}
-                </Typography>
-            )}
+                {/* Tipo + métricas */}
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.125 }}>
+                    <Typography
+                        sx={{
+                            fontSize: '0.54rem',
+                            fontWeight: 700,
+                            color: `${cor}90`,
+                            letterSpacing: '0.1em',
+                            lineHeight: 1,
+                        }}
+                    >
+                        {abbrev}
+                    </Typography>
+                    {metaItems.length > 0 && (
+                        <Typography
+                            sx={{
+                                fontSize: '0.54rem',
+                                fontWeight: 500,
+                                color: surface[600],
+                                letterSpacing: '0.01em',
+                                lineHeight: 1.3,
+                            }}
+                        >
+                            {metaItems.join(' · ')}
+                        </Typography>
+                    )}
+                </Box>
+            </Box>
         </Box>
     );
 }
@@ -496,7 +517,7 @@ export function PlanoDetalhePanel({ plano, isActing, onAprovar, onRejeitar, onEd
                         Nenhuma sessão disponível.
                     </Typography>
                 ) : (
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                         {sessoes.map((t, i) => (
                             <TreinoTag
                                 key={t.id ?? i}
