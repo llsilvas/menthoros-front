@@ -252,7 +252,7 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
             setDesaquecimento(desaq ? blocoFromEtapa(desaq) : BLOCO_VAZIO);
             setPrincipal(esf   ? blocoFromEtapa(esf)   : blocoFromTreino(treino));
             setRecuperacao(rec ? blocoFromEtapa(rec)   : BLOCO_VAZIO);
-            setRepeticoes(esf?.repeticoes ?? 1);
+            setRepeticoes(esf?.repeticoes ?? rec?.repeticoes ?? 1);
         } else {
             setAquecimento(BLOCO_VAZIO);
             setDesaquecimento(BLOCO_VAZIO);
