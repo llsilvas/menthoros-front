@@ -89,75 +89,97 @@ function TreinoTag({ treino, onEditar }: { treino: TreinoPlanejadoDto; onEditar?
                 flexDirection: 'column',
                 gap: 0.5,
                 px: 1.25,
-                py: 0.75,
-                borderRadius: '6px',
-                border: `1px solid ${cor}28`,
-                bgcolor: `${cor}0C`,
+                pt: 0.875,
+                pb: 1,
+                borderRadius: '8px',
+                border: `1px solid ${cor}30`,
+                bgcolor: `${cor}0A`,
                 flexShrink: 0,
+                minWidth: 72,
             }}
         >
-            {/* Linha principal */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: cor, flexShrink: 0 }} />
-                {treino.editadoPeloCoach && (
-                    <Box
-                        data-testid="chip-editado-coach"
-                        sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: semantic.warning[500], flexShrink: 0 }}
-                    />
-                )}
-                <Typography
-                    sx={{
-                        fontFamily: '"JetBrains Mono", monospace',
-                        fontSize: '0.62rem',
-                        fontWeight: 700,
-                        color: surface[400],
-                        letterSpacing: '0.06em',
-                        lineHeight: 1,
-                    }}
-                >
-                    {dia}
-                </Typography>
-                <Typography
-                    sx={{
-                        fontFamily: '"JetBrains Mono", monospace',
-                        fontSize: '0.68rem',
-                        fontWeight: 600,
-                        color: cor,
-                        lineHeight: 1,
-                    }}
-                >
-                    {treino.distanciaKm}k
-                </Typography>
-                <Typography
-                    sx={{
-                        fontSize: '0.6rem',
-                        fontWeight: 600,
-                        color: surface[500],
-                        letterSpacing: '0.04em',
-                        lineHeight: 1,
-                    }}
-                >
-                    {abbrev}
-                </Typography>
-                {onEditar && (
-                    <IconButton
-                        size="small"
-                        aria-label="Editar treino"
-                        onClick={onEditar}
-                        sx={{ p: 0.25, ml: 0.25, color: surface[600], '&:hover': { color: primary[500] } }}
+            {/* Cabeçalho: dia + abrev + editar */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: cor, flexShrink: 0 }} />
+                    {treino.editadoPeloCoach && (
+                        <Box
+                            data-testid="chip-editado-coach"
+                            sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: semantic.warning[500], flexShrink: 0 }}
+                        />
+                    )}
+                    <Typography
+                        sx={{
+                            fontFamily: '"JetBrains Mono", monospace',
+                            fontSize: '0.6rem',
+                            fontWeight: 700,
+                            color: surface[300],
+                            letterSpacing: '0.08em',
+                            lineHeight: 1,
+                        }}
                     >
-                        <EditOutlinedIcon sx={{ fontSize: 10 }} />
-                    </IconButton>
-                )}
+                        {dia}
+                    </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+                    <Typography
+                        sx={{
+                            fontSize: '0.55rem',
+                            fontWeight: 600,
+                            color: surface[600],
+                            letterSpacing: '0.06em',
+                            lineHeight: 1,
+                        }}
+                    >
+                        {abbrev}
+                    </Typography>
+                    {onEditar && (
+                        <IconButton
+                            size="small"
+                            aria-label="Editar treino"
+                            onClick={onEditar}
+                            sx={{ p: 0.25, color: surface[600], '&:hover': { color: primary[400] } }}
+                        >
+                            <EditOutlinedIcon sx={{ fontSize: 10 }} />
+                        </IconButton>
+                    )}
+                </Box>
             </Box>
 
-            {/* Linha de métricas adicionais */}
+            {/* Distância em destaque */}
+            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.25, lineHeight: 1 }}>
+                <Typography
+                    sx={{
+                        fontFamily: '"JetBrains Mono", monospace',
+                        fontSize: '1.1rem',
+                        fontWeight: 800,
+                        color: cor,
+                        letterSpacing: '-0.02em',
+                        lineHeight: 1,
+                    }}
+                >
+                    {treino.distanciaKm}
+                </Typography>
+                <Typography
+                    sx={{
+                        fontFamily: '"JetBrains Mono", monospace',
+                        fontSize: '0.58rem',
+                        fontWeight: 600,
+                        color: `${cor}90`,
+                        lineHeight: 1,
+                    }}
+                >
+                    km
+                </Typography>
+            </Box>
+
+            {/* Métricas adicionais */}
             {metaItems.length > 0 && (
                 <Typography
                     sx={{
-                        fontSize: '0.58rem',
+                        fontSize: '0.57rem',
                         fontWeight: 500,
-                        color: surface[500],
+                        color: surface[600],
                         letterSpacing: '0.02em',
                         lineHeight: 1,
                     }}
