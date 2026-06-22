@@ -202,30 +202,6 @@ function BlocoCard({ label, accent, bloco, onChange, disabled, actions }: BlocoC
     );
 }
 
-// ── AddBlocoBtn ───────────────────────────────────────────────────────────────
-
-function AddBlocoBtn({ label, color, onClick }: { label: string; color: string; onClick: () => void }) {
-    return (
-        <Button
-            size="small"
-            variant="text"
-            startIcon={<AddIcon sx={{ fontSize: '13px !important' }} />}
-            onClick={onClick}
-            sx={{
-                alignSelf: 'flex-start',
-                fontSize: '0.7rem',
-                color,
-                textTransform: 'none',
-                px: 1,
-                py: 0.3,
-                borderRadius: '6px',
-                '&:hover': { bgcolor: `${color}12` },
-            }}
-        >
-            {label}
-        </Button>
-    );
-}
 
 // ── TreinoEditDialog ──────────────────────────────────────────────────────────
 
@@ -248,9 +224,9 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
     const [recuperacao, setRecuperacao]       = useState<BlocoState>(BLOCO_VAZIO);
     // Repetições da série
     const [repeticoes, setRepeticoes]         = useState(1);
-    // Blocos opcionais
-    const [aquecimento, setAquecimento]       = useState<BlocoState | null>(null);
-    const [desaquecimento, setDesaquecimento] = useState<BlocoState | null>(null);
+    // Blocos obrigatórios em todos os tipos de treino
+    const [aquecimento, setAquecimento]       = useState<BlocoState>(BLOCO_VAZIO);
+    const [desaquecimento, setDesaquecimento] = useState<BlocoState>(BLOCO_VAZIO);
 
     const isIntervalado = TIPOS_INTERVALADOS.has(tipoTreino);
 
@@ -261,30 +237,29 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
         setPrincipal(blocoFromTreino(treino));
         setRecuperacao(BLOCO_VAZIO);
         setRepeticoes(1);
-        setAquecimento(null);
-        setDesaquecimento(null);
+        setAquecimento(BLOCO_VAZIO);
+        setDesaquecimento(BLOCO_VAZIO);
     }, [treino]);
 
-    // Totais calculados em tempo real a partir dos blocos
+    // Totais calculados em tempo real somando todos os blocos (aquecimento + principal + desaquecimento)
     const { totalKm, totalMin } = useMemo(() => {
         let km = 0;
         let min = 0;
 
-        const soma = (b: BlocoState | null) => {
-            if (!b) return;
+        const soma = (b: BlocoState) => {
             km  += parseFloat(b.distanciaKm) || 0;
             min += parseInt(b.duracaoMin, 10) || 0;
         };
 
+        soma(aquecimento);
         if (isIntervalado) {
-            soma(aquecimento);
             const rep = Math.max(1, repeticoes);
             km  += ((parseFloat(principal.distanciaKm) || 0) + (parseFloat(recuperacao.distanciaKm) || 0)) * rep;
             min += ((parseInt(principal.duracaoMin, 10) || 0) + (parseInt(recuperacao.duracaoMin, 10) || 0)) * rep;
-            soma(desaquecimento);
         } else {
             soma(principal);
         }
+        soma(desaquecimento);
 
         return {
             totalKm:  km  > 0 ? km.toFixed(1)  : null,
@@ -297,13 +272,9 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
 
         if (tipoTreino && tipoTreino !== treino.tipoTreino) patch.tipoTreino = tipoTreino;
 
-        const distNum = isIntervalado
-            ? (totalKm ? parseFloat(totalKm) : NaN)
-            : (parseFloat(principal.distanciaKm) || NaN);
-
-        const durMin = isIntervalado
-            ? (totalMin ? parseInt(totalMin, 10) : NaN)
-            : (parseInt(principal.duracaoMin, 10) || NaN);
+        // Totals always include aquecimento + main block(s) + desaquecimento
+        const distNum = totalKm ? parseFloat(totalKm) : NaN;
+        const durMin  = totalMin ? parseInt(totalMin, 10) : NaN;
 
         if (!isNaN(distNum) && distNum !== treino.distanciaKm) patch.distanciaKm = distNum;
 
@@ -418,142 +389,95 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
             {/* ── Conteúdo ── */}
             <DialogContent sx={{ px: 2.5, py: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
 
-                {isIntervalado ? (
-                    /* ── Modo intervalado / Fartlek ── */
-                    <>
-                        {aquecimento === null ? (
-                            <AddBlocoBtn
-                                label="+ Aquecimento"
-                                color={ACCENT.aquecimento}
-                                onClick={() => setAquecimento(BLOCO_VAZIO)}
-                            />
-                        ) : (
-                            <BlocoCard
-                                label="Aquecimento"
-                                accent={ACCENT.aquecimento}
-                                bloco={aquecimento}
-                                onChange={setAquecimento}
-                                disabled={isSaving}
-                                actions={
-                                    <Button
-                                        size="small"
-                                        variant="text"
-                                        onClick={() => setAquecimento(null)}
-                                        sx={{ fontSize: '0.62rem', color: surface[600], textTransform: 'none', px: 0.5, minWidth: 0 }}
-                                    >
-                                        remover
-                                    </Button>
-                                }
-                            />
-                        )}
+                {/* ── Aquecimento — presente em todos os tipos ── */}
+                <BlocoCard
+                    label="Aquecimento"
+                    accent={ACCENT.aquecimento}
+                    bloco={aquecimento}
+                    onChange={setAquecimento}
+                    disabled={isSaving}
+                />
 
-                        {/* Container da série */}
-                        <Box sx={{ border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', overflow: 'hidden' }}>
-                            {/* Cabeçalho com stepper de repetições */}
-                            <Box
+                {isIntervalado ? (
+                    /* ── Série (Intervalado / Fartlek) ── */
+                    <Box sx={{ border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', overflow: 'hidden' }}>
+                        <Box
+                            sx={{
+                                px: 1.5,
+                                py: 0.85,
+                                bgcolor: 'rgba(255,255,255,0.035)',
+                                borderBottom: '1px solid rgba(255,255,255,0.07)',
+                                display: 'flex',
+                                alignItems: 'center',
+                            }}
+                        >
+                            <Typography
                                 sx={{
-                                    px: 1.5,
-                                    py: 0.85,
-                                    bgcolor: 'rgba(255,255,255,0.035)',
-                                    borderBottom: '1px solid rgba(255,255,255,0.07)',
-                                    display: 'flex',
-                                    alignItems: 'center',
+                                    fontSize: '0.62rem',
+                                    fontWeight: 700,
+                                    color: surface[500],
+                                    letterSpacing: '0.08em',
+                                    textTransform: 'uppercase',
+                                    fontFamily: 'monospace',
                                 }}
                             >
-                                <Typography
+                                Série
+                            </Typography>
+
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, ml: 'auto' }}>
+                                <IconButton
+                                    size="small"
+                                    onClick={() => setRepeticoes(r => Math.max(1, r - 1))}
+                                    disabled={isSaving || repeticoes <= 1}
+                                    aria-label="Diminuir repetições"
+                                    sx={{ p: 0.3, color: surface[500], '&:hover': { color: surface[100] } }}
+                                >
+                                    <RemoveIcon sx={{ fontSize: 13 }} />
+                                </IconButton>
+                                <Box
                                     sx={{
-                                        fontSize: '0.62rem',
-                                        fontWeight: 700,
-                                        color: surface[500],
-                                        letterSpacing: '0.08em',
-                                        textTransform: 'uppercase',
+                                        minWidth: 44,
+                                        textAlign: 'center',
+                                        fontSize: '1rem',
+                                        fontWeight: 800,
+                                        color: primary[500],
                                         fontFamily: 'monospace',
+                                        letterSpacing: '-0.02em',
                                     }}
                                 >
-                                    Série
-                                </Typography>
-
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, ml: 'auto' }}>
-                                    <IconButton
-                                        size="small"
-                                        onClick={() => setRepeticoes(r => Math.max(1, r - 1))}
-                                        disabled={isSaving || repeticoes <= 1}
-                                        aria-label="Diminuir repetições"
-                                        sx={{ p: 0.3, color: surface[500], '&:hover': { color: surface[100] } }}
-                                    >
-                                        <RemoveIcon sx={{ fontSize: 13 }} />
-                                    </IconButton>
-                                    <Box
-                                        sx={{
-                                            minWidth: 44,
-                                            textAlign: 'center',
-                                            fontSize: '1rem',
-                                            fontWeight: 800,
-                                            color: primary[500],
-                                            fontFamily: 'monospace',
-                                            letterSpacing: '-0.02em',
-                                        }}
-                                    >
-                                        {repeticoes}×
-                                    </Box>
-                                    <IconButton
-                                        size="small"
-                                        onClick={() => setRepeticoes(r => Math.min(20, r + 1))}
-                                        disabled={isSaving || repeticoes >= 20}
-                                        aria-label="Aumentar repetições"
-                                        sx={{ p: 0.3, color: surface[500], '&:hover': { color: surface[100] } }}
-                                    >
-                                        <AddIcon sx={{ fontSize: 13 }} />
-                                    </IconButton>
+                                    {repeticoes}×
                                 </Box>
-                            </Box>
-
-                            <Box sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
-                                <BlocoCard
-                                    label="Esforço"
-                                    accent={ACCENT.esforco}
-                                    bloco={principal}
-                                    onChange={setPrincipal}
-                                    disabled={isSaving}
-                                />
-                                <BlocoCard
-                                    label="Recuperação"
-                                    accent={ACCENT.recuperacao}
-                                    bloco={recuperacao}
-                                    onChange={setRecuperacao}
-                                    disabled={isSaving}
-                                />
+                                <IconButton
+                                    size="small"
+                                    onClick={() => setRepeticoes(r => Math.min(20, r + 1))}
+                                    disabled={isSaving || repeticoes >= 20}
+                                    aria-label="Aumentar repetições"
+                                    sx={{ p: 0.3, color: surface[500], '&:hover': { color: surface[100] } }}
+                                >
+                                    <AddIcon sx={{ fontSize: 13 }} />
+                                </IconButton>
                             </Box>
                         </Box>
 
-                        {desaquecimento === null ? (
-                            <AddBlocoBtn
-                                label="+ Desaquecimento"
-                                color={ACCENT.desaquecimento}
-                                onClick={() => setDesaquecimento(BLOCO_VAZIO)}
-                            />
-                        ) : (
+                        <Box sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
                             <BlocoCard
-                                label="Desaquecimento"
-                                accent={ACCENT.desaquecimento}
-                                bloco={desaquecimento}
-                                onChange={setDesaquecimento}
+                                label="Esforço"
+                                accent={ACCENT.esforco}
+                                bloco={principal}
+                                onChange={setPrincipal}
                                 disabled={isSaving}
-                                actions={
-                                    <Button
-                                        size="small"
-                                        variant="text"
-                                        onClick={() => setDesaquecimento(null)}
-                                        sx={{ fontSize: '0.62rem', color: surface[600], textTransform: 'none', px: 0.5, minWidth: 0 }}
-                                    >
-                                        remover
-                                    </Button>
-                                }
                             />
-                        )}
-                    </>
+                            <BlocoCard
+                                label="Recuperação"
+                                accent={ACCENT.recuperacao}
+                                bloco={recuperacao}
+                                onChange={setRecuperacao}
+                                disabled={isSaving}
+                            />
+                        </Box>
+                    </Box>
                 ) : (
-                    /* ── Modo simples ── */
+                    /* ── Bloco principal (tipos simples) ── */
                     <BlocoCard
                         label="Treino"
                         accent={ACCENT.principal}
@@ -562,6 +486,15 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
                         disabled={isSaving}
                     />
                 )}
+
+                {/* ── Desaquecimento — presente em todos os tipos ── */}
+                <BlocoCard
+                    label="Desaquecimento"
+                    accent={ACCENT.desaquecimento}
+                    bloco={desaquecimento}
+                    onChange={setDesaquecimento}
+                    disabled={isSaving}
+                />
 
                 {/* ── Campos globais ── */}
                 <Box

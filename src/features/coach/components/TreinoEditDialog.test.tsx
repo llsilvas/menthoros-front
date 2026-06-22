@@ -118,6 +118,22 @@ describe('TreinoEditDialog', () => {
         expect(onSave).not.toHaveBeenCalled();
     });
 
+    it('exibe blocos Aquecimento, Treino e Desaquecimento para treino simples', () => {
+        render(
+            <TreinoEditDialog
+                open
+                treino={TREINO}
+                isSaving={false}
+                onClose={onClose}
+                onSave={onSave}
+            />,
+        );
+
+        expect(screen.getByText('Aquecimento')).toBeInTheDocument();
+        expect(screen.getByText('Treino')).toBeInTheDocument();
+        expect(screen.getByText('Desaquecimento')).toBeInTheDocument();
+    });
+
     it('não exibe campos quando open=false', () => {
         render(
             <TreinoEditDialog
@@ -196,7 +212,7 @@ describe('TreinoEditDialog — modo intervalado', () => {
         expect(screen.getByText('2×')).toBeInTheDocument();
     });
 
-    it('exibe botões para adicionar aquecimento e desaquecimento opcionais', () => {
+    it('exibe blocos Aquecimento e Desaquecimento sempre presentes', () => {
         render(
             <TreinoEditDialog
                 open
@@ -206,25 +222,8 @@ describe('TreinoEditDialog — modo intervalado', () => {
                 onSave={onSave}
             />,
         );
-
-        expect(screen.getByText(/\+ Aquecimento/i)).toBeInTheDocument();
-        expect(screen.getByText(/\+ Desaquecimento/i)).toBeInTheDocument();
-    });
-
-    it('adicionar aquecimento revela bloco e botão remover', () => {
-        render(
-            <TreinoEditDialog
-                open
-                treino={TREINO_INTERVALADO}
-                isSaving={false}
-                onClose={onClose}
-                onSave={onSave}
-            />,
-        );
-
-        fireEvent.click(screen.getByText(/\+ Aquecimento/i));
 
         expect(screen.getByText('Aquecimento')).toBeInTheDocument();
-        expect(screen.getByText('remover')).toBeInTheDocument();
+        expect(screen.getByText('Desaquecimento')).toBeInTheDocument();
     });
 });
