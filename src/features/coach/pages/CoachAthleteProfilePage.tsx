@@ -25,6 +25,7 @@ import { CurrentWeekPlan } from '../components/CurrentWeekPlan';
 import { RecentSignalsPanel } from '../components/RecentSignalsPanel';
 import { RecentSuggestionsPanel } from '../components/RecentSuggestionsPanel';
 import { useAthleteProfile } from '../../../hooks/useAthleteProfile';
+import { LimiaresInferidosBanner } from '../components/LimiaresInferidosBanner';
 import { surface } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 
@@ -167,6 +168,9 @@ export default function CoachAthleteProfilePage() {
                     Alguns blocos não carregaram: {profile.avisos.join(', ')}.
                 </Alert>
             )}
+
+            {/* ── Limiares inferidos ── */}
+            <LimiaresInferidosBanner limiareisInferidos={profile?.limiareisInferidos} />
 
             {/* ── Conteúdo ── */}
             {isLoading && !profile ? (

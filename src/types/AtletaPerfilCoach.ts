@@ -64,6 +64,15 @@ export interface RecordeDto {
     treinoId: string;
 }
 
+/** Limiares fisiológicos inferidos de dados recentes dos últimos 30 dias. */
+export interface LimiareisInferidosDto {
+    fcLimiarEstimado?: number;
+    paceLimiarEstimadoFormatado?: string;
+    confiancaInferenciaFc?: 'ALTA' | 'MEDIA' | 'BAIXA';
+    confiancaInferenciaPace?: 'ALTA' | 'MEDIA' | 'BAIXA';
+    dataInferenciaLimiar?: string;
+}
+
 /** Perfil consolidado de um atleta para o coach (endpoint único agregador). */
 export interface AtletaPerfilCoachDto {
     atletaId: string;
@@ -79,4 +88,5 @@ export interface AtletaPerfilCoachDto {
     recordes: RecordeDto[];
     geradoEm: string;
     avisos: string[] | null;
+    limiareisInferidos?: LimiareisInferidosDto | null;
 }
