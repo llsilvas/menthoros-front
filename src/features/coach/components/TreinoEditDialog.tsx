@@ -244,15 +244,22 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
     useEffect(() => {
         const etapas = treino.etapas;
         if (etapas?.length) {
-            const aq    = etapas.find(e => e.tipoEtapa === 'AQUECIMENTO');
-            const desaq = etapas.find(e => e.tipoEtapa === 'DESAQUECIMENTO');
-            const esf   = etapas.find(e => e.tipoEtapa === 'INTERVALADO' || e.tipoEtapa === 'PRINCIPAL');
-            const rec   = etapas.find(e => e.tipoEtapa === 'RECUPERACAO');
+            const aq        = etapas.find(e => e.tipoEtapa === 'AQUECIMENTO');
+            const desaq     = etapas.find(e => e.tipoEtapa === 'DESAQUECIMENTO');
+            const intervalados = etapas.filter(e => e.tipoEtapa === 'INTERVALADO');
+            const esf       = intervalados[0] ?? etapas.find(e => e.tipoEtapa === 'PRINCIPAL');
+            const rec       = etapas.find(e => e.tipoEtapa === 'RECUPERACAO');
+
             setAquecimento(aq   ? blocoFromEtapa(aq)   : BLOCO_VAZIO);
             setDesaquecimento(desaq ? blocoFromEtapa(desaq) : BLOCO_VAZIO);
             setPrincipal(esf   ? blocoFromEtapa(esf)   : blocoFromTreino(treino));
             setRecuperacao(rec ? blocoFromEtapa(rec)   : BLOCO_VAZIO);
-            setRepeticoes(esf?.repeticoes ?? rec?.repeticoes ?? 1);
+            // IA gera N etapas individuais (repeticoes=1 cada) → conta etapas
+            // Coach salva 1 etapa com repeticoes=N → usa o campo
+            const rep = intervalados.length > 1
+                ? intervalados.length
+                : (esf?.repeticoes ?? 1);
+            setRepeticoes(rep);
         } else {
             setAquecimento(BLOCO_VAZIO);
             setDesaquecimento(BLOCO_VAZIO);
