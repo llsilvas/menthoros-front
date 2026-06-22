@@ -110,6 +110,22 @@ describe('CurrentWeekPlan', () => {
         expect(screen.getByText(/90 min/)).toBeInTheDocument();
     });
 
+    it('converte formato legado HH:MM:SS para minutos', () => {
+        const planoLegado = {
+            ...PLANO_APROVADO,
+            treinos: [{ ...TREINO_SEGUNDA, duracaoMin: '01:30:00' }],
+        };
+        render(
+            <CurrentWeekPlan
+                plano={planoLegado}
+                onGerarPlano={onGerarPlano}
+                onRevisarPlano={onRevisarPlano}
+            />,
+        );
+
+        expect(screen.getByText(/90 min/)).toBeInTheDocument();
+    });
+
     it('NÃO exibe botão editar quando plano APROVADO', () => {
         render(
             <CurrentWeekPlan

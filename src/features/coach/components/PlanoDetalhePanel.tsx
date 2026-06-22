@@ -24,13 +24,25 @@ function resolverDiaSemana(dia: string | DiaSemanaDto): string {
     return dia.short ?? dia.label ?? dia.value;
 }
 
-function parseDuracao(iso: string): string | null {
-    const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
-    if (!m) return null;
-    const h = parseInt(m[1] ?? '0', 10);
-    const mins = parseInt(m[2] ?? '0', 10);
-    const total = h * 60 + mins;
-    return total > 0 ? `${total}min` : null;
+function parseDuracao(valor: string): string | null {
+    if (!valor) return null;
+    // ISO-8601: PT90M, PT1H30M
+    const iso = valor.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
+    if (iso) {
+        const h = parseInt(iso[1] ?? '0', 10);
+        const m = parseInt(iso[2] ?? '0', 10);
+        const total = h * 60 + m;
+        return total > 0 ? `${total}min` : null;
+    }
+    // Legado HH:MM:SS ou MM:SS (mapper durationToString)
+    const hms = valor.match(/^(?:(\d+):)?(\d{1,2}):(\d{2})$/);
+    if (hms) {
+        const h = parseInt(hms[1] ?? '0', 10);
+        const m = parseInt(hms[2], 10);
+        const total = h * 60 + m;
+        return total > 0 ? `${total}min` : null;
+    }
+    return null;
 }
 
 function formatarData(iso: string): string {
@@ -54,9 +66,9 @@ const TIPO_COLORS: Record<string, string> = {
     LONGO: '#3B82F6',
     TEMPO: '#F59E0B',
     INTERVALADO: '#EF4444',
-    RECUPERACAO: '#10B981',
+    REGENERATIVO: '#10B981',
     FARTLEK: '#A855F7',
-    CORRIDA_CONTINUA: '#3B82F6',
+    CONTINUO: '#f6a23b',
     DEFAULT: '#64748B',
 };
 
@@ -72,7 +84,7 @@ function tipoAbbrev(tipo: string): string {
 
 function TreinoTag({ treino, onEditar }: { treino: TreinoPlanejadoDto; onEditar?: () => void }) {
     const cor = tipoColor(treino.tipoTreino);
-    const abbrev = tipoAbbrev(treino.tipoTreino);
+    const abbrev = treino.tipoTreino;
     const dia = resolverDiaSemana(treino.diaSemana).slice(0, 3).toUpperCase();
     const duracaoDisplay = treino.duracaoMin ? parseDuracao(treino.duracaoMin) : null;
 
@@ -89,7 +101,7 @@ function TreinoTag({ treino, onEditar }: { treino: TreinoPlanejadoDto; onEditar?
                 display: 'flex',
                 flexDirection: 'column',
                 flexShrink: 0,
-                minWidth: 80,
+                minWidth: 150,
                 borderRadius: '6px',
                 // Borda esquerda grossa na cor do tipo — elemento visual dominante
                 borderLeft: `3px solid ${cor}`,
@@ -136,7 +148,7 @@ function TreinoTag({ treino, onEditar }: { treino: TreinoPlanejadoDto; onEditar?
                     </Box>
                     {onEditar && (
                         <IconButton
-                            size="small"
+                            size="large"
                             aria-label="Editar treino"
                             onClick={onEditar}
                             sx={{
@@ -146,7 +158,7 @@ function TreinoTag({ treino, onEditar }: { treino: TreinoPlanejadoDto; onEditar?
                                 '&:hover': { color: cor, bgcolor: `${cor}18` },
                             }}
                         >
-                            <EditOutlinedIcon sx={{ fontSize: 10 }} />
+                            <EditOutlinedIcon sx={{ fontSize: 12 }} />
                         </IconButton>
                     )}
                 </Box>

@@ -24,13 +24,25 @@ const STATUS_COLORS: Record<string, string> = {
     LIVRE:      surface[400],
 };
 
-function parseDuracao(iso: string): string | null {
-    const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
-    if (!m) return null;
-    const h = parseInt(m[1] ?? '0', 10);
-    const mins = parseInt(m[2] ?? '0', 10);
-    const total = h * 60 + mins;
-    return total > 0 ? `${total} min` : null;
+function parseDuracao(valor: string): string | null {
+    if (!valor) return null;
+    // ISO-8601: PT90M, PT1H30M
+    const iso = valor.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
+    if (iso) {
+        const h = parseInt(iso[1] ?? '0', 10);
+        const m = parseInt(iso[2] ?? '0', 10);
+        const total = h * 60 + m;
+        return total > 0 ? `${total} min` : null;
+    }
+    // Legado HH:MM:SS ou MM:SS (mapper durationToString)
+    const hms = valor.match(/^(?:(\d+):)?(\d{1,2}):(\d{2})$/);
+    if (hms) {
+        const h = parseInt(hms[1] ?? '0', 10);
+        const m = parseInt(hms[2], 10);
+        const total = h * 60 + m;
+        return total > 0 ? `${total} min` : null;
+    }
+    return null;
 }
 
 function toDialogTreino(t: TreinoPlanejadoResumoDto): TreinoPlanejadoDto {
