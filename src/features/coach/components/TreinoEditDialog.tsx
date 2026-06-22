@@ -16,7 +16,7 @@ import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import { primary, surface } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
-import type { TreinoPlanejadoDto, TreinoPlanejadoPatch } from '../../../types/PlanoReview';
+import type { TreinoPlanejadoDto, TreinoPlanejadoPatch, EtapaTreinoDto } from '../../../types/PlanoReview';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -84,6 +84,15 @@ function blocoFromTreino(t: TreinoPlanejadoDto): BlocoState {
         duracaoMin:  parseDuracaoMinutos(t.duracaoMin),
         zonaAlvo:    t.zonaAlvo ?? '',
         rpe:         t.percepcaoEsforcoEsperada != null ? String(t.percepcaoEsforcoEsperada) : '',
+    };
+}
+
+function blocoFromEtapa(e: EtapaTreinoDto): BlocoState {
+    return {
+        distanciaKm: e.distanciaKm != null ? String(e.distanciaKm) : '',
+        duracaoMin:  e.duracaoMin != null ? String(e.duracaoMin) : '',
+        zonaAlvo:    e.fcAlvoEtapa ?? '',
+        rpe:         '',
     };
 }
 
@@ -227,19 +236,37 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
     // Blocos obrigatórios em todos os tipos de treino
     const [aquecimento, setAquecimento]       = useState<BlocoState>(BLOCO_VAZIO);
     const [desaquecimento, setDesaquecimento] = useState<BlocoState>(BLOCO_VAZIO);
+    // Rastreia se o usuário alterou algum bloco — evita incluir etapas em patches sem mudança
+    const [blocosMudados, setBlocosMudados]   = useState(false);
 
     const isIntervalado = TIPOS_INTERVALADOS.has(tipoTreino);
 
     useEffect(() => {
+        const etapas = treino.etapas;
+        if (etapas?.length) {
+            const aq    = etapas.find(e => e.tipoEtapa === 'AQUECIMENTO');
+            const desaq = etapas.find(e => e.tipoEtapa === 'DESAQUECIMENTO');
+            const esf   = etapas.find(e => e.tipoEtapa === 'INTERVALADO' || e.tipoEtapa === 'PRINCIPAL');
+            const rec   = etapas.find(e => e.tipoEtapa === 'RECUPERACAO');
+            setAquecimento(aq   ? blocoFromEtapa(aq)   : BLOCO_VAZIO);
+            setDesaquecimento(desaq ? blocoFromEtapa(desaq) : BLOCO_VAZIO);
+            setPrincipal(esf   ? blocoFromEtapa(esf)   : blocoFromTreino(treino));
+            setRecuperacao(rec ? blocoFromEtapa(rec)   : BLOCO_VAZIO);
+            setRepeticoes(esf?.repeticoes ?? 1);
+        } else {
+            setAquecimento(BLOCO_VAZIO);
+            setDesaquecimento(BLOCO_VAZIO);
+            setPrincipal(blocoFromTreino(treino));
+            setRecuperacao(BLOCO_VAZIO);
+            setRepeticoes(1);
+        }
         setTipoTreino(treino.tipoTreino ?? '');
         setTss(treino.tssPlanejado != null ? String(treino.tssPlanejado) : '');
         setObservacao(treino.observacao ?? '');
-        setPrincipal(blocoFromTreino(treino));
-        setRecuperacao(BLOCO_VAZIO);
-        setRepeticoes(1);
-        setAquecimento(BLOCO_VAZIO);
-        setDesaquecimento(BLOCO_VAZIO);
+        setBlocosMudados(false);
     }, [treino]);
+
+    const marcaBlocoMudado = () => setBlocosMudados(true);
 
     // Totais calculados em tempo real somando todos os blocos (aquecimento + principal + desaquecimento)
     const { totalKm, totalMin } = useMemo(() => {
@@ -290,6 +317,51 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
         if (!isNaN(tssNum) && tssNum !== treino.tssPlanejado) patch.tssPlanejado = tssNum;
 
         if (observacao !== treino.observacao) patch.observacao = observacao || undefined;
+
+        // Inclui etapas no patch apenas se o usuário alterou algum bloco
+        if (blocosMudados) {
+            const etapasPatch: EtapaTreinoDto[] = [];
+            let ordem = 1;
+
+            const distAq = parseFloat(aquecimento.distanciaKm) || undefined;
+            const durAq  = parseInt(aquecimento.duracaoMin, 10) || undefined;
+            if (distAq || durAq) {
+                etapasPatch.push({ ordem: ordem++, tipoEtapa: 'AQUECIMENTO',
+                    distanciaKm: distAq, duracaoMin: durAq, fcAlvoEtapa: aquecimento.zonaAlvo || undefined });
+            }
+
+            if (isIntervalado) {
+                const rep    = Math.max(1, repeticoes);
+                const distPr = parseFloat(principal.distanciaKm) || undefined;
+                const durPr  = parseInt(principal.duracaoMin, 10) || undefined;
+                if (distPr || durPr) {
+                    etapasPatch.push({ ordem: ordem++, tipoEtapa: 'INTERVALADO', repeticoes: rep,
+                        distanciaKm: distPr, duracaoMin: durPr, fcAlvoEtapa: principal.zonaAlvo || undefined });
+                }
+                const distRec = parseFloat(recuperacao.distanciaKm) || undefined;
+                const durRec  = parseInt(recuperacao.duracaoMin, 10) || undefined;
+                if (distRec || durRec) {
+                    etapasPatch.push({ ordem: ordem++, tipoEtapa: 'RECUPERACAO', repeticoes: rep,
+                        distanciaKm: distRec, duracaoMin: durRec, fcAlvoEtapa: recuperacao.zonaAlvo || undefined });
+                }
+            } else {
+                const distPr = parseFloat(principal.distanciaKm) || undefined;
+                const durPr  = parseInt(principal.duracaoMin, 10) || undefined;
+                if (distPr || durPr) {
+                    etapasPatch.push({ ordem: ordem++, tipoEtapa: 'PRINCIPAL',
+                        distanciaKm: distPr, duracaoMin: durPr, fcAlvoEtapa: principal.zonaAlvo || undefined });
+                }
+            }
+
+            const distDq = parseFloat(desaquecimento.distanciaKm) || undefined;
+            const durDq  = parseInt(desaquecimento.duracaoMin, 10) || undefined;
+            if (distDq || durDq) {
+                etapasPatch.push({ ordem: ordem++, tipoEtapa: 'DESAQUECIMENTO',
+                    distanciaKm: distDq, duracaoMin: durDq, fcAlvoEtapa: desaquecimento.zonaAlvo || undefined });
+            }
+
+            if (etapasPatch.length > 0) patch.etapas = etapasPatch;
+        }
 
         if (Object.keys(patch).length === 0) {
             onClose();
@@ -394,7 +466,7 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
                     label="Aquecimento"
                     accent={ACCENT.aquecimento}
                     bloco={aquecimento}
-                    onChange={setAquecimento}
+                    onChange={b => { setAquecimento(b); marcaBlocoMudado(); }}
                     disabled={isSaving}
                 />
 
@@ -427,7 +499,7 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, ml: 'auto' }}>
                                 <IconButton
                                     size="small"
-                                    onClick={() => setRepeticoes(r => Math.max(1, r - 1))}
+                                    onClick={() => { setRepeticoes(r => Math.max(1, r - 1)); marcaBlocoMudado(); }}
                                     disabled={isSaving || repeticoes <= 1}
                                     aria-label="Diminuir repetições"
                                     sx={{ p: 0.3, color: surface[500], '&:hover': { color: surface[100] } }}
@@ -449,7 +521,7 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
                                 </Box>
                                 <IconButton
                                     size="small"
-                                    onClick={() => setRepeticoes(r => Math.min(20, r + 1))}
+                                    onClick={() => { setRepeticoes(r => Math.min(20, r + 1)); marcaBlocoMudado(); }}
                                     disabled={isSaving || repeticoes >= 20}
                                     aria-label="Aumentar repetições"
                                     sx={{ p: 0.3, color: surface[500], '&:hover': { color: surface[100] } }}
@@ -464,14 +536,14 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
                                 label="Esforço"
                                 accent={ACCENT.esforco}
                                 bloco={principal}
-                                onChange={setPrincipal}
+                                onChange={b => { setPrincipal(b); marcaBlocoMudado(); }}
                                 disabled={isSaving}
                             />
                             <BlocoCard
                                 label="Recuperação"
                                 accent={ACCENT.recuperacao}
                                 bloco={recuperacao}
-                                onChange={setRecuperacao}
+                                onChange={b => { setRecuperacao(b); marcaBlocoMudado(); }}
                                 disabled={isSaving}
                             />
                         </Box>
@@ -482,7 +554,7 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
                         label="Treino"
                         accent={ACCENT.principal}
                         bloco={principal}
-                        onChange={setPrincipal}
+                        onChange={b => { setPrincipal(b); marcaBlocoMudado(); }}
                         disabled={isSaving}
                     />
                 )}
@@ -492,7 +564,7 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
                     label="Desaquecimento"
                     accent={ACCENT.desaquecimento}
                     bloco={desaquecimento}
-                    onChange={setDesaquecimento}
+                    onChange={b => { setDesaquecimento(b); marcaBlocoMudado(); }}
                     disabled={isSaving}
                 />
 

@@ -27,6 +27,17 @@ export interface DiaSemanaDto {
     order?: number;
 }
 
+/** Etapa de um treino planejado — espelha `EtapaTreinoDto` do backend. */
+export interface EtapaTreinoDto {
+    ordem?: number;
+    tipoEtapa: 'AQUECIMENTO' | 'PRINCIPAL' | 'INTERVALADO' | 'RECUPERACAO' | 'DESAQUECIMENTO';
+    descricaoEtapa?: string;
+    duracaoMin?: number;    // inteiro em minutos
+    distanciaKm?: number;
+    fcAlvoEtapa?: string;   // zona alvo, e.g. "Z2"
+    repeticoes?: number;
+}
+
 /** Treino planejado resumido para exibição no painel de revisão. */
 export interface TreinoPlanejadoDto {
     id?: string;
@@ -41,6 +52,7 @@ export interface TreinoPlanejadoDto {
     tssPlanejado?: number;
     percepcaoEsforcoEsperada?: number;
     editadoPeloCoach?: boolean;
+    etapas?: EtapaTreinoDto[];
 }
 
 /** Campos editáveis de um treino planejado durante revisão. Campos undefined são ignorados (patch semântico). */
@@ -53,6 +65,7 @@ export interface TreinoPlanejadoPatch {
     tssPlanejado?: number;
     percepcaoEsforcoEsperada?: number;
     observacao?: string;
+    etapas?: EtapaTreinoDto[];
 }
 
 /**

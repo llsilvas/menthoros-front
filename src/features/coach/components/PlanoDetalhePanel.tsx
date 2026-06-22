@@ -51,16 +51,6 @@ function formatarData(iso: string): string {
     });
 }
 
-const TIPO_ABBREV: Record<string, string> = {
-    FACIL: 'FCL',
-    LONGO: 'LNG',
-    TEMPO: 'TMP',
-    INTERVALADO: 'INT',
-    RECUPERACAO: 'REC',
-    FARTLEK: 'FTK',
-    CORRIDA_CONTINUA: 'CC',
-};
-
 const TIPO_COLORS: Record<string, string> = {
     FACIL: '#94A3B8',
     LONGO: '#3B82F6',
@@ -74,10 +64,6 @@ const TIPO_COLORS: Record<string, string> = {
 
 function tipoColor(tipo: string): string {
     return TIPO_COLORS[tipo?.toUpperCase()] ?? TIPO_COLORS.DEFAULT;
-}
-
-function tipoAbbrev(tipo: string): string {
-    return TIPO_ABBREV[tipo?.toUpperCase()] ?? tipo.slice(0, 3).toUpperCase();
 }
 
 // ── Tag de treino ─────────────────────────────────────────────────────────────
