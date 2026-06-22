@@ -30,7 +30,7 @@ export interface DiaSemanaDto {
 /** Etapa de um treino planejado — espelha `EtapaTreinoDto` do backend. */
 export interface EtapaTreinoDto {
     ordem?: number;
-    tipoEtapa: 'AQUECIMENTO' | 'PRINCIPAL' | 'INTERVALADO' | 'RECUPERACAO' | 'DESAQUECIMENTO';
+    tipoEtapa: string;      // "AQUECIMENTO" | "PRINCIPAL" | "INTERVALADO" | "RECUPERACAO" | "DESAQUECIMENTO"
     descricaoEtapa?: string;
     duracaoMin?: number;    // inteiro em minutos
     distanciaKm?: number;
