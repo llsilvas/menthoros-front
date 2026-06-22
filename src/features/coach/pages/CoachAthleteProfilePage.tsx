@@ -195,6 +195,7 @@ export default function CoachAthleteProfilePage() {
                                 plano={profile.planoVigente}
                                 onGerarPlano={() => navigate('/coach/inbox')}
                                 onRevisarPlano={() => navigate('/coach/planos/revisao')}
+                                onTreinoEditado={fetchProfile}
                             />
                         </SectionCard>
                     </Grid>

@@ -7,9 +7,11 @@ import {
     DialogActions,
     DialogContent,
     DialogTitle,
+    IconButton,
     TextField,
     Typography,
 } from '@mui/material';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import { resolveReviewStatus } from '../../../types/PlanoReview';
 import type { DiaSemanaDto, PlanoSemanalDto, TreinoPlanejadoDto } from '../../../types/PlanoReview';
 import { primary, surface, semantic, content } from '../../../theme/tokens';
@@ -22,30 +24,41 @@ function resolverDiaSemana(dia: string | DiaSemanaDto): string {
     return dia.short ?? dia.label ?? dia.value;
 }
 
+function parseDuracao(valor: string): string | null {
+    if (!valor) return null;
+    // ISO-8601: PT90M, PT1H30M
+    const iso = valor.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
+    if (iso) {
+        const h = parseInt(iso[1] ?? '0', 10);
+        const m = parseInt(iso[2] ?? '0', 10);
+        const total = h * 60 + m;
+        return total > 0 ? `${total}min` : null;
+    }
+    // Legado HH:MM:SS ou MM:SS (mapper durationToString)
+    const hms = valor.match(/^(?:(\d+):)?(\d{1,2}):(\d{2})$/);
+    if (hms) {
+        const h = parseInt(hms[1] ?? '0', 10);
+        const m = parseInt(hms[2], 10);
+        const total = h * 60 + m;
+        return total > 0 ? `${total}min` : null;
+    }
+    return null;
+}
+
 function formatarData(iso: string): string {
     return new Date(`${iso}T00:00:00`).toLocaleDateString('pt-BR', {
         day: '2-digit', month: 'short',
     });
 }
 
-const TIPO_ABBREV: Record<string, string> = {
-    FACIL: 'FCL',
-    LONGO: 'LNG',
-    TEMPO: 'TMP',
-    INTERVALADO: 'INT',
-    RECUPERACAO: 'REC',
-    FARTLEK: 'FTK',
-    CORRIDA_CONTINUA: 'CC',
-};
-
 const TIPO_COLORS: Record<string, string> = {
     FACIL: '#94A3B8',
     LONGO: '#3B82F6',
     TEMPO: '#F59E0B',
     INTERVALADO: '#EF4444',
-    RECUPERACAO: '#10B981',
+    REGENERATIVO: '#10B981',
     FARTLEK: '#A855F7',
-    CORRIDA_CONTINUA: '#3B82F6',
+    CONTINUO: '#f6a23b',
     DEFAULT: '#64748B',
 };
 
@@ -53,66 +66,146 @@ function tipoColor(tipo: string): string {
     return TIPO_COLORS[tipo?.toUpperCase()] ?? TIPO_COLORS.DEFAULT;
 }
 
-function tipoAbbrev(tipo: string): string {
-    return TIPO_ABBREV[tipo?.toUpperCase()] ?? tipo.slice(0, 3).toUpperCase();
-}
-
 // ── Tag de treino ─────────────────────────────────────────────────────────────
 
-function TreinoTag({ treino }: { treino: TreinoPlanejadoDto }) {
+function TreinoTag({ treino, onEditar }: { treino: TreinoPlanejadoDto; onEditar?: () => void }) {
     const cor = tipoColor(treino.tipoTreino);
-    const abbrev = tipoAbbrev(treino.tipoTreino);
+    const abbrev = treino.tipoTreino;
     const dia = resolverDiaSemana(treino.diaSemana).slice(0, 3).toUpperCase();
+    const duracaoDisplay = treino.duracaoMin ? parseDuracao(treino.duracaoMin) : null;
+
+    const metaItems = [
+        duracaoDisplay,
+        treino.zonaAlvo,
+        treino.percepcaoEsforcoEsperada != null ? `RPE ${treino.percepcaoEsforcoEsperada}` : null,
+    ].filter(Boolean);
 
     return (
         <Box
             sx={{
+                position: 'relative',
                 display: 'flex',
-                alignItems: 'center',
-                gap: 0.75,
-                px: 1.25,
-                py: 0.75,
-                borderRadius: '6px',
-                border: `1px solid ${cor}28`,
-                bgcolor: `${cor}0C`,
+                flexDirection: 'column',
                 flexShrink: 0,
+                minWidth: 150,
+                borderRadius: '6px',
+                // Borda esquerda grossa na cor do tipo — elemento visual dominante
+                borderLeft: `3px solid ${cor}`,
+                borderTop: `1px solid ${cor}20`,
+                borderRight: `1px solid ${cor}14`,
+                borderBottom: `1px solid ${cor}14`,
+                bgcolor: `${cor}07`,
+                backgroundImage: `linear-gradient(160deg, ${cor}0D 0%, transparent 55%)`,
+                overflow: 'hidden',
             }}
         >
-            <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: cor, flexShrink: 0 }} />
-            <Typography
-                sx={{
-                    fontFamily: '"JetBrains Mono", monospace',
-                    fontSize: '0.62rem',
-                    fontWeight: 700,
-                    color: surface[400],
-                    letterSpacing: '0.06em',
-                    lineHeight: 1,
-                }}
-            >
-                {dia}
-            </Typography>
-            <Typography
-                sx={{
-                    fontFamily: '"JetBrains Mono", monospace',
-                    fontSize: '0.68rem',
-                    fontWeight: 600,
-                    color: cor,
-                    lineHeight: 1,
-                }}
-            >
-                {treino.distanciaKm}k
-            </Typography>
-            <Typography
-                sx={{
-                    fontSize: '0.6rem',
-                    fontWeight: 600,
-                    color: surface[500],
-                    letterSpacing: '0.04em',
-                    lineHeight: 1,
-                }}
-            >
-                {abbrev}
-            </Typography>
+            {/* Stripe decorativa no topo */}
+            <Box sx={{ height: '2px', background: `linear-gradient(90deg, ${cor}50, transparent)` }} />
+
+            <Box sx={{ px: 1.25, pt: 0.75, pb: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+
+                {/* Dia da semana — label primário */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        {treino.editadoPeloCoach && (
+                            <Box
+                                data-testid="chip-editado-coach"
+                                sx={{
+                                    width: 4,
+                                    height: 4,
+                                    borderRadius: '50%',
+                                    bgcolor: semantic.warning[400],
+                                    boxShadow: `0 0 4px ${semantic.warning[500]}`,
+                                }}
+                            />
+                        )}
+                        <Typography
+                            sx={{
+                                fontFamily: '"JetBrains Mono", monospace',
+                                fontSize: '0.62rem',
+                                fontWeight: 700,
+                                color: surface[200],
+                                letterSpacing: '0.12em',
+                                lineHeight: 1,
+                            }}
+                        >
+                            {dia}
+                        </Typography>
+                    </Box>
+                    {onEditar && (
+                        <IconButton
+                            size="large"
+                            aria-label="Editar treino"
+                            onClick={onEditar}
+                            sx={{
+                                p: 0.125,
+                                color: surface[700],
+                                borderRadius: '3px',
+                                '&:hover': { color: cor, bgcolor: `${cor}18` },
+                            }}
+                        >
+                            <EditOutlinedIcon sx={{ fontSize: 12 }} />
+                        </IconButton>
+                    )}
+                </Box>
+
+                {/* Distância — hero number */}
+                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.25 }}>
+                    <Typography
+                        sx={{
+                            fontFamily: '"JetBrains Mono", monospace',
+                            fontSize: '1.45rem',
+                            fontWeight: 800,
+                            color: cor,
+                            letterSpacing: '-0.04em',
+                            lineHeight: 1,
+                            textShadow: `0 0 20px ${cor}40`,
+                        }}
+                    >
+                        {treino.distanciaKm}
+                    </Typography>
+                    <Typography
+                        sx={{
+                            fontFamily: '"JetBrains Mono", monospace',
+                            fontSize: '0.56rem',
+                            fontWeight: 600,
+                            color: `${cor}70`,
+                            lineHeight: 1,
+                            mb: '2px',
+                        }}
+                    >
+                        km
+                    </Typography>
+                </Box>
+
+                {/* Tipo + métricas */}
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.125 }}>
+                    <Typography
+                        sx={{
+                            fontSize: '0.54rem',
+                            fontWeight: 700,
+                            color: `${cor}90`,
+                            letterSpacing: '0.1em',
+                            lineHeight: 1,
+                        }}
+                    >
+                        {abbrev}
+                    </Typography>
+                    {metaItems.length > 0 && (
+                        <Typography
+                            sx={{
+                                fontSize: '0.54rem',
+                                fontWeight: 500,
+                                color: surface[600],
+                                letterSpacing: '0.01em',
+                                lineHeight: 1.3,
+                            }}
+                        >
+                            {metaItems.join(' · ')}
+                        </Typography>
+                    )}
+                </Box>
+            </Box>
         </Box>
     );
 }
@@ -284,6 +377,7 @@ interface PlanoDetalhePanelProps {
     isActing: boolean;
     onAprovar: () => void;
     onRejeitar: (motivo: string) => void;
+    onEditarTreino?: (treinoId: string) => void;
 }
 
 const STATUS_COLOR: Record<string, string> = {
@@ -298,7 +392,7 @@ const STATUS_LABEL: Record<string, string> = {
     REJEITADO: 'Rejeitado',
 };
 
-export function PlanoDetalhePanel({ plano, isActing, onAprovar, onRejeitar }: PlanoDetalhePanelProps) {
+export function PlanoDetalhePanel({ plano, isActing, onAprovar, onRejeitar, onEditarTreino }: PlanoDetalhePanelProps) {
     const [modalAberto, setModalAberto] = useState(false);
 
     if (!plano) return <EstadoVazio />;
@@ -421,9 +515,15 @@ export function PlanoDetalhePanel({ plano, isActing, onAprovar, onRejeitar }: Pl
                         Nenhuma sessão disponível.
                     </Typography>
                 ) : (
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                         {sessoes.map((t, i) => (
-                            <TreinoTag key={t.id ?? i} treino={t} />
+                            <TreinoTag
+                                key={t.id ?? i}
+                                treino={t}
+                                onEditar={isAguardando && t.id && onEditarTreino
+                                    ? () => onEditarTreino(t.id!)
+                                    : undefined}
+                            />
                         ))}
                     </Box>
                 )}

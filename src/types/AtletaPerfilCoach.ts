@@ -1,3 +1,5 @@
+import type { EtapaTreinoDto, PlanoReviewStatusDto } from './PlanoReview';
+
 /** Ponto PMC retornado pelo backend (datas como strings ISO). */
 export interface PmcPontoRaw {
     data: string;
@@ -17,10 +19,15 @@ export interface AderenciasSemanalDto {
 
 /** Resumo de um treino planejado na semana vigente. */
 export interface TreinoPlanejadoResumoDto {
+    id?: string;
     diaSemana: string;
     tipoTreino: string;
     distanciaKm: number;
     statusExecucao: 'PENDENTE' | 'REALIZADO' | 'PERDIDO' | 'CANCELADO';
+    duracaoMin?: string;   // ISO-8601, ex: "PT60M" ou "PT1H30M"
+    zonaAlvo?: string;
+    percepcaoEsforcoEsperada?: number;
+    etapas?: EtapaTreinoDto[];
 }
 
 /** Plano semanal vigente do atleta. */
@@ -28,7 +35,7 @@ export interface PlanoVigenteDto {
     planoId: string;
     semanaInicio: string;
     semanaFim: string;
-    reviewStatus: 'APROVADO' | 'AGUARDANDO_REVISAO' | 'REJEITADO';
+    reviewStatus: string | PlanoReviewStatusDto;
     treinos: TreinoPlanejadoResumoDto[];
 }
 

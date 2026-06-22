@@ -4,10 +4,13 @@ import { useOutletContext } from 'react-router';
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import { PlanoPendenteItem } from '../components/PlanoPendenteItem';
 import { PlanoDetalhePanel } from '../components/PlanoDetalhePanel';
+import { TreinoEditDialog } from '../components/TreinoEditDialog';
 import { primary, surface, content, semantic } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
 import type { ReviewFilter } from '../../../hooks/useCoachPlanReview';
+import { useEditTreinoPlanejado } from '../../../hooks/useEditTreinoPlanejado';
+import type { TreinoPlanejadoPatch } from '../../../types/PlanoReview';
 
 // ── Coluna de filtros ────────────────────────────────────────────────────────
 
@@ -98,10 +101,14 @@ export default function CoachPlanReviewPage() {
         reviewSetFilter: setFilter,
         reviewAprovar: aprovar,
         reviewRejeitar: rejeitar,
+        reviewFetchPendentes,
     } = useOutletContext<CoachLayoutOutletContext>();
 
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [toast, setToast] = useState<{ msg: string; severity: 'success' | 'error' } | null>(null);
+    const [editingTreinoId, setEditingTreinoId] = useState<string | null>(null);
+
+    const { isSaving: isEditSaving, editarTreino } = useEditTreinoPlanejado();
 
     // Mantém seleção válida ao remover plano da lista ou mudar filtro
     useEffect(() => {
@@ -113,6 +120,10 @@ export default function CoachPlanReviewPage() {
 
     const selected = pendentes.find((p) => p.id === selectedId) ?? null;
 
+    const editingTreino = editingTreinoId
+        ? (selected?.treinosPlanejados?.find((t) => t.id === editingTreinoId) ?? null)
+        : null;
+
     const handleAprovar = async () => {
         if (!selected) return;
         const ok = await aprovar(selected.id);
@@ -123,6 +134,22 @@ export default function CoachPlanReviewPage() {
         if (!selected) return;
         const ok = await rejeitar(selected.id, motivo);
         if (ok) setToast({ msg: 'Plano rejeitado', severity: 'success' });
+    };
+
+    const handleAbrirEdicao = (treinoId: string) => {
+        setEditingTreinoId(treinoId);
+    };
+
+    const handleSalvarEdicao = async (patch: TreinoPlanejadoPatch) => {
+        if (!selected || !editingTreinoId) return;
+        try {
+            await editarTreino(selected.id, editingTreinoId, patch);
+            setEditingTreinoId(null);
+            await reviewFetchPendentes();
+            setToast({ msg: 'Treino atualizado com sucesso', severity: 'success' });
+        } catch {
+            setToast({ msg: 'Erro ao salvar treino. Tente novamente.', severity: 'error' });
+        }
     };
 
     // ── Loading ────────────────────────────────────────────────────────────────
@@ -259,7 +286,19 @@ export default function CoachPlanReviewPage() {
                 isActing={isActing}
                 onAprovar={handleAprovar}
                 onRejeitar={handleRejeitar}
+                onEditarTreino={handleAbrirEdicao}
             />
+
+            {/* Dialog de edição de treino */}
+            {editingTreino && (
+                <TreinoEditDialog
+                    open
+                    treino={editingTreino}
+                    isSaving={isEditSaving}
+                    onClose={() => setEditingTreinoId(null)}
+                    onSave={handleSalvarEdicao}
+                />
+            )}
 
             {/* Toasts */}
             <Snackbar
