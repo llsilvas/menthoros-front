@@ -24,6 +24,15 @@ function resolverDiaSemana(dia: string | DiaSemanaDto): string {
     return dia.short ?? dia.label ?? dia.value;
 }
 
+function parseDuracao(iso: string): string | null {
+    const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
+    if (!m) return null;
+    const h = parseInt(m[1] ?? '0', 10);
+    const mins = parseInt(m[2] ?? '0', 10);
+    const total = h * 60 + mins;
+    return total > 0 ? `${total}min` : null;
+}
+
 function formatarData(iso: string): string {
     return new Date(`${iso}T00:00:00`).toLocaleDateString('pt-BR', {
         day: '2-digit', month: 'short',
@@ -61,17 +70,24 @@ function tipoAbbrev(tipo: string): string {
 
 // ── Tag de treino ─────────────────────────────────────────────────────────────
 
-function TreinoTag({ treino }: { treino: TreinoPlanejadoDto }) {
+function TreinoTag({ treino, onEditar }: { treino: TreinoPlanejadoDto; onEditar?: () => void }) {
     const cor = tipoColor(treino.tipoTreino);
     const abbrev = tipoAbbrev(treino.tipoTreino);
     const dia = resolverDiaSemana(treino.diaSemana).slice(0, 3).toUpperCase();
+    const duracaoDisplay = treino.duracaoMin ? parseDuracao(treino.duracaoMin) : null;
+
+    const metaItems = [
+        duracaoDisplay,
+        treino.zonaAlvo,
+        treino.percepcaoEsforcoEsperada != null ? `RPE ${treino.percepcaoEsforcoEsperada}` : null,
+    ].filter(Boolean);
 
     return (
         <Box
             sx={{
                 display: 'flex',
-                alignItems: 'center',
-                gap: 0.75,
+                flexDirection: 'column',
+                gap: 0.5,
                 px: 1.25,
                 py: 0.75,
                 borderRadius: '6px',
@@ -80,47 +96,75 @@ function TreinoTag({ treino }: { treino: TreinoPlanejadoDto }) {
                 flexShrink: 0,
             }}
         >
-            <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: cor, flexShrink: 0 }} />
-            {treino.editadoPeloCoach && (
-                <Box
-                    data-testid="chip-editado-coach"
-                    sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: semantic.warning[500], flexShrink: 0 }}
-                />
+            {/* Linha principal */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: cor, flexShrink: 0 }} />
+                {treino.editadoPeloCoach && (
+                    <Box
+                        data-testid="chip-editado-coach"
+                        sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: semantic.warning[500], flexShrink: 0 }}
+                    />
+                )}
+                <Typography
+                    sx={{
+                        fontFamily: '"JetBrains Mono", monospace',
+                        fontSize: '0.62rem',
+                        fontWeight: 700,
+                        color: surface[400],
+                        letterSpacing: '0.06em',
+                        lineHeight: 1,
+                    }}
+                >
+                    {dia}
+                </Typography>
+                <Typography
+                    sx={{
+                        fontFamily: '"JetBrains Mono", monospace',
+                        fontSize: '0.68rem',
+                        fontWeight: 600,
+                        color: cor,
+                        lineHeight: 1,
+                    }}
+                >
+                    {treino.distanciaKm}k
+                </Typography>
+                <Typography
+                    sx={{
+                        fontSize: '0.6rem',
+                        fontWeight: 600,
+                        color: surface[500],
+                        letterSpacing: '0.04em',
+                        lineHeight: 1,
+                    }}
+                >
+                    {abbrev}
+                </Typography>
+                {onEditar && (
+                    <IconButton
+                        size="small"
+                        aria-label="Editar treino"
+                        onClick={onEditar}
+                        sx={{ p: 0.25, ml: 0.25, color: surface[600], '&:hover': { color: primary[500] } }}
+                    >
+                        <EditOutlinedIcon sx={{ fontSize: 10 }} />
+                    </IconButton>
+                )}
+            </Box>
+
+            {/* Linha de métricas adicionais */}
+            {metaItems.length > 0 && (
+                <Typography
+                    sx={{
+                        fontSize: '0.58rem',
+                        fontWeight: 500,
+                        color: surface[500],
+                        letterSpacing: '0.02em',
+                        lineHeight: 1,
+                    }}
+                >
+                    {metaItems.join(' · ')}
+                </Typography>
             )}
-            <Typography
-                sx={{
-                    fontFamily: '"JetBrains Mono", monospace',
-                    fontSize: '0.62rem',
-                    fontWeight: 700,
-                    color: surface[400],
-                    letterSpacing: '0.06em',
-                    lineHeight: 1,
-                }}
-            >
-                {dia}
-            </Typography>
-            <Typography
-                sx={{
-                    fontFamily: '"JetBrains Mono", monospace',
-                    fontSize: '0.68rem',
-                    fontWeight: 600,
-                    color: cor,
-                    lineHeight: 1,
-                }}
-            >
-                {treino.distanciaKm}k
-            </Typography>
-            <Typography
-                sx={{
-                    fontSize: '0.6rem',
-                    fontWeight: 600,
-                    color: surface[500],
-                    letterSpacing: '0.04em',
-                    lineHeight: 1,
-                }}
-            >
-                {abbrev}
-            </Typography>
         </Box>
     );
 }
@@ -432,23 +476,13 @@ export function PlanoDetalhePanel({ plano, isActing, onAprovar, onRejeitar, onEd
                 ) : (
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
                         {sessoes.map((t, i) => (
-                            <Box key={t.id ?? i} sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-                                <TreinoTag treino={t} />
-                                {isAguardando && t.id && onEditarTreino && (
-                                    <IconButton
-                                        size="small"
-                                        aria-label="Editar treino"
-                                        onClick={() => onEditarTreino(t.id!)}
-                                        sx={{
-                                            color: surface[500],
-                                            p: 0.25,
-                                            '&:hover': { color: primary[500] },
-                                        }}
-                                    >
-                                        <EditOutlinedIcon sx={{ fontSize: 13 }} />
-                                    </IconButton>
-                                )}
-                            </Box>
+                            <TreinoTag
+                                key={t.id ?? i}
+                                treino={t}
+                                onEditar={isAguardando && t.id && onEditarTreino
+                                    ? () => onEditarTreino(t.id!)
+                                    : undefined}
+                            />
                         ))}
                     </Box>
                 )}
