@@ -4,6 +4,7 @@ import { CalendarToday as CalendarIcon, HourglassEmpty as HourglassIcon } from '
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import type { PlanoVigenteDto, TreinoPlanejadoResumoDto } from '../../../types/AtletaPerfilCoach';
 import type { TreinoPlanejadoDto, TreinoPlanejadoPatch } from '../../../types/PlanoReview';
+import { resolveReviewStatus } from '../../../types/PlanoReview';
 import { TreinoEditDialog } from './TreinoEditDialog';
 import { useEditTreinoPlanejado } from '../../../hooks/useEditTreinoPlanejado';
 import { primary, surface, semantic } from '../../../theme/tokens';
@@ -174,7 +175,7 @@ export function CurrentWeekPlan({ plano, onGerarPlano, onRevisarPlano, onTreinoE
         );
     }
 
-    const isAguardando = plano.reviewStatus === 'AGUARDANDO_REVISAO';
+    const isAguardando = resolveReviewStatus(plano.reviewStatus) === 'AGUARDANDO_REVISAO';
 
     return (
         <Stack spacing={1.5}>

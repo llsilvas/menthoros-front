@@ -1,4 +1,4 @@
-import type { EtapaTreinoDto } from './PlanoReview';
+import type { EtapaTreinoDto, PlanoReviewStatusDto } from './PlanoReview';
 
 /** Ponto PMC retornado pelo backend (datas como strings ISO). */
 export interface PmcPontoRaw {
@@ -35,7 +35,7 @@ export interface PlanoVigenteDto {
     planoId: string;
     semanaInicio: string;
     semanaFim: string;
-    reviewStatus: 'APROVADO' | 'AGUARDANDO_REVISAO' | 'REJEITADO';
+    reviewStatus: string | PlanoReviewStatusDto;
     treinos: TreinoPlanejadoResumoDto[];
 }
 
