@@ -167,7 +167,7 @@ describe('CoachPlanReviewPage', () => {
         fireEvent.click(editButtons[0]);
 
         // Dialog deve estar visível
-        expect(screen.getByText('Editar treino')).toBeInTheDocument();
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
 
         // Muda distância para gerar um patch não vazio
         const distInput = screen.getByDisplayValue('10');

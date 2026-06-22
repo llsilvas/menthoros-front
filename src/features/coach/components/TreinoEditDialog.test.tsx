@@ -133,3 +133,98 @@ describe('TreinoEditDialog', () => {
         expect(screen.queryByDisplayValue('10')).not.toBeInTheDocument();
     });
 });
+
+// ── Modo intervalado ──────────────────────────────────────────────────────────
+
+describe('TreinoEditDialog — modo intervalado', () => {
+    const onClose = vi.fn();
+    const onSave  = vi.fn();
+
+    const TREINO_INTERVALADO: TreinoPlanejadoDto = {
+        id: 'treino-2',
+        diaSemana: 'TERCA',
+        tipoTreino: 'INTERVALADO',
+        distanciaKm: 8,
+        duracaoMin: 'PT50M',
+        zonaAlvo: 'Z4',
+        percepcaoEsforcoEsperada: 8,
+        tssPlanejado: 90,
+        editadoPeloCoach: false,
+    };
+
+    beforeEach(() => vi.clearAllMocks());
+
+    it('exibe container de série com blocos Esforço e Recuperação', () => {
+        render(
+            <TreinoEditDialog
+                open
+                treino={TREINO_INTERVALADO}
+                isSaving={false}
+                onClose={onClose}
+                onSave={onSave}
+            />,
+        );
+
+        expect(screen.getByText(/Série/i)).toBeInTheDocument();
+        expect(screen.getByText('Esforço')).toBeInTheDocument();
+        expect(screen.getByText('Recuperação')).toBeInTheDocument();
+        expect(screen.getByLabelText(/Diminuir repetições/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/Aumentar repetições/i)).toBeInTheDocument();
+    });
+
+    it('stepper incrementa e decrementa repetições dentro do limite 1–20', () => {
+        render(
+            <TreinoEditDialog
+                open
+                treino={TREINO_INTERVALADO}
+                isSaving={false}
+                onClose={onClose}
+                onSave={onSave}
+            />,
+        );
+
+        const btnMenos = screen.getByLabelText(/Diminuir repetições/i);
+        const btnMais  = screen.getByLabelText(/Aumentar repetições/i);
+
+        expect(btnMenos).toBeDisabled();
+
+        fireEvent.click(btnMais);
+        fireEvent.click(btnMais);
+        expect(screen.getByText('3×')).toBeInTheDocument();
+
+        fireEvent.click(btnMenos);
+        expect(screen.getByText('2×')).toBeInTheDocument();
+    });
+
+    it('exibe botões para adicionar aquecimento e desaquecimento opcionais', () => {
+        render(
+            <TreinoEditDialog
+                open
+                treino={TREINO_INTERVALADO}
+                isSaving={false}
+                onClose={onClose}
+                onSave={onSave}
+            />,
+        );
+
+        expect(screen.getByText(/\+ Aquecimento/i)).toBeInTheDocument();
+        expect(screen.getByText(/\+ Desaquecimento/i)).toBeInTheDocument();
+    });
+
+    it('adicionar aquecimento revela bloco e botão remover', () => {
+        render(
+            <TreinoEditDialog
+                open
+                treino={TREINO_INTERVALADO}
+                isSaving={false}
+                onClose={onClose}
+                onSave={onSave}
+            />,
+        );
+
+        fireEvent.click(screen.getByText(/\+ Aquecimento/i));
+
+        expect(screen.getByText('Aquecimento')).toBeInTheDocument();
+        expect(screen.getByText('remover')).toBeInTheDocument();
+    });
+});

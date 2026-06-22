@@ -165,7 +165,7 @@ describe('CurrentWeekPlan', () => {
 
         fireEvent.click(screen.getAllByRole('button', { name: /editar treino/i })[0]);
 
-        expect(screen.getByText('Editar treino')).toBeInTheDocument();
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
         expect(screen.getByDisplayValue('10')).toBeInTheDocument();
     });
 
