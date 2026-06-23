@@ -27,6 +27,18 @@ interface ChartPoint {
     [key: string]: string | number | undefined;
 }
 
+interface TooltipEntry {
+    dataKey?: string | number;
+    color?: string;
+    value?: string | number;
+}
+
+interface CustomTooltipProps {
+    active?: boolean;
+    payload?: TooltipEntry[];
+    label?: string | number;
+}
+
 const LINE_COLORS = [primary[500], '#3498db', '#e74c3c', '#f39c12'];
 
 const ProjecaoEvolutionChart: React.FC<ProjecaoEvolutionChartProps> = ({ atletaId, provaId }) => {
@@ -104,23 +116,25 @@ const ProjecaoEvolutionChart: React.FC<ProjecaoEvolutionChartProps> = ({ atletaI
         return `${m}min`;
     };
 
-    const CustomTooltip = ({ active, payload, label }: any) => {
+    const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
         if (!active || !payload?.length) return null;
         return (
             <Box sx={{ bgcolor: 'rgba(8,33,48,0.95)', border: '1px solid rgba(177,233,45,0.3)', borderRadius: 1, p: 1.5 }}>
                 <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)', display: 'block', mb: 0.5 }}>
                     {label}
                 </Typography>
-                {payload.map((entry: any) => {
-                    const dist = parseInt(entry.dataKey.replace('dist_', ''), 10);
+                {payload.map((entry) => {
+                    const dataKey = String(entry.dataKey ?? '');
+                    const dist = parseInt(dataKey.replace('dist_', ''), 10);
                     const prevIdx = chartData.findIndex(p => p.date === label) - 1;
-                    const prevVal = prevIdx >= 0 ? (chartData[prevIdx][entry.dataKey] as number) : undefined;
-                    const delta = prevVal != null ? (entry.value as number) - prevVal : undefined;
+                    const prevVal = prevIdx >= 0 ? (chartData[prevIdx][dataKey] as number) : undefined;
+                    const value = typeof entry.value === 'number' ? entry.value : Number(entry.value ?? 0);
+                    const delta = prevVal != null ? value - prevVal : undefined;
                     return (
-                        <Box key={entry.dataKey} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                        <Box key={dataKey} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                             <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: entry.color, flexShrink: 0 }} />
                             <Typography variant="caption" sx={{ color: '#ffffff', fontWeight: 700 }}>
-                                {formatDistanceLabel(dist)}: {formatSeconds(entry.value as number)}
+                                {formatDistanceLabel(dist)}: {formatSeconds(value)}
                             </Typography>
                             {delta != null && (
                                 <Typography variant="caption" sx={{ color: delta < 0 ? primary[500] : '#e74c3c', fontWeight: 700 }}>

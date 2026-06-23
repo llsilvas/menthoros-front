@@ -34,6 +34,7 @@ import {
     PERIODIZATION_PHASE_LABELS,
     TARGET_DISTANCES,
 } from '../../../types/RaceProjection';
+import { extractStatusKey } from '../../../types/Prova';
 import ProjecaoResultadoDialog from './ProjecaoResultadoDialog';
 import { primary } from '../../../theme/tokens';
 
@@ -177,9 +178,7 @@ const GerarProjecaoDialog: React.FC<GerarProjecaoDialogProps> = ({
     };
 
     const futurProvas = provas.filter(p => {
-        const status = typeof p.statusProva === 'string'
-            ? p.statusProva
-            : (p.statusProva as any)?.value;
+        const status = extractStatusKey(p.statusProva);
         return status !== 'CONCLUIDA' && status !== 'CANCELADA';
     });
 

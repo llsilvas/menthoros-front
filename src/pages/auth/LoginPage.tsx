@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Alert, Box, Button, Paper, Stack, TextField, Typography } from '@mui/material';
 import { Navigate, useNavigate } from 'react-router';
 import { ROUTES } from '../../constants/routes';
-import { useAuth } from '../../context/auth/AuthContext';
+import { useAuth } from '../../context/auth/useAuth';
 import { AuthService } from '../../services/auth/AuthService';
 import { gradients, glassAzulSx, glassAzulSxHover, transitions, primary } from '../../theme/tokens';
 import logoMenthoros from '../../assets/icons/menthoros_navbar.png';

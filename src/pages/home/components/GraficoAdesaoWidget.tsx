@@ -14,8 +14,6 @@ import { MetricasService } from '../../../services/MetricasService';
 import type { AdesaoDiaria } from '../../../types/Metricas';
 import { glassAzulSx, glassAzulSxHover, transitions, primary } from '../../../theme/tokens';
 
-interface GraficoAdesaoWidgetProps {}
-
 interface ChartDataPoint {
   dia: string;
   [key: string]: string | number;
@@ -58,7 +56,7 @@ const transformarDadosParaGrafico = (adesaoDiaria: AdesaoDiaria): ChartDataPoint
   return chartData;
 };
 
-export default function GraficoAdesaoWidget({}: GraficoAdesaoWidgetProps) {
+export default function GraficoAdesaoWidget() {
   const [adesaoDiaria, setAdesaoDiaria] = useState<AdesaoDiaria | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -128,10 +126,10 @@ export default function GraficoAdesaoWidget({}: GraficoAdesaoWidgetProps) {
   const semanaAtualIndex = adesaoDiaria.semanas.length - 1;
   const cores = [
     primary[500],
-    '`${primary[500]} 0.5)',
-    '`${primary[500]} 0.4)',
-    '`${primary[500]} 0.3)',
-    '`${primary[500]} 0.2)',
+    `${primary[500]}80`,
+    `${primary[500]}66`,
+    `${primary[500]}4D`,
+    `${primary[500]}33`,
   ];
 
   return (
@@ -188,7 +186,7 @@ export default function GraficoAdesaoWidget({}: GraficoAdesaoWidgetProps) {
           {adesaoDiaria.semanas.map((_, index) => {
             const labelSemana = index === semanaAtualIndex ? 'Semana atual' : `Sem -${semanaAtualIndex - index}`;
             const strokeWidth = index === semanaAtualIndex ? 2.5 : 1.5;
-            const cor = cores[index] || '`${primary[500]} 0.2)';
+            const cor = cores[index] || `${primary[500]}33`;
 
             return (
               <Line

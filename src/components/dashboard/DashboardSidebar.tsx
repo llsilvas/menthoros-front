@@ -41,8 +41,6 @@ export default function DashboardSidebar({
 
   const { pathname } = useLocation();
 
-  const [expandedItemIds, setExpandedItemIds] = React.useState<string[]>([]);
-
   const isOverSmViewport = useMediaQuery(theme.breakpoints.up('sm'));
   const isOverMdViewport = useMediaQuery(theme.breakpoints.up('md'));
 
@@ -88,19 +86,12 @@ export default function DashboardSidebar({
 
   const handlePageItemClick = React.useCallback(
     (itemId: string, hasNestedNavigation: boolean) => {
-      if (hasNestedNavigation && !mini) {
-        setExpandedItemIds((previousValue) =>
-          previousValue.includes(itemId)
-            ? previousValue.filter(
-                (previousValueItemId) => previousValueItemId !== itemId,
-              )
-            : [...previousValue, itemId],
-        );
-      } else if (!isOverSmViewport && !hasNestedNavigation) {
+      void itemId;
+      if (!isOverSmViewport && !hasNestedNavigation) {
         setExpanded(false);
       }
     },
-    [mini, setExpanded, isOverSmViewport],
+    [setExpanded, isOverSmViewport],
   );
 
   const hasDrawerTransitions =
@@ -200,7 +191,7 @@ export default function DashboardSidebar({
         </Box>
       </React.Fragment>
     ),
-    [mini, hasDrawerTransitions, isFullyExpanded, expandedItemIds, pathname],
+    [mini, hasDrawerTransitions, isFullyExpanded, pathname],
   );
 
   const getDrawerSharedSx = React.useCallback(
@@ -225,7 +216,7 @@ export default function DashboardSidebar({
         },
       };
     },
-    [expanded, mini, theme.palette.primary.main, theme.palette.primary.contrastText],
+    [expanded, mini],
   );
 
   const sidebarContextValue = React.useMemo(() => {
