@@ -180,6 +180,33 @@ describe('TreinoAddDialog', () => {
         expect(screen.getByText('DURAÇÃO')).toBeInTheDocument();
     });
 
+    it('serializa etapa simples com duracaoMin como número no payload', async () => {
+        const novoTreino: TreinoPlanejadoDto = {
+            id: 'novo', diaSemana: 'QUINTA', tipoTreino: 'CONTINUO', distanciaKm: 0,
+        };
+        mockAdicionarTreino.mockResolvedValue(novoTreino);
+        renderDialog({ treinosExistentes: [] });
+
+        fireEvent.change(screen.getByLabelText(/tipo de treino/i), { target: { value: 'CONTINUO' } });
+        fireEvent.change(screen.getByLabelText(/data do treino/i), { target: { value: '2026-07-02' } });
+
+        fireEvent.click(screen.getByRole('button', { name: /adicionar etapas/i }));
+        fireEvent.click(screen.getByRole('button', { name: /adicionar etapa simples/i }));
+
+        fireEvent.change(screen.getByLabelText(/tipo da etapa 1/i), { target: { value: 'AQUECIMENTO' } });
+        fireEvent.change(screen.getByLabelText(/etapa 1 duração/i), { target: { value: '15' } });
+
+        fireEvent.click(screen.getByRole('button', { name: /salvar treino/i }));
+
+        await waitFor(() => {
+            const payload: TreinoPlanejadoAddPayload = mockAdicionarTreino.mock.calls[0][1];
+            expect(payload.etapas).toHaveLength(1);
+            expect(payload.etapas![0].tipoEtapa).toBe('AQUECIMENTO');
+            expect(typeof payload.etapas![0].duracaoMin).toBe('number');
+            expect(payload.etapas![0].duracaoMin).toBe(15);
+        });
+    });
+
     it('chama onSaved após sucesso', async () => {
         const novoTreino: TreinoPlanejadoDto = {
             id: 'novo-treino', diaSemana: 'SEXTA', tipoTreino: 'CONTINUO',

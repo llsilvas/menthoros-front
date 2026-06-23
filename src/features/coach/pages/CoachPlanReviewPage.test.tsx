@@ -261,4 +261,28 @@ describe('CoachPlanReviewPage', () => {
 
         expect(screen.getByTestId('chip-adicionado-coach')).toBeInTheDocument();
     });
+
+    it('salvar no dialog de adição chama reviewFetchPendentes e exibe toast com tipoTreino', async () => {
+        const reviewFetchPendentes = vi.fn().mockResolvedValue(undefined);
+        const novoTreino = { id: 'novo', diaSemana: 'SEXTA', tipoTreino: 'LONGO', distanciaKm: 18 };
+        mockAdicionarTreino.mockResolvedValue(novoTreino);
+        mockContext({ reviewPendentes: [STUB], reviewFetchPendentes });
+        render(<CoachPlanReviewPage />);
+
+        clickCard();
+
+        // Abre o dialog de adição
+        fireEvent.click(screen.getByRole('button', { name: /adicionar treino/i }));
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+        // Preenche campos obrigatórios e salva
+        fireEvent.change(screen.getByLabelText(/tipo de treino/i), { target: { value: 'LONGO' } });
+        fireEvent.change(screen.getByLabelText(/data do treino/i), { target: { value: '2026-06-27' } });
+        fireEvent.click(screen.getByRole('button', { name: /salvar treino/i }));
+
+        await waitFor(() => {
+            expect(reviewFetchPendentes).toHaveBeenCalled();
+            expect(screen.getByText(/LONGO adicionado/i)).toBeInTheDocument();
+        });
+    });
 });

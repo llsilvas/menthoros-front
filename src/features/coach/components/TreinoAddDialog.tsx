@@ -278,8 +278,11 @@ export function TreinoAddDialog({
     const [apiError,       setApiError]        = useState<string | null>(null);
 
     const { isSaving, adicionarTreino } = useAddTreinoPlanejado();
-    const datas = gerarDatas(semanaInicio, semanaFim);
-    const treinosNaData = dataTreino ? treinosExistentes.filter(t => t.dataTreino === dataTreino) : [];
+    const datas = useMemo(() => gerarDatas(semanaInicio, semanaFim), [semanaInicio, semanaFim]);
+    const treinosNaData = useMemo(
+        () => (dataTreino ? treinosExistentes.filter(t => t.dataTreino === dataTreino) : []),
+        [dataTreino, treinosExistentes]
+    );
     const canSave  = tipoTreino.trim() !== '' && dataTreino !== '';
     const temEtapas = etapasExpanded && itens.length > 0;
 
@@ -345,14 +348,14 @@ export function TreinoAddDialog({
             const etapas = serializarItens(itens);
             if (etapas.length) payload.etapas = etapas;
         } else {
-            if (fbDuracao)   payload.duracaoMin  = parseInt(fbDuracao, 10);
-            if (fbDistancia) payload.distanciaKm = parseFloat(fbDistancia);
-            if (fbZona)      payload.zonaAlvo    = fbZona;
-            if (fbRpe)       payload.percepcaoEsforcoEsperada = parseInt(fbRpe, 10);
+            if (fbDuracao)   { const v = parseInt(fbDuracao, 10);   if (!isNaN(v)) payload.duracaoMin  = v; }
+            if (fbDistancia) { const v = parseFloat(fbDistancia);    if (!isNaN(v)) payload.distanciaKm = v; }
+            if (fbZona)      payload.zonaAlvo = fbZona;
+            if (fbRpe)       { const v = parseInt(fbRpe, 10);       if (!isNaN(v)) payload.percepcaoEsforcoEsperada = v; }
         }
 
         if (observacoes) payload.observacoes  = observacoes;
-        if (tss)         payload.tssPlanejado = parseInt(tss, 10);
+        if (tss)         { const v = parseInt(tss, 10); if (!isNaN(v)) payload.tssPlanejado = v; }
 
         try {
             const novo = await adicionarTreino(planoId, payload);
