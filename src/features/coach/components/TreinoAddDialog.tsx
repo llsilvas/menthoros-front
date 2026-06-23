@@ -208,23 +208,24 @@ interface QuantRowProps {
 }
 
 function QuantRow({ duracaoMin, onDuracao, distanciaKm, onKm, fcAlvoEtapa, onZona, rpe, onRpe, ariaPrefix, disabled }: QuantRowProps) {
+    const fieldSx = { flex: 1, minWidth: 56, ...FIELD_SX };
     return (
-        <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', gap: 0.75 }}>
             <TextField label="min" type="number" size="small" value={duracaoMin}
                 onChange={e => onDuracao(e.target.value)} disabled={disabled}
-                sx={{ width: 68, ...FIELD_SX }}
+                sx={fieldSx}
                 inputProps={{ min: 1, step: 1, 'aria-label': `${ariaPrefix} duração` }} />
             <TextField label="km" type="number" size="small" value={distanciaKm}
                 onChange={e => onKm(e.target.value)} disabled={disabled}
-                sx={{ width: 68, ...FIELD_SX }}
+                sx={fieldSx}
                 inputProps={{ min: 0, step: 0.1, 'aria-label': `${ariaPrefix} distância` }} />
             <TextField label="Zona" size="small" value={fcAlvoEtapa}
                 onChange={e => onZona(e.target.value)} disabled={disabled}
-                sx={{ width: 72, ...FIELD_SX }}
+                sx={{ ...fieldSx, flex: 1.5 }}
                 inputProps={{ 'aria-label': `${ariaPrefix} zona` }} />
             <TextField label="RPE" type="number" size="small" value={rpe}
                 onChange={e => onRpe(e.target.value)} disabled={disabled}
-                sx={{ width: 62, ...FIELD_SX }}
+                sx={{ ...fieldSx, flex: 0.7 }}
                 inputProps={{ min: 1, max: 10, step: 1, 'aria-label': `${ariaPrefix} RPE` }} />
         </Box>
     );
