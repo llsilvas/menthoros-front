@@ -361,31 +361,61 @@ export function TreinoAddDialog({
                     </Alert>
                 )}
 
-                {/* ─── Campos opcionais ─────────────────────────────────── */}
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                    <TextField label="Distância (km)" type="number" value={distanciaKm}
-                        onChange={e => setDistanciaKm(e.target.value)} disabled={isSaving}
-                        size="small" fullWidth inputProps={{ min: 0, step: 0.1 }} sx={FIELD_SX} />
-                    <TextField label="Duração (min)" type="number" value={duracaoMin}
-                        onChange={e => setDuracaoMin(e.target.value)} disabled={isSaving}
-                        size="small" fullWidth inputProps={{ min: 1, step: 1 }} sx={FIELD_SX} />
+                {/* ─── Card de métricas do treino ──────────────────────── */}
+                <Box sx={{
+                    position: 'relative',
+                    overflow: 'hidden',
+                    borderRadius: '8px',
+                    border: `1px solid ${surface[0]}18`,
+                    bgcolor: `${surface[0]}05`,
+                    '&::before': {
+                        content: '""',
+                        position: 'absolute',
+                        left: 0, top: 0, bottom: 0,
+                        width: '3px',
+                        bgcolor: surface[500],
+                        opacity: 0.5,
+                    },
+                }}>
+                    {/* label do card */}
+                    <Box sx={{
+                        pl: 2, pr: 1.5, pt: 1, pb: 0.5,
+                        fontSize: '0.6rem',
+                        fontFamily: '"Courier New", Courier, monospace',
+                        letterSpacing: '0.12em',
+                        color: surface[600],
+                        textTransform: 'uppercase',
+                        borderBottom: `1px solid ${surface[0]}0A`,
+                    }}>
+                        Métricas do treino
+                    </Box>
+                    <Box sx={{ pl: 2, pr: 1.5, pt: 1, pb: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                            <TextField label="Distância (km)" type="number" value={distanciaKm}
+                                onChange={e => setDistanciaKm(e.target.value)} disabled={isSaving}
+                                size="small" fullWidth inputProps={{ min: 0, step: 0.1 }} sx={FIELD_SX} />
+                            <TextField label="Duração (min)" type="number" value={duracaoMin}
+                                onChange={e => setDuracaoMin(e.target.value)} disabled={isSaving}
+                                size="small" fullWidth inputProps={{ min: 1, step: 1 }} sx={FIELD_SX} />
+                        </Box>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                            <TextField label="Zona alvo" value={zonaAlvo}
+                                onChange={e => setZonaAlvo(e.target.value)} disabled={isSaving}
+                                size="small" fullWidth sx={FIELD_SX} />
+                            <TextField label="RPE (1–10)" type="number" value={rpe}
+                                onChange={e => setRpe(e.target.value)} disabled={isSaving}
+                                size="small" fullWidth inputProps={{ min: 1, max: 10, step: 1 }} sx={FIELD_SX} />
+                        </Box>
+                        <TextField label="Observações" value={observacoes}
+                            onChange={e => setObservacoes(e.target.value)} disabled={isSaving}
+                            multiline rows={2} fullWidth inputProps={{ maxLength: 500 }} sx={FIELD_SX} />
+                    </Box>
                 </Box>
 
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                    <TextField label="Zona alvo" value={zonaAlvo}
-                        onChange={e => setZonaAlvo(e.target.value)} disabled={isSaving}
-                        size="small" fullWidth sx={FIELD_SX} />
-                    <TextField label="RPE (1–10)" type="number" value={rpe}
-                        onChange={e => setRpe(e.target.value)} disabled={isSaving}
-                        size="small" fullWidth inputProps={{ min: 1, max: 10, step: 1 }} sx={FIELD_SX} />
-                    <TextField label="TSS" type="number" value={tss}
-                        onChange={e => setTss(e.target.value)} disabled={isSaving}
-                        size="small" fullWidth inputProps={{ min: 1, step: 1 }} sx={FIELD_SX} />
-                </Box>
-
-                <TextField label="Observações" value={observacoes}
-                    onChange={e => setObservacoes(e.target.value)} disabled={isSaving}
-                    multiline rows={2} fullWidth inputProps={{ maxLength: 500 }} sx={FIELD_SX} />
+                {/* ─── TSS (fora do card — campo calculado/derivado) ──────── */}
+                <TextField label="TSS (opcional — calculado automaticamente se omitido)" type="number"
+                    value={tss} onChange={e => setTss(e.target.value)} disabled={isSaving}
+                    size="small" fullWidth inputProps={{ min: 1, step: 1 }} sx={FIELD_SX} />
 
                 {/* ─── Divisor ─────────────────────────────────────────── */}
                 <Box sx={{ height: '1px', bgcolor: `${surface[0]}0E` }} />
