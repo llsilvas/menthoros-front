@@ -2,9 +2,9 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TreinoAddDialog } from './TreinoAddDialog';
 import type { TreinoPlanejadoDto, TreinoPlanejadoAddPayload } from '../../../types/PlanoReview';
-import * as useAddHook from '../../../hooks/useAddTreinoPlanejado';
+import * as useTreinoHook from '../../../hooks/useTreinoPlanejado';
 
-vi.mock('../../../hooks/useAddTreinoPlanejado');
+vi.mock('../../../hooks/useTreinoPlanejado');
 
 const SEMANA_INICIO = '2026-07-01';
 const SEMANA_FIM    = '2026-07-07';
@@ -17,10 +17,14 @@ const TREINOS_EXISTENTES: TreinoPlanejadoDto[] = [
 const mockAdicionarTreino = vi.fn();
 
 function stubHook(isSaving = false) {
-    vi.mocked(useAddHook.useAddTreinoPlanejado).mockReturnValue({
+    vi.mocked(useTreinoHook.useTreinoPlanejado).mockReturnValue({
         isSaving,
-        error: null,
+        isDeleting: false,
+        saveError: null,
+        deleteError: null,
         adicionarTreino: mockAdicionarTreino,
+        editarTreino: vi.fn(),
+        excluirTreino: vi.fn(),
     });
 }
 

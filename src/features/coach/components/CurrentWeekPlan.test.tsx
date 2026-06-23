@@ -2,9 +2,9 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CurrentWeekPlan } from './CurrentWeekPlan';
 import type { PlanoVigenteDto, TreinoPlanejadoResumoDto } from '../../../types/AtletaPerfilCoach';
-import * as useEditHook from '../../../hooks/useEditTreinoPlanejado';
+import * as useTreinoHook from '../../../hooks/useTreinoPlanejado';
 
-vi.mock('../../../hooks/useEditTreinoPlanejado');
+vi.mock('../../../hooks/useTreinoPlanejado');
 
 const TREINO_SEGUNDA: TreinoPlanejadoResumoDto = {
     id: 'treino-1',
@@ -44,9 +44,14 @@ const PLANO_AGUARDANDO: PlanoVigenteDto = {
 const mockEditarTreino = vi.fn();
 
 function stubEditHook(isSaving = false) {
-    vi.mocked(useEditHook.useEditTreinoPlanejado).mockReturnValue({
+    vi.mocked(useTreinoHook.useTreinoPlanejado).mockReturnValue({
         isSaving,
+        isDeleting: false,
+        saveError: null,
+        deleteError: null,
         editarTreino: mockEditarTreino,
+        adicionarTreino: vi.fn(),
+        excluirTreino: vi.fn(),
     });
 }
 

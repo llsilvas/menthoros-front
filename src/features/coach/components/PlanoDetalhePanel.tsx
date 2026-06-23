@@ -12,6 +12,7 @@ import {
     Typography,
 } from '@mui/material';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import AddIcon from '@mui/icons-material/Add';
 import { resolveReviewStatus } from '../../../types/PlanoReview';
 import type { DiaSemanaDto, PlanoSemanalDto, TreinoPlanejadoDto } from '../../../types/PlanoReview';
@@ -69,7 +70,15 @@ function tipoColor(tipo: string): string {
 
 // ── Tag de treino ─────────────────────────────────────────────────────────────
 
-function TreinoTag({ treino, onEditar }: { treino: TreinoPlanejadoDto; onEditar?: () => void }) {
+function TreinoTag({
+    treino,
+    onEditar,
+    onExcluir,
+}: {
+    treino: TreinoPlanejadoDto;
+    onEditar?: () => void;
+    onExcluir?: () => void;
+}) {
     const cor = tipoColor(treino.tipoTreino);
     const abbrev = treino.tipoTreino;
     const dia = resolverDiaSemana(treino.diaSemana).slice(0, 3).toUpperCase();
@@ -145,20 +154,39 @@ function TreinoTag({ treino, onEditar }: { treino: TreinoPlanejadoDto; onEditar?
                             {dia}
                         </Typography>
                     </Box>
-                    {onEditar && (
-                        <IconButton
-                            size="large"
-                            aria-label="Editar treino"
-                            onClick={onEditar}
-                            sx={{
-                                p: 0.125,
-                                color: surface[700],
-                                borderRadius: '3px',
-                                '&:hover': { color: cor, bgcolor: `${cor}18` },
-                            }}
-                        >
-                            <EditOutlinedIcon sx={{ fontSize: 12 }} />
-                        </IconButton>
+                    {(onEditar || onExcluir) && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+                            {onEditar && (
+                                <IconButton
+                                    size="large"
+                                    aria-label="Editar treino"
+                                    onClick={onEditar}
+                                    sx={{
+                                        p: 0.125,
+                                        color: surface[700],
+                                        borderRadius: '3px',
+                                        '&:hover': { color: cor, bgcolor: `${cor}18` },
+                                    }}
+                                >
+                                    <EditOutlinedIcon sx={{ fontSize: 12 }} />
+                                </IconButton>
+                            )}
+                            {onExcluir && (
+                                <IconButton
+                                    size="large"
+                                    aria-label="Excluir treino"
+                                    onClick={onExcluir}
+                                    sx={{
+                                        p: 0.125,
+                                        color: surface[700],
+                                        borderRadius: '3px',
+                                        '&:hover': { color: semantic.danger[500], bgcolor: `${semantic.danger[500]}18` },
+                                    }}
+                                >
+                                    <DeleteOutlinedIcon sx={{ fontSize: 12 }} />
+                                </IconButton>
+                            )}
+                        </Box>
                     )}
                 </Box>
 
@@ -391,6 +419,7 @@ interface PlanoDetalhePanelProps {
     onAprovar: () => void;
     onRejeitar: (motivo: string) => void;
     onEditarTreino?: (treinoId: string) => void;
+    onExcluirTreino?: (treinoId: string) => void;
     onAdicionarTreino?: () => void;
 }
 
@@ -406,7 +435,15 @@ const STATUS_LABEL: Record<string, string> = {
     REJEITADO: 'Rejeitado',
 };
 
-export function PlanoDetalhePanel({ plano, isActing, onAprovar, onRejeitar, onEditarTreino, onAdicionarTreino }: PlanoDetalhePanelProps) {
+export function PlanoDetalhePanel({
+    plano,
+    isActing,
+    onAprovar,
+    onRejeitar,
+    onEditarTreino,
+    onExcluirTreino,
+    onAdicionarTreino,
+}: PlanoDetalhePanelProps) {
     const [modalAberto, setModalAberto] = useState(false);
 
     if (!plano) return <EstadoVazio />;
@@ -536,6 +573,9 @@ export function PlanoDetalhePanel({ plano, isActing, onAprovar, onRejeitar, onEd
                                 treino={t}
                                 onEditar={isAguardando && t.id && onEditarTreino
                                     ? () => onEditarTreino(t.id!)
+                                    : undefined}
+                                onExcluir={isAguardando && t.id && onExcluirTreino
+                                    ? () => onExcluirTreino(t.id!)
                                     : undefined}
                             />
                         ))}

@@ -4,16 +4,14 @@ import * as reactRouter from 'react-router';
 import CoachPlanReviewPage from './CoachPlanReviewPage';
 import type { PlanoSemanalDto } from '../../../types/PlanoReview';
 import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
-import * as useEditHook from '../../../hooks/useEditTreinoPlanejado';
-import * as useAddHook from '../../../hooks/useAddTreinoPlanejado';
+import * as useTreinoHook from '../../../hooks/useTreinoPlanejado';
 
 vi.mock('react-router', async () => {
     const actual = await vi.importActual<typeof import('react-router')>('react-router');
     return { ...actual, useOutletContext: vi.fn() };
 });
 
-vi.mock('../../../hooks/useEditTreinoPlanejado');
-vi.mock('../../../hooks/useAddTreinoPlanejado');
+vi.mock('../../../hooks/useTreinoPlanejado');
 
 const STUB: PlanoSemanalDto = {
     id: 'plano-1',
@@ -66,17 +64,14 @@ function clickCard() {
 const mockEditarTreino = vi.fn();
 const mockAdicionarTreino = vi.fn();
 
-function stubEditHook(isSaving = false) {
-    vi.mocked(useEditHook.useEditTreinoPlanejado).mockReturnValue({
+function stubTreinoHook(isSaving = false, isDeleting = false) {
+    vi.mocked(useTreinoHook.useTreinoPlanejado).mockReturnValue({
         isSaving,
+        isDeleting,
+        saveError: null,
+        deleteError: null,
         editarTreino: mockEditarTreino,
-    });
-}
-
-function stubAddHook() {
-    vi.mocked(useAddHook.useAddTreinoPlanejado).mockReturnValue({
-        isSaving: false,
-        error: null,
+        excluirTreino: vi.fn(),
         adicionarTreino: mockAdicionarTreino,
     });
 }
@@ -84,8 +79,7 @@ function stubAddHook() {
 describe('CoachPlanReviewPage', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        stubEditHook();
-        stubAddHook();
+        stubTreinoHook();
     });
 
     it('exibe estado vazio quando não há planos no filtro ativo', () => {

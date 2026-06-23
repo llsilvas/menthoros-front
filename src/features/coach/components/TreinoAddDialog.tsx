@@ -19,7 +19,7 @@ import RemoveIcon from '@mui/icons-material/Remove';
 import RepeatIcon from '@mui/icons-material/Repeat';
 import { primary, surface, semantic, categorical } from '../../../theme/tokens';
 import { shadow } from '../../../shared/design-tokens';
-import { useAddTreinoPlanejado } from '../../../hooks/useAddTreinoPlanejado';
+import { useTreinoPlanejado } from '../../../hooks/useTreinoPlanejado';
 import type { TreinoPlanejadoDto, TreinoPlanejadoAddPayload, EtapaInputPayload } from '../../../types/PlanoReview';
 
 // ── Paleta metabólica ─────────────────────────────────────────────────────────
@@ -277,7 +277,7 @@ export function TreinoAddDialog({
     const [itens,          setItens]           = useState<EtapaItem[]>([]);
     const [apiError,       setApiError]        = useState<string | null>(null);
 
-    const { isSaving, adicionarTreino } = useAddTreinoPlanejado();
+    const { isSaving, adicionarTreino } = useTreinoPlanejado();
     const datas = useMemo(() => gerarDatas(semanaInicio, semanaFim), [semanaInicio, semanaFim]);
     const treinosNaData = useMemo(
         () => (dataTreino ? treinosExistentes.filter(t => t.dataTreino === dataTreino) : []),

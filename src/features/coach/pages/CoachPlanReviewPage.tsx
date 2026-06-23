@@ -6,11 +6,12 @@ import { PlanoPendenteItem } from '../components/PlanoPendenteItem';
 import { PlanoDetalhePanel } from '../components/PlanoDetalhePanel';
 import { TreinoEditDialog } from '../components/TreinoEditDialog';
 import { TreinoAddDialog } from '../components/TreinoAddDialog';
+import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { primary, surface, content, semantic } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
 import type { ReviewFilter } from '../../../hooks/useCoachPlanReview';
-import { useEditTreinoPlanejado } from '../../../hooks/useEditTreinoPlanejado';
+import { useTreinoPlanejado } from '../../../hooks/useTreinoPlanejado';
 import type { TreinoPlanejadoPatch, TreinoPlanejadoDto } from '../../../types/PlanoReview';
 
 // ── Coluna de filtros ────────────────────────────────────────────────────────
@@ -109,8 +110,9 @@ export default function CoachPlanReviewPage() {
     const [toast, setToast] = useState<{ msg: string; severity: 'success' | 'error' } | null>(null);
     const [editingTreinoId, setEditingTreinoId] = useState<string | null>(null);
     const [addDialogOpen, setAddDialogOpen] = useState(false);
+    const [deleteTreinoId, setDeleteTreinoId] = useState<string | null>(null);
 
-    const { isSaving: isEditSaving, editarTreino } = useEditTreinoPlanejado();
+    const { isSaving: isEditSaving, isDeleting, editarTreino, excluirTreino } = useTreinoPlanejado();
 
     // Mantém seleção válida ao remover plano da lista ou mudar filtro
     useEffect(() => {
@@ -146,6 +148,27 @@ export default function CoachPlanReviewPage() {
         setAddDialogOpen(false);
         await reviewFetchPendentes();
         setToast({ msg: `Treino ${treino.tipoTreino} adicionado com sucesso`, severity: 'success' });
+    };
+
+    const handleAbrirExclusao = (treinoId: string) => {
+        setDeleteTreinoId(treinoId);
+    };
+
+    const handleCancelarExclusao = () => {
+        if (isDeleting) return;
+        setDeleteTreinoId(null);
+    };
+
+    const handleConfirmarExclusao = async () => {
+        if (!selected || !deleteTreinoId) return;
+        try {
+            await excluirTreino(selected.id, deleteTreinoId);
+            setDeleteTreinoId(null);
+            await reviewFetchPendentes();
+            setToast({ msg: 'Treino excluído com sucesso', severity: 'success' });
+        } catch {
+            setToast({ msg: 'Erro ao excluir treino. Tente novamente.', severity: 'error' });
+        }
     };
 
     const handleSalvarEdicao = async (patch: TreinoPlanejadoPatch) => {
@@ -291,10 +314,11 @@ export default function CoachPlanReviewPage() {
             {/* Coluna 3 — Painel de detalhe (flex-1) */}
             <PlanoDetalhePanel
                 plano={selected}
-                isActing={isActing}
+                isActing={isActing || isDeleting}
                 onAprovar={handleAprovar}
                 onRejeitar={handleRejeitar}
                 onEditarTreino={handleAbrirEdicao}
+                onExcluirTreino={handleAbrirExclusao}
                 onAdicionarTreino={() => setAddDialogOpen(true)}
             />
 
@@ -321,6 +345,17 @@ export default function CoachPlanReviewPage() {
                     onSaved={handleTreinoAdicionado}
                 />
             )}
+
+            <ConfirmDialog
+                open={!!deleteTreinoId}
+                title="Excluir treino"
+                message="Tem certeza que deseja excluir este treino planejado? Essa ação não pode ser desfeita."
+                confirmLabel="Excluir"
+                severity="danger"
+                loading={isDeleting}
+                onClose={handleCancelarExclusao}
+                onConfirm={handleConfirmarExclusao}
+            />
 
             {/* Toasts */}
             <Snackbar

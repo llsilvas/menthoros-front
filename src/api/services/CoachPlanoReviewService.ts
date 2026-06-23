@@ -124,4 +124,22 @@ export class CoachPlanoReviewService {
             },
         });
     }
+
+    /**
+     * Exclui um treino planejado durante revisão do plano.
+     * @param planoId UUID do PlanoSemanal
+     * @param treinoId UUID do TreinoPlanejado
+     * @throws ApiError
+     */
+    public static excluirTreino(planoId: string, treinoId: string): CancelablePromise<void> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/coach/planos/{planoId}/treinos/{treinoId}',
+            path: { planoId, treinoId },
+            errors: {
+                404: 'Plano ou treino não encontrado no tenant',
+                422: 'Plano não está em revisão',
+            },
+        });
+    }
 }

@@ -6,7 +6,7 @@ import type { PlanoVigenteDto, TreinoPlanejadoResumoDto } from '../../../types/A
 import type { TreinoPlanejadoDto, TreinoPlanejadoPatch } from '../../../types/PlanoReview';
 import { resolveReviewStatus } from '../../../types/PlanoReview';
 import { TreinoEditDialog } from './TreinoEditDialog';
-import { useEditTreinoPlanejado } from '../../../hooks/useEditTreinoPlanejado';
+import { useTreinoPlanejado } from '../../../hooks/useTreinoPlanejado';
 import { primary, surface, semantic } from '../../../theme/tokens';
 
 interface CurrentWeekPlanProps {
@@ -152,7 +152,7 @@ function TreinosGrid({
 
 export function CurrentWeekPlan({ plano, onGerarPlano, onRevisarPlano, onTreinoEditado }: CurrentWeekPlanProps) {
     const [editingTreino, setEditingTreino] = useState<TreinoPlanejadoDto | null>(null);
-    const { isSaving, editarTreino } = useEditTreinoPlanejado();
+    const { isSaving, editarTreino } = useTreinoPlanejado();
 
     const handleSalvar = async (patch: TreinoPlanejadoPatch) => {
         if (!plano || !editingTreino?.id) return;
