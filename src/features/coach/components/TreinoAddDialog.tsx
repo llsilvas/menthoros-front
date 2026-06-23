@@ -197,6 +197,22 @@ const REPS_SX = {
 } as const;
 
 // ── Linha de campos quantitativos (min · km · zona · rpe) ────────────────────
+// Usa caption estático acima de cada campo para evitar o notch do OutlinedInput
+// clipar labels em campos estreitos com flex dinâmico.
+
+const QUANT_FIELD_SX = {
+    ...FIELD_SX,
+    '& .MuiOutlinedInput-root': {
+        ...FIELD_SX['& .MuiOutlinedInput-root'],
+        // sem notch — label fica acima como caption, não dentro do campo
+        '& fieldset': { ...FIELD_SX['& .MuiOutlinedInput-root']['& fieldset'], top: 0 },
+    },
+} as const;
+
+const CAPTION_SX = {
+    fontSize: '0.56rem', color: surface[600], letterSpacing: '0.08em',
+    textTransform: 'uppercase', fontFamily: 'monospace', pl: '2px', lineHeight: 1, mb: 0.3,
+} as const;
 
 interface QuantRowProps {
     duracaoMin:  string; onDuracao: (v: string) => void;
@@ -208,25 +224,44 @@ interface QuantRowProps {
 }
 
 function QuantRow({ duracaoMin, onDuracao, distanciaKm, onKm, fcAlvoEtapa, onZona, rpe, onRpe, ariaPrefix, disabled }: QuantRowProps) {
-    const fieldSx = { flex: 1, minWidth: 56, ...FIELD_SX };
     return (
         <Box sx={{ display: 'flex', gap: 0.75 }}>
-            <TextField label="min" type="number" size="small" value={duracaoMin}
-                onChange={e => onDuracao(e.target.value)} disabled={disabled}
-                sx={fieldSx}
-                inputProps={{ min: 1, step: 1, 'aria-label': `${ariaPrefix} duração` }} />
-            <TextField label="km" type="number" size="small" value={distanciaKm}
-                onChange={e => onKm(e.target.value)} disabled={disabled}
-                sx={fieldSx}
-                inputProps={{ min: 0, step: 0.1, 'aria-label': `${ariaPrefix} distância` }} />
-            <TextField label="Zona" size="small" value={fcAlvoEtapa}
-                onChange={e => onZona(e.target.value)} disabled={disabled}
-                sx={{ ...fieldSx, flex: 1.5 }}
-                inputProps={{ 'aria-label': `${ariaPrefix} zona` }} />
-            <TextField label="RPE" type="number" size="small" value={rpe}
-                onChange={e => onRpe(e.target.value)} disabled={disabled}
-                sx={{ ...fieldSx, flex: 0.7 }}
-                inputProps={{ min: 1, max: 10, step: 1, 'aria-label': `${ariaPrefix} RPE` }} />
+            {/* min */}
+            <Box sx={{ flex: 1, minWidth: 52, display: 'flex', flexDirection: 'column' }}>
+                <Box sx={CAPTION_SX}>MIN</Box>
+                <TextField type="number" size="small" value={duracaoMin}
+                    onChange={e => onDuracao(e.target.value)} disabled={disabled}
+                    placeholder="—" InputProps={{ notched: false }} InputLabelProps={{ shrink: false }}
+                    sx={QUANT_FIELD_SX}
+                    inputProps={{ min: 1, step: 1, 'aria-label': `${ariaPrefix} duração` }} />
+            </Box>
+            {/* km */}
+            <Box sx={{ flex: 1, minWidth: 52, display: 'flex', flexDirection: 'column' }}>
+                <Box sx={CAPTION_SX}>KM</Box>
+                <TextField type="number" size="small" value={distanciaKm}
+                    onChange={e => onKm(e.target.value)} disabled={disabled}
+                    placeholder="—" InputProps={{ notched: false }} InputLabelProps={{ shrink: false }}
+                    sx={QUANT_FIELD_SX}
+                    inputProps={{ min: 0, step: 0.1, 'aria-label': `${ariaPrefix} distância` }} />
+            </Box>
+            {/* zona */}
+            <Box sx={{ flex: 1.5, minWidth: 64, display: 'flex', flexDirection: 'column' }}>
+                <Box sx={CAPTION_SX}>ZONA</Box>
+                <TextField size="small" value={fcAlvoEtapa}
+                    onChange={e => onZona(e.target.value)} disabled={disabled}
+                    placeholder="Z2" InputProps={{ notched: false }} InputLabelProps={{ shrink: false }}
+                    sx={QUANT_FIELD_SX}
+                    inputProps={{ 'aria-label': `${ariaPrefix} zona` }} />
+            </Box>
+            {/* rpe */}
+            <Box sx={{ flex: 0.7, minWidth: 48, display: 'flex', flexDirection: 'column' }}>
+                <Box sx={CAPTION_SX}>RPE</Box>
+                <TextField type="number" size="small" value={rpe}
+                    onChange={e => onRpe(e.target.value)} disabled={disabled}
+                    placeholder="—" InputProps={{ notched: false }} InputLabelProps={{ shrink: false }}
+                    sx={QUANT_FIELD_SX}
+                    inputProps={{ min: 1, max: 10, step: 1, 'aria-label': `${ariaPrefix} RPE` }} />
+            </Box>
         </Box>
     );
 }
@@ -679,32 +714,39 @@ export function TreinoAddDialog({
                                 <Box sx={{ display: 'flex', gap: 1 }}>
                                     <TextField label="Distância (km)" type="number" value={fbDistancia}
                                         onChange={e => setFbDistancia(e.target.value)} disabled={isSaving}
-                                        size="small" fullWidth inputProps={{ min: 0, step: 0.1 }} sx={FIELD_SX} />
+                                        size="small" fullWidth InputLabelProps={{ shrink: true }}
+                                        placeholder="0.0" inputProps={{ min: 0, step: 0.1 }} sx={FIELD_SX} />
                                     <TextField label="Duração (min)" type="number" value={fbDuracao}
                                         onChange={e => setFbDuracao(e.target.value)} disabled={isSaving}
-                                        size="small" fullWidth inputProps={{ min: 1, step: 1 }} sx={FIELD_SX} />
+                                        size="small" fullWidth InputLabelProps={{ shrink: true }}
+                                        placeholder="0" inputProps={{ min: 1, step: 1 }} sx={FIELD_SX} />
                                 </Box>
                                 <Box sx={{ display: 'flex', gap: 1 }}>
                                     <TextField label="Zona alvo" value={fbZona}
                                         onChange={e => setFbZona(e.target.value)} disabled={isSaving}
-                                        size="small" fullWidth sx={FIELD_SX} />
+                                        size="small" fullWidth InputLabelProps={{ shrink: true }}
+                                        placeholder="ex: Z2" sx={FIELD_SX} />
                                     <TextField label="RPE (1–10)" type="number" value={fbRpe}
                                         onChange={e => setFbRpe(e.target.value)} disabled={isSaving}
-                                        size="small" fullWidth inputProps={{ min: 1, max: 10, step: 1 }} sx={FIELD_SX} />
+                                        size="small" fullWidth InputLabelProps={{ shrink: true }}
+                                        placeholder="1–10" inputProps={{ min: 1, max: 10, step: 1 }} sx={FIELD_SX} />
                                 </Box>
                             </>
                         )}
                         <TextField label="Observações" value={observacoes}
                             onChange={e => setObservacoes(e.target.value)} disabled={isSaving}
-                            multiline rows={2} fullWidth inputProps={{ maxLength: 500 }} sx={FIELD_SX} />
+                            multiline rows={2} fullWidth InputLabelProps={{ shrink: true }}
+                            placeholder="Notas para o atleta..." inputProps={{ maxLength: 500 }} sx={FIELD_SX} />
                     </Box>
                 </Box>
 
                 {/* ── TSS ──────────────────────────────────────────────────── */}
                 <TextField
-                    label="TSS (opcional — calculado automaticamente se omitido)"
-                    type="number" value={tss} onChange={e => setTss(e.target.value)}
+                    label="TSS" type="number" value={tss}
+                    onChange={e => setTss(e.target.value)}
                     disabled={isSaving} size="small" fullWidth
+                    InputLabelProps={{ shrink: true }}
+                    placeholder="calculado automaticamente se omitido"
                     inputProps={{ min: 1, step: 1 }} sx={FIELD_SX} />
 
                 {/* ── Erro ─────────────────────────────────────────────────── */}
