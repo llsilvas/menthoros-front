@@ -148,6 +148,38 @@ describe('TreinoAddDialog', () => {
         });
     });
 
+    it('exibe Alert de erro quando a API rejeita', async () => {
+        mockAdicionarTreino.mockRejectedValue(new Error('Serviço indisponível'));
+        renderDialog({ treinosExistentes: [] });
+
+        fireEvent.change(screen.getByLabelText(/tipo de treino/i), { target: { value: 'CONTINUO' } });
+        fireEvent.change(screen.getByLabelText(/data do treino/i), { target: { value: '2026-07-03' } });
+        fireEvent.click(screen.getByRole('button', { name: /salvar treino/i }));
+
+        await waitFor(() => {
+            expect(screen.getByRole('alert')).toHaveTextContent('Serviço indisponível');
+        });
+    });
+
+    it('isSaving=true desabilita botão Cancelar e impede nova submissão', () => {
+        stubHook(true);
+        renderDialog();
+        expect(screen.getByRole('button', { name: /cancelar/i })).toBeDisabled();
+        expect(screen.getByRole('button', { name: /salvar treino/i })).toBeDisabled();
+    });
+
+    it('totais computam multiplicando sub-etapas pelas repetições do bloco', () => {
+        renderDialog();
+        fireEvent.click(screen.getByRole('button', { name: /adicionar etapas/i }));
+        fireEvent.click(screen.getByRole('button', { name: /adicionar bloco repetido/i }));
+
+        fireEvent.change(screen.getByLabelText(/repetições do bloco 1/i), { target: { value: '3' } });
+        fireEvent.change(screen.getByLabelText(/passo 1 do bloco 1 duração/i), { target: { value: '4' } });
+
+        // 3 reps × 4 min = 12 min — o card de DURAÇÃO deve aparecer
+        expect(screen.getByText('DURAÇÃO')).toBeInTheDocument();
+    });
+
     it('chama onSaved após sucesso', async () => {
         const novoTreino: TreinoPlanejadoDto = {
             id: 'novo-treino', diaSemana: 'SEXTA', tipoTreino: 'CONTINUO',

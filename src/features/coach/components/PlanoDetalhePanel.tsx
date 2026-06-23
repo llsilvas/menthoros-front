@@ -15,7 +15,7 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import AddIcon from '@mui/icons-material/Add';
 import { resolveReviewStatus } from '../../../types/PlanoReview';
 import type { DiaSemanaDto, PlanoSemanalDto, TreinoPlanejadoDto } from '../../../types/PlanoReview';
-import { primary, surface, semantic, content } from '../../../theme/tokens';
+import { primary, surface, semantic, categorical, content } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -53,14 +53,14 @@ function formatarData(iso: string): string {
 }
 
 const TIPO_COLORS: Record<string, string> = {
-    FACIL: '#94A3B8',
-    LONGO: '#3B82F6',
-    TEMPO: '#F59E0B',
-    INTERVALADO: '#EF4444',
-    REGENERATIVO: '#10B981',
-    FARTLEK: '#A855F7',
-    CONTINUO: '#f6a23b',
-    DEFAULT: '#64748B',
+    FACIL:       surface[400],
+    LONGO:       categorical.cat1,
+    TEMPO:       semantic.warning[500],
+    INTERVALADO: semantic.danger[500],
+    REGENERATIVO: semantic.success[500],
+    FARTLEK:     categorical.cat4,
+    CONTINUO:    semantic.warning[400],
+    DEFAULT:     surface[500],
 };
 
 function tipoColor(tipo: string): string {
@@ -305,7 +305,7 @@ function RejeicaoModal({ open, isActing, onClose, onConfirmar }: RejeicaoModalPr
                     disabled={!motivo.trim() || isActing}
                     sx={{
                         bgcolor: semantic.danger[500],
-                        color: '#fff',
+                        color: surface[900],
                         textTransform: 'none',
                         fontWeight: 700,
                         fontSize: '0.8rem',
@@ -315,7 +315,7 @@ function RejeicaoModal({ open, isActing, onClose, onConfirmar }: RejeicaoModalPr
                     }}
                 >
                     {isActing
-                        ? <CircularProgress size={14} sx={{ color: '#fff' }} />
+                        ? <CircularProgress size={14} sx={{ color: surface[900] }} />
                         : 'Confirmar rejeição'}
                 </Button>
             </DialogActions>
@@ -395,9 +395,9 @@ interface PlanoDetalhePanelProps {
 }
 
 const STATUS_COLOR: Record<string, string> = {
-    AGUARDANDO_REVISAO: '#F59E0B',
-    APROVADO: '#10B981',
-    REJEITADO: '#EF4444',
+    AGUARDANDO_REVISAO: semantic.warning[500],
+    APROVADO:           semantic.success[500],
+    REJEITADO:          semantic.danger[500],
 };
 
 const STATUS_LABEL: Record<string, string> = {

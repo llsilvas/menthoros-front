@@ -11,7 +11,7 @@ import { elevation } from '../../../shared/design-tokens';
 import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
 import type { ReviewFilter } from '../../../hooks/useCoachPlanReview';
 import { useEditTreinoPlanejado } from '../../../hooks/useEditTreinoPlanejado';
-import type { TreinoPlanejadoPatch } from '../../../types/PlanoReview';
+import type { TreinoPlanejadoPatch, TreinoPlanejadoDto } from '../../../types/PlanoReview';
 
 // ── Coluna de filtros ────────────────────────────────────────────────────────
 
@@ -142,10 +142,10 @@ export default function CoachPlanReviewPage() {
         setEditingTreinoId(treinoId);
     };
 
-    const handleTreinoAdicionado = async () => {
+    const handleTreinoAdicionado = async (treino: TreinoPlanejadoDto) => {
         setAddDialogOpen(false);
         await reviewFetchPendentes();
-        setToast({ msg: 'Treino adicionado com sucesso', severity: 'success' });
+        setToast({ msg: `Treino ${treino.tipoTreino} adicionado com sucesso`, severity: 'success' });
     };
 
     const handleSalvarEdicao = async (patch: TreinoPlanejadoPatch) => {

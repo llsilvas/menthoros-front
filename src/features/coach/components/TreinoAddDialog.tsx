@@ -18,6 +18,7 @@ import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import RepeatIcon from '@mui/icons-material/Repeat';
 import { primary, surface, semantic, categorical } from '../../../theme/tokens';
+import { shadow } from '../../../shared/design-tokens';
 import { useAddTreinoPlanejado } from '../../../hooks/useAddTreinoPlanejado';
 import type { TreinoPlanejadoDto, TreinoPlanejadoAddPayload, EtapaInputPayload } from '../../../types/PlanoReview';
 
@@ -55,6 +56,7 @@ const DIAS_PT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 // ── Tipos internos ────────────────────────────────────────────────────────────
 
 interface StepRow {
+    id: string;
     kind: 'step';
     tipoEtapa: string;
     duracaoMin: string;
@@ -63,6 +65,7 @@ interface StepRow {
 }
 
 interface SubStep {
+    id: string;
     tipoEtapa: string;
     duracaoMin: string;
     distanciaKm: string;
@@ -70,6 +73,7 @@ interface SubStep {
 }
 
 interface BlockRow {
+    id: string;
     kind: 'block';
     repeticoes: string;
     steps: SubStep[];
@@ -94,11 +98,11 @@ function formatarDataLabel(iso: string): string {
 }
 
 function emptyStep(): StepRow {
-    return { kind: 'step', tipoEtapa: '', duracaoMin: '', distanciaKm: '', fcAlvoEtapa: '' };
+    return { id: crypto.randomUUID(), kind: 'step', tipoEtapa: '', duracaoMin: '', distanciaKm: '', fcAlvoEtapa: '' };
 }
 
 function emptySubStep(): SubStep {
-    return { tipoEtapa: '', duracaoMin: '', distanciaKm: '', fcAlvoEtapa: '' };
+    return { id: crypto.randomUUID(), tipoEtapa: '', duracaoMin: '', distanciaKm: '', fcAlvoEtapa: '' };
 }
 
 function serializarItens(itens: EtapaItem[]): EtapaInputPayload[] {
@@ -301,10 +305,10 @@ export function TreinoAddDialog({
     // ── Handlers ─────────────────────────────────────────────────────────────
 
     const addStep  = () => setItens(p => [...p, emptyStep()]);
-    const addBlock = () => setItens(p => [...p, { kind: 'block', repeticoes: '2', steps: [emptySubStep()] }]);
+    const addBlock = () => setItens(p => [...p, { id: crypto.randomUUID(), kind: 'block', repeticoes: '2', steps: [emptySubStep()] }]);
     const removeItem = (i: number) => setItens(p => p.filter((_,x) => x !== i));
 
-    const updateStep = (i: number, f: keyof Omit<StepRow,'kind'>, v: string) =>
+    const updateStep = (i: number, f: keyof Omit<StepRow,'kind'|'id'>, v: string) =>
         setItens(p => p.map((item, x) => x !== i || item.kind !== 'step' ? item : { ...item, [f]: v }));
 
     const updateBlocoReps = (i: number, v: string) =>
@@ -318,7 +322,7 @@ export function TreinoAddDialog({
         setItens(p => p.map((item, x) => x !== bi || item.kind !== 'block' ? item
             : { ...item, steps: item.steps.filter((_,y) => y !== si) }));
 
-    const updateSubStep = (bi: number, si: number, f: keyof SubStep, v: string) =>
+    const updateSubStep = (bi: number, si: number, f: keyof Omit<SubStep,'id'>, v: string) =>
         setItens(p => p.map((item, x) => x !== bi || item.kind !== 'block' ? item
             : { ...item, steps: item.steps.map((s,y) => y !== si ? s : { ...s, [f]: v }) }));
 
@@ -368,7 +372,7 @@ export function TreinoAddDialog({
                 sx: {
                     bgcolor: surface[900], borderRadius: '12px', overflow: 'hidden',
                     border: `1px solid ${surface[0]}1A`,
-                    boxShadow: `0 0 0 1px ${surface[0]}08, 0 32px 80px rgba(0,0,0,0.6)`,
+                    boxShadow: `0 0 0 1px ${surface[0]}08, ${shadow.modal}`,
                 },
             }}
         >
@@ -469,7 +473,7 @@ export function TreinoAddDialog({
                             {itens.map((item, idx) => item.kind === 'step' ? (
 
                                 /* ── Etapa avulsa ─────────────────────────── */
-                                <Box key={idx} sx={{
+                                <Box key={item.id} sx={{
                                     position: 'relative', overflow: 'hidden', borderRadius: '8px',
                                     border: `1px solid ${(ETAPA_PALETTE[item.tipoEtapa]?.border ?? surface[500])}28`,
                                     bgcolor: ETAPA_PALETTE[item.tipoEtapa]?.bg ?? `${surface[0]}06`,
@@ -516,7 +520,7 @@ export function TreinoAddDialog({
                             ) : (
 
                                 /* ── Bloco repetido ───────────────────────── */
-                                <Box key={idx} sx={{
+                                <Box key={item.id} sx={{
                                     position: 'relative', borderRadius: '8px', overflow: 'hidden',
                                     border: `1px solid ${primary[500]}28`, bgcolor: `${primary[500]}06`,
                                     '&::before': {
@@ -552,7 +556,7 @@ export function TreinoAddDialog({
                                     {/* Sub-etapas */}
                                     <Box sx={{ pl: 2, pr: 1, py: 0.75, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
                                         {item.steps.map((step, si) => (
-                                            <Box key={si} sx={{
+                                            <Box key={step.id} sx={{
                                                 borderRadius: '5px', overflow: 'hidden',
                                                 border: `1px solid ${(ETAPA_PALETTE[step.tipoEtapa]?.border ?? surface[500])}22`,
                                                 bgcolor: ETAPA_PALETTE[step.tipoEtapa]?.bg ?? `${surface[0]}04`,
