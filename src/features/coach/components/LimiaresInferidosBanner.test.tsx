@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { LimiaresInferidosBanner } from './LimiaresInferidosBanner';
+import { LimiaresInferidosBanner, hasLowConfidence } from './LimiaresInferidosBanner';
 import type { LimiareisInferidosDto } from '../../../types/AtletaPerfilCoach';
 
 describe('LimiaresInferidosBanner', () => {
@@ -98,5 +98,29 @@ describe('LimiaresInferidosBanner', () => {
         render(<LimiaresInferidosBanner limiareisInferidos={dados} />);
 
         expect(screen.queryByText(/Poucos dados/)).toBeNull();
+    });
+
+    it('não exibe aviso de BAIXA quando confiança é MEDIA', () => {
+        const dados: LimiareisInferidosDto = {
+            fcLimiarEstimado: 165,
+            confiancaInferenciaFc: 'MEDIA',
+        };
+        render(<LimiaresInferidosBanner limiareisInferidos={dados} />);
+
+        expect(screen.queryByText(/Poucos dados/)).toBeNull();
+    });
+
+    describe('hasLowConfidence', () => {
+        it('retorna true quando confiancaInferenciaFc é BAIXA', () => {
+            expect(hasLowConfidence({ fcLimiarEstimado: 163, confiancaInferenciaFc: 'BAIXA' })).toBe(true);
+        });
+
+        it('retorna true quando confiancaInferenciaPace é BAIXA', () => {
+            expect(hasLowConfidence({ paceLimiarEstimadoFormatado: '4:45/km', confiancaInferenciaPace: 'BAIXA' })).toBe(true);
+        });
+
+        it('retorna false quando ambas as confiancas são MEDIA ou ALTA', () => {
+            expect(hasLowConfidence({ fcLimiarEstimado: 163, confiancaInferenciaFc: 'ALTA', confiancaInferenciaPace: 'MEDIA' })).toBe(false);
+        });
     });
 });

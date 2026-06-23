@@ -5,11 +5,15 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 
 import type { LimiareisInferidosDto } from '../../../types/AtletaPerfilCoach';
 
-interface Props {
+export function hasLowConfidence(dto: LimiareisInferidosDto): boolean {
+    return dto.confiancaInferenciaFc === 'BAIXA' || dto.confiancaInferenciaPace === 'BAIXA';
+}
+
+interface LimiaresInferidosBannerProps {
     limiareisInferidos?: LimiareisInferidosDto | null;
 }
 
-export function LimiaresInferidosBanner({ limiareisInferidos }: Props) {
+export function LimiaresInferidosBanner({ limiareisInferidos }: LimiaresInferidosBannerProps) {
     if (!limiareisInferidos) return null;
 
     const { fcLimiarEstimado, paceLimiarEstimadoFormatado, confiancaInferenciaFc, confiancaInferenciaPace } =
@@ -17,8 +21,7 @@ export function LimiaresInferidosBanner({ limiareisInferidos }: Props) {
 
     if (!fcLimiarEstimado && !paceLimiarEstimadoFormatado) return null;
 
-    const temConfiancaBaixa =
-        confiancaInferenciaFc === 'BAIXA' || confiancaInferenciaPace === 'BAIXA';
+    const temConfiancaBaixa = hasLowConfidence(limiareisInferidos);
 
     return (
         <Alert severity="info" sx={{ mb: 2 }}>
@@ -41,7 +44,7 @@ export function LimiaresInferidosBanner({ limiareisInferidos }: Props) {
             </Box>
             {temConfiancaBaixa && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
-                    <WarningAmberIcon fontSize="small" color="warning" />
+                    <WarningAmberIcon fontSize="small" color="warning" aria-hidden="true" />
                     <Typography variant="caption">
                         Poucos dados — revise as prescrições de intensidade.
                     </Typography>

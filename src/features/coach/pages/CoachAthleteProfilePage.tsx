@@ -170,7 +170,7 @@ export default function CoachAthleteProfilePage() {
             )}
 
             {/* ── Limiares inferidos ── */}
-            <LimiaresInferidosBanner limiareisInferidos={profile?.limiareisInferidos} />
+            {profile && <LimiaresInferidosBanner limiareisInferidos={profile.limiareisInferidos} />}
 
             {/* ── Conteúdo ── */}
             {isLoading && !profile ? (

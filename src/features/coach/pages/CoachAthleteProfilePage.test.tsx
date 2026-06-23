@@ -165,4 +165,25 @@ describe('CoachAthleteProfilePage', () => {
         renderPage();
         expect(screen.getByText(/Nenhum plano gerado/i)).toBeInTheDocument();
     });
+
+    it('exibe banner de limiares inferidos quando limiareisInferidos está presente no perfil', () => {
+        mockHook({
+            profile: {
+                ...STUB_PROFILE,
+                limiareisInferidos: {
+                    fcLimiarEstimado: 163,
+                    confiancaInferenciaFc: 'ALTA',
+                },
+            },
+        });
+        renderPage();
+        expect(screen.getByText(/FC limiar estimado: 163 bpm/)).toBeInTheDocument();
+        expect(screen.getByText(/recomende um teste formal/i)).toBeInTheDocument();
+    });
+
+    it('não exibe banner de limiares inferidos quando limiareisInferidos é null', () => {
+        mockHook({ profile: { ...STUB_PROFILE, limiareisInferidos: null } });
+        renderPage();
+        expect(screen.queryByText(/recomende um teste formal/i)).toBeNull();
+    });
 });
