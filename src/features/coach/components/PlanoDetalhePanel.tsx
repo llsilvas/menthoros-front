@@ -12,6 +12,7 @@ import {
     Typography,
 } from '@mui/material';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import AddIcon from '@mui/icons-material/Add';
 import { resolveReviewStatus } from '../../../types/PlanoReview';
 import type { DiaSemanaDto, PlanoSemanalDto, TreinoPlanejadoDto } from '../../../types/PlanoReview';
 import { primary, surface, semantic, content } from '../../../theme/tokens';
@@ -116,6 +117,18 @@ function TreinoTag({ treino, onEditar }: { treino: TreinoPlanejadoDto; onEditar?
                                     borderRadius: '50%',
                                     bgcolor: semantic.warning[400],
                                     boxShadow: `0 0 4px ${semantic.warning[500]}`,
+                                }}
+                            />
+                        )}
+                        {treino.adicionadoPeloCoach && (
+                            <Box
+                                data-testid="chip-adicionado-coach"
+                                sx={{
+                                    width: 4,
+                                    height: 4,
+                                    borderRadius: '50%',
+                                    bgcolor: primary[400],
+                                    boxShadow: `0 0 4px ${primary[500]}`,
                                 }}
                             />
                         )}
@@ -378,6 +391,7 @@ interface PlanoDetalhePanelProps {
     onAprovar: () => void;
     onRejeitar: (motivo: string) => void;
     onEditarTreino?: (treinoId: string) => void;
+    onAdicionarTreino?: () => void;
 }
 
 const STATUS_COLOR: Record<string, string> = {
@@ -392,7 +406,7 @@ const STATUS_LABEL: Record<string, string> = {
     REJEITADO: 'Rejeitado',
 };
 
-export function PlanoDetalhePanel({ plano, isActing, onAprovar, onRejeitar, onEditarTreino }: PlanoDetalhePanelProps) {
+export function PlanoDetalhePanel({ plano, isActing, onAprovar, onRejeitar, onEditarTreino, onAdicionarTreino }: PlanoDetalhePanelProps) {
     const [modalAberto, setModalAberto] = useState(false);
 
     if (!plano) return <EstadoVazio />;
@@ -525,6 +539,31 @@ export function PlanoDetalhePanel({ plano, isActing, onAprovar, onRejeitar, onEd
                                     : undefined}
                             />
                         ))}
+                    </Box>
+                )}
+
+                {isAguardando && onAdicionarTreino && (
+                    <Box sx={{ mt: 1.5 }}>
+                        <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<AddIcon sx={{ fontSize: 14 }} />}
+                            onClick={onAdicionarTreino}
+                            aria-label="Adicionar treino"
+                            sx={{
+                                textTransform: 'none',
+                                fontSize: '0.72rem',
+                                fontWeight: 600,
+                                color: primary[500],
+                                borderColor: `${primary[500]}50`,
+                                borderRadius: '6px',
+                                px: 1.25,
+                                py: 0.5,
+                                '&:hover': { borderColor: primary[500], bgcolor: `${primary[500]}0A` },
+                            }}
+                        >
+                            Adicionar treino
+                        </Button>
                     </Box>
                 )}
 

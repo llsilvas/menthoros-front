@@ -1,4 +1,4 @@
-import type { PlanoReviewStatus, PlanoSemanalDto, TreinoPlanejadoDto, TreinoPlanejadoPatch } from '../../types/PlanoReview';
+import type { PlanoReviewStatus, PlanoSemanalDto, TreinoPlanejadoDto, TreinoPlanejadoPatch, TreinoPlanejadoAddPayload } from '../../types/PlanoReview';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -73,6 +73,29 @@ export class CoachPlanoReviewService {
                 400: 'Motivo ausente ou em branco',
                 404: 'Plano não encontrado no tenant',
                 422: 'Transição ilegal: plano não está AGUARDANDO_REVISAO',
+            },
+        });
+    }
+
+    /**
+     * Adiciona um treino manualmente ao plano durante revisão (cria TreinoPlanejado com adicionadoPeloCoach=true).
+     * Lança 422 se o plano não está AGUARDANDO_REVISAO, a data estiver fora do intervalo ou o limite de 14 for atingido.
+     * @param planoId UUID do PlanoSemanal
+     * @param payload dados do novo treino
+     * @returns treino criado
+     * @throws ApiError
+     */
+    public static adicionarTreino(planoId: string, payload: TreinoPlanejadoAddPayload): CancelablePromise<TreinoPlanejadoDto> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/coach/planos/{planoId}/treinos',
+            path: { planoId },
+            body: payload,
+            mediaType: 'application/json',
+            errors: {
+                400: 'Campos obrigatórios ausentes ou inválidos',
+                404: 'Plano não encontrado no tenant',
+                422: 'Plano não está em revisão, data fora do intervalo ou limite atingido',
             },
         });
     }

@@ -52,7 +52,32 @@ export interface TreinoPlanejadoDto {
     tssPlanejado?: number;
     percepcaoEsforcoEsperada?: number;
     editadoPeloCoach?: boolean;
+    adicionadoPeloCoach?: boolean;
     etapas?: EtapaTreinoDto[];
+}
+
+/** Payload para adicionar treino via POST /coach/planos/{planoId}/treinos. */
+export interface TreinoPlanejadoAddPayload {
+    tipoTreino: string;
+    dataTreino: string;         // ISO-8601 date, e.g. "2026-07-03"
+    descricao?: string;
+    distanciaKm?: number;
+    duracaoMin?: number;        // inteiro em minutos
+    zonaAlvo?: string;
+    percepcaoEsforcoEsperada?: number;
+    tssPlanejado?: number;
+    observacoes?: string;
+    etapas?: EtapaInputPayload[];
+}
+
+/** Etapa de treino no payload de criação. */
+export interface EtapaInputPayload {
+    tipoEtapa?: string;
+    descricaoEtapa?: string;
+    duracaoMin?: number;
+    distanciaKm?: number;
+    fcAlvoEtapa?: string;
+    repeticoes?: number;
 }
 
 /** Campos editáveis de um treino planejado durante revisão. Campos undefined são ignorados (patch semântico). */
