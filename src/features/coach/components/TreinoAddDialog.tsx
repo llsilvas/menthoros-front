@@ -425,16 +425,22 @@ export function TreinoAddDialog({
 
                                 /* ── Etapa avulsa ─────────────────────────────── */
                                 <Box key={idx} sx={{
+                                    position: 'relative',
+                                    overflow: 'hidden',
+                                    borderRadius: '8px',
+                                    border: `1px solid ${(ETAPA_PALETTE[item.tipoEtapa]?.border ?? surface[500])}28`,
+                                    bgcolor: ETAPA_PALETTE[item.tipoEtapa]?.bg ?? `${surface[0]}06`,
                                     display: 'flex', gap: 1, alignItems: 'center',
-                                    pl: 0.5, pr: 0.5,
-                                    bgcolor: item.tipoEtapa
-                                        ? ETAPA_PALETTE[item.tipoEtapa]?.bg ?? `${surface[0]}06`
-                                        : `${surface[0]}06`,
-                                    border: `1px solid ${item.tipoEtapa
-                                        ? (ETAPA_PALETTE[item.tipoEtapa]?.border ?? surface[500]) + '28'
-                                        : surface[0] + '0E'}`,
-                                    borderRadius: '6px', py: 0.75,
+                                    pl: 2, pr: 1, py: 0.75,
                                     transition: 'all 0.2s',
+                                    '&::before': {
+                                        content: '""',
+                                        position: 'absolute',
+                                        left: 0, top: 0, bottom: 0,
+                                        width: '3px',
+                                        bgcolor: ETAPA_PALETTE[item.tipoEtapa]?.border ?? surface[600],
+                                        opacity: 0.7,
+                                    },
                                 }}>
                                     {item.tipoEtapa && <EtapaTypeBadge tipo={item.tipoEtapa} />}
                                     <FormControl size="small" sx={{ minWidth: 145, ...SELECT_SX }}>
