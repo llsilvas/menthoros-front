@@ -5,12 +5,13 @@ import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import { PlanoPendenteItem } from '../components/PlanoPendenteItem';
 import { PlanoDetalhePanel } from '../components/PlanoDetalhePanel';
 import { TreinoEditDialog } from '../components/TreinoEditDialog';
+import { TreinoAddDialog } from '../components/TreinoAddDialog';
 import { primary, surface, content, semantic } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
 import type { ReviewFilter } from '../../../hooks/useCoachPlanReview';
 import { useEditTreinoPlanejado } from '../../../hooks/useEditTreinoPlanejado';
-import type { TreinoPlanejadoPatch } from '../../../types/PlanoReview';
+import type { TreinoPlanejadoPatch, TreinoPlanejadoDto } from '../../../types/PlanoReview';
 
 // ── Coluna de filtros ────────────────────────────────────────────────────────
 
@@ -107,6 +108,7 @@ export default function CoachPlanReviewPage() {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [toast, setToast] = useState<{ msg: string; severity: 'success' | 'error' } | null>(null);
     const [editingTreinoId, setEditingTreinoId] = useState<string | null>(null);
+    const [addDialogOpen, setAddDialogOpen] = useState(false);
 
     const { isSaving: isEditSaving, editarTreino } = useEditTreinoPlanejado();
 
@@ -138,6 +140,12 @@ export default function CoachPlanReviewPage() {
 
     const handleAbrirEdicao = (treinoId: string) => {
         setEditingTreinoId(treinoId);
+    };
+
+    const handleTreinoAdicionado = async (treino: TreinoPlanejadoDto) => {
+        setAddDialogOpen(false);
+        await reviewFetchPendentes();
+        setToast({ msg: `Treino ${treino.tipoTreino} adicionado com sucesso`, severity: 'success' });
     };
 
     const handleSalvarEdicao = async (patch: TreinoPlanejadoPatch) => {
@@ -287,6 +295,7 @@ export default function CoachPlanReviewPage() {
                 onAprovar={handleAprovar}
                 onRejeitar={handleRejeitar}
                 onEditarTreino={handleAbrirEdicao}
+                onAdicionarTreino={() => setAddDialogOpen(true)}
             />
 
             {/* Dialog de edição de treino */}
@@ -297,6 +306,19 @@ export default function CoachPlanReviewPage() {
                     isSaving={isEditSaving}
                     onClose={() => setEditingTreinoId(null)}
                     onSave={handleSalvarEdicao}
+                />
+            )}
+
+            {/* Dialog de adição de treino */}
+            {selected && (
+                <TreinoAddDialog
+                    open={addDialogOpen}
+                    planoId={selected.id}
+                    semanaInicio={selected.semanaInicio}
+                    semanaFim={selected.semanaFim}
+                    treinosExistentes={selected.treinosPlanejados ?? []}
+                    onClose={() => setAddDialogOpen(false)}
+                    onSaved={handleTreinoAdicionado}
                 />
             )}
 

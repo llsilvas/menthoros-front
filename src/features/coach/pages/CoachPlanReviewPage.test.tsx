@@ -5,6 +5,7 @@ import CoachPlanReviewPage from './CoachPlanReviewPage';
 import type { PlanoSemanalDto } from '../../../types/PlanoReview';
 import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
 import * as useEditHook from '../../../hooks/useEditTreinoPlanejado';
+import * as useAddHook from '../../../hooks/useAddTreinoPlanejado';
 
 vi.mock('react-router', async () => {
     const actual = await vi.importActual<typeof import('react-router')>('react-router');
@@ -12,6 +13,7 @@ vi.mock('react-router', async () => {
 });
 
 vi.mock('../../../hooks/useEditTreinoPlanejado');
+vi.mock('../../../hooks/useAddTreinoPlanejado');
 
 const STUB: PlanoSemanalDto = {
     id: 'plano-1',
@@ -62,6 +64,7 @@ function clickCard() {
 }
 
 const mockEditarTreino = vi.fn();
+const mockAdicionarTreino = vi.fn();
 
 function stubEditHook(isSaving = false) {
     vi.mocked(useEditHook.useEditTreinoPlanejado).mockReturnValue({
@@ -70,10 +73,19 @@ function stubEditHook(isSaving = false) {
     });
 }
 
+function stubAddHook() {
+    vi.mocked(useAddHook.useAddTreinoPlanejado).mockReturnValue({
+        isSaving: false,
+        error: null,
+        adicionarTreino: mockAdicionarTreino,
+    });
+}
+
 describe('CoachPlanReviewPage', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         stubEditHook();
+        stubAddHook();
     });
 
     it('exibe estado vazio quando não há planos no filtro ativo', () => {
@@ -213,5 +225,64 @@ describe('CoachPlanReviewPage', () => {
         clickCard();
 
         expect(screen.getByTestId('chip-editado-coach')).toBeInTheDocument();
+    });
+
+    // ── Adição de treino ─────────────────────────────────────────────────────
+
+    it('botão adicionar treino visível para plano AGUARDANDO_REVISAO', () => {
+        mockContext({ reviewPendentes: [STUB] });
+        render(<CoachPlanReviewPage />);
+
+        clickCard();
+
+        expect(screen.getByRole('button', { name: /adicionar treino/i })).toBeInTheDocument();
+    });
+
+    it('botão adicionar treino ausente para plano APROVADO', () => {
+        mockContext({ reviewPendentes: [STUB_APROVADO] });
+        render(<CoachPlanReviewPage />);
+
+        fireEvent.click(screen.getByRole('button', { name: /ana silva/i }));
+
+        expect(screen.queryByRole('button', { name: /adicionar treino/i })).not.toBeInTheDocument();
+    });
+
+    it('chip chip-adicionado-coach presente quando adicionadoPeloCoach=true', () => {
+        const stubAdicionado: PlanoSemanalDto = {
+            ...STUB,
+            treinosPlanejados: [
+                { id: 'treino-1', diaSemana: 'SEGUNDA', tipoTreino: 'FACIL', distanciaKm: 10, adicionadoPeloCoach: true },
+            ],
+        };
+        mockContext({ reviewPendentes: [stubAdicionado] });
+        render(<CoachPlanReviewPage />);
+
+        clickCard();
+
+        expect(screen.getByTestId('chip-adicionado-coach')).toBeInTheDocument();
+    });
+
+    it('salvar no dialog de adição chama reviewFetchPendentes e exibe toast com tipoTreino', async () => {
+        const reviewFetchPendentes = vi.fn().mockResolvedValue(undefined);
+        const novoTreino = { id: 'novo', diaSemana: 'SEXTA', tipoTreino: 'LONGO', distanciaKm: 18 };
+        mockAdicionarTreino.mockResolvedValue(novoTreino);
+        mockContext({ reviewPendentes: [STUB], reviewFetchPendentes });
+        render(<CoachPlanReviewPage />);
+
+        clickCard();
+
+        // Abre o dialog de adição
+        fireEvent.click(screen.getByRole('button', { name: /adicionar treino/i }));
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+        // Preenche campos obrigatórios e salva
+        fireEvent.change(screen.getByLabelText(/tipo de treino/i), { target: { value: 'LONGO' } });
+        fireEvent.change(screen.getByLabelText(/data do treino/i), { target: { value: '2026-06-27' } });
+        fireEvent.click(screen.getByRole('button', { name: /salvar treino/i }));
+
+        await waitFor(() => {
+            expect(reviewFetchPendentes).toHaveBeenCalled();
+            expect(screen.getByText(/LONGO adicionado/i)).toBeInTheDocument();
+        });
     });
 });
