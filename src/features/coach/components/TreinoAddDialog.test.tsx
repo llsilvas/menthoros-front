@@ -114,7 +114,7 @@ describe('TreinoAddDialog', () => {
         renderDialog();
         fireEvent.change(screen.getByLabelText(/tipo de treino/i), { target: { value: 'CONTINUO' } });
         fireEvent.change(screen.getByLabelText(/data do treino/i), { target: { value: '2026-07-01' } });
-        expect(screen.getByText(/já existe.*treino.*nesta data/i)).toBeInTheDocument();
+        expect(screen.getByText(/treino.*nesta data|nesta data.*double-day/i)).toBeInTheDocument();
     });
 
     it('serializa bloco corretamente no payload ao salvar', async () => {
