@@ -36,6 +36,8 @@ export interface EtapaTreinoDto {
     distanciaKm?: number;
     fcAlvoEtapa?: string;   // zona alvo, e.g. "Z2"
     repeticoes?: number;
+    blocoId?: string;
+    blocoRepeticoes?: number;
 }
 
 /** Treino planejado resumido para exibição no painel de revisão. */
@@ -70,14 +72,16 @@ export interface TreinoPlanejadoAddPayload {
     etapas?: EtapaInputPayload[];
 }
 
-/** Etapa de treino no payload de criação. */
+/** Etapa simples ou bloco repetido no payload de criação. */
 export interface EtapaInputPayload {
-    tipoEtapa?: string;
+    tipoEtapa: string;           // "BLOCO" para blocos repetidos; tipo normal para etapas avulsas
     descricaoEtapa?: string;
     duracaoMin?: number;
     distanciaKm?: number;
     fcAlvoEtapa?: string;
     repeticoes?: number;
+    blocoRepeticoes?: number;    // somente quando tipoEtapa="BLOCO"
+    subEtapas?: EtapaInputPayload[];  // somente quando tipoEtapa="BLOCO"
 }
 
 /** Campos editáveis de um treino planejado durante revisão. Campos undefined são ignorados (patch semântico). */

@@ -11,12 +11,12 @@ import {
     FormControl,
     IconButton,
     InputLabel,
-    MenuItem,
     Select,
     TextField,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
+import RepeatIcon from '@mui/icons-material/Repeat';
 import { elevation } from '../../../shared/design-tokens';
 import { primary, surface, semantic, content } from '../../../theme/tokens';
 import { useAddTreinoPlanejado } from '../../../hooks/useAddTreinoPlanejado';
@@ -43,6 +43,27 @@ const TIPOS_ETAPA = [
 
 const DIAS_PT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
+// ── Tipos de etapa/bloco ──────────────────────────────────────────────────────
+
+interface StepRow {
+    kind: 'step';
+    tipoEtapa: string;
+    duracaoMin: string;
+}
+
+interface SubStep {
+    tipoEtapa: string;
+    duracaoMin: string;
+}
+
+interface BlockRow {
+    kind: 'block';
+    repeticoes: string;
+    steps: SubStep[];
+}
+
+type EtapaItem = StepRow | BlockRow;
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function gerarDatas(semanaInicio: string, semanaFim: string): string[] {
@@ -62,6 +83,32 @@ function formatarDataLabel(iso: string): string {
     return `${DIAS_PT[d.getDay()]} ${dia}/${mes}`;
 }
 
+function serializarItens(itens: EtapaItem[]): EtapaInputPayload[] {
+    return itens
+        .map((item): EtapaInputPayload | null => {
+            if (item.kind === 'block') {
+                const subEtapas = item.steps
+                    .filter((s) => s.tipoEtapa)
+                    .map((s) => ({
+                        tipoEtapa: s.tipoEtapa,
+                        duracaoMin: s.duracaoMin ? parseInt(s.duracaoMin, 10) : undefined,
+                    }));
+                if (!subEtapas.length) return null;
+                return {
+                    tipoEtapa: 'BLOCO',
+                    blocoRepeticoes: parseInt(item.repeticoes, 10) || 1,
+                    subEtapas,
+                };
+            }
+            if (!item.tipoEtapa) return null;
+            return {
+                tipoEtapa: item.tipoEtapa,
+                duracaoMin: item.duracaoMin ? parseInt(item.duracaoMin, 10) : undefined,
+            };
+        })
+        .filter((e): e is EtapaInputPayload => e !== null);
+}
+
 // ── Props ─────────────────────────────────────────────────────────────────────
 
 export interface TreinoAddDialogProps {
@@ -73,15 +120,6 @@ export interface TreinoAddDialogProps {
     onClose: () => void;
     onSaved: (treino: TreinoPlanejadoDto) => void;
 }
-
-// ── Etapa row ─────────────────────────────────────────────────────────────────
-
-interface EtapaRow {
-    tipoEtapa: string;
-    duracaoMin: string;
-}
-
-const ETAPA_VAZIA: EtapaRow = { tipoEtapa: '', duracaoMin: '' };
 
 // ── Dialog ────────────────────────────────────────────────────────────────────
 
@@ -103,7 +141,7 @@ export function TreinoAddDialog({
     const [tss, setTss]                 = useState('');
     const [observacoes, setObservacoes] = useState('');
     const [etapasExpanded, setEtapasExpanded] = useState(false);
-    const [etapas, setEtapas]           = useState<EtapaRow[]>([]);
+    const [itens, setItens]             = useState<EtapaItem[]>([]);
     const [apiError, setApiError]       = useState<string | null>(null);
 
     const { isSaving, adicionarTreino } = useAddTreinoPlanejado();
@@ -116,10 +154,51 @@ export function TreinoAddDialog({
 
     const canSave = tipoTreino.trim() !== '' && dataTreino !== '';
 
-    const handleAdicionarEtapa = () => setEtapas((prev) => [...prev, { ...ETAPA_VAZIA }]);
-    const handleRemoverEtapa   = (idx: number) => setEtapas((prev) => prev.filter((_, i) => i !== idx));
-    const handleEtapaChange    = (idx: number, field: keyof EtapaRow, value: string) =>
-        setEtapas((prev) => prev.map((e, i) => i === idx ? { ...e, [field]: value } : e));
+    // ── Manipuladores de itens ────────────────────────────────────────────────
+
+    const handleAdicionarEtapaSimples = () =>
+        setItens((prev) => [...prev, { kind: 'step', tipoEtapa: '', duracaoMin: '' }]);
+
+    const handleAdicionarBloco = () =>
+        setItens((prev) => [...prev, { kind: 'block', repeticoes: '2', steps: [{ tipoEtapa: '', duracaoMin: '' }] }]);
+
+    const handleRemoverItem = (idx: number) =>
+        setItens((prev) => prev.filter((_, i) => i !== idx));
+
+    const handleStepChange = (idx: number, field: 'tipoEtapa' | 'duracaoMin', value: string) =>
+        setItens((prev) => prev.map((item, i) => {
+            if (i !== idx || item.kind !== 'step') return item;
+            return { ...item, [field]: value };
+        }));
+
+    const handleBlocoRepeticoesChange = (idx: number, value: string) =>
+        setItens((prev) => prev.map((item, i) => {
+            if (i !== idx || item.kind !== 'block') return item;
+            return { ...item, repeticoes: value };
+        }));
+
+    const handleAdicionarSubStep = (blocoIdx: number) =>
+        setItens((prev) => prev.map((item, i) => {
+            if (i !== blocoIdx || item.kind !== 'block') return item;
+            return { ...item, steps: [...item.steps, { tipoEtapa: '', duracaoMin: '' }] };
+        }));
+
+    const handleRemoverSubStep = (blocoIdx: number, stepIdx: number) =>
+        setItens((prev) => prev.map((item, i) => {
+            if (i !== blocoIdx || item.kind !== 'block') return item;
+            return { ...item, steps: item.steps.filter((_, si) => si !== stepIdx) };
+        }));
+
+    const handleSubStepChange = (blocoIdx: number, stepIdx: number, field: 'tipoEtapa' | 'duracaoMin', value: string) =>
+        setItens((prev) => prev.map((item, i) => {
+            if (i !== blocoIdx || item.kind !== 'block') return item;
+            return {
+                ...item,
+                steps: item.steps.map((s, si) => si === stepIdx ? { ...s, [field]: value } : s),
+            };
+        }));
+
+    // ── Fechar / reset ────────────────────────────────────────────────────────
 
     const handleClose = () => {
         if (isSaving) return;
@@ -137,18 +216,17 @@ export function TreinoAddDialog({
         setTss('');
         setObservacoes('');
         setEtapasExpanded(false);
-        setEtapas([]);
+        setItens([]);
         setApiError(null);
     };
+
+    // ── Salvar ────────────────────────────────────────────────────────────────
 
     const handleSalvar = async () => {
         if (!canSave) return;
         setApiError(null);
 
-        const payload: TreinoPlanejadoAddPayload = {
-            tipoTreino,
-            dataTreino,
-        };
+        const payload: TreinoPlanejadoAddPayload = { tipoTreino, dataTreino };
 
         if (distanciaKm) payload.distanciaKm = parseFloat(distanciaKm);
         if (duracaoMin)  payload.duracaoMin  = parseInt(duracaoMin, 10);
@@ -157,13 +235,9 @@ export function TreinoAddDialog({
         if (tss)         payload.tssPlanejado = parseInt(tss, 10);
         if (observacoes) payload.observacoes  = observacoes;
 
-        if (etapasExpanded && etapas.length > 0) {
-            payload.etapas = etapas
-                .filter((e) => e.tipoEtapa)
-                .map((e): EtapaInputPayload => ({
-                    tipoEtapa: e.tipoEtapa,
-                    duracaoMin: e.duracaoMin ? parseInt(e.duracaoMin, 10) : undefined,
-                }));
+        if (etapasExpanded && itens.length > 0) {
+            const etapas = serializarItens(itens);
+            if (etapas.length > 0) payload.etapas = etapas;
         }
 
         try {
@@ -174,6 +248,8 @@ export function TreinoAddDialog({
             setApiError(err instanceof Error ? err.message : 'Erro ao adicionar treino');
         }
     };
+
+    // ── Estilos ───────────────────────────────────────────────────────────────
 
     const fieldSx = {
         '& .MuiOutlinedInput-root': {
@@ -191,6 +267,13 @@ export function TreinoAddDialog({
             WebkitAppearance: 'none',
         },
     } as const;
+
+    const nativeSelectSx = {
+        ...fieldSx,
+        '& select': { fontSize: '0.82rem', color: surface[100], bgcolor: 'transparent' },
+    } as const;
+
+    // ── Render ────────────────────────────────────────────────────────────────
 
     return (
         <Dialog
@@ -224,7 +307,7 @@ export function TreinoAddDialog({
 
                 {/* Campos obrigatórios */}
                 <Box sx={{ display: 'flex', gap: 1.5 }}>
-                    <FormControl fullWidth size="small" sx={fieldSx}>
+                    <FormControl fullWidth size="small" sx={nativeSelectSx}>
                         <InputLabel htmlFor="tipo-treino-input" shrink>Tipo de treino</InputLabel>
                         <Select
                             native
@@ -241,7 +324,7 @@ export function TreinoAddDialog({
                         </Select>
                     </FormControl>
 
-                    <FormControl fullWidth size="small" sx={fieldSx}>
+                    <FormControl fullWidth size="small" sx={nativeSelectSx}>
                         <InputLabel htmlFor="data-treino-input" shrink>Data do treino</InputLabel>
                         <Select
                             native
@@ -367,62 +450,192 @@ export function TreinoAddDialog({
 
                     {etapasExpanded && (
                         <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                            {etapas.map((etapa, idx) => (
-                                <Box key={idx} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                                    <FormControl size="small" sx={{ minWidth: 140, ...fieldSx }}>
-                                        <InputLabel>Tipo de etapa</InputLabel>
-                                        <Select
-                                            label="Tipo de etapa"
-                                            value={etapa.tipoEtapa}
-                                            onChange={(e) => handleEtapaChange(idx, 'tipoEtapa', e.target.value)}
+
+                            {/* Lista de itens (etapas avulsas + blocos) */}
+                            {itens.map((item, idx) =>
+                                item.kind === 'step' ? (
+                                    /* ── Etapa avulsa ── */
+                                    <Box key={idx} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                                        <FormControl size="small" sx={{ minWidth: 150, ...nativeSelectSx }}>
+                                            <InputLabel shrink>Tipo</InputLabel>
+                                            <Select
+                                                native
+                                                label="Tipo"
+                                                value={item.tipoEtapa}
+                                                onChange={(e) => handleStepChange(idx, 'tipoEtapa', e.target.value as string)}
+                                                disabled={isSaving}
+                                                inputProps={{ 'aria-label': `Tipo da etapa ${idx + 1}` }}
+                                            >
+                                                <option value="" disabled />
+                                                {TIPOS_ETAPA.map((t) => (
+                                                    <option key={t} value={t}>{t}</option>
+                                                ))}
+                                            </Select>
+                                        </FormControl>
+                                        <TextField
+                                            label="Min"
+                                            type="number"
+                                            value={item.duracaoMin}
+                                            onChange={(e) => handleStepChange(idx, 'duracaoMin', e.target.value)}
                                             disabled={isSaving}
-                                            MenuProps={{ PaperProps: { sx: { bgcolor: elevation.highest } } }}
+                                            size="small"
+                                            sx={{ width: 72, ...fieldSx }}
+                                            inputProps={{ min: 1, step: 1, 'aria-label': `Duração da etapa ${idx + 1}` }}
+                                        />
+                                        <IconButton
+                                            size="small"
+                                            aria-label={`Remover etapa ${idx + 1}`}
+                                            onClick={() => handleRemoverItem(idx)}
+                                            disabled={isSaving}
+                                            sx={{ color: semantic.danger[500], '&:hover': { color: semantic.danger[700] } }}
                                         >
-                                            {TIPOS_ETAPA.map((t) => (
-                                                <MenuItem key={t} value={t} sx={{ fontSize: '0.78rem' }}>
-                                                    {t}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                    <TextField
-                                        label="Duração (min)"
-                                        type="number"
-                                        value={etapa.duracaoMin}
-                                        onChange={(e) => handleEtapaChange(idx, 'duracaoMin', e.target.value)}
-                                        disabled={isSaving}
-                                        size="small"
-                                        sx={{ flex: 1, ...fieldSx }}
-                                        inputProps={{ min: 1, step: 1 }}
-                                    />
-                                    <IconButton
-                                        size="small"
-                                        aria-label="Remover etapa"
-                                        onClick={() => handleRemoverEtapa(idx)}
-                                        disabled={isSaving}
-                                        sx={{ color: semantic.danger[500], '&:hover': { color: semantic.danger[700] } }}
+                                            <RemoveIcon sx={{ fontSize: 16 }} />
+                                        </IconButton>
+                                    </Box>
+                                ) : (
+                                    /* ── Bloco repetido ── */
+                                    <Box
+                                        key={idx}
+                                        sx={{
+                                            borderLeft: `3px solid ${primary[500]}40`,
+                                            borderRadius: '0 6px 6px 0',
+                                            bgcolor: 'rgba(255,255,255,0.02)',
+                                            pl: 1.5,
+                                            pr: 1,
+                                            py: 1,
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: 0.75,
+                                        }}
                                     >
-                                        <RemoveIcon sx={{ fontSize: 16 }} />
-                                    </IconButton>
-                                </Box>
-                            ))}
-                            <Button
-                                size="small"
-                                variant="text"
-                                startIcon={<AddIcon sx={{ fontSize: 14 }} />}
-                                onClick={handleAdicionarEtapa}
-                                disabled={isSaving}
-                                aria-label="Adicionar etapa"
-                                sx={{
-                                    textTransform: 'none',
-                                    fontSize: '0.72rem',
-                                    color: primary[500],
-                                    px: 0,
-                                    alignSelf: 'flex-start',
-                                }}
-                            >
-                                Adicionar etapa
-                            </Button>
+                                        {/* Cabeçalho do bloco */}
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <RepeatIcon sx={{ fontSize: 15, color: primary[500] }} />
+                                            <Box sx={{ fontSize: '0.72rem', color: surface[400] }}>Repetir</Box>
+                                            <TextField
+                                                type="number"
+                                                value={item.repeticoes}
+                                                onChange={(e) => handleBlocoRepeticoesChange(idx, e.target.value)}
+                                                disabled={isSaving}
+                                                size="small"
+                                                sx={{ width: 60, ...fieldSx }}
+                                                inputProps={{ min: 1, step: 1, 'aria-label': `Repetições do bloco ${idx + 1}` }}
+                                            />
+                                            <Box sx={{ fontSize: '0.72rem', color: surface[400] }}>vezes</Box>
+                                            <Box sx={{ flex: 1 }} />
+                                            <IconButton
+                                                size="small"
+                                                aria-label={`Remover bloco ${idx + 1}`}
+                                                onClick={() => handleRemoverItem(idx)}
+                                                disabled={isSaving}
+                                                sx={{ color: semantic.danger[500], '&:hover': { color: semantic.danger[700] } }}
+                                            >
+                                                <RemoveIcon sx={{ fontSize: 16 }} />
+                                            </IconButton>
+                                        </Box>
+
+                                        {/* Sub-etapas do bloco */}
+                                        {item.steps.map((step, si) => (
+                                            <Box key={si} sx={{ display: 'flex', gap: 1, alignItems: 'center', pl: 0.5 }}>
+                                                <FormControl size="small" sx={{ minWidth: 140, ...nativeSelectSx }}>
+                                                    <InputLabel shrink>Tipo</InputLabel>
+                                                    <Select
+                                                        native
+                                                        label="Tipo"
+                                                        value={step.tipoEtapa}
+                                                        onChange={(e) => handleSubStepChange(idx, si, 'tipoEtapa', e.target.value as string)}
+                                                        disabled={isSaving}
+                                                        inputProps={{ 'aria-label': `Tipo do passo ${si + 1} do bloco ${idx + 1}` }}
+                                                    >
+                                                        <option value="" disabled />
+                                                        {TIPOS_ETAPA.map((t) => (
+                                                            <option key={t} value={t}>{t}</option>
+                                                        ))}
+                                                    </Select>
+                                                </FormControl>
+                                                <TextField
+                                                    label="Min"
+                                                    type="number"
+                                                    value={step.duracaoMin}
+                                                    onChange={(e) => handleSubStepChange(idx, si, 'duracaoMin', e.target.value)}
+                                                    disabled={isSaving}
+                                                    size="small"
+                                                    sx={{ width: 72, ...fieldSx }}
+                                                    inputProps={{ min: 1, step: 1, 'aria-label': `Duração do passo ${si + 1} do bloco ${idx + 1}` }}
+                                                />
+                                                {item.steps.length > 1 && (
+                                                    <IconButton
+                                                        size="small"
+                                                        aria-label={`Remover passo ${si + 1} do bloco ${idx + 1}`}
+                                                        onClick={() => handleRemoverSubStep(idx, si)}
+                                                        disabled={isSaving}
+                                                        sx={{ color: semantic.danger[300], '&:hover': { color: semantic.danger[500] } }}
+                                                    >
+                                                        <RemoveIcon sx={{ fontSize: 14 }} />
+                                                    </IconButton>
+                                                )}
+                                            </Box>
+                                        ))}
+
+                                        {/* Adicionar passo ao bloco */}
+                                        <Button
+                                            size="small"
+                                            variant="text"
+                                            startIcon={<AddIcon sx={{ fontSize: 12 }} />}
+                                            onClick={() => handleAdicionarSubStep(idx)}
+                                            disabled={isSaving}
+                                            aria-label={`Adicionar passo ao bloco ${idx + 1}`}
+                                            sx={{
+                                                textTransform: 'none',
+                                                fontSize: '0.68rem',
+                                                color: primary[500],
+                                                px: 0,
+                                                alignSelf: 'flex-start',
+                                                ml: 0.5,
+                                            }}
+                                        >
+                                            Adicionar passo
+                                        </Button>
+                                    </Box>
+                                )
+                            )}
+
+                            {/* Botões de adicionar item */}
+                            <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
+                                <Button
+                                    size="small"
+                                    variant="text"
+                                    startIcon={<AddIcon sx={{ fontSize: 14 }} />}
+                                    onClick={handleAdicionarEtapaSimples}
+                                    disabled={isSaving}
+                                    aria-label="Adicionar etapa simples"
+                                    sx={{
+                                        textTransform: 'none',
+                                        fontSize: '0.72rem',
+                                        color: primary[500],
+                                        px: 0,
+                                    }}
+                                >
+                                    Etapa simples
+                                </Button>
+                                <Button
+                                    size="small"
+                                    variant="text"
+                                    startIcon={<RepeatIcon sx={{ fontSize: 14 }} />}
+                                    onClick={handleAdicionarBloco}
+                                    disabled={isSaving}
+                                    aria-label="Adicionar bloco repetido"
+                                    sx={{
+                                        textTransform: 'none',
+                                        fontSize: '0.72rem',
+                                        color: surface[400],
+                                        px: 0,
+                                        '&:hover': { color: primary[500] },
+                                    }}
+                                >
+                                    Bloco repetido
+                                </Button>
+                            </Box>
                         </Box>
                     )}
                 </Box>
