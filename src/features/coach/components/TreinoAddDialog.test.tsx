@@ -132,7 +132,7 @@ describe('TreinoAddDialog', () => {
 
         fireEvent.change(screen.getByLabelText(/repetições do bloco 1/i), { target: { value: '4' } });
         fireEvent.change(screen.getByLabelText(/tipo do passo 1 do bloco 1/i), { target: { value: 'INTERVALADO' } });
-        fireEvent.change(screen.getByLabelText(/duração do passo 1 do bloco 1/i), { target: { value: '3' } });
+        fireEvent.change(screen.getByLabelText(/passo 1 do bloco 1 duração/i), { target: { value: '3' } });
 
         fireEvent.click(screen.getByRole('button', { name: /salvar treino/i }));
 
