@@ -60,7 +60,6 @@ interface StepRow {
     duracaoMin: string;
     distanciaKm: string;
     fcAlvoEtapa: string;
-    rpe: string;
 }
 
 interface SubStep {
@@ -68,7 +67,6 @@ interface SubStep {
     duracaoMin: string;
     distanciaKm: string;
     fcAlvoEtapa: string;
-    rpe: string;
 }
 
 interface BlockRow {
@@ -96,11 +94,11 @@ function formatarDataLabel(iso: string): string {
 }
 
 function emptyStep(): StepRow {
-    return { kind: 'step', tipoEtapa: '', duracaoMin: '', distanciaKm: '', fcAlvoEtapa: '', rpe: '' };
+    return { kind: 'step', tipoEtapa: '', duracaoMin: '', distanciaKm: '', fcAlvoEtapa: '' };
 }
 
 function emptySubStep(): SubStep {
-    return { tipoEtapa: '', duracaoMin: '', distanciaKm: '', fcAlvoEtapa: '', rpe: '' };
+    return { tipoEtapa: '', duracaoMin: '', distanciaKm: '', fcAlvoEtapa: '' };
 }
 
 function serializarItens(itens: EtapaItem[]): EtapaInputPayload[] {
@@ -196,7 +194,7 @@ const REPS_SX = {
     },
 } as const;
 
-// ── Linha de campos quantitativos (min · km · zona · rpe) ────────────────────
+// ── Linha de campos quantitativos (min · km · zona) ──────────────────────────
 // Usa caption estático acima de cada campo para evitar o notch do OutlinedInput
 // clipar labels em campos estreitos com flex dinâmico.
 
@@ -218,12 +216,11 @@ interface QuantRowProps {
     duracaoMin:  string; onDuracao: (v: string) => void;
     distanciaKm: string; onKm:      (v: string) => void;
     fcAlvoEtapa: string; onZona:    (v: string) => void;
-    rpe:         string; onRpe:     (v: string) => void;
     ariaPrefix: string;
     disabled: boolean;
 }
 
-function QuantRow({ duracaoMin, onDuracao, distanciaKm, onKm, fcAlvoEtapa, onZona, rpe, onRpe, ariaPrefix, disabled }: QuantRowProps) {
+function QuantRow({ duracaoMin, onDuracao, distanciaKm, onKm, fcAlvoEtapa, onZona, ariaPrefix, disabled }: QuantRowProps) {
     return (
         <Box sx={{ display: 'flex', gap: 0.75 }}>
             {/* min */}
@@ -252,15 +249,6 @@ function QuantRow({ duracaoMin, onDuracao, distanciaKm, onKm, fcAlvoEtapa, onZon
                     placeholder="Z2" InputProps={{ notched: false }} InputLabelProps={{ shrink: false }}
                     sx={QUANT_FIELD_SX}
                     inputProps={{ 'aria-label': `${ariaPrefix} zona` }} />
-            </Box>
-            {/* rpe */}
-            <Box sx={{ flex: 0.7, minWidth: 48, display: 'flex', flexDirection: 'column' }}>
-                <Box sx={CAPTION_SX}>RPE</Box>
-                <TextField type="number" size="small" value={rpe}
-                    onChange={e => onRpe(e.target.value)} disabled={disabled}
-                    placeholder="—" InputProps={{ notched: false }} InputLabelProps={{ shrink: false }}
-                    sx={QUANT_FIELD_SX}
-                    inputProps={{ min: 1, max: 10, step: 1, 'aria-label': `${ariaPrefix} RPE` }} />
             </Box>
         </Box>
     );
@@ -415,10 +403,10 @@ export function TreinoAddDialog({
                 </Box>
             </DialogTitle>
 
-            <DialogContent sx={{ px: 2.5, py: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            <DialogContent sx={{ px: 2.5, py: 4, display: 'flex', flexDirection: 'column', gap: 1.9 }}>
 
                 {/* ── Tipo + Data ─────────────────────────────────────────── */}
-                <Box sx={{ display: 'flex', gap: 1.5 }}>
+                <Box sx={{ display: 'flex', gap: 1.9, py: 2.5, mb: 1.5, borderBottom: `1px solid ${surface[0]}1` }}>
                     <FormControl fullWidth size="small" sx={SELECT_SX}>
                         <InputLabel htmlFor="tipo-treino-input" shrink>Tipo de treino</InputLabel>
                         <Select native label="Tipo de treino" value={tipoTreino}
@@ -453,7 +441,7 @@ export function TreinoAddDialog({
                 )}
 
                 {/* ── Sessão estruturada ───────────────────────────────────── */}
-                <Box>
+                <Box sx={{ gap: 1.5, mt: 0.5 }}>
                     <Button size="small" variant="text" disabled={isSaving}
                         onClick={() => setEtapasExpanded(p => !p)}
                         aria-label={etapasExpanded ? 'Ocultar etapas' : 'Adicionar etapas'}
@@ -494,7 +482,7 @@ export function TreinoAddDialog({
                                     },
                                 }}>
                                     {/* Linha 1: tipo + remover */}
-                                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', pl: 2, pr: 1, pt: 0.75, pb: 0.5 }}>
+                                    <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', pl: 2, pr: 1, pt: 1.75, pb: 0.5 }}>
                                         {item.tipoEtapa && <EtapaTypeBadge tipo={item.tipoEtapa} />}
                                         <FormControl size="small" sx={{ flex: 1, ...SELECT_SX }}>
                                             <InputLabel shrink>Tipo</InputLabel>
@@ -519,7 +507,6 @@ export function TreinoAddDialog({
                                             duracaoMin={item.duracaoMin}   onDuracao={v => updateStep(idx, 'duracaoMin', v)}
                                             distanciaKm={item.distanciaKm} onKm={v => updateStep(idx, 'distanciaKm', v)}
                                             fcAlvoEtapa={item.fcAlvoEtapa} onZona={v => updateStep(idx, 'fcAlvoEtapa', v)}
-                                            rpe={item.rpe}                 onRpe={v => updateStep(idx, 'rpe', v)}
                                             ariaPrefix={`Etapa ${idx + 1}`}
                                             disabled={isSaving}
                                         />
@@ -540,7 +527,7 @@ export function TreinoAddDialog({
                                     {/* Cabeçalho */}
                                     <Box sx={{
                                         display: 'flex', alignItems: 'center', gap: 1,
-                                        pl: 2, pr: 1, pt: 1, pb: 0.75,
+                                        pl: 2, pr: 1, pt: 1.5, pb: 0.75,
                                         borderBottom: `1px solid ${primary[500]}18`,
                                     }}>
                                         <RepeatIcon sx={{ fontSize: 13, color: primary[400], flexShrink: 0 }} />
@@ -576,7 +563,7 @@ export function TreinoAddDialog({
                                                 },
                                             }}>
                                                 {/* Linha 1: tipo + remover */}
-                                                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', pl: 1.5, pr: 0.5, pt: 0.5, pb: 0.25 }}>
+                                                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', pl: 1.5, pr: 0.5, pt: 1.5, pb: 0.25 }}>
                                                     {step.tipoEtapa && <EtapaTypeBadge tipo={step.tipoEtapa} />}
                                                     <FormControl size="small" sx={{ flex: 1, ...SELECT_SX }}>
                                                         <InputLabel shrink>Tipo</InputLabel>
@@ -603,7 +590,6 @@ export function TreinoAddDialog({
                                                         duracaoMin={step.duracaoMin}   onDuracao={v => updateSubStep(idx, si, 'duracaoMin', v)}
                                                         distanciaKm={step.distanciaKm} onKm={v => updateSubStep(idx, si, 'distanciaKm', v)}
                                                         fcAlvoEtapa={step.fcAlvoEtapa} onZona={v => updateSubStep(idx, si, 'fcAlvoEtapa', v)}
-                                                        rpe={step.rpe}                 onRpe={v => updateSubStep(idx, si, 'rpe', v)}
                                                         ariaPrefix={`Passo ${si + 1} do bloco ${idx + 1}`}
                                                         disabled={isSaving}
                                                     />
