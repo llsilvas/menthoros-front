@@ -2,10 +2,9 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ManualTrainingForm } from './ManualTrainingForm';
-import type { TreinoManualInput } from '../../../types/TreinoManual';
 
 describe('ManualTrainingForm', () => {
-    const onSubmit = vi.fn((_input: TreinoManualInput): Promise<void> => Promise.resolve());
+    const onSubmit = vi.fn().mockResolvedValue(undefined as void);
 
     beforeEach(() => {
         vi.clearAllMocks();

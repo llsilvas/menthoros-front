@@ -211,7 +211,7 @@ export default function HomePage() {
           </Box>
 
           <Box sx={{ px: 3 }}>
-            <ProvasProximasWidget atletas={todosAtletas} />
+            <ProvasProximasWidget />
           </Box>
           {/* Assessoria Adherence Chart */}
           <Box sx={{ px: 3 }}>

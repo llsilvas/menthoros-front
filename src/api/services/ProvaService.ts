@@ -1,5 +1,6 @@
 import type { Prova, CreateProva, UpdateProva } from '../../types/Prova';
 import type { ProvasProximasResponse } from '../../types/Metricas';
+import type { ApiRequestOptions } from '../core/ApiRequestOptions';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -144,7 +145,8 @@ export class ProvaService {
     public static async listarProximas(dias: number = 15): Promise<ProvasProximasResponse> {
         const params = new URLSearchParams({ dias: dias.toString() });
 
-        const token = typeof OpenAPI.TOKEN === 'function' ? await OpenAPI.TOKEN({} as any) : OpenAPI.TOKEN;
+        const tokenOptions: ApiRequestOptions = { method: 'GET', url: '/api/v1/provas/proximas' };
+        const token = typeof OpenAPI.TOKEN === 'function' ? await OpenAPI.TOKEN(tokenOptions) : OpenAPI.TOKEN;
 
         const response = await fetch(
             `${OpenAPI.BASE}/api/v1/provas/proximas?${params.toString()}`,

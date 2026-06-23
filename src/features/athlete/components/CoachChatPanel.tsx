@@ -320,7 +320,7 @@ export function CoachChatPanel({
   messages,
   coachIsTyping = false,
   onSendText,
-  onSendAudio: _onSendAudio,
+  onSendAudio,
 }: CoachChatPanelProps) {
   const [textInput, setTextInput] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -356,6 +356,7 @@ export function CoachChatPanel({
   }
 
   function handleToggleRecording() {
+    void onSendAudio;
     if (isRecording) {
       // TODO: parar MediaRecorder real e chamar onSendAudio com o blob gravado
       setIsRecording(false);

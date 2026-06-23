@@ -6,39 +6,52 @@
  * normalizam o acesso independentemente do formato recebido.
  */
 
-export const getSafeValue = (value: any): string | number => {
+export const getSafeValue = (value: unknown): string | number => {
     if (value === null || value === undefined) return '';
-    if (typeof value === 'object') {
-        return value.value || value.label || value.toString();
+    if (typeof value === 'string' || typeof value === 'number') {
+        return value;
     }
-    return value;
-};
-
-export const getSafeNumber = (value: any): number => {
-    const safeValue = getSafeValue(value);
-    return typeof safeValue === 'number' ? safeValue : parseFloat(safeValue as string) || 0;
-};
-
-export const getSafeBoolean = (value: any): boolean => {
-    if (typeof value === 'boolean') return value;
-    if (typeof value === 'string') return value.toLowerCase() === 'true';
-    if (typeof value === 'object' && value !== null) {
-        return value.value === true || value.value === 'true';
-    }
-    return false;
-};
-
-export const getSafeLabel = (value: any): string => {
-    if (value === null || value === undefined) return '';
     if (typeof value === 'object') {
-        return value.label || value.value || value.toString();
+        const candidate = value as { value?: unknown; label?: unknown; toString?: () => string };
+        return (
+            (typeof candidate.value === 'string' || typeof candidate.value === 'number' ? candidate.value : undefined) ??
+            (typeof candidate.label === 'string' || typeof candidate.label === 'number' ? candidate.label : undefined) ??
+            String(value)
+        );
     }
     return String(value);
 };
 
-export const getSafeColor = (value: any, fallback: string = '#666666'): string => {
-    if (value && typeof value === 'object' && value.color) {
-        return value.color;
+export const getSafeNumber = (value: unknown): number => {
+    const safeValue = getSafeValue(value);
+    return typeof safeValue === 'number' ? safeValue : parseFloat(safeValue as string) || 0;
+};
+
+export const getSafeBoolean = (value: unknown): boolean => {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') return value.toLowerCase() === 'true';
+    if (typeof value === 'object' && value !== null) {
+        const candidate = value as { value?: unknown };
+        return candidate.value === true || candidate.value === 'true';
+    }
+    return false;
+};
+
+export const getSafeLabel = (value: unknown): string => {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'object') {
+        const candidate = value as { label?: unknown; value?: unknown };
+        return String(candidate.label ?? candidate.value ?? value);
+    }
+    return String(value);
+};
+
+export const getSafeColor = (value: unknown, fallback: string = '#666666'): string => {
+    if (value && typeof value === 'object') {
+        const candidate = value as { color?: unknown };
+        if (candidate.color) {
+            return String(candidate.color);
+        }
     }
     return fallback;
 };

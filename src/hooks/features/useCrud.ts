@@ -9,7 +9,7 @@ export interface CrudOperations {
     loading: boolean;
     error: string | null;
     selectedAtleta: Atleta | null;
-    loadAtletas: (filters?: AtletaFilters, pagination?: PaginationState, sort?: SortState) => Promise<void>;
+    loadAtletas: (filters?: AtletaFilters, pagination?: PaginationState) => Promise<void>;
     createAtleta: (data: CreateAtleta) => Promise<void>;
     updateAtleta: (id: string, data: UpdateAtleta) => Promise<void>;
     deleteAtleta: (id: string) => Promise<void>;
@@ -28,7 +28,6 @@ export const useCrud = (): CrudOperations => {
     const loadAtletas = useCallback(async (
         filters?: AtletaFilters,
         pagination?: PaginationState,
-        _sort?: SortState
     ): Promise<void> => {
         setState((prev: CrudState) => ({ ...prev, loading: true, error: null }));
         try {

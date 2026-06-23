@@ -1,4 +1,5 @@
 import { OpenAPI } from '../api/core/OpenAPI';
+import type { ApiRequestOptions } from '../api/core/ApiRequestOptions';
 import type { StravaStatusGlobal } from '../types/Metricas';
 
 const getAuthToken = async (): Promise<string> => {
@@ -10,7 +11,8 @@ const getAuthToken = async (): Promise<string> => {
     return OpenAPI.TOKEN;
   }
 
-  return await OpenAPI.TOKEN({} as any);
+  const options: ApiRequestOptions = { method: 'GET', url: '/' };
+  return await OpenAPI.TOKEN(options);
 };
 
 export class StravaService {

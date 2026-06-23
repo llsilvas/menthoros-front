@@ -4,11 +4,7 @@ import { ProvaService } from '../../../api/services/ProvaService';
 import type { ProvaProxima } from '../../../types/Metricas';
 import { glassAzulSx, glassAzulSxHover, transitions, primary } from '../../../theme/tokens';
 
-interface ProvasProximasWidgetProps {
-  atletas?: any[];
-}
-
-export default function ProvasProximasWidget(_props: ProvasProximasWidgetProps) {
+export default function ProvasProximasWidget() {
   const [provas, setProvas] = useState<ProvaProxima[]>([]);
   const [loading, setLoading] = useState(true);
 

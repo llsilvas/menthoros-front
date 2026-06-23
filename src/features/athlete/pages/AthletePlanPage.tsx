@@ -140,7 +140,7 @@ export default function AthletePlanPage() {
   const handleNextWeek = React.useCallback(() => setWeekOffset((o) => o + 1), []);
   const handleToday = React.useCallback(() => setWeekOffset(0), []);
 
-  const handleDayPress = React.useCallback((_date: Date) => {
+  const handleDayPress = React.useCallback(() => {
     // Futuramente: abrir detalhe do treino
   }, []);
 
