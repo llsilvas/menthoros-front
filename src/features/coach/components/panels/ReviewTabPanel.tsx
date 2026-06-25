@@ -39,6 +39,14 @@ export function ReviewTabPanel({ selected, selectedProfile, onMarkDone, onReagen
                 {selected.nextWorkout.when} · {selected.nextWorkout.zone} · {selected.nextWorkout.duration}
               </Typography>
             </Box>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
+            {selected.nivelExperiencia ? (
+              <Chip
+                size="small"
+                label={selected.nivelExperiencia}
+                sx={{ fontSize: { xs: '0.6rem', xl: '0.66rem' }, fontWeight: 600, bgcolor: `${surface[500]}20`, color: surface[200] }}
+              />
+            ) : null}
             <Chip
               size="small"
               label={selected.planStatus === 'ATRASADO' ? 'Atrasado' : selected.planStatus === 'NO_PRAZO' ? 'No prazo' : 'Concluído'}
@@ -49,6 +57,7 @@ export function ReviewTabPanel({ selected, selectedProfile, onMarkDone, onReagen
                 fontWeight: 700,
               }}
             />
+            </Box>
           </Box>
 
           <Typography sx={{ display: { xs: 'none', xl: 'block' }, fontSize: '0.9rem', color: surface[100], lineHeight: 1.45 }}>

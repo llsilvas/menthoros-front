@@ -23,6 +23,7 @@ export interface CoachAthleteRow {
   name: string;
   discipline: string;
   age: number;
+  nivelExperiencia: string | null;
   gender: string;
   weeksOnPlan: number;
   segment: SegmentFilter;
