@@ -49,13 +49,7 @@ import { QueueRow } from '../components/QueueRow';
 import { RecentSuggestionsPanel } from '../components/RecentSuggestionsPanel';
 import { SectionCard } from '../components/SectionCard';
 import { TrendCard } from '../components/TrendCard';
-import {
-  formatKm,
-  formatPercent,
-  formatWorkoutTypeLabel,
-  paletteForDecision,
-  statusLabel,
-} from '../components/coachInboxHelpers';
+import { formatKm, formatPercent, paletteForDecision } from '../components/coachInboxHelpers';
 import { useCoachDashboard } from '../../../hooks/useCoachDashboard';
 import { useAthleteProfile } from '../../../hooks/useAthleteProfile';
 import { useDashboardFilters } from '../hooks/useDashboardFilters';
@@ -65,15 +59,8 @@ import { ROSTER_PAGE_SIZE } from '../hooks/useDashboardFilters';
 import type { SortKey, DashboardStatusFilter } from '../hooks/useDashboardFilters';
 import { elevation } from '../../../shared/design-tokens';
 import { content, primary, semantic, surface } from '../../../theme/tokens';
-import type { CoachAtletaResumo, CoachAtletaStatus } from '../../../types/Coach';
-import type { AtletaPerfilCoachDto } from '../../../types/AtletaPerfilCoach';
+import { buildRosterRowFromSummary, buildSelectedAthleteFromDashboard } from '../adapters/coachInboxAdapters';
 import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
-import type { Prova } from '../../../types/Prova';
-import type {
-  CoachAthleteRow,
-  RaceItem,
-  SegmentFilter,
-} from '../types/CoachInbox';
 
 type TabKey = 'review' | 'plan' | 'calendar' | 'status' | 'adherence';
 
@@ -93,25 +80,6 @@ const DASHBOARD_STATUS_OPTIONS: Array<{ key: DashboardStatusFilter; label: strin
 ];
 
 
-
-function formatRaceDate(dateIso: string): string {
-  return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' })
-    .format(new Date(`${dateIso}T12:00:00`))
-    .replace('.', '');
-}
-
-function buildRaceCalendarFromProfile(profile: AtletaPerfilCoachDto | null): RaceItem[] {
-  const provas = profile?.provas?.length ? profile.provas : profile?.proximaProva ? [profile.proximaProva] : [];
-
-  return [...provas]
-    .filter((prova): prova is Prova => Boolean(prova?.dataProva))
-    .sort((a, b) => a.dataProva.localeCompare(b.dataProva))
-    .map((prova) => ({
-      date: formatRaceDate(prova.dataProva),
-      label: prova.nomeProva,
-      tag: prova.provaAlvo ? 'ALVO' : 'PRINCIPAL',
-    }));
-}
 
 
 const TABS: Array<{ key: TabKey; label: string; icon: ReactElement }> = [
@@ -139,101 +107,6 @@ const ACTION_BTN_END_ICON_SX = {
   px: { xs: 0.85, xl: 1.5 },
   '& .MuiButton-endIcon': { display: { xs: 'none', xl: 'inherit' } },
 };
-
-function statusToSegment(status: CoachAtletaStatus): SegmentFilter {
-  if (status === 'warning') return 'attention';
-  if (status === 'danger') return 'drop';
-  if (status === 'paused') return 'stable';
-  return 'stable';
-}
-
-
-function buildSelectedAthleteFromDashboard(roster: CoachAtletaResumo, profile: AtletaPerfilCoachDto | null): CoachAthleteRow {
-  const pmcPoints = profile?.pmc ?? [];
-  const adherencePoints = profile?.aderenciaSemanal ?? [];
-  const firstWorkout = profile?.planoVigente?.treinos[0] ?? null;
-  const latestPmc = pmcPoints[pmcPoints.length - 1] ?? null;
-  const latestAdherence = adherencePoints[adherencePoints.length - 1] ?? null;
-
-  return {
-    id: roster.atletaId,
-    name: profile?.nomeAtleta ?? roster.nome,
-    discipline: profile?.objetivo ?? roster.fase ?? 'Corrida',
-    age: 0,
-    gender: '',
-    weeksOnPlan: 0,
-    segment: statusToSegment(roster.status),
-    planStatus: profile?.planoVigente?.reviewStatus === 'AGUARDANDO_REVISAO' ? 'ATRASADO' : 'NO_PRAZO',
-    trainingType: 'Corrida',
-    statusLabel: statusLabel(roster.status),
-    decision: 'PENDING',
-    adherence: latestAdherence?.percentual ?? 0,
-    load7d: roster.weeklyVolume,
-    loadDelta: 0,
-    delay: 0,
-    nextWorkout: {
-      title: firstWorkout ? formatWorkoutTypeLabel(firstWorkout.tipoTreino) : 'Sem treino planejado',
-      when: firstWorkout ? firstWorkout.diaSemana : 'Sem data',
-      zone: firstWorkout?.zonaAlvo ?? '—',
-      duration: firstWorkout?.duracaoMin ?? '—',
-      objective: firstWorkout ? 'Treino vindo do backend.' : 'Nenhum treino planejado no plano vigente.',
-    },
-    lastWorkouts: [],
-    raceCalendar: buildRaceCalendarFromProfile(profile),
-    loadTrend: pmcPoints.map((point) => point.ctl).length > 0 ? pmcPoints.map((point) => point.ctl) : [roster.weeklyVolume],
-    adherenceTrend: adherencePoints.map((point) => point.percentual),
-    notes: profile?.avisos?.length ? profile.avisos.join(' · ') : 'Sem observações adicionais.',
-    suggestedActions: profile?.sinaisRecentes.length
-      ? profile.sinaisRecentes.map((signal) => signal.acaoSugerida).slice(0, 3)
-      : ['Abrir o perfil do atleta para detalhes completos'],
-    quickStats: {
-      acuteLoad: latestPmc?.ctl ?? roster.weeklyVolume,
-      monotony: 1,
-      fatigue: latestPmc && latestPmc.tsb < -10 ? 'Alta' : latestPmc && latestPmc.tsb < 0 ? 'Média' : 'Baixa',
-      recovery: latestAdherence?.percentual ?? 0,
-    },
-  };
-}
-
-function buildRosterRowFromSummary(roster: CoachAtletaResumo): CoachAthleteRow {
-  return {
-    id: roster.atletaId,
-    name: roster.nome,
-    discipline: roster.fase ?? 'Corrida',
-    age: 0,
-    gender: '',
-    weeksOnPlan: 0,
-    segment: statusToSegment(roster.status),
-    planStatus: roster.status === 'paused' ? 'ATRASADO' : 'NO_PRAZO',
-    trainingType: 'Corrida',
-    statusLabel: statusLabel(roster.status),
-    decision: 'PENDING',
-    adherence: 0,
-    load7d: roster.weeklyVolume,
-    loadDelta: 0,
-    delay: 0,
-    nextWorkout: {
-      title: 'Resumo do dashboard',
-      when: '—',
-      zone: '—',
-      duration: '—',
-      objective: 'Abra o atleta para ver o detalhe completo.',
-    },
-    lastWorkouts: [],
-    raceCalendar: [],
-    loadTrend: [roster.weeklyVolume],
-    adherenceTrend: [],
-    notes: 'Resumo agregado carregado do dashboard.',
-    suggestedActions: ['Abrir o perfil do atleta'],
-    quickStats: {
-      acuteLoad: roster.weeklyVolume,
-      monotony: 1,
-      fatigue: roster.status === 'danger' ? 'Alta' : roster.status === 'warning' ? 'Média' : 'Baixa',
-      recovery: 0,
-    },
-  };
-}
-
 
 
 
