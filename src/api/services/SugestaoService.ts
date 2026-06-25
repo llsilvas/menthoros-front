@@ -24,6 +24,23 @@ export class SugestaoService {
     }
 
     /**
+     * Detalha uma sugestão pelo id.
+     * @param id UUID da sugestão
+     * @returns sugestão completa
+     * @throws ApiError
+     */
+    public static detalhe(id: string): CancelablePromise<SugestaoCoachOutputDto> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/coach/sugestoes/{id}',
+            path: { 'id': id },
+            errors: {
+                404: 'Sugestão não encontrada',
+            },
+        });
+    }
+
+    /**
      * Aprova uma sugestão PENDING (PENDING → APPROVED).
      * Re-aprovar já-APPROVED é no-op. REJECTED → APPROVED lança 422.
      * @param id UUID da sugestão

@@ -1,4 +1,5 @@
 import type { EtapaTreinoDto, PlanoReviewStatusDto } from './PlanoReview';
+import type { Prova } from './Prova';
 
 /** Ponto PMC retornado pelo backend (datas como strings ISO). */
 export interface PmcPontoRaw {
@@ -69,7 +70,8 @@ export interface AtletaPerfilCoachDto {
     atletaId: string;
     nomeAtleta: string;
     objetivo: string | null;
-    provaAlvo: string | null;
+    proximaProva: Prova | null;
+    provas?: Prova[];
     nivelExperiencia: string | null;
     pmc: PmcPontoRaw[];
     aderenciaSemanal: AderenciasSemanalDto[];
