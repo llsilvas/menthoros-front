@@ -1,7 +1,4 @@
 {
-  "enabledPlugins": [
-    "superpowers"
-  ],
   "mcpServers": {
     "playwright": {
       "command": "npx",
