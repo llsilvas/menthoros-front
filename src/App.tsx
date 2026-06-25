@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { ThemeProvider, createTheme, CssBaseline, GlobalStyles } from '@mui/material';
 import type {} from '@mui/x-data-grid/themeAugmentation';
 import { createHashRouter, RouterProvider } from 'react-router';
@@ -10,7 +11,7 @@ import LoginPage from './pages/auth/LoginPage';
 import LandingPage from './pages/landing/LandingPage';
 import CoachLayout from './features/coach/layout/CoachLayout';
 // CoachAttentionQueuePage: sem rota em v1 — aguardando add-coach-queue-route
-import CoachInboxPage from './features/coach/pages/CoachInboxPage';
+const CoachInboxPage = lazy(() => import('./features/coach/pages/CoachInboxPage'));
 import CoachAthletesPage from './features/coach/pages/CoachAthletesPage';
 import CoachCalendarPage from './features/coach/pages/CoachCalendarPage';
 import CoachInsightsPage from './features/coach/pages/CoachInsightsPage';
@@ -178,7 +179,7 @@ const router = createHashRouter([
         path: 'coach',
         element: <CoachLayout />,
         children: [
-          { path: 'inbox',               element: <CoachInboxPage /> },
+          { path: 'inbox',               element: <Suspense fallback={null}><CoachInboxPage /></Suspense> },
           { path: 'planos/revisao',      element: <CoachPlanReviewPage /> },
           { path: 'athletes', element: <CoachAthletesPage /> },
           { path: 'athletes/:atletaId', element: <CoachAthleteProfilePage /> },
