@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactElement } from 'react';
-import { useLocation, useNavigate, useOutletContext, useSearchParams } from 'react-router';
+import { useNavigate, useOutletContext } from 'react-router';
 import {
   Alert,
   Box,
@@ -58,10 +58,14 @@ import {
 } from '../components/coachInboxHelpers';
 import { useCoachDashboard } from '../../../hooks/useCoachDashboard';
 import { useAthleteProfile } from '../../../hooks/useAthleteProfile';
-import { useDebounce } from '../../../shared/hooks/useDebounce';
+import { useDashboardFilters } from '../hooks/useDashboardFilters';
+import { usePlanDraft } from '../hooks/usePlanDraft';
+import { usePlanReview } from '../hooks/usePlanReview';
+import { ROSTER_PAGE_SIZE } from '../hooks/useDashboardFilters';
+import type { SortKey, DashboardStatusFilter } from '../hooks/useDashboardFilters';
 import { elevation } from '../../../shared/design-tokens';
 import { content, primary, semantic, surface } from '../../../theme/tokens';
-import type { CoachAtletaResumo, CoachAtletaStatus, CoachDashboardQuery } from '../../../types/Coach';
+import type { CoachAtletaResumo, CoachAtletaStatus } from '../../../types/Coach';
 import type { AtletaPerfilCoachDto } from '../../../types/AtletaPerfilCoach';
 import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
 import type { Prova } from '../../../types/Prova';
@@ -71,11 +75,7 @@ import type {
   SegmentFilter,
 } from '../types/CoachInbox';
 
-type SortKey = 'priority' | 'adherence' | 'load' | 'race';
 type TabKey = 'review' | 'plan' | 'calendar' | 'status' | 'adherence';
-type DashboardStatusFilter = 'all' | CoachAtletaStatus;
-
-const ROSTER_PAGE_SIZE = 10;
 
 
 const SORT_OPTIONS: Array<{ key: SortKey; label: string }> = [
@@ -130,27 +130,6 @@ function statusToSegment(status: CoachAtletaStatus): SegmentFilter {
   return 'stable';
 }
 
-function parseSort(value: string | null): SortKey {
-  if (value === 'adherence' || value === 'load' || value === 'race') return value;
-  return 'priority';
-}
-
-function parseDashboardStatus(value: string | null): DashboardStatusFilter {
-  if (value === 'active' || value === 'warning' || value === 'danger' || value === 'paused') return value;
-  return 'all';
-}
-
-function sortLabel(sortBy: SortKey): string {
-  if (sortBy === 'adherence') return 'Maior aderência';
-  if (sortBy === 'load') return 'Maior carga';
-  if (sortBy === 'race') return 'Próxima prova';
-  return 'Prioridade alta';
-}
-
-function toDashboardSort(sortBy: SortKey): NonNullable<CoachDashboardQuery['sortBy']> {
-  if (sortBy === 'load') return 'volume';
-  return 'priority';
-}
 
 function buildSelectedAthleteFromDashboard(roster: CoachAtletaResumo, profile: AtletaPerfilCoachDto | null): CoachAthleteRow {
   const pmcPoints = profile?.pmc ?? [];
@@ -249,26 +228,12 @@ function buildRosterRowFromSummary(roster: CoachAtletaResumo): CoachAthleteRow {
 
 
 function CoachInboxPage() {
-  const location = useLocation();
   const navigate = useNavigate();
   const { reviewAprovar, reviewRejeitar, reviewFetchPendentes } = useOutletContext<CoachLayoutOutletContext>();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [search, setSearch] = useState(() => searchParams.get('q') ?? '');
-  const [dashboardPage, setDashboardPage] = useState(() => {
-    const page = Number.parseInt(searchParams.get('page') ?? '0', 10);
-    return Number.isFinite(page) && page > 0 ? page : 0;
-  });
-  const dashboardStatus = parseDashboardStatus(searchParams.get('status'));
-  const sortBy = parseSort(searchParams.get('sortBy'));
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('review');
-  const [draftIntensity, setDraftIntensity] = useState('Z2');
-  const [draftDistance, setDraftDistance] = useState(28);
-  const [draftDuration, setDraftDuration] = useState(160);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
-  const [rejectReason, setRejectReason] = useState('Ajustar carga antes da próxima revisão');
   const {
     dashboard,
     loading: dashboardLoading,
@@ -293,19 +258,25 @@ function CoachInboxPage() {
     if (!selectedRosterItem) return null;
     return buildSelectedAthleteFromDashboard(selectedRosterItem, selectedProfile);
   }, [selectedProfile, selectedRosterItem]);
-  const debouncedSearch = useDebounce(search, 300);
+  const {
+    search,
+    dashboardPage,
+    setDashboardPage,
+    dashboardStatus,
+    sortBy,
+    currentSortLabel,
+    reloadDashboard,
+    handleSearchChange,
+    handleDashboardStatusChange,
+    handleSortChange,
+    handleRosterPageChange,
+    resetFilters,
+  } = useDashboardFilters({ fetchDashboard });
+
+  const { draftIntensity, setDraftIntensity, draftDistance, setDraftDistance, draftDuration, setDraftDuration } = usePlanDraft(selected);
 
   const nextRace = selected?.raceCalendar[0] ?? null;
   const isTargetRace = nextRace?.tag === 'ALVO';
-
-  useEffect(() => {
-    const current = new URLSearchParams(location.search);
-    const q = current.get('q') ?? '';
-    const page = Number.parseInt(current.get('page') ?? '0', 10);
-
-    if (q !== search) setSearch(q);
-    if (Number.isFinite(page) && page >= 0 && page !== dashboardPage) setDashboardPage(page);
-  }, [dashboardPage, location.search, search]);
 
   useEffect(() => {
     if (rosterItems.length === 0) {
@@ -322,40 +293,7 @@ function CoachInboxPage() {
     if (dashboardPage > maxPage) {
       setDashboardPage(maxPage);
     }
-  }, [dashboardPage, rosterPageCount]);
-
-  useEffect(() => {
-    const current = new URLSearchParams(location.search);
-    const next = new URLSearchParams(location.search);
-    const normalizedSearch = search.trim();
-
-    if (normalizedSearch) next.set('q', normalizedSearch);
-    else next.delete('q');
-
-    if (dashboardPage > 0) next.set('page', String(dashboardPage));
-    else next.delete('page');
-
-    if (next.toString() !== current.toString()) {
-      setSearchParams(next, { replace: true });
-    }
-  }, [dashboardPage, location.search, search, setSearchParams]);
-
-  useEffect(() => {
-    void fetchDashboard({
-      q: debouncedSearch.trim() ? debouncedSearch.trim() : undefined,
-      status: dashboardStatus === 'all' ? undefined : dashboardStatus,
-      sortBy: toDashboardSort(sortBy),
-      page: dashboardPage,
-      size: ROSTER_PAGE_SIZE,
-    });
-  }, [dashboardPage, dashboardStatus, debouncedSearch, fetchDashboard, sortBy]);
-
-  useEffect(() => {
-    if (!selected) return;
-    setDraftIntensity(selected.nextWorkout.zone);
-    setDraftDistance(Number.parseInt(selected.nextWorkout.title.match(/(\d+)/)?.[1] ?? '28', 10));
-    setDraftDuration(Math.max(45, Math.round(selected.nextWorkout.duration === 'Geral' ? 60 : selected.nextWorkout.duration.includes('h') ? 160 : 60)));
-  }, [selectedId, selected]);
+  }, [dashboardPage, rosterPageCount, setDashboardPage]);
 
   const dashboardSummary = dashboard?.summary ?? null;
   const summary = {
@@ -375,97 +313,32 @@ function CoachInboxPage() {
   const selectedPlanId = selectedProfile?.planoVigente?.planoId ?? null;
   const selectedReviewStatus = selectedProfile?.planoVigente?.reviewStatus ?? null;
 
-  const reloadDashboard = () => {
-    void fetchDashboard({
-      q: debouncedSearch.trim() ? debouncedSearch.trim() : undefined,
-      status: dashboardStatus === 'all' ? undefined : dashboardStatus,
-      sortBy: toDashboardSort(sortBy),
-      page: dashboardPage,
-      size: ROSTER_PAGE_SIZE,
-    });
-  };
+  const {
+    rejectDialogOpen,
+    rejectReason,
+    setRejectReason,
+    handleApprovePlan,
+    openRejectDialog: openRejectDialogBase,
+    closeRejectDialog,
+    handleRejectPlan,
+  } = usePlanReview({
+    selectedPlanId,
+    reviewAprovar,
+    reviewRejeitar,
+    reviewFetchPendentes,
+    reloadDashboard,
+    fetchSelectedProfile,
+  });
 
-  const resetFilters = () => {
-    setSearch('');
-    setDashboardPage(0);
-    setSearchParams((current) => {
-      const next = new URLSearchParams(current);
-      next.delete('q');
-      next.delete('status');
-      next.delete('sortBy');
-      next.delete('page');
-      return next;
-    }, { replace: true });
-  };
-
-  const handleSearchChange = (event: { target: { value: string } }) => {
-    setSearch(event.target.value);
-    setDashboardPage(0);
-  };
-
-  const handleDashboardStatusChange = (event: { target: { value: unknown } }) => {
-    setDashboardPage(0);
-    const nextStatus = event.target.value as DashboardStatusFilter;
-    setSearchParams((current) => {
-      const next = new URLSearchParams(current);
-      if (nextStatus !== 'all') next.set('status', nextStatus);
-      else next.delete('status');
-      next.delete('page');
-      return next;
-    }, { replace: true });
-  };
-
-  const handleSortChange = (event: { target: { value: unknown } }) => {
-    setDashboardPage(0);
-    const nextSort = event.target.value as SortKey;
-    setSearchParams((current) => {
-      const next = new URLSearchParams(current);
-      if (nextSort !== 'priority') next.set('sortBy', nextSort);
-      else next.delete('sortBy');
-      next.delete('page');
-      return next;
-    }, { replace: true });
-  };
-
-  const handleRosterPageChange = (_event: unknown, nextPage: number) => {
-    setDashboardPage(nextPage);
-  };
-
-  const handleApprovePlan = async () => {
-    if (!selectedPlanId) return;
-    const ok = await reviewAprovar(selectedPlanId);
-    if (!ok) return;
-    await reviewFetchPendentes();
-    reloadDashboard();
-    await fetchSelectedProfile();
-  };
-
-  const openRejectDialog = () => {
+  const openRejectDialog = useCallback(() => {
     setMenuAnchor(null);
-    setRejectReason('Ajustar carga antes da próxima revisão');
-    setRejectDialogOpen(true);
-  };
+    openRejectDialogBase();
+  }, [openRejectDialogBase]);
 
-  const closeRejectDialog = () => {
-    setRejectDialogOpen(false);
-  };
-
-  const handleRejectPlan = async (reason: string) => {
-    if (!selectedPlanId) return;
-    const normalizedReason = reason.trim();
-    if (!normalizedReason) return;
-    const ok = await reviewRejeitar(selectedPlanId, normalizedReason);
-    if (!ok) return;
-    setRejectDialogOpen(false);
-    await reviewFetchPendentes();
-    reloadDashboard();
-    await fetchSelectedProfile();
-  };
-
-  const saveAdjustment = () => {
+  const saveAdjustment = useCallback(() => {
     setFeedback('Ajustes rápidos ainda não persistem no backend. Use a revisão do plano.');
     setActiveTab('review');
-  };
+  }, []);
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: elevation.base }}>
@@ -723,7 +596,7 @@ function CoachInboxPage() {
             </Box>
             <Chip
               size="small"
-              label={sortLabel(sortBy)}
+              label={currentSortLabel}
               sx={{ bgcolor: `${primary[500]}14`, color: primary[500], border: `1px solid ${primary[500]}44`, fontWeight: 700 }}
             />
           </Box>
