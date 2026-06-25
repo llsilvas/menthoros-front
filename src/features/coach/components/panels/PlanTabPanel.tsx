@@ -22,7 +22,7 @@ interface PlanTabPanelProps {
   setDraftDuration: (value: number) => void;
   saveAdjustment: () => void;
   reloadDashboard: () => void;
-  fetchSelectedProfile: () => void | Promise<void>;
+  fetchSelectedProfile: () => Promise<void>;
   onOpenRevisao: () => void;
 }
 
