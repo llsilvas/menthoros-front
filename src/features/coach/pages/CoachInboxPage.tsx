@@ -430,16 +430,18 @@ function MetricTile({
         borderBlockColor: highlight ? `${semantic.warning[500]}66` : content.cardBorder,
         backgroundColor: highlight ? `${semantic.warning[500]}14` : `${surface[0]}06`,
         minHeight: compact ? { xs: 58, xl: 70 } : 78,
+        overflow: 'hidden',
+        minWidth: 0,
       }}
     >
-      <Typography sx={{ fontSize: compact ? { xs: '0.56rem', xl: '0.64rem' } : '0.68rem', color: surface[400], textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+      <Typography noWrap sx={{ fontSize: compact ? { xs: '0.45rem', xl: '0.64rem' } : '0.68rem', color: surface[400], textTransform: 'uppercase', letterSpacing: '0.06em' }}>
         {label}
       </Typography>
-      <Typography sx={{ mt: compact ? 0.25 : 0.35, fontSize: compact ? { xs: '1rem', xl: '1.24rem' } : '1.45rem', lineHeight: 1, fontWeight: 700, color }}>
+      <Typography noWrap sx={{ mt: compact ? 0.25 : 0.35, fontSize: compact ? { xs: '1rem', xl: '1.24rem' } : '1.45rem', lineHeight: 1, fontWeight: 700, color }}>
         {value}
       </Typography>
       {delta ? (
-        <Typography sx={{ mt: compact ? 0.35 : 0.5, fontSize: compact ? { xs: '0.62rem', xl: '0.7rem' } : '0.75rem', color: surface[400], lineHeight: 1.2 }}>{delta}</Typography>
+        <Typography noWrap sx={{ mt: compact ? 0.35 : 0.5, fontSize: compact ? { xs: '0.62rem', xl: '0.7rem' } : '0.75rem', color: surface[400], lineHeight: 1.2 }}>{delta}</Typography>
       ) : null}
     </Box>
   );
@@ -1242,11 +1244,11 @@ function CoachInboxPage() {
               </Alert>
             ) : null}
             {dashboardLoading ? <LinearProgress sx={{ mb: 1.5 }} /> : null}
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(4, minmax(0, 1fr))' }, gap: { xs: 0.9, lg: 1 }, mt: 1.1 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 0.9, mt: 1.1 }}>
               <MetricTile compact label="Atletas ativos" value={String(summary.ativos)} delta={`${summary.totalAtletas} no total`} tone="success" />
-              <MetricTile compact label="Treinos planejados" value={String(summary.treinosPlanejadosSemana)} delta="na semana do tenant" />
+              <MetricTile compact label="Treinos planejados" value={String(summary.treinosPlanejadosSemana)} delta="na semana" />
               <MetricTile compact label="Em atenção" value={String(summary.emAtencao)} delta={`${summary.itensFilaAtencao} na fila`} tone="warning" />
-              <MetricTile compact label="Atletas exibidos" value={String(summary.atletasExibidos)} delta="resultado da filtragem atual" />
+              <MetricTile compact label="Atletas exibidos" value={String(summary.atletasExibidos)} />
             </Box>
             {dashboardAttentionQueue.length > 0 ? (
               <Box sx={{ mt: 1.25 }}>
