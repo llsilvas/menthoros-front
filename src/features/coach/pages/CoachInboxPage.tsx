@@ -6,7 +6,6 @@ import {
   Box,
   Button,
   Chip,
-  Divider,
   FormControl,
   InputAdornment,
   Dialog,
@@ -17,7 +16,6 @@ import {
   Menu,
   MenuItem,
   Select,
-  Slider,
   Tab,
   Tabs,
   TablePagination,
@@ -25,31 +23,27 @@ import {
   Typography,
 } from '@mui/material';
 import {
-  ArrowForward as ArrowForwardIcon,
   CalendarMonth as CalendarMonthIcon,
   CheckCircle as CheckCircleIcon,
   ChatBubbleOutline as ChatBubbleOutlineIcon,
-  ContentCopy as ContentCopyIcon,
   FilterAlt as FilterAltIcon,
   MoreHoriz as MoreHorizIcon,
   NotificationsNone as NotificationsNoneIcon,
   Search as SearchIcon,
-  SwapHoriz as SwapHorizIcon,
   Tune as TuneIcon,
 } from '@mui/icons-material';
 import { CoachAthleteAvatar } from '../components/CoachAthleteAvatar';
-import { CurrentWeekPlan } from '../components/CurrentWeekPlan';
 import { DashboardAttentionQueueRow } from '../components/DashboardAttentionQueueRow';
-import { DashboardCalendarPanel } from '../components/DashboardCalendarPanel';
-import { DashboardInsightsPanel } from '../components/DashboardInsightsPanel';
 import { DashboardRosterPreviewRow } from '../components/DashboardRosterPreviewRow';
-import { DetailMetric } from '../components/DetailMetric';
 import { MetricTile } from '../components/MetricTile';
 import { QueueRow } from '../components/QueueRow';
-import { RecentSuggestionsPanel } from '../components/RecentSuggestionsPanel';
-import { SectionCard } from '../components/SectionCard';
-import { TrendCard } from '../components/TrendCard';
 import { formatKm, formatPercent, paletteForDecision } from '../components/coachInboxHelpers';
+import { ACTION_BTN_START_ICON_SX, ACTION_BTN_END_ICON_SX } from '../components/actionButtonSx';
+import { AdherenceTabPanel } from '../components/panels/AdherenceTabPanel';
+import { CalendarTabPanel } from '../components/panels/CalendarTabPanel';
+import { PlanTabPanel } from '../components/panels/PlanTabPanel';
+import { ReviewTabPanel } from '../components/panels/ReviewTabPanel';
+import { StatusTabPanel } from '../components/panels/StatusTabPanel';
 import { useCoachDashboard } from '../../../hooks/useCoachDashboard';
 import { useAthleteProfile } from '../../../hooks/useAthleteProfile';
 import { useDashboardFilters } from '../hooks/useDashboardFilters';
@@ -91,22 +85,6 @@ const TABS: Array<{ key: TabKey; label: string; icon: ReactElement }> = [
 ];
 
 
-const ACTION_BTN_SX = {
-  textTransform: 'none' as const,
-  fontSize: { xs: '0.72rem', xl: '0.8125rem' },
-};
-
-const ACTION_BTN_START_ICON_SX = {
-  ...ACTION_BTN_SX,
-  px: { xs: 0.85, xl: 1.5 },
-  '& .MuiButton-startIcon': { display: { xs: 'none', xl: 'inherit' } },
-};
-
-const ACTION_BTN_END_ICON_SX = {
-  ...ACTION_BTN_SX,
-  px: { xs: 0.85, xl: 1.5 },
-  '& .MuiButton-endIcon': { display: { xs: 'none', xl: 'inherit' } },
-};
 
 
 
@@ -666,430 +644,49 @@ function CoachInboxPage() {
                 ) : null}
 
                 {activeTab === 'review' ? (
-                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', xl: '1.08fr 0.92fr' }, gap: { xs: 0.9, sm: 1, lg: 1.1, xl: 1.35 } }}>
-                    <SectionCard
-                      title="Próximo treino"
-                      action={
-                        <Button
-                          size="small"
-                          endIcon={<ArrowForwardIcon fontSize="small" />}
-                          sx={{ ...ACTION_BTN_END_ICON_SX, px: { xs: 0.75, xl: 1 } }}
-                          onClick={() => navigate('/coach/calendar')}
-                        >
-                          Ver calendário completo
-                        </Button>
-                      }
-                    >
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 0.75, sm: 0.85, lg: 0.95, xl: 1.5 } }}>
-                        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2 }}>
-                          <Box>
-                            <Typography sx={{ fontSize: { xs: '0.92rem', sm: '0.96rem', lg: '1rem', xl: '1.1rem' }, fontWeight: 700, color: surface[50] }}>{selected.nextWorkout.title}</Typography>
-                            <Typography sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem', lg: '0.8rem', xl: '0.86rem' }, color: surface[400], mt: 0.2 }}>
-                              {selected.nextWorkout.when} · {selected.nextWorkout.zone} · {selected.nextWorkout.duration}
-                            </Typography>
-                          </Box>
-                          <Chip
-                            size="small"
-                            label={selected.planStatus === 'ATRASADO' ? 'Atrasado' : selected.planStatus === 'NO_PRAZO' ? 'No prazo' : 'Concluído'}
-                            sx={{
-                              bgcolor: selected.planStatus === 'ATRASADO' ? `${semantic.danger[500]}14` : selected.planStatus === 'NO_PRAZO' ? `${primary[500]}16` : `${semantic.success[500]}16`,
-                              color: selected.planStatus === 'ATRASADO' ? semantic.danger[500] : selected.planStatus === 'NO_PRAZO' ? primary[500] : semantic.success[500],
-                              border: `1px solid ${selected.planStatus === 'ATRASADO' ? semantic.danger[500] : selected.planStatus === 'NO_PRAZO' ? primary[500] : semantic.success[500]}44`,
-                              fontWeight: 700,
-                            }}
-                          />
-                        </Box>
-
-                        <Typography sx={{ display: { xs: 'none', xl: 'block' }, fontSize: '0.9rem', color: surface[100], lineHeight: 1.45 }}>
-                          {selected.nextWorkout.objective}
-                        </Typography>
-
-                        <Typography sx={{ display: { xs: 'none', xl: 'block' }, fontSize: '0.78rem', color: surface[400] }}>
-                          Estrutura sugerida: {selected.nextWorkout.title} em {selected.nextWorkout.zone} com atenção ao frescor.
-                        </Typography>
-
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: { xs: 0.6, xl: 1 } }}>
-                          <Button
-                            variant="contained"
-                            onClick={() => setFeedback('Treino marcado como concluído localmente.')}
-                            disabled={selected.decision !== 'PENDING'}
-                            size="small"
-                            sx={{
-                              bgcolor: semantic.success[500],
-                              color: '#fff',
-                              textTransform: 'none',
-                              fontSize: { xs: '0.72rem', xl: '0.8125rem' },
-                              px: { xs: 1, xl: 1.5 },
-                              '&:hover': { bgcolor: semantic.success[700] },
-                              '&.Mui-disabled': { bgcolor: surface[700], color: surface[500] },
-                            }}
-                          >
-                            Marcar como concluído
-                          </Button>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            onClick={() => setActiveTab('plan')}
-                            sx={{ ...ACTION_BTN_SX, px: { xs: 1, xl: 1.5 } }}
-                          >
-                            Reagendar
-                          </Button>
-                        </Box>
-                      </Box>
-                    </SectionCard>
-
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 0.9, sm: 1, lg: 1.1, xl: 2 } }}>
-                      <SectionCard title="Últimos treinos">
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 0.65, sm: 0.75, lg: 0.9, xl: 1.05 } }}>
-                          {selected.lastWorkouts.map((workout) => (
-                            <Box
-                              key={`${selected.id}-${workout.date}`}
-                              sx={{
-                                p: { xs: 0.72, sm: 0.82, lg: 0.92, xl: 1.05 },
-                                borderRadius: 1.5,
-                                border: `1px solid ${content.cardBorder}`,
-                                backgroundColor: `${surface[0]}06`,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                gap: { xs: 0.8, sm: 0.9, lg: 1, xl: 1.3 },
-                              }}
-                            >
-                              <Box>
-                                <Typography sx={{ fontSize: { xs: '0.63rem', sm: '0.67rem', lg: '0.7rem', xl: '0.76rem' }, color: surface[400] }}>{workout.date}</Typography>
-                                <Typography sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem', lg: '0.8rem', xl: '0.86rem' }, fontWeight: 600, color: surface[50] }}>{workout.title}</Typography>
-                                <Typography sx={{ fontSize: { xs: '0.63rem', sm: '0.67rem', lg: '0.7rem', xl: '0.76rem' }, color: surface[400] }}>
-                                  {workout.zone} · {workout.distance}
-                                </Typography>
-                              </Box>
-                              <Chip
-                                size="small"
-                                label={`${workout.completion}%`}
-                                sx={{
-                                  color:
-                                    workout.state === 'ok'
-                                      ? semantic.success[500]
-                                      : workout.state === 'warn'
-                                        ? semantic.warning[500]
-                                        : semantic.danger[500],
-                                  bgcolor:
-                                    workout.state === 'ok'
-                                      ? `${semantic.success[500]}12`
-                                      : workout.state === 'warn'
-                                        ? `${semantic.warning[500]}12`
-                                        : `${semantic.danger[500]}12`,
-                                  border: `1px solid ${
-                                    workout.state === 'ok'
-                                      ? semantic.success[500]
-                                      : workout.state === 'warn'
-                                        ? semantic.warning[500]
-                                        : semantic.danger[500]
-                                  }44`,
-                                }}
-                              />
-                            </Box>
-                          ))}
-                        </Box>
-                      </SectionCard>
-
-                      <SectionCard title="Sugestões recentes">
-                        <RecentSuggestionsPanel
-                          sugestoes={selectedProfile?.sugestoesRecentes ?? []}
-                          onVerTodas={() => navigate('/coach/inbox')}
-                        />
-                      </SectionCard>
-                    </Box>
-                  </Box>
+                  <ReviewTabPanel
+                    selected={selected}
+                    selectedProfile={selectedProfile}
+                    onMarkDone={() => setFeedback('Treino marcado como concluído localmente.')}
+                    onReagendar={() => setActiveTab('plan')}
+                    onOpenCalendar={() => navigate('/coach/calendar')}
+                  />
                 ) : null}
 
                 {activeTab === 'plan' ? (
-                  selectedProfile?.planoVigente ? (
-                    <SectionCard
-                      title="Plano real do atleta"
-                      action={
-                        <Button size="small" sx={{ textTransform: 'none' }} onClick={() => navigate('/coach/planos/revisao')}>
-                          Abrir revisão
-                        </Button>
-                      }
-                    >
-                      <CurrentWeekPlan
-                        plano={selectedProfile.planoVigente}
-                        onGerarPlano={() => navigate('/coach/planos/revisao')}
-                        onRevisarPlano={() => navigate('/coach/planos/revisao')}
-                        onTreinoEditado={() => {
-                          reloadDashboard();
-                          void fetchSelectedProfile();
-                        }}
-                      />
-                    </SectionCard>
-                  ) : (
-                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', xl: '0.95fr 1.05fr' }, gap: { xs: 0.9, sm: 1, lg: 1.1, xl: 2 } }}>
-                      <SectionCard title="Ajuste rápido">
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 0.85, sm: 0.95, lg: 1.05, xl: 2 } }}>
-                          <Box>
-                            <Typography sx={{ fontSize: { xs: '0.66rem', sm: '0.7rem', lg: '0.74rem', xl: '0.78rem' }, color: surface[400], mb: 0.55 }}>Intensidade</Typography>
-                            <FormControl fullWidth size="small">
-                              <Select value={draftIntensity} onChange={(event) => setDraftIntensity(event.target.value)}>
-                                <MenuItem value="Geral">Geral</MenuItem>
-                                <MenuItem value="Z1">Z1</MenuItem>
-                                <MenuItem value="Z2">Z2</MenuItem>
-                                <MenuItem value="Z3">Z3</MenuItem>
-                                <MenuItem value="Z4">Z4</MenuItem>
-                              </Select>
-                            </FormControl>
-                          </Box>
-
-                          <Box>
-                            <Typography sx={{ fontSize: { xs: '0.66rem', sm: '0.7rem', lg: '0.74rem', xl: '0.78rem' }, color: surface[400], mb: 0.55 }}>Distância</Typography>
-                            <Slider
-                              value={draftDistance}
-                              onChange={(_, value) => {
-                                if (!Array.isArray(value)) setDraftDistance(value);
-                              }}
-                              min={8}
-                              max={34}
-                              step={1}
-                              valueLabelDisplay="auto"
-                            />
-                          </Box>
-
-                          <Box>
-                            <Typography sx={{ fontSize: { xs: '0.66rem', sm: '0.7rem', lg: '0.74rem', xl: '0.78rem' }, color: surface[400], mb: 0.55 }}>Duração estimada</Typography>
-                            <Slider
-                              value={draftDuration}
-                              onChange={(_, value) => {
-                                if (!Array.isArray(value)) setDraftDuration(value);
-                              }}
-                              min={45}
-                              max={220}
-                              step={5}
-                              valueLabelDisplay="auto"
-                            />
-                          </Box>
-
-                          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', xl: 'repeat(3, minmax(0, 1fr))' }, gap: 0.65 }}>
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              startIcon={<SwapHorizIcon />}
-                              sx={{ ...ACTION_BTN_START_ICON_SX, px: { xs: 0.75, xl: 1.25 } }}
-                            >
-                              Mover
-                            </Button>
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              startIcon={<ContentCopyIcon />}
-                              sx={{ ...ACTION_BTN_START_ICON_SX, px: { xs: 0.75, xl: 1.25 } }}
-                            >
-                              Duplicar
-                            </Button>
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              startIcon={<TuneIcon />}
-                              sx={{ ...ACTION_BTN_START_ICON_SX, px: { xs: 0.75, xl: 1.25 } }}
-                            >
-                              Substituir
-                            </Button>
-                          </Box>
-
-                          <Button
-                            size="small"
-                            variant="contained"
-                            onClick={saveAdjustment}
-                            sx={{
-                              textTransform: 'none',
-                              fontSize: { xs: '0.74rem', xl: '0.8125rem' },
-                              bgcolor: primary[500],
-                              color: surface[900],
-                              '&:hover': { bgcolor: primary[400] },
-                            }}
-                          >
-                            Salvar alterações
-                          </Button>
-                        </Box>
-                      </SectionCard>
-
-                      <SectionCard title="Impacto da alteração">
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 0.75, sm: 0.85, lg: 1, xl: 1.2 } }}>
-                          <DetailMetric label="Carga semanal" value={`${draftDistance * 4} km`} subtitle={`Impacto estimado para ${draftIntensity}`} tone="success" />
-                          <DetailMetric label="Fadiga projetada" value={draftDistance > 28 ? 'Alta' : draftIntensity === 'Z4' ? 'Média' : 'Baixa'} subtitle="Estimativa visual do ajuste" tone={draftDistance > 28 ? 'warning' : 'neutral'} />
-                          <DetailMetric label="Recuperação" value={draftDuration > 150 ? '72%' : '84%'} subtitle="Baseado na duração do bloco" tone={draftDuration > 150 ? 'warning' : 'success'} />
-                          <TrendCard data={selected.loadTrend.map((value, index) => value + (index === selected.loadTrend.length - 1 ? Math.max(-6, Math.min(10, draftDistance - 28)) * 2 : 0))} />
-                        </Box>
-                      </SectionCard>
-                    </Box>
-                  )
+                  <PlanTabPanel
+                    selectedProfile={selectedProfile}
+                    selected={selected}
+                    draftIntensity={draftIntensity}
+                    setDraftIntensity={setDraftIntensity}
+                    draftDistance={draftDistance}
+                    setDraftDistance={setDraftDistance}
+                    draftDuration={draftDuration}
+                    setDraftDuration={setDraftDuration}
+                    saveAdjustment={saveAdjustment}
+                    reloadDashboard={reloadDashboard}
+                    fetchSelectedProfile={fetchSelectedProfile}
+                    onOpenRevisao={() => navigate('/coach/planos/revisao')}
+                  />
                 ) : null}
 
                 {activeTab === 'calendar' ? (
-                  dashboardCalendar ? (
-                    <DashboardCalendarPanel calendario={dashboardCalendar} onOpenCalendar={() => navigate('/coach/calendar')} />
-                  ) : (
-                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', xl: '1fr 0.95fr' }, gap: { xs: 0.9, sm: 1, lg: 1.1, xl: 2 } }}>
-                      <SectionCard title="Calendário de provas" action={<Button size="small" sx={{ textTransform: 'none' }} onClick={() => navigate('/coach/calendar')}>Ver calendário completo</Button>}>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 0.75, sm: 0.85, lg: 0.95, xl: 1.1 } }}>
-                        {selected.raceCalendar.map((race) => (
-                          <Box
-                            key={`${selected.id}-${race.date}`}
-                            sx={{
-                              p: { xs: 0.8, sm: 0.9, lg: 1, xl: 1.2 },
-                              borderRadius: 1.5,
-                              border: `1px solid ${content.cardBorder}`,
-                              backgroundColor: `${surface[0]}06`,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: { xs: 0.85, sm: 0.95, lg: 1, xl: 1.2 },
-                            }}
-                          >
-                            <Box
-                              sx={{
-                                width: { xs: 44, sm: 48, lg: 52, xl: 60 },
-                                height: { xs: 44, sm: 48, lg: 52, xl: 60 },
-                                borderRadius: 1.5,
-                                border: `1px solid ${content.cardBorder}`,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                backgroundColor: `${surface[0]}10`,
-                                flexShrink: 0,
-                              }}
-                            >
-                              <Typography sx={{ fontSize: '0.7rem', color: surface[400], fontWeight: 700 }}>{race.date.split(' ')[0]}</Typography>
-                              <Typography sx={{ fontSize: '0.78rem', color: surface[200], fontWeight: 700 }}>{race.date.split(' ')[1]}</Typography>
-                            </Box>
-                            <Box sx={{ minWidth: 0, flex: 1 }}>
-                              <Typography sx={{ fontSize: { xs: '0.74rem', sm: '0.8rem', lg: '0.84rem', xl: '0.9rem' }, fontWeight: 700, color: surface[50] }} noWrap>
-                                {race.label}
-                              </Typography>
-                              <Typography sx={{ fontSize: { xs: '0.62rem', sm: '0.68rem', lg: '0.72rem', xl: '0.78rem' }, color: surface[400] }}>Prova {race.tag.toLowerCase()}</Typography>
-                            </Box>
-                            <Chip
-                              size="small"
-                              label={race.tag}
-                              sx={{
-                                bgcolor: race.tag === 'ALVO' ? `${semantic.success[500]}14` : race.tag === 'PRINCIPAL' ? `${primary[500]}14` : `${surface[500]}14`,
-                                color: race.tag === 'ALVO' ? semantic.success[500] : race.tag === 'PRINCIPAL' ? primary[500] : surface[300],
-                              }}
-                            />
-                          </Box>
-                        ))}
-                      </Box>
-                      </SectionCard>
-
-                      <SectionCard title="Semana atual">
-                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(4, minmax(0, 1fr))', xl: 'repeat(7, minmax(0, 1fr))' }, gap: 0.65 }}>
-                          {['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'].map((day, index) => (
-                            <Box
-                              key={day}
-                              sx={{
-                                p: { xs: 0.7, sm: 0.8, lg: 0.9, xl: 1 },
-                                borderRadius: 1.5,
-                                border: `1px solid ${index === 5 ? primary[500] : content.cardBorder}`,
-                                bgcolor: index === 5 ? `${primary[500]}12` : `${surface[0]}06`,
-                                minHeight: { xs: 70, sm: 76, lg: 82, xl: 88 },
-                              }}
-                            >
-                              <Typography sx={{ fontSize: '0.62rem', color: surface[400], fontWeight: 700 }}>{day}</Typography>
-                              <Typography sx={{ mt: 0.32, fontSize: { xs: '0.82rem', sm: '0.88rem', lg: '0.9rem', xl: '0.95rem' }, color: surface[50], fontWeight: 700 }}>{24 + index}</Typography>
-                              <Typography sx={{ mt: 0.7, fontSize: { xs: '0.62rem', sm: '0.66rem', lg: '0.68rem', xl: '0.72rem' }, color: surface[300] }}>
-                                {index === 0
-                                  ? 'Fácil 8 km'
-                                  : index === 1
-                                    ? 'Força geral'
-                                    : index === 2
-                                      ? 'Limiar'
-                                      : index === 3
-                                        ? 'Descanso'
-                                        : index === 4
-                                          ? 'Tiros'
-                                          : index === 5
-                                            ? 'Longão'
-                                            : 'Recuperação'}
-                              </Typography>
-                            </Box>
-                          ))}
-                        </Box>
-                      </SectionCard>
-                    </Box>
-                  )
+                  <CalendarTabPanel
+                    dashboardCalendar={dashboardCalendar}
+                    selected={selected}
+                    onOpenCalendar={() => navigate('/coach/calendar')}
+                  />
                 ) : null}
 
                 {activeTab === 'status' ? (
-                  dashboardInsights ? (
-                    <DashboardInsightsPanel insights={dashboardInsights} onOpenInsights={() => navigate('/coach/insights')} />
-                  ) : (
-                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(4, minmax(0, 1fr))' }, gap: { xs: 0.9, sm: 1.05, lg: 1.25, xl: 1.5 } }}>
-                      <DetailMetric label="Carga aguda" value={formatKm(selected.quickStats.acuteLoad)} subtitle="Ideal: 110-150 km" tone={selected.quickStats.acuteLoad > 120 ? 'warning' : 'success'} />
-                      <DetailMetric label="Monotonia" value={selected.quickStats.monotony.toFixed(2)} subtitle="Ideal: < 2.0" tone={selected.quickStats.monotony > 1.4 ? 'warning' : 'success'} />
-                      <DetailMetric label="Fadiga" value={selected.quickStats.fatigue} subtitle="Sinais moderados" tone={selected.quickStats.fatigue === 'Alta' ? 'warning' : 'success'} />
-                      <DetailMetric label="Recuperação" value={formatPercent(selected.quickStats.recovery)} subtitle="Boa" tone={selected.quickStats.recovery < 80 ? 'warning' : 'success'} />
-                      <Box
-                        sx={{
-                          gridColumn: { xs: '1 / -1', md: '1 / -1' },
-                          border: `1px solid ${content.cardBorder}`,
-                          borderRadius: 2,
-                          backgroundColor: elevation.card,
-                          p: 1.5,
-                        }}
-                      >
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 1 }}>
-                          <Typography sx={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: surface[400], fontWeight: 700 }}>
-                            Tendência de carga
-                          </Typography>
-                          <Typography sx={{ fontSize: '0.8rem', color: semantic.success[500], fontWeight: 700 }}>+8% vs semana anterior</Typography>
-                        </Box>
-                        <TrendCard data={selected.loadTrend} />
-                      </Box>
-                    </Box>
-                  )
+                  <StatusTabPanel
+                    dashboardInsights={dashboardInsights}
+                    selected={selected}
+                    onOpenInsights={() => navigate('/coach/insights')}
+                  />
                 ) : null}
 
-                {activeTab === 'adherence' ? (
-                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', xl: '1fr 0.95fr' }, gap: { xs: 0.9, sm: 1, lg: 1.1, xl: 2 } }}>
-                    <SectionCard title="Adesão nas últimas semanas">
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 0.75, sm: 0.85, lg: 1, xl: 1.2 } }}>
-                        {selected.adherenceTrend.map((value, index) => (
-                          <Box key={`${selected.id}-adherence-${index}`} sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-                            <Typography sx={{ width: 40, fontSize: '0.64rem', color: surface[400] }}>S{index + 1}</Typography>
-                            <LinearProgress
-                              variant="determinate"
-                              value={value}
-                              sx={{
-                                flex: 1,
-                                height: 5,
-                                borderRadius: 999,
-                                bgcolor: `${surface[0]}14`,
-                                '& .MuiLinearProgress-bar': {
-                                  bgcolor: value >= 85 ? semantic.success[500] : value >= 70 ? primary[500] : semantic.warning[500],
-                                  borderRadius: 999,
-                                },
-                              }}
-                            />
-                            <Typography sx={{ width: 36, textAlign: 'right', fontSize: '0.64rem', color: surface[200], fontWeight: 700 }}>{value}%</Typography>
-                          </Box>
-                        ))}
-                      </Box>
-                    </SectionCard>
-
-                    <SectionCard title="Notas do treinador">
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 0.75, sm: 0.85, lg: 1, xl: 1.5 } }}>
-                        <Typography sx={{ fontSize: { xs: '0.78rem', sm: '0.82rem', lg: '0.85rem', xl: '0.9rem' }, color: surface[100], lineHeight: 1.45 }}>{selected.notes}</Typography>
-                        <Divider sx={{ borderColor: content.divider }} />
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                          {selected.suggestedActions.map((action) => (
-                            <Box key={`${selected.id}-${action}`} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <CheckCircleIcon sx={{ fontSize: 16, color: semantic.success[500] }} />
-                              <Typography sx={{ fontSize: '0.84rem', color: surface[200] }}>{action}</Typography>
-                            </Box>
-                          ))}
-                        </Box>
-                      </Box>
-                    </SectionCard>
-                  </Box>
-                ) : null}
+                {activeTab === 'adherence' ? <AdherenceTabPanel selected={selected} /> : null}
               </Box>
 
               <Box
