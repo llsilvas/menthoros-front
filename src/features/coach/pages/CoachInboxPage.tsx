@@ -564,12 +564,16 @@ function CoachInboxPage() {
                       />
                     </Box>
                     {selected.nivelExperiencia ? (
-                      <Typography sx={{ fontSize: { xs: '0.68rem', sm: '0.72rem', lg: '0.76rem', xl: '0.8rem' }, color: surface[400], mt: 0.15 }}>
-                        {selected.nivelExperiencia}
+                      <Typography sx={{ fontSize: { xs: '0.60rem', sm: '0.68rem', lg: '0.76rem', xl: '0.8rem' }, color: surface[400], mt: 0.15 }}>
+                        {selected.nivelExperiencia} - 
+                        {selected.age > 0 ? (
+                            <Chip size="small" label={`${selected.age} anos`}
+                              sx={{ fontSize: '0.6rem', bgcolor: `${surface[500]}20`, color: surface[200] }} />
+                          ) : null}
                       </Typography>
                     ) : null}
-                    <Typography sx={{ display: { xs: 'none', xl: 'block' }, fontSize: '0.86rem', color: surface[400], mt: 0.2 }}>
-                      {selected.discipline} · {selected.age} anos · {selected.gender} · {selected.weeksOnPlan} semanas
+                    <Typography sx={{ fontSize: { xs: '0.40rem', sm: '0.50rem', lg: '0.60rem', xl: '0.8rem' }, color: surface[400], mt: 0.2 }}>
+                      {selected.discipline}
                     </Typography>
                   </Box>
                 </Box>
