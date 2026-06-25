@@ -23,6 +23,8 @@ export interface CoachAtletaResumo {
     lastActivity?: string;
     /** Volume realizado na semana atual (km). */
     weeklyVolume: number;
+    /** Percentual de aderência das últimas 4 semanas (0–100); ausente quando sem plano. */
+    aderenciaPercentual?: number;
 }
 
 /** Filtros do dashboard agregado do coach. */

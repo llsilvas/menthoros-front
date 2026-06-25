@@ -69,6 +69,7 @@ export interface RecordeDto {
 export interface AtletaPerfilCoachDto {
     atletaId: string;
     nomeAtleta: string;
+    idade?: number | null;
     objetivo: string | null;
     proximaProva: Prova | null;
     provas?: Prova[];
