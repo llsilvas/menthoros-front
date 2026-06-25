@@ -13,7 +13,7 @@ const STUB: AtletaPerfilCoachDto = {
     atletaId: 'uuid-1',
     nomeAtleta: 'Ana Silva',
     objetivo: 'Correr maratona',
-    provaAlvo: null,
+    proximaProva: null,
     nivelExperiencia: 'INTERMEDIARIO',
     pmc: [],
     aderenciaSemanal: [],

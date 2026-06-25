@@ -2,10 +2,12 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import CoachAthleteProfilePage from './CoachAthleteProfilePage';
+import { SugestaoService } from '../../../api/services/SugestaoService';
 import * as useAthleteProfileModule from '../../../hooks/useAthleteProfile';
 import type { AtletaPerfilCoachDto } from '../../../types/AtletaPerfilCoach';
 
 vi.mock('../../../hooks/useAthleteProfile');
+vi.mock('../../../api/services/SugestaoService');
 vi.mock('../../athlete/components/PMCChart', () => ({
     default: () => <div data-testid="pmc-chart" />,
 }));
@@ -16,7 +18,7 @@ const STUB_PROFILE: AtletaPerfilCoachDto = {
     atletaId: 'uuid-1',
     nomeAtleta: 'Ana Silva',
     objetivo: 'Maratona',
-    provaAlvo: null,
+    proximaProva: null,
     nivelExperiencia: 'INTERMEDIARIO',
     pmc: [{ data: '2026-06-01', ctl: 50, atl: 55, tsb: -5, tss: 80 }],
     aderenciaSemanal: [
@@ -69,7 +71,26 @@ function renderPage(atletaId = 'uuid-1') {
 // ── Tests ──────────────────────────────────────────────────────────────────────
 
 describe('CoachAthleteProfilePage', () => {
-    beforeEach(() => vi.clearAllMocks());
+    beforeEach(() => {
+        vi.clearAllMocks();
+        vi.mocked(SugestaoService.detalhe).mockResolvedValue({
+            id: 'sug-1',
+            atletaId: 'uuid-1',
+            athleteName: 'Ana Silva',
+            tipo: 'NEW_PLAN',
+            status: 'PENDING',
+            confidence: 'HIGH',
+            summary: 'Revisar volume e criar novo microciclo',
+            reasoning: {
+                rationale: 'O atleta entrou em fase de transição e precisa de um novo ajuste.',
+                sourceRules: ['plan_transition'],
+                confidence: 'HIGH',
+            },
+            createdAt: '2026-06-14T08:00:00Z',
+            reviewedAt: undefined,
+            expiresAt: '2026-06-21T08:00:00Z',
+        });
+    });
 
     it('exibe spinner enquanto isLoading=true e profile=null', () => {
         mockHook({ isLoading: true, profile: null });
@@ -118,6 +139,13 @@ describe('CoachAthleteProfilePage', () => {
         mockHook({ profile: STUB_PROFILE });
         renderPage();
         expect(screen.getByText(/Sugestões recentes/i)).toBeInTheDocument();
+    });
+
+    it('carrega o resumo completo das sugestões recentes', async () => {
+        mockHook({ profile: STUB_PROFILE });
+        renderPage();
+        expect(await screen.findByText(/Revisar volume e criar novo microciclo/i)).toBeInTheDocument();
+        expect(screen.getByText(/Alta/i)).toBeInTheDocument();
     });
 
     it('exibe alerta de erro genérico quando error está presente', () => {

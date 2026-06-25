@@ -1,4 +1,11 @@
-import type { CoachAtletaResumo, CoachAttentionItem, CoachCalendario, CoachInsights } from '../../types/Coach';
+import type {
+    CoachAtletaResumo,
+    CoachAttentionItem,
+    CoachCalendario,
+    CoachDashboard,
+    CoachDashboardQuery,
+    CoachInsights,
+} from '../../types/Coach';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -8,6 +15,29 @@ import { request as __request } from '../core/request';
  * o tenant é resolvido no backend via `TenantContext`.
  */
 export class CoachDashboardService {
+    /**
+     * Dashboard agregado do coach: resumo, roster filtrado, fila, calendário e insights.
+     * @param query filtros básicos da tela do coach
+     * @returns CoachDashboard resposta agregada do dashboard
+     * @throws ApiError
+     */
+    public static getDashboard(query?: CoachDashboardQuery): CancelablePromise<CoachDashboard> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/coach/dashboard',
+            query: {
+                q: query?.q,
+                status: query?.status,
+                sortBy: query?.sortBy,
+                page: query?.page,
+                size: query?.size,
+                from: query?.from,
+                to: query?.to,
+                weekFrom: query?.weekFrom,
+            },
+        });
+    }
+
     /**
      * Roster do coach: atletas do tenant com CTL/ATL/TSB, fase, status, última atividade e volume.
      * @returns CoachAtletaResumo lista do roster

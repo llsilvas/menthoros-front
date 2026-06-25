@@ -1,0 +1,234 @@
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import * as reactRouter from 'react-router';
+import { MemoryRouter, Route, Routes } from 'react-router';
+import CoachInboxPage from './CoachInboxPage';
+import { SugestaoService } from '../../../api/services/SugestaoService';
+import { useCoachDashboard } from '../../../hooks/useCoachDashboard';
+import { useAthleteProfile } from '../../../hooks/useAthleteProfile';
+import type { CoachDashboard } from '../../../types/Coach';
+import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
+
+vi.mock('react-router', async () => {
+  const actual = await vi.importActual<typeof import('react-router')>('react-router');
+  return { ...actual, useOutletContext: vi.fn() };
+});
+
+vi.mock('../../../api/services/SugestaoService');
+vi.mock('../../../hooks/useCoachDashboard');
+vi.mock('../../../hooks/useAthleteProfile');
+
+const mockRefetchQueue = vi.fn();
+const mockReviewFetchPendentes = vi.fn().mockResolvedValue(undefined);
+const mockReviewAprovar = vi.fn().mockResolvedValue(true);
+const mockReviewRejeitar = vi.fn().mockResolvedValue(true);
+const mockFetchProfile = vi.fn().mockResolvedValue(undefined);
+
+const DASHBOARD_STUB: CoachDashboard = {
+  generatedAt: '2026-06-24T13:32:25Z',
+  summary: {
+    kpis: {
+      totalAtletas: 24,
+      ativos: 18,
+      emAtencao: 5,
+      pausados: 1,
+      treinosPlanejadosSemana: 96,
+    },
+    atletasExibidos: 10,
+    itensFilaAtencao: 3,
+  },
+  roster: {
+    items: [
+      {
+        atletaId: 'a1',
+        nome: 'Ana Silva',
+        status: 'warning',
+        weeklyVolume: 32.5,
+      },
+    ],
+    page: 0,
+    size: 5,
+    totalElements: 24,
+    totalPages: 5,
+  },
+  attentionQueue: [
+    {
+      atletaId: 'a1',
+      athleteName: 'Ana Silva',
+      severity: 'ALTA',
+      priorityScore: 92,
+      primaryReason: 'FADIGA',
+      suggestedAction: 'Reduzir o volume do próximo longão.',
+      generatedAt: '2026-06-24T13:30:00Z',
+      evidence: [{ label: 'ATL', value: '54' }],
+    },
+  ],
+  calendar: {
+    semanaInicio: '2026-06-23',
+    semanaFim: '2026-06-29',
+    treinos: [
+      {
+        atletaId: 'a1',
+        nomeAtleta: 'Ana Silva',
+        data: '2026-06-24',
+        tipoTreino: 'INTERVALADO',
+        isKeyWorkout: true,
+        hasAlert: false,
+        hasPendingSuggestion: true,
+      },
+    ],
+  },
+  insights: {
+    kpis: {
+      totalAtletas: 24,
+      ativos: 18,
+      emAtencao: 5,
+      pausados: 1,
+      treinosPlanejadosSemana: 96,
+    },
+    tendenciaCargaSemanal: [
+      { semana: '2026-W24', volumeTotalKm: 120, tssTotal: 540 },
+      { semana: '2026-W25', volumeTotalKm: 128, tssTotal: 580 },
+    ],
+    topAtletas: [{ atletaId: 'a1', nome: 'Ana Silva', volumeKm: 32.5 }],
+  },
+};
+
+function renderPage() {
+  return render(
+    <MemoryRouter initialEntries={['/coach/inbox']}>
+      <Routes>
+        <Route path="/coach/inbox" element={<CoachInboxPage />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
+
+describe('CoachInboxPage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(SugestaoService.detalhe).mockResolvedValue({
+      id: 's1',
+      atletaId: 'a1',
+      athleteName: 'Ana Silva',
+      tipo: 'RECOVERY',
+      status: 'PENDING',
+      confidence: 'HIGH',
+      summary: 'Reduzir intensidade do treino de quinta',
+      reasoning: {
+        rationale: 'Fadiga acumulada e queda de recuperação nos últimos 3 treinos.',
+        sourceRules: ['fatigue_spike'],
+        confidence: 'HIGH',
+      },
+      createdAt: '2026-06-24T13:30:00Z',
+      reviewedAt: undefined,
+      expiresAt: '2026-07-01T13:30:00Z',
+    });
+    vi.mocked(reactRouter.useOutletContext).mockReturnValue({
+      queue: [],
+      queueLoading: false,
+      queueError: null,
+      refetchQueue: mockRefetchQueue,
+      reviewPendentes: [],
+      reviewIsFetching: false,
+      reviewIsActing: false,
+      reviewFetchError: null,
+      reviewActionError: null,
+      reviewActiveFilter: 'AGUARDANDO_REVISAO',
+      reviewSetFilter: vi.fn(),
+      reviewFetchPendentes: mockReviewFetchPendentes,
+      reviewAprovar: mockReviewAprovar,
+      reviewRejeitar: mockReviewRejeitar,
+    } satisfies Partial<CoachLayoutOutletContext> as CoachLayoutOutletContext);
+    vi.mocked(useCoachDashboard).mockReturnValue({
+      dashboard: DASHBOARD_STUB,
+      loading: false,
+      error: null,
+      fetchDashboard: vi.fn(),
+    });
+    vi.mocked(useAthleteProfile).mockReturnValue({
+      profile: {
+        atletaId: 'a1',
+        nomeAtleta: 'Ana Silva',
+        objetivo: null,
+        proximaProva: null,
+        nivelExperiencia: null,
+        pmc: [],
+        aderenciaSemanal: [],
+        planoVigente: {
+          planoId: 'plano-1',
+          semanaInicio: '2026-06-23',
+          semanaFim: '2026-06-29',
+          reviewStatus: 'AGUARDANDO_REVISAO',
+          treinos: [],
+        },
+        sinaisRecentes: [],
+        sugestoesRecentes: [
+          {
+            id: 's1',
+            tipo: 'AJUSTE_PLANO',
+            status: 'PENDING',
+            criadoEm: '2026-06-24T13:30:00Z',
+          },
+        ],
+        recordes: [],
+        geradoEm: '2026-06-24T13:32:25Z',
+        avisos: null,
+      },
+      isLoading: false,
+      error: null,
+      errorKind: null,
+      fetchProfile: mockFetchProfile,
+    });
+  });
+
+  it('mostra a fila de atenção do dashboard no resumo', () => {
+    renderPage();
+
+    expect(screen.getByText(/Fila de atenção/i)).toBeInTheDocument();
+    expect(screen.getByText(/Reduzir o volume do próximo longão/i)).toBeInTheDocument();
+  });
+
+  it('mostra sugestões da IA no resumo do dashboard', async () => {
+    renderPage();
+
+    expect(screen.getByText(/Sugestões recentes/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Reduzir intensidade do treino de quinta/i)).toBeInTheDocument();
+    expect(screen.getAllByText('Alta').length).toBeGreaterThan(0);
+  });
+
+  it('usa o calendário agregado do dashboard na aba Calendário', () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole('tab', { name: /Calendário de provas/i }));
+
+    expect(screen.getByText(/Calendário semanal do dashboard/i)).toBeInTheDocument();
+    expect(screen.getByText(/Intervalado/i)).toBeInTheDocument();
+  });
+
+  it('usa insights agregados do dashboard na aba Status', () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole('tab', { name: /Status do treinamento/i }));
+
+    expect(screen.getByText(/Tendência de carga/i)).toBeInTheDocument();
+    expect(screen.getByText(/Top atletas/i)).toBeInTheDocument();
+    expect(screen.getByText(/Treinos da semana/i)).toBeInTheDocument();
+  });
+
+  it('abre diálogo de rejeição e chama o endpoint com motivo informado', async () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: /Mais ações/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /Rejeitar plano/i }));
+
+    expect(screen.getByRole('dialog', { name: /Rejeitar plano/i })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/Motivo/i), { target: { value: 'Carga alta na semana da prova' } });
+    fireEvent.click(screen.getByRole('button', { name: /Confirmar rejeição/i }));
+
+    await waitFor(() => expect(mockReviewRejeitar).toHaveBeenCalledWith('plano-1', 'Carga alta na semana da prova'));
+    await waitFor(() => expect(mockReviewFetchPendentes).toHaveBeenCalled());
+    await waitFor(() => expect(mockFetchProfile).toHaveBeenCalled());
+  });
+});

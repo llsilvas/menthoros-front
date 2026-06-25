@@ -23,6 +23,46 @@ export interface CoachAtletaResumo {
     lastActivity?: string;
     /** Volume realizado na semana atual (km). */
     weeklyVolume: number;
+    /** Percentual de aderência das últimas 4 semanas (0–100); ausente quando sem plano. */
+    aderenciaPercentual?: number;
+}
+
+/** Filtros do dashboard agregado do coach. */
+export interface CoachDashboardQuery {
+    q?: string;
+    status?: CoachAtletaStatus;
+    sortBy?: 'priority' | 'name' | 'volume' | 'tsb';
+    page?: number;
+    size?: number;
+    from?: string;
+    to?: string;
+    weekFrom?: string;
+}
+
+/** Resumo operacional do dashboard agregado do coach. */
+export interface CoachDashboardSummary {
+    kpis: CoachKpis;
+    atletasExibidos: number;
+    itensFilaAtencao: number;
+}
+
+/** Página do roster usada pelo dashboard agregado do coach. */
+export interface CoachDashboardRosterPage {
+    items: CoachAtletaResumo[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+}
+
+/** Resposta agregada do dashboard do coach. */
+export interface CoachDashboard {
+    generatedAt: string;
+    summary: CoachDashboardSummary;
+    roster: CoachDashboardRosterPage;
+    attentionQueue: CoachAttentionItem[];
+    calendar: CoachCalendario;
+    insights: CoachInsights;
 }
 
 /** Treino planejado no calendário do coach. */
