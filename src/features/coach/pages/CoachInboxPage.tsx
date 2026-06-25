@@ -5,7 +5,6 @@ import {
   Alert,
   Box,
   Button,
-  ButtonBase,
   Chip,
   Divider,
   FormControl,
@@ -38,89 +37,46 @@ import {
   SwapHoriz as SwapHorizIcon,
   Tune as TuneIcon,
 } from '@mui/icons-material';
-import { Line, LineChart, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis } from 'recharts';
-
 import { CoachAthleteAvatar } from '../components/CoachAthleteAvatar';
 import { CurrentWeekPlan } from '../components/CurrentWeekPlan';
+import { DashboardAttentionQueueRow } from '../components/DashboardAttentionQueueRow';
+import { DashboardCalendarPanel } from '../components/DashboardCalendarPanel';
+import { DashboardInsightsPanel } from '../components/DashboardInsightsPanel';
+import { DashboardRosterPreviewRow } from '../components/DashboardRosterPreviewRow';
+import { DetailMetric } from '../components/DetailMetric';
+import { MetricTile } from '../components/MetricTile';
+import { QueueRow } from '../components/QueueRow';
 import { RecentSuggestionsPanel } from '../components/RecentSuggestionsPanel';
+import { SectionCard } from '../components/SectionCard';
+import { TrendCard } from '../components/TrendCard';
+import {
+  formatKm,
+  formatPercent,
+  formatWorkoutTypeLabel,
+  paletteForDecision,
+  statusLabel,
+} from '../components/coachInboxHelpers';
 import { useCoachDashboard } from '../../../hooks/useCoachDashboard';
 import { useAthleteProfile } from '../../../hooks/useAthleteProfile';
 import { useDebounce } from '../../../shared/hooks/useDebounce';
 import { elevation } from '../../../shared/design-tokens';
 import { content, primary, semantic, surface } from '../../../theme/tokens';
-import type {
-  CoachAtletaResumo,
-  CoachAtletaStatus,
-  CoachAttentionItem,
-  CoachCalendario,
-  CoachDashboardQuery,
-  CoachInsights,
-} from '../../../types/Coach';
+import type { CoachAtletaResumo, CoachAtletaStatus, CoachDashboardQuery } from '../../../types/Coach';
 import type { AtletaPerfilCoachDto } from '../../../types/AtletaPerfilCoach';
 import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
 import type { Prova } from '../../../types/Prova';
+import type {
+  CoachAthleteRow,
+  RaceItem,
+  SegmentFilter,
+} from '../types/CoachInbox';
 
-type SegmentFilter = 'all' | 'attention' | 'drop' | 'stable' | 'growth';
-type PlanStatus = 'ATRASADO' | 'NO_PRAZO' | 'CONCLUIDO';
-type TrainingType = 'Corrida' | 'Força' | 'Mobilidade' | 'Descanso';
 type SortKey = 'priority' | 'adherence' | 'load' | 'race';
 type TabKey = 'review' | 'plan' | 'calendar' | 'status' | 'adherence';
-type DecisionState = 'PENDING' | 'APPROVED' | 'REJECTED';
 type DashboardStatusFilter = 'all' | CoachAtletaStatus;
 
 const ROSTER_PAGE_SIZE = 10;
 
-interface WorkoutItem {
-  date: string;
-  title: string;
-  distance: string;
-  zone: string;
-  completion: number;
-  state: 'ok' | 'warn' | 'miss';
-}
-
-interface RaceItem {
-  date: string;
-  label: string;
-  tag: 'ALVO' | 'PRINCIPAL' | 'SECUNDÁRIA';
-}
-
-interface CoachAthleteRow {
-  id: string;
-  name: string;
-  discipline: string;
-  age: number;
-  gender: string;
-  weeksOnPlan: number;
-  segment: SegmentFilter;
-  planStatus: PlanStatus;
-  trainingType: TrainingType;
-  statusLabel: string;
-  decision: DecisionState;
-  adherence: number;
-  load7d: number;
-  loadDelta: number;
-  delay: number;
-  nextWorkout: {
-    title: string;
-    when: string;
-    zone: string;
-    duration: string;
-    objective: string;
-  };
-  lastWorkouts: WorkoutItem[];
-  raceCalendar: RaceItem[];
-  loadTrend: number[];
-  adherenceTrend: number[];
-  notes: string;
-  suggestedActions: string[];
-  quickStats: {
-    acuteLoad: number;
-    monotony: number;
-    fatigue: 'Baixa' | 'Média' | 'Alta';
-    recovery: number;
-  };
-}
 
 const SORT_OPTIONS: Array<{ key: SortKey; label: string }> = [
   { key: 'priority', label: 'Prioridade' },
@@ -136,36 +92,7 @@ const DASHBOARD_STATUS_OPTIONS: Array<{ key: DashboardStatusFilter; label: strin
   { key: 'paused', label: 'Pausado' },
 ];
 
-const ATTENTION_SEVERITY_LABEL: Record<CoachAttentionItem['severity'], string> = {
-  CRITICA: 'Crítica',
-  ALTA: 'Alta',
-  MEDIA: 'Média',
-};
 
-const ATTENTION_REASON_LABEL: Record<CoachAttentionItem['primaryReason'], string> = {
-  FADIGA: 'Fadiga',
-  SOBRECARGA: 'Sobrecarga',
-  SEM_PLANO: 'Sem plano',
-  ADERENCIA: 'Aderência',
-  INATIVIDADE: 'Inatividade',
-  ZONAS_VENCIDAS: 'Zonas vencidas',
-};
-
-const DAY_LABELS = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
-
-function formatDashboardDate(dateIso: string): string {
-  return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', weekday: 'short' }).format(new Date(`${dateIso}T12:00:00`));
-}
-
-function formatWorkoutTypeLabel(tipoTreino?: string): string {
-  if (!tipoTreino) return 'Treino';
-  return tipoTreino
-    .toLowerCase()
-    .replaceAll('_', ' ')
-    .split(' ')
-    .map((part) => (part ? `${part[0].toUpperCase()}${part.slice(1)}` : part))
-    .join(' ');
-}
 
 function formatRaceDate(dateIso: string): string {
   return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' })
@@ -186,14 +113,6 @@ function buildRaceCalendarFromProfile(profile: AtletaPerfilCoachDto | null): Rac
     }));
 }
 
-function buildWeekDates(mondayIso: string): string[] {
-  const start = new Date(`${mondayIso}T12:00:00`);
-  return Array.from({ length: 7 }, (_, index) => {
-    const day = new Date(start);
-    day.setDate(start.getDate() + index);
-    return day.toLocaleDateString('sv-SE');
-  });
-}
 
 const TABS: Array<{ key: TabKey; label: string; icon: ReactElement }> = [
   { key: 'review', label: 'Revisão do treino', icon: <CheckCircleIcon fontSize="small" /> },
@@ -203,30 +122,6 @@ const TABS: Array<{ key: TabKey; label: string; icon: ReactElement }> = [
   { key: 'adherence', label: 'Adesão', icon: <FilterAltIcon fontSize="small" /> },
 ];
 
-function formatPercent(value: number): string {
-  return `${value}%`;
-}
-
-function formatKm(value: number): string {
-  return `${value} km`;
-}
-
-function paletteForDecision(decision: DecisionState): { bg: string; fg: string; border: string; label: string } {
-  if (decision === 'APPROVED') {
-    return { bg: `${semantic.success[500]}1A`, fg: semantic.success[500], border: `${semantic.success[500]}44`, label: 'Aprovado' };
-  }
-  if (decision === 'REJECTED') {
-    return { bg: `${semantic.danger[500]}1A`, fg: semantic.danger[500], border: `${semantic.danger[500]}44`, label: 'Rejeitado' };
-  }
-  return { bg: `${semantic.warning[500]}1A`, fg: semantic.warning[500], border: `${semantic.warning[500]}44`, label: 'Pendente' };
-}
-
-function statusLabel(status: CoachAtletaStatus): string {
-  if (status === 'active') return 'Ativo';
-  if (status === 'warning') return 'Atenção';
-  if (status === 'danger') return 'Alerta';
-  return 'Pausado';
-}
 
 function statusToSegment(status: CoachAtletaStatus): SegmentFilter {
   if (status === 'warning') return 'attention';
@@ -343,501 +238,15 @@ function buildRosterRowFromSummary(roster: CoachAtletaResumo): CoachAthleteRow {
   };
 }
 
-function statusPalette(status: CoachAtletaStatus): { bg: string; fg: string; border: string } {
-  if (status === 'active') {
-    return { bg: `${semantic.success[500]}1A`, fg: semantic.success[500], border: `${semantic.success[500]}44` };
-  }
-  if (status === 'warning') {
-    return { bg: `${semantic.warning[500]}1A`, fg: semantic.warning[500], border: `${semantic.warning[500]}44` };
-  }
-  if (status === 'danger') {
-    return { bg: `${semantic.danger[500]}1A`, fg: semantic.danger[500], border: `${semantic.danger[500]}44` };
-  }
-  return { bg: `${surface[500]}1A`, fg: surface[300], border: `${surface[500]}44` };
-}
 
-function SectionCard({
-  title,
-  action,
-  children,
-}: {
-  title: string;
-  action?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <Box
-      sx={{
-        border: `1px solid ${content.cardBorder}`,
-        borderRadius: 2,
-        backgroundColor: elevation.card,
-        overflow: 'hidden',
-      }}
-    >
-      <Box
-        sx={{
-          px: { xs: 1.2, xl: 2 },
-          py: { xs: 0.85, xl: 1.1 },
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: { xs: 1, xl: 2 },
-          borderBottom: `1px solid ${content.divider}`,
-        }}
-      >
-        <Typography
-          sx={{
-            fontSize: { xs: '0.62rem', xl: '0.68rem' },
-            textTransform: 'uppercase',
-            letterSpacing: '0.08em',
-            fontWeight: 700,
-            color: surface[400],
-          }}
-        >
-          {title}
-        </Typography>
-        {action}
-      </Box>
-      <Box sx={{ p: { xs: 1, xl: 1.25 } }}>{children}</Box>
-    </Box>
-  );
-}
 
-function MetricTile({
-  label,
-  value,
-  delta,
-  tone = 'neutral',
-  compact = false,
-  highlight = false,
-}: {
-  label: string;
-  value: string;
-  delta?: string;
-  tone?: 'neutral' | 'success' | 'warning' | 'danger';
-  compact?: boolean;
-  highlight?: boolean;
-}) {
-  const color =
-    tone === 'success' ? semantic.success[500] : tone === 'warning' ? semantic.warning[500] : tone === 'danger' ? semantic.danger[500] : surface[50];
 
-  return (
-    <Box
-      sx={{
-        p: compact ? { xs: 0.75, xl: 1 } : 1.2,
-        borderRadius: 1.5,
-        border: `1px solid ${content.cardBorder}`,
-        borderBlockColor: highlight ? `${semantic.warning[500]}66` : content.cardBorder,
-        backgroundColor: highlight ? `${semantic.warning[500]}14` : `${surface[0]}06`,
-        minHeight: compact ? { xs: 58, xl: 70 } : 78,
-        overflow: 'hidden',
-        minWidth: 0,
-      }}
-    >
-      <Typography noWrap sx={{ fontSize: compact ? { xs: '0.45rem', xl: '0.64rem' } : '0.68rem', color: surface[400], textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-        {label}
-      </Typography>
-      <Typography noWrap sx={{ mt: compact ? 0.25 : 0.35, fontSize: compact ? { xs: '1rem', xl: '1.24rem' } : '1.45rem', lineHeight: 1, fontWeight: 700, color }}>
-        {value}
-      </Typography>
-      {delta ? (
-        <Typography noWrap sx={{ mt: compact ? 0.35 : 0.5, fontSize: compact ? { xs: '0.62rem', xl: '0.7rem' } : '0.75rem', color: surface[400], lineHeight: 1.2 }}>{delta}</Typography>
-      ) : null}
-    </Box>
-  );
-}
 
-function DashboardRosterPreviewRow({ athlete }: { athlete: CoachAtletaResumo }) {
-  const palette = statusPalette(athlete.status);
 
-  return (
-    <Box
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: { xs: 0.85, xl: 1.25 },
-        px: { xs: 0.85, xl: 1 },
-        py: { xs: 0.75, xl: 0.9 },
-        borderRadius: 1,
-        border: `1px solid ${content.cardBorder}`,
-        backgroundColor: `${surface[0]}06`,
-      }}
-    >
-      <Box sx={{ minWidth: 0 }}>
-        <Typography sx={{ fontSize: { xs: '0.78rem', xl: '0.82rem' }, fontWeight: 700, color: surface[50], lineHeight: 1.2 }} noWrap>
-          {athlete.nome}
-        </Typography>
-        <Typography sx={{ display: { xs: 'none', xl: 'block' }, fontSize: '0.72rem', color: surface[400] }} noWrap>
-          {athlete.fase ?? 'Sem fase'} · {athlete.weeklyVolume.toFixed(1)} km
-        </Typography>
-      </Box>
-      <Chip
-        size="small"
-        label={statusLabel(athlete.status)}
-        sx={{
-          height: { xs: 20, xl: 24 },
-          fontSize: { xs: '0.62rem', xl: '0.68rem' },
-          fontWeight: 700,
-          color: palette.fg,
-          bgcolor: palette.bg,
-          border: `1px solid ${palette.border}`,
-          '& .MuiChip-label': { px: { xs: 0.75, xl: 1 } },
-        }}
-      />
-    </Box>
-  );
-}
 
-function DashboardAttentionQueueRow({ item }: { item: CoachAttentionItem }) {
-  const severityColor =
-    item.severity === 'CRITICA' ? semantic.danger[500] : item.severity === 'ALTA' ? semantic.warning[500] : semantic.info[500];
 
-  return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: { xs: 0.55, xl: 0.8 },
-        px: { xs: 0.85, xl: 1 },
-        py: { xs: 0.75, xl: 0.9 },
-        borderRadius: 1,
-        border: `1px solid ${content.cardBorder}`,
-        backgroundColor: `${surface[0]}06`,
-      }}
-    >
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.75, xl: 1 }, minWidth: 0 }}>
-          <CoachAthleteAvatar athlete={{ id: item.atletaId, name: item.athleteName }} size="xs" status="warning" />
-          <Box sx={{ minWidth: 0 }}>
-            <Typography sx={{ fontSize: { xs: '0.78rem', xl: '0.82rem' }, fontWeight: 700, color: surface[50], lineHeight: 1.15 }} noWrap>
-              {item.athleteName}
-            </Typography>
-            <Typography sx={{ fontSize: { xs: '0.66rem', xl: '0.72rem' }, color: surface[400] }} noWrap>
-              {ATTENTION_REASON_LABEL[item.primaryReason]}
-            </Typography>
-          </Box>
-        </Box>
 
-        <Chip
-          size="small"
-          label={ATTENTION_SEVERITY_LABEL[item.severity]}
-          sx={{
-            height: { xs: 20, xl: 24 },
-            fontSize: { xs: '0.62rem', xl: '0.68rem' },
-            fontWeight: 700,
-            color: severityColor,
-            bgcolor: `${severityColor}14`,
-            border: `1px solid ${severityColor}44`,
-            '& .MuiChip-label': { px: { xs: 0.75, xl: 1 } },
-          }}
-        />
-      </Box>
 
-      <Typography sx={{ display: { xs: 'none', xl: 'block' }, fontSize: '0.76rem', color: surface[200], lineHeight: 1.45 }}>
-        {item.suggestedAction}
-      </Typography>
-    </Box>
-  );
-}
-
-function DashboardInsightsPanel({
-  insights,
-  onOpenInsights,
-}: {
-  insights: CoachInsights;
-  onOpenInsights: () => void;
-}) {
-  const volumeData = insights.tendenciaCargaSemanal.map((point) => point.volumeTotalKm);
-  const totalVolume = Math.round(volumeData.reduce((sum, value) => sum + value, 0));
-
-  return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, minmax(0, 1fr))' }, gap: 1.2 }}>
-        <MetricTile label="Ativos" value={String(insights.kpis.ativos)} delta={`${insights.kpis.totalAtletas} atletas`} tone="success" />
-        <MetricTile label="Em atenção" value={String(insights.kpis.emAtencao)} delta="prioridade diária" tone="warning" />
-        <MetricTile label="Pausados" value={String(insights.kpis.pausados)} delta="sem carga ativa" />
-        <MetricTile label="Treinos da semana" value={String(insights.kpis.treinosPlanejadosSemana)} delta={`${totalVolume} km agregados`} />
-      </Box>
-
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 0.9fr' }, gap: 1.5 }}>
-        <SectionCard title="Tendência de carga" action={<Button size="small" sx={{ textTransform: 'none' }} onClick={onOpenInsights}>Abrir insights</Button>}>
-          {volumeData.length > 0 ? <TrendCard data={volumeData} /> : <Typography sx={{ color: surface[400], fontSize: '0.82rem' }}>Sem dados de carga no período.</Typography>}
-        </SectionCard>
-
-        <SectionCard title="Top atletas">
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.8 }}>
-            {insights.topAtletas.length > 0 ? (
-              insights.topAtletas.slice(0, 4).map((athlete, index) => (
-                <Box
-                  key={athlete.atletaId}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 1,
-                    px: 1,
-                    py: 0.8,
-                    borderRadius: 1,
-                    border: `1px solid ${content.cardBorder}`,
-                    backgroundColor: `${surface[0]}06`,
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-                    <Typography sx={{ fontSize: '0.76rem', color: surface[400], width: 18, flexShrink: 0 }}>
-                      {index + 1}
-                    </Typography>
-                    <CoachAthleteAvatar athlete={{ id: athlete.atletaId, name: athlete.nome }} size="xs" />
-                    <Typography sx={{ fontSize: '0.82rem', fontWeight: 700, color: surface[50] }} noWrap>
-                      {athlete.nome}
-                    </Typography>
-                  </Box>
-                  <Typography sx={{ fontSize: '0.76rem', color: surface[300], flexShrink: 0 }}>
-                    {Math.round(athlete.volumeKm)} km
-                  </Typography>
-                </Box>
-              ))
-            ) : (
-              <Typography sx={{ color: surface[400], fontSize: '0.82rem' }}>Sem ranking de volume no período.</Typography>
-            )}
-          </Box>
-        </SectionCard>
-      </Box>
-    </Box>
-  );
-}
-
-function DashboardCalendarPanel({
-  calendario,
-  onOpenCalendar,
-}: {
-  calendario: CoachCalendario;
-  onOpenCalendar: () => void;
-}) {
-  const weekDates = useMemo(() => buildWeekDates(calendario.semanaInicio), [calendario.semanaInicio]);
-  const workoutsByDate = useMemo(() => {
-    const map = new Map<string, CoachCalendario['treinos']>();
-    for (const workout of calendario.treinos) {
-      const current = (map.get(workout.data) ?? []) as CoachCalendario['treinos'];
-      current.push(workout);
-      map.set(workout.data, current);
-    }
-    return map;
-  }, [calendario.treinos]);
-
-  return (
-    <SectionCard title="Calendário semanal do dashboard" action={<Button size="small" sx={{ textTransform: 'none' }} onClick={onOpenCalendar}>Abrir calendário</Button>}>
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(7, minmax(0, 1fr))' }, gap: 1 }}>
-        {weekDates.map((date, index) => {
-          const dayWorkouts = workoutsByDate.get(date) ?? [];
-          return (
-            <Box
-              key={date}
-              sx={{
-                p: 1,
-                borderRadius: 1.5,
-                border: `1px solid ${content.cardBorder}`,
-                backgroundColor: `${surface[0]}06`,
-                minHeight: 110,
-              }}
-            >
-              <Typography sx={{ fontSize: '0.68rem', color: surface[400], fontWeight: 700 }}>
-                {DAY_LABELS[index]}
-              </Typography>
-              <Typography sx={{ fontSize: '0.78rem', color: surface[200], mt: 0.1 }}>
-                {formatDashboardDate(date)}
-              </Typography>
-
-              <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 0.6 }}>
-                {dayWorkouts.slice(0, 2).map((workout, workoutIndex) => (
-                  <Box
-                    key={`${date}-${workoutIndex}-${workout.atletaId ?? workout.nomeAtleta ?? 'treino'}`}
-                    sx={{
-                      px: 0.75,
-                      py: 0.55,
-                      borderRadius: 1,
-                      border: `1px solid ${content.cardBorder}`,
-                      backgroundColor: `${primary[500]}12`,
-                    }}
-                  >
-                    <Typography sx={{ fontSize: '0.74rem', color: surface[50], fontWeight: 700 }} noWrap>
-                      {workout.nomeAtleta ?? 'Atleta'}
-                    </Typography>
-                    <Typography sx={{ fontSize: '0.68rem', color: surface[300] }} noWrap>
-                      {formatWorkoutTypeLabel(workout.tipoTreino)}
-                    </Typography>
-                  </Box>
-                ))}
-
-                {dayWorkouts.length > 2 ? (
-                  <Typography sx={{ fontSize: '0.7rem', color: surface[400] }}>
-                    +{dayWorkouts.length - 2} outros treinos
-                  </Typography>
-                ) : null}
-
-                {dayWorkouts.length === 0 ? (
-                  <Typography sx={{ fontSize: '0.72rem', color: surface[400] }}>
-                    Sem treinos
-                  </Typography>
-                ) : null}
-              </Box>
-            </Box>
-          );
-        })}
-      </Box>
-    </SectionCard>
-  );
-}
-
-function QueueRow({
-  athlete,
-  selected,
-  onClick,
-}: {
-  athlete: CoachAthleteRow;
-  selected: boolean;
-  onClick: () => void;
-}) {
-  const decision = paletteForDecision(athlete.decision);
-  return (
-    <ButtonBase
-      onClick={onClick}
-      sx={{
-        width: '100%',
-        textAlign: 'left',
-        display: 'block',
-        borderRadius: 1.5,
-        border: `1px solid ${selected ? primary[500] : content.cardBorder}`,
-        backgroundColor: selected ? `${primary[500]}10` : `${surface[0]}06`,
-        px: { xs: 1, sm: 1.1, xl: 1.35 },
-        py: { xs: 0.82, sm: 0.9, xl: 1.15 },
-        transition: 'background-color 150ms ease, border-color 150ms ease',
-        '&:hover': {
-          backgroundColor: selected ? `${primary[500]}14` : `${surface[0]}10`,
-          borderColor: primary[500],
-        },
-      }}
-    >
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: { xs: 0.85, sm: 1, xl: 1.3 } }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.7, sm: 0.85, xl: 1.05 }, minWidth: 0 }}>
-          <CoachAthleteAvatar athlete={{ id: athlete.id, name: athlete.name }} size="xs" status={athlete.segment === 'drop' ? 'alert' : athlete.segment === 'attention' ? 'warning' : 'synced'} />
-          <Box sx={{ minWidth: 0 }}>
-            <Typography sx={{ fontSize: { xs: '0.78rem', sm: '0.82rem', xl: '0.86rem' }, fontWeight: 700, color: surface[50], lineHeight: 1.15 }} noWrap>
-              {athlete.name}
-            </Typography>
-            <Typography sx={{ display: { xs: 'none', xl: 'block' }, fontSize: '0.72rem', color: surface[400] }} noWrap>
-              {athlete.discipline} · {athlete.weeksOnPlan} semanas
-            </Typography>
-          </Box>
-        </Box>
-
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.25, flexShrink: 0 }}>
-          <Chip
-            size="small"
-            label={athlete.statusLabel}
-            sx={{
-              height: { xs: 20, xl: 24 },
-              fontSize: { xs: '0.6rem', sm: '0.62rem', xl: '0.68rem' },
-              fontWeight: 700,
-              color: decision.fg,
-              bgcolor: decision.bg,
-              border: `1px solid ${decision.border}`,
-              '& .MuiChip-label': { px: { xs: 0.7, sm: 0.8, xl: 1 } },
-            }}
-          />
-          <Typography sx={{ fontSize: { xs: '0.62rem', sm: '0.66rem', xl: '0.72rem' }, color: surface[400] }}>{formatPercent(athlete.adherence)}</Typography>
-        </Box>
-      </Box>
-
-      <Box sx={{ mt: { xs: 0.7, sm: 0.8, xl: 1.05 } }}>
-        <LinearProgress
-          variant="determinate"
-          value={athlete.adherence}
-          sx={{
-            height: { xs: 4, sm: 5, xl: 7 },
-            borderRadius: 999,
-            bgcolor: `${surface[0]}14`,
-            '& .MuiLinearProgress-bar': {
-              bgcolor: athlete.adherence >= 85 ? semantic.success[500] : athlete.adherence >= 70 ? primary[500] : semantic.warning[500],
-              borderRadius: 999,
-            },
-          }}
-        />
-      </Box>
-
-      <Box sx={{ mt: 0.85, display: { xs: 'none', xl: 'flex' }, alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-        <Typography sx={{ fontSize: '0.72rem', color: surface[300], lineHeight: 1.3 }}>
-          Próximo: {athlete.nextWorkout.title}
-        </Typography>
-        <Typography sx={{ fontSize: '0.68rem', color: surface[500] }}>{athlete.delay > 0 ? `${athlete.delay} treino${athlete.delay > 1 ? 's' : ''}` : '0 atraso'}</Typography>
-      </Box>
-    </ButtonBase>
-  );
-}
-
-function TrendCard({ data, stroke = primary[500] }: { data: number[]; stroke?: string }) {
-  const chartData = data.map((value, index) => ({ index, value }));
-  return (
-    <Box sx={{ width: '100%', height: 92 }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={chartData} margin={{ top: 8, right: 6, left: 0, bottom: 0 }}>
-          <XAxis dataKey="index" hide />
-          <YAxis hide domain={['dataMin - 5', 'dataMax + 5']} />
-          <RechartsTooltip
-            cursor={false}
-            contentStyle={{
-              backgroundColor: surface[700],
-              border: `1px solid ${content.cardBorder}`,
-              borderRadius: 8,
-              color: surface[50],
-              fontSize: '0.75rem',
-            }}
-            formatter={(value) => [`${value}`, 'Valor']}
-            labelFormatter={(label) => `Ponto ${Number(label) + 1}`}
-          />
-          <Line type="monotone" dataKey="value" stroke={stroke} strokeWidth={2.5} dot={false} isAnimationActive={false} />
-        </LineChart>
-      </ResponsiveContainer>
-    </Box>
-  );
-}
-
-function DetailMetric({
-  label,
-  value,
-  subtitle,
-  tone = 'neutral',
-}: {
-  label: string;
-  value: string;
-  subtitle?: string;
-  tone?: 'neutral' | 'success' | 'warning' | 'danger';
-}) {
-  const color =
-    tone === 'success' ? semantic.success[500] : tone === 'warning' ? semantic.warning[500] : tone === 'danger' ? semantic.danger[500] : surface[50];
-
-  return (
-    <Box
-      sx={{
-        p: 1.2,
-        borderRadius: 1.5,
-        border: `1px solid ${content.cardBorder}`,
-        backgroundColor: `${surface[0]}06`,
-        minHeight: 78,
-      }}
-    >
-      <Typography sx={{ fontSize: '0.7rem', color: surface[400], textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-        {label}
-      </Typography>
-      <Typography sx={{ mt: 0.5, fontSize: '1.35rem', fontWeight: 700, color, lineHeight: 1.05 }}>
-        {value}
-      </Typography>
-      {subtitle ? (
-        <Typography sx={{ mt: 0.5, fontSize: '0.74rem', color: surface[400], lineHeight: 1.3 }}>{subtitle}</Typography>
-      ) : null}
-    </Box>
-  );
-}
 
 function CoachInboxPage() {
   const location = useLocation();
