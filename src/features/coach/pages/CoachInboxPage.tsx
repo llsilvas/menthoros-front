@@ -123,6 +123,23 @@ const TABS: Array<{ key: TabKey; label: string; icon: ReactElement }> = [
 ];
 
 
+const ACTION_BTN_SX = {
+  textTransform: 'none' as const,
+  fontSize: { xs: '0.72rem', xl: '0.8125rem' },
+};
+
+const ACTION_BTN_START_ICON_SX = {
+  ...ACTION_BTN_SX,
+  px: { xs: 0.85, xl: 1.5 },
+  '& .MuiButton-startIcon': { display: { xs: 'none', xl: 'inherit' } },
+};
+
+const ACTION_BTN_END_ICON_SX = {
+  ...ACTION_BTN_SX,
+  px: { xs: 0.85, xl: 1.5 },
+  '& .MuiButton-endIcon': { display: { xs: 'none', xl: 'inherit' } },
+};
+
 function statusToSegment(status: CoachAtletaStatus): SegmentFilter {
   if (status === 'warning') return 'attention';
   if (status === 'danger') return 'drop';
@@ -783,12 +800,7 @@ function CoachInboxPage() {
                         <Button
                           size="small"
                           endIcon={<ArrowForwardIcon fontSize="small" />}
-                          sx={{
-                            textTransform: 'none',
-                            fontSize: { xs: '0.72rem', xl: '0.8125rem' },
-                            px: { xs: 0.75, xl: 1 },
-                            '& .MuiButton-endIcon': { display: { xs: 'none', xl: 'inherit' } },
-                          }}
+                          sx={{ ...ACTION_BTN_END_ICON_SX, px: { xs: 0.75, xl: 1 } }}
                           onClick={() => navigate('/coach/calendar')}
                         >
                           Ver calendário completo
@@ -845,7 +857,7 @@ function CoachInboxPage() {
                             size="small"
                             variant="outlined"
                             onClick={() => setActiveTab('plan')}
-                            sx={{ textTransform: 'none', fontSize: { xs: '0.72rem', xl: '0.8125rem' }, px: { xs: 1, xl: 1.5 } }}
+                            sx={{ ...ACTION_BTN_SX, px: { xs: 1, xl: 1.5 } }}
                           >
                             Reagendar
                           </Button>
@@ -987,12 +999,7 @@ function CoachInboxPage() {
                               size="small"
                               variant="outlined"
                               startIcon={<SwapHorizIcon />}
-                              sx={{
-                                textTransform: 'none',
-                                fontSize: { xs: '0.72rem', xl: '0.8125rem' },
-                                px: { xs: 0.75, xl: 1.25 },
-                                '& .MuiButton-startIcon': { display: { xs: 'none', xl: 'inherit' } },
-                              }}
+                              sx={{ ...ACTION_BTN_START_ICON_SX, px: { xs: 0.75, xl: 1.25 } }}
                             >
                               Mover
                             </Button>
@@ -1000,12 +1007,7 @@ function CoachInboxPage() {
                               size="small"
                               variant="outlined"
                               startIcon={<ContentCopyIcon />}
-                              sx={{
-                                textTransform: 'none',
-                                fontSize: { xs: '0.72rem', xl: '0.8125rem' },
-                                px: { xs: 0.75, xl: 1.25 },
-                                '& .MuiButton-startIcon': { display: { xs: 'none', xl: 'inherit' } },
-                              }}
+                              sx={{ ...ACTION_BTN_START_ICON_SX, px: { xs: 0.75, xl: 1.25 } }}
                             >
                               Duplicar
                             </Button>
@@ -1013,12 +1015,7 @@ function CoachInboxPage() {
                               size="small"
                               variant="outlined"
                               startIcon={<TuneIcon />}
-                              sx={{
-                                textTransform: 'none',
-                                fontSize: { xs: '0.72rem', xl: '0.8125rem' },
-                                px: { xs: 0.75, xl: 1.25 },
-                                '& .MuiButton-startIcon': { display: { xs: 'none', xl: 'inherit' } },
-                              }}
+                              sx={{ ...ACTION_BTN_START_ICON_SX, px: { xs: 0.75, xl: 1.25 } }}
                             >
                               Substituir
                             </Button>
@@ -1238,12 +1235,7 @@ function CoachInboxPage() {
                   variant="outlined"
                   startIcon={<ChatBubbleOutlineIcon />}
                   onClick={() => setFeedback('Mensagem preparada para o atleta.')}
-                  sx={{
-                    textTransform: 'none',
-                    fontSize: { xs: '0.72rem', xl: '0.8125rem' },
-                    px: { xs: 0.85, xl: 1.5 },
-                    '& .MuiButton-startIcon': { display: { xs: 'none', xl: 'inherit' } },
-                  }}
+                  sx={ACTION_BTN_START_ICON_SX}
                 >
                   Enviar mensagem
                 </Button>
@@ -1252,12 +1244,7 @@ function CoachInboxPage() {
                   variant="outlined"
                   startIcon={<TuneIcon />}
                   onClick={() => setActiveTab('plan')}
-                  sx={{
-                    textTransform: 'none',
-                    fontSize: { xs: '0.72rem', xl: '0.8125rem' },
-                    px: { xs: 0.85, xl: 1.5 },
-                    '& .MuiButton-startIcon': { display: { xs: 'none', xl: 'inherit' } },
-                  }}
+                  sx={ACTION_BTN_START_ICON_SX}
                 >
                   Ajustar plano
                 </Button>
@@ -1284,12 +1271,7 @@ function CoachInboxPage() {
                   variant="outlined"
                   onClick={(event) => setMenuAnchor(event.currentTarget)}
                   endIcon={<MoreHorizIcon />}
-                  sx={{
-                    textTransform: 'none',
-                    fontSize: { xs: '0.72rem', xl: '0.8125rem' },
-                    px: { xs: 0.85, xl: 1.5 },
-                    '& .MuiButton-endIcon': { display: { xs: 'none', xl: 'inherit' } },
-                  }}
+                  sx={ACTION_BTN_END_ICON_SX}
                 >
                   Mais ações
                 </Button>
