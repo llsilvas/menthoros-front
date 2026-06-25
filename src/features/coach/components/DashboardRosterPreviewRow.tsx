@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Box, Chip, Typography } from '@mui/material';
 import { content, surface } from '../../../theme/tokens';
 import type { CoachAtletaResumo } from '../../../types/Coach';
@@ -7,7 +8,7 @@ interface DashboardRosterPreviewRowProps {
   athlete: CoachAtletaResumo;
 }
 
-export function DashboardRosterPreviewRow({ athlete }: DashboardRosterPreviewRowProps) {
+export const DashboardRosterPreviewRow = memo(function DashboardRosterPreviewRow({ athlete }: DashboardRosterPreviewRowProps) {
   const palette = statusPalette(athlete.status);
 
   return (
@@ -47,4 +48,4 @@ export function DashboardRosterPreviewRow({ athlete }: DashboardRosterPreviewRow
       />
     </Box>
   );
-}
+});

@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Box, ButtonBase, Chip, LinearProgress, Typography } from '@mui/material';
 import { content, primary, semantic, surface } from '../../../theme/tokens';
 import type { CoachAthleteRow } from '../types/CoachInbox';
@@ -10,7 +11,7 @@ interface QueueRowProps {
   onClick: () => void;
 }
 
-export function QueueRow({ athlete, selected, onClick }: QueueRowProps) {
+export const QueueRow = memo(function QueueRow({ athlete, selected, onClick }: QueueRowProps) {
   const decision = paletteForDecision(athlete.decision);
 
   return (
@@ -92,4 +93,4 @@ export function QueueRow({ athlete, selected, onClick }: QueueRowProps) {
       </Box>
     </ButtonBase>
   );
-}
+});

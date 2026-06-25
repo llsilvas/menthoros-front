@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Box, Chip, Typography } from '@mui/material';
 import { content, semantic, surface } from '../../../theme/tokens';
 import type { CoachAttentionItem } from '../../../types/Coach';
@@ -22,7 +23,7 @@ interface DashboardAttentionQueueRowProps {
   item: CoachAttentionItem;
 }
 
-export function DashboardAttentionQueueRow({ item }: DashboardAttentionQueueRowProps) {
+export const DashboardAttentionQueueRow = memo(function DashboardAttentionQueueRow({ item }: DashboardAttentionQueueRowProps) {
   const severityColor =
     item.severity === 'CRITICA' ? semantic.danger[500] : item.severity === 'ALTA' ? semantic.warning[500] : semantic.info[500];
 
@@ -70,4 +71,4 @@ export function DashboardAttentionQueueRow({ item }: DashboardAttentionQueueRowP
       </Typography>
     </Box>
   );
-}
+});
