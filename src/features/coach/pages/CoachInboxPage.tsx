@@ -563,6 +563,11 @@ function CoachInboxPage() {
                         }}
                       />
                     </Box>
+                    {selected.nivelExperiencia ? (
+                      <Typography sx={{ fontSize: { xs: '0.68rem', sm: '0.72rem', lg: '0.76rem', xl: '0.8rem' }, color: surface[400], mt: 0.15 }}>
+                        {selected.nivelExperiencia}
+                      </Typography>
+                    ) : null}
                     <Typography sx={{ display: { xs: 'none', xl: 'block' }, fontSize: '0.86rem', color: surface[400], mt: 0.2 }}>
                       {selected.discipline} · {selected.age} anos · {selected.gender} · {selected.weeksOnPlan} semanas
                     </Typography>
