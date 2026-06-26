@@ -15,17 +15,17 @@ export function DetailMetric({ label, value, subtitle, tone = 'neutral' }: Detai
   return (
     <Box
       sx={{
-        p: 1.2,
+        p: 1,
         borderRadius: 1.5,
         border: `1px solid ${content.cardBorder}`,
         backgroundColor: `${surface[0]}06`,
-        minHeight: 78,
+        minHeight: 60,
       }}
     >
       <Typography sx={{ fontSize: '0.7rem', color: surface[400], textTransform: 'uppercase', letterSpacing: '0.06em' }}>
         {label}
       </Typography>
-      <Typography sx={{ mt: 0.5, fontSize: '1.35rem', fontWeight: 700, color, lineHeight: 1.05 }}>
+      <Typography sx={{ mt: 0.5, fontSize: { xs: '0.95rem', xl: '1.1rem' }, fontWeight: 700, color, lineHeight: 1.1 }}>
         {value}
       </Typography>
       {subtitle ? (
