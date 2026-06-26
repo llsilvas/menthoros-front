@@ -2,6 +2,7 @@ import { Box, Button, Chip, Typography } from '@mui/material';
 import { content, primary, semantic, surface } from '../../../../theme/tokens';
 import { SectionCard } from '../SectionCard';
 import { RecentSuggestionsPanel } from '../RecentSuggestionsPanel';
+import { formVariantColor, formVariantLabel } from '../../types/AthleteForm';
 import type { CoachAthleteRow } from '../../types/CoachInbox';
 import type { AtletaPerfilCoachDto } from '../../../../types/AtletaPerfilCoach';
 
@@ -73,6 +74,25 @@ export function RacesSuggestionsTabPanel({ selected, selectedProfile, onOpenCale
                 />
               </Box>
             ))}
+          </Box>
+        )}
+
+        {selected.racePrediction && (
+          <Box sx={{ mt: 1.5, p: 1.5, border: `1px solid ${content.cardBorder}`, borderRadius: 2, backgroundColor: `${surface[0]}06` }}>
+            <Typography sx={{ fontSize: '0.68rem', color: surface[400], textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.75 }}>
+              Previsão de forma · em {selected.racePrediction.diasAteProva} dias
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, flexWrap: 'wrap' }}>
+              <Typography sx={{ fontSize: '1.1rem', fontWeight: 700, color: formVariantColor[selected.racePrediction.formaPrevista] }}>
+                {formVariantLabel[selected.racePrediction.formaPrevista]}
+              </Typography>
+              <Typography sx={{ fontSize: '0.8rem', color: surface[400] }}>
+                TSB previsto: {selected.racePrediction.tsbPrevisto >= 0 ? '+' : ''}{selected.racePrediction.tsbPrevisto}
+              </Typography>
+            </Box>
+            <Typography sx={{ fontSize: '0.68rem', color: surface[500], mt: 0.5 }}>
+              Estimativa com taper completo (sem carga)
+            </Typography>
           </Box>
         )}
       </SectionCard>
