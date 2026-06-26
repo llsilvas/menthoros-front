@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calcularMonotonia, calcularLoadDelta, calcularAcwr, getAcwrZone, getAcuteLoadTone, getMonotonyTone } from './coachInboxAdapters';
+import { calcularMonotonia, calcularLoadDelta, calcularAcwr, getAcwrZone, getAcuteLoadTone, getMonotonyTone, calcularStrain, getStrainZone } from './coachInboxAdapters';
 import type { PmcPontoRaw } from '../../../types/AtletaPerfilCoach';
 
 function pmc(over: Partial<PmcPontoRaw>): PmcPontoRaw {
@@ -136,5 +136,57 @@ describe('getMonotonyTone', () => {
   it('BVA: 1.4 ainda é success (limiar é > 1.4)', () => {
     expect(getMonotonyTone(1.4)).toBe('success');
     expect(getMonotonyTone(1.5)).toBe('warning');
+  });
+});
+
+describe('calcularStrain', () => {
+  it('retorna null com menos de 3 pontos de TSS', () => {
+    expect(calcularStrain([])).toBeNull();
+    expect(calcularStrain([pmc({ tss: 80 }), pmc({ tss: 90 })])).toBeNull();
+  });
+
+  it('retorna null quando todos os tss são zero', () => {
+    const pts = Array.from({ length: 7 }, () => pmc({ tss: 0 }));
+    expect(calcularStrain(pts)).toBeNull();
+  });
+
+  it('strain = TSS_semanal × monotonia para treinos idênticos (monotonia=1.0)', () => {
+    // 7 × 70 = 490, monotonia 1.0 → 490
+    const pts = Array.from({ length: 7 }, () => pmc({ tss: 70 }));
+    expect(calcularStrain(pts)).toBe(490);
+  });
+
+  it('strain supera o TSS semanal quando há variabilidade (monotonia > 1)', () => {
+    const pts = [
+      pmc({ tss: 30 }), pmc({ tss: 30 }), pmc({ tss: 150 }),
+      pmc({ tss: 30 }), pmc({ tss: 150 }), pmc({ tss: 30 }), pmc({ tss: 150 }),
+    ];
+    const tssSemanal = 30 + 30 + 150 + 30 + 150 + 30 + 150; // 570
+    expect(calcularStrain(pts)).toBeGreaterThan(tssSemanal);
+  });
+});
+
+describe('getStrainZone', () => {
+  it('null → neutral / Sem dados', () => {
+    expect(getStrainZone(null)).toEqual({ tone: 'neutral', label: 'Sem dados' });
+  });
+
+  it('< 150 → neutral / Baixo', () => {
+    expect(getStrainZone(100)).toEqual({ tone: 'neutral', label: 'Baixo' });
+  });
+
+  it('BVA: 150 → success / Moderado', () => {
+    expect(getStrainZone(149)).toEqual({ tone: 'neutral', label: 'Baixo' });
+    expect(getStrainZone(150)).toEqual({ tone: 'success', label: 'Moderado' });
+  });
+
+  it('BVA: 300 → warning / Alto', () => {
+    expect(getStrainZone(299)).toEqual({ tone: 'success', label: 'Moderado' });
+    expect(getStrainZone(300)).toEqual({ tone: 'warning', label: 'Alto' });
+  });
+
+  it('BVA: 600 → danger / Crítico', () => {
+    expect(getStrainZone(599)).toEqual({ tone: 'warning', label: 'Alto' });
+    expect(getStrainZone(600)).toEqual({ tone: 'danger', label: 'Crítico' });
   });
 });

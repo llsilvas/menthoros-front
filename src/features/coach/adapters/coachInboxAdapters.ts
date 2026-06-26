@@ -5,8 +5,13 @@ import type { Prova } from '../../../types/Prova';
 import type { CoachAthleteRow, RaceItem, SegmentFilter } from '../types/CoachInbox';
 import type { MetricTone } from '../types/AthleteForm';
 
+/** TSS positivos dos últimos `n` dias do histórico PMC (descansos com tss=0 são descartados). */
+function ultimosTssValidos(pmcPoints: PmcPontoRaw[], n = 7): number[] {
+  return pmcPoints.slice(-n).map((p) => p.tss ?? 0).filter((v) => v > 0);
+}
+
 export function calcularMonotonia(pmcPoints: PmcPontoRaw[]): number {
-  const ultimos7 = pmcPoints.slice(-7).map((p) => p.tss ?? 0).filter((v) => v > 0);
+  const ultimos7 = ultimosTssValidos(pmcPoints);
   if (ultimos7.length < 3) return 1.0;
   const media = ultimos7.reduce((a, b) => a + b, 0) / ultimos7.length;
   const variancia = ultimos7.reduce((a, b) => a + (b - media) ** 2, 0) / ultimos7.length;
@@ -25,6 +30,31 @@ export function calcularLoadDelta(pmcPoints: PmcPontoRaw[]): number {
 export function calcularAcwr(atl: number | null, ctl: number | null): number | null {
   if (atl == null || ctl == null || ctl === 0) return null;
   return parseFloat((atl / ctl).toFixed(2));
+}
+
+/**
+ * Training Strain (Foster) = TSS_semanal × monotonia.
+ * Une volume e homogeneidade num único sinal de qualidade do ciclo.
+ * Fallback: null quando há menos de 3 pontos de TSS positivos.
+ */
+export function calcularStrain(pmcPoints: PmcPontoRaw[]): number | null {
+  const ultimos7Tss = ultimosTssValidos(pmcPoints);
+  if (ultimos7Tss.length < 3) return null;
+  const tssSemanal = ultimos7Tss.reduce((a, b) => a + b, 0);
+  const monotonia = calcularMonotonia(pmcPoints);
+  return parseFloat((tssSemanal * monotonia).toFixed(0));
+}
+
+/**
+ * Zona do Training Strain (corredores recreativos, CTL 40–80 TSS/dia).
+ * < 150 baixo; 150–300 moderado; 300–600 alto; > 600 crítico.
+ */
+export function getStrainZone(strain: number | null): { tone: MetricTone; label: string } {
+  if (strain == null) return { tone: 'neutral', label: 'Sem dados' };
+  if (strain >= 600) return { tone: 'danger', label: 'Crítico' };
+  if (strain >= 300) return { tone: 'warning', label: 'Alto' };
+  if (strain >= 150) return { tone: 'success', label: 'Moderado' };
+  return { tone: 'neutral', label: 'Baixo' };
 }
 
 /** Tom da carga aguda (ATL): acima de ~120 km/semana sinaliza atenção. */
@@ -130,6 +160,7 @@ export function buildSelectedAthleteFromDashboard(
       monotony: calcularMonotonia(pmcPoints),
       tsb: latestPmc?.tsb ?? null,
       acwr: calcularAcwr(latestPmc?.atl ?? null, latestPmc?.ctl ?? null),
+      strain: calcularStrain(pmcPoints),
       recovery: latestAdherence?.percentual ?? 0,
     },
   };
@@ -171,6 +202,7 @@ export function buildRosterRowFromSummary(roster: CoachAtletaResumo): CoachAthle
       monotony: 1,
       tsb: null,
       acwr: calcularAcwr(roster.atl ?? null, roster.ctl ?? null),
+      strain: null, // resumo do roster não traz histórico PMC; strain só no perfil completo
       recovery: 0,
     },
   };
