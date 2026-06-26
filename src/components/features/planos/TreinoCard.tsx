@@ -65,13 +65,11 @@ const MetricItem: React.FC<{ icon: React.ReactNode; label: string; value: string
 
 const RPE_MARKS = [1,2,3,4,5,6,7,8,9,10].map(v => ({ value: v, label: String(v) }));
 
+/** Cor por zona de RPE (1–10): ≤4 baixo/recuperação, 5–7 moderado, 8–10 alto/máximo. */
 function getRpeColor(rpe: number): string {
-    if (rpe <= 3) return '#4caf50';
-    if (rpe <= 5) return '#8bc34a';
-    if (rpe <= 7) return '#ffc107';
-    if (rpe <= 8) return '#ff9800';
-    if (rpe <= 9) return '#ff5722';
-    return '#f44336';
+    if (rpe <= 4) return semantic.success[500];
+    if (rpe <= 7) return semantic.warning[500];
+    return semantic.danger[500];
 }
 
 const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRealizado, onMarcarPerdido }) => {
@@ -242,8 +240,8 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                         py: 1.5,
                         mx: 2,
                         mb: 2,
-                        background: `linear-gradient(135deg, ${`rgba(245,158,11,0.12)`} 0%, ${`rgba(245,158,11,0.06)`} 100%)`,
-                        border: `1px solid rgba(245,158,11,0.25)`,
+                        background: `linear-gradient(135deg, ${semantic.warning[500]}1F 0%, ${semantic.warning[500]}0F 100%)`,
+                        border: `1px solid ${semantic.warning[500]}40`,
                         borderRadius: 1.5,
                         backdropFilter: 'blur(8px)',
                     }}
@@ -251,12 +249,12 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                         <InsightIcon
                             fontSize="small"
-                            sx={{ color: 'rgba(255, 152, 0, 0.8)', flexShrink: 0 }}
+                            sx={{ color: semantic.warning[400], flexShrink: 0 }}
                         />
                         <Typography
                             variant="caption"
                             sx={{
-                                color: 'rgba(255,255,255,0.7)',
+                                color: surface[200],
                                 fontWeight: 600,
                                 textTransform: 'uppercase',
                                 letterSpacing: 0.5,
@@ -272,7 +270,7 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                                 size="small"
                                 sx={{
                                     bgcolor: getRpeColor(analise.executionScore),
-                                    color: '#fff',
+                                    color: surface[900],
                                     fontWeight: 700,
                                     fontSize: '0.7rem',
                                     height: 20,
@@ -292,7 +290,7 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                             <Typography
                                 variant="body2"
                                 sx={{
-                                    color: 'rgba(255,255,255,0.8)',
+                                    color: surface[200],
                                     lineHeight: 1.5,
                                     display: expandedInsight ? 'block' : '-webkit-box',
                                     WebkitLineClamp: expandedInsight ? 'unset' : 2,
@@ -305,18 +303,18 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                             </Typography>
 
                             {expandedInsight && analise.recommendation && (
-                                <Box sx={{ mt: 1, pt: 1, borderTop: '1px solid rgba(245,158,11,0.2)' }}>
-                                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>
+                                <Box sx={{ mt: 1, pt: 1, borderTop: `1px solid ${semantic.warning[500]}33` }}>
+                                    <Typography variant="caption" sx={{ fontWeight: 600, color: surface[400] }}>
                                         Recomendação
                                     </Typography>
-                                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)', lineHeight: 1.5 }}>
+                                    <Typography variant="body2" sx={{ color: surface[200], lineHeight: 1.5 }}>
                                         {analise.recommendation}
                                     </Typography>
                                     {analise.primaryCause && (
                                         <Chip
                                             label={PRIMARY_CAUSE_LABEL[analise.primaryCause]}
                                             size="small"
-                                            sx={{ mt: 0.75, bgcolor: 'rgba(255,152,0,0.15)', fontSize: '0.7rem' }}
+                                            sx={{ mt: 0.75, bgcolor: `${semantic.warning[500]}26`, fontSize: '0.7rem' }}
                                         />
                                     )}
                                 </Box>
@@ -328,7 +326,7 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                                 sx={{
                                     mt: 0.5,
                                     textTransform: 'none',
-                                    color: 'rgba(245,158,11,0.9)',
+                                    color: semantic.warning[400],
                                     fontSize: '0.75rem',
                                     p: 0,
                                     '&:hover': { bgcolor: 'transparent' },
@@ -389,11 +387,11 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                             sx={{
                                 flex: 1,
                                 minWidth: 0,
-                                color: 'error.main',
-                                borderColor: 'error.main',
+                                color: semantic.danger[500],
+                                borderColor: semantic.danger[500],
                                 '&:hover': {
-                                    bgcolor: 'rgba(244, 67, 54, 0.08)',
-                                    borderColor: 'error.dark',
+                                    bgcolor: `${semantic.danger[500]}14`,
+                                    borderColor: semantic.danger[700],
                                 },
                             }}
                         >
