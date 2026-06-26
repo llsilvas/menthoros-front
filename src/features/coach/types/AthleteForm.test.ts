@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formFromTSB } from './AthleteForm';
+import { formFromTSB, getTsbFormaTone } from './AthleteForm';
 
 describe('formFromTSB', () => {
   it('form_excellent: TSB >= 15', () => {
@@ -25,5 +25,24 @@ describe('formFromTSB', () => {
   it('form_critical: TSB < -20 (BVA: -21) — alinhado com backend danger <= -20', () => {
     expect(formFromTSB(-21)).toBe('form_critical');
     expect(formFromTSB(-100)).toBe('form_critical');
+  });
+});
+
+describe('getTsbFormaTone', () => {
+  it('mapeia excellent e good para success', () => {
+    expect(getTsbFormaTone('form_excellent')).toBe('success');
+    expect(getTsbFormaTone('form_good')).toBe('success');
+  });
+
+  it('mapeia stable para neutral', () => {
+    expect(getTsbFormaTone('form_stable')).toBe('neutral');
+  });
+
+  it('mapeia low para warning', () => {
+    expect(getTsbFormaTone('form_low')).toBe('warning');
+  });
+
+  it('mapeia critical para danger', () => {
+    expect(getTsbFormaTone('form_critical')).toBe('danger');
   });
 });

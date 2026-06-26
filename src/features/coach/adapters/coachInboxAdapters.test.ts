@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calcularMonotonia, calcularLoadDelta, calcularAcwr } from './coachInboxAdapters';
+import { calcularMonotonia, calcularLoadDelta, calcularAcwr, getAcwrZone } from './coachInboxAdapters';
 import type { PmcPontoRaw } from '../../../types/AtletaPerfilCoach';
 
 function pmc(over: Partial<PmcPontoRaw>): PmcPontoRaw {
@@ -90,5 +90,37 @@ describe('calcularAcwr', () => {
 
   it('BVA: limiar exato 1.3 (fronteira ideal/atenção)', () => {
     expect(calcularAcwr(65, 50)).toBe(1.3);
+  });
+});
+
+describe('getAcwrZone', () => {
+  it('null → neutral / Sem dados', () => {
+    expect(getAcwrZone(null)).toEqual({ tone: 'neutral', label: 'Sem dados' });
+  });
+
+  it('> 1.5 → danger / Risco', () => {
+    expect(getAcwrZone(1.8)).toEqual({ tone: 'danger', label: 'Risco' });
+  });
+
+  it('BVA: 1.5 ainda é Atenção (limiar é > 1.5)', () => {
+    expect(getAcwrZone(1.5)).toEqual({ tone: 'warning', label: 'Atenção' });
+    expect(getAcwrZone(1.51)).toEqual({ tone: 'danger', label: 'Risco' });
+  });
+
+  it('1.3 < acwr <= 1.5 → warning / Atenção', () => {
+    expect(getAcwrZone(1.4)).toEqual({ tone: 'warning', label: 'Atenção' });
+  });
+
+  it('BVA: 1.3 é Ideal (limiar é > 1.3)', () => {
+    expect(getAcwrZone(1.3)).toEqual({ tone: 'success', label: 'Ideal' });
+  });
+
+  it('0.8 <= acwr <= 1.3 → success / Ideal', () => {
+    expect(getAcwrZone(1.0)).toEqual({ tone: 'success', label: 'Ideal' });
+    expect(getAcwrZone(0.8)).toEqual({ tone: 'success', label: 'Ideal' });
+  });
+
+  it('< 0.8 → warning / Muito baixo', () => {
+    expect(getAcwrZone(0.5)).toEqual({ tone: 'warning', label: 'Muito baixo' });
   });
 });
