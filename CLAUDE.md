@@ -46,6 +46,12 @@ src/
     auth/  common/  dashboard/  features/
   context/              ← React Context providers (auth/, ...)
   features/             ← feature shells (NEW model): coach/, athlete/
+    <role>/
+      adapters/         ← pure transform functions: ApiType → ViewModelType (no hooks, no state)
+      components/       ← presentational components scoped to this role
+      hooks/            ← data/logic hooks scoped to this role
+      pages/            ← route-level page components
+      types/            ← view model types local to this feature (assembled by adapters)
   hooks/                ← data/logic hooks (useAtletas, usePlanoSemanal, ...)
   pages/                ← legacy shell (home/, auth/, atletas/, reconciliacao/, landing/)
   services/             ← non-generated API wrappers (Metricas, Strava, auth)
@@ -137,6 +143,31 @@ export function useAtletas() {
 > endpoints curados que não existem mais no backend. Migrar, se desejado, é incremental por-feature
 > com testes.
 
+## Adapter Pattern (feature shells)
+
+Adapters são funções puras em `features/<role>/adapters/` que transformam tipos de API em view models locais. Regras:
+
+- **Sem estado, sem hooks, sem side effects** — adapter é transformação pura, testável com `*.test.ts` simples.
+- **Tipos de API** (`src/api`, `src/types`) entram; **view model types** (`features/<role>/types/`) saem.
+- Antes de computar um valor derivado num componente ou hook, checar se já existe uma função helper em `adapters/`, `types/` ou `components/` da feature — evita duplicação e divergência de lógica (ex.: `formFromTSB()` em `types/AthleteForm.ts` existia mas não era usada).
+- Nomes de função no padrão `buildXxxFromYyy` (ex.: `buildSelectedAthleteFromDashboard`, `buildRaceCalendarFromProfile`).
+
+## Vocabulário de métricas PMC (obrigatório para features de treinamento)
+
+Os três campos do `PmcPontoDto` têm semântica distinta — confundi-los gera bugs silenciosos:
+
+| Campo | Nome completo | O que representa | Sobe quando |
+|---|---|---|---|
+| `ctl` | Chronic Training Load | **Fitness** — média exponencial de TSS (~42 dias) | Atleta treina consistentemente por semanas |
+| `atl` | Acute Training Load | **Fadiga aguda** — média exponencial de TSS (~7 dias) | Atleta treina muito nos últimos dias |
+| `tsb` | Training Stress Balance | **Forma** = CTL − ATL | Atleta descansa (CTL > ATL) |
+| `tss` | Training Stress Score | Carga de um treino individual | Treino mais intenso/longo |
+
+Regras de uso:
+- `acuteLoad` em view models deve usar `atl`, nunca `ctl`.
+- "Fadiga" e "Forma" são derivados de `tsb` (via `formFromTSB()`), não de `atl` diretamente.
+- Monotonia = `mean(TSS_7d) / stddev(TSS_7d)` — requer pelo menos 3 pontos de `tss` no array PMC.
+
 ## Design System Standards
 
 - Colors, typography, zones (Z1–Z5), and glass effects live in `src/theme/tokens.ts` and `src/shared/design-tokens`. The MUI theme is overridden centrally in `App.tsx`.
@@ -208,4 +239,4 @@ When finishing a frontend task, report:
 3. Validation commands executed and results.
 4. Risks, assumptions, or follow-up items (including remaining mocks).
 
-Last reviewed on: 2026-06-13
+Last reviewed on: 2026-06-26
