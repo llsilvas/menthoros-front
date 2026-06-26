@@ -1,3 +1,5 @@
+import type { FormVariant } from './AthleteForm';
+
 export type DecisionState = 'PENDING' | 'APPROVED' | 'REJECTED';
 export type SegmentFilter = 'all' | 'attention' | 'drop' | 'stable' | 'growth';
 export type PlanStatus = 'ATRASADO' | 'NO_PRAZO' | 'CONCLUIDO';
@@ -49,4 +51,10 @@ export interface CoachAthleteRow {
     /** % de aderência da semana mais recente — NÃO é recuperação fisiológica (TSB). Ver follow-up de semântica. */
     recovery: number;
   };
+  /** Forma prevista no dia da próxima prova (taper puro). null quando sem prova futura ou sem PMC. */
+  racePrediction: {
+    diasAteProva: number;
+    tsbPrevisto: number;
+    formaPrevista: FormVariant;
+  } | null;
 }

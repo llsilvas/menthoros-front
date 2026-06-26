@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { calcularMonotonia, calcularLoadDelta, calcularAcwr, getAcwrZone, getAcuteLoadTone, getMonotonyTone, calcularStrain, getStrainZone } from './coachInboxAdapters';
-import type { PmcPontoRaw } from '../../../types/AtletaPerfilCoach';
+import { calcularMonotonia, calcularLoadDelta, calcularAcwr, getAcwrZone, getAcuteLoadTone, getMonotonyTone, calcularStrain, getStrainZone, calcularPrevisaoForma, calcularDiasAteProva } from './coachInboxAdapters';
+import type { PmcPontoRaw, AtletaPerfilCoachDto } from '../../../types/AtletaPerfilCoach';
+import type { Prova } from '../../../types/Prova';
 
 function pmc(over: Partial<PmcPontoRaw>): PmcPontoRaw {
   return { data: '2026-06-01', ctl: 50, atl: 55, tsb: -5, tss: 80, ...over };
+}
+
+function profileComProvas(datas: string[]): AtletaPerfilCoachDto {
+  return {
+    provas: datas.map((d, i) => ({ nomeProva: `Prova ${i}`, dataProva: d } as Prova)),
+  } as AtletaPerfilCoachDto;
 }
 
 describe('calcularMonotonia', () => {
@@ -163,6 +170,54 @@ describe('calcularStrain', () => {
     ];
     const tssSemanal = 30 + 30 + 150 + 30 + 150 + 30 + 150; // 570
     expect(calcularStrain(pts)).toBeGreaterThan(tssSemanal);
+  });
+});
+
+describe('calcularPrevisaoForma', () => {
+  it('retorna null quando ctl ou atl é null', () => {
+    expect(calcularPrevisaoForma(null, 65, 14)).toBeNull();
+    expect(calcularPrevisaoForma(50, null, 14)).toBeNull();
+  });
+
+  it('retorna null quando diasAteProva <= 0', () => {
+    expect(calcularPrevisaoForma(50, 65, 0)).toBeNull();
+    expect(calcularPrevisaoForma(50, 65, -3)).toBeNull();
+  });
+
+  it('taper de 14 dias: CTL cai menos que ATL → TSB positivo', () => {
+    // CTL(14)=50·e^(-1/3)≈35.8 · ATL(14)=65·e^(-2)≈8.8 → TSB≈+27
+    const r = calcularPrevisaoForma(50, 65, 14);
+    expect(r).not.toBeNull();
+    expect(r!.tsbPrevisto).toBeGreaterThan(20);
+    expect(r!.tsbPrevisto).toBeLessThan(35);
+  });
+
+  it('atleta muito fatigado em taper longo (21d) → forma excelente', () => {
+    const r = calcularPrevisaoForma(50, 90, 21);
+    expect(r!.formaPrevista).toBe('form_excellent');
+  });
+
+  it('ctl=atl: ATL decai mais rápido que CTL → TSB levemente positivo', () => {
+    const r = calcularPrevisaoForma(5, 5, 14);
+    expect(r!.tsbPrevisto).toBeGreaterThan(0);
+    expect(r!.tsbPrevisto).toBeLessThan(5);
+  });
+});
+
+describe('calcularDiasAteProva', () => {
+  const hoje = new Date('2026-06-26T12:00:00');
+
+  it('retorna -1 sem prova cadastrada', () => {
+    expect(calcularDiasAteProva({} as AtletaPerfilCoachDto, hoje)).toBe(-1);
+    expect(calcularDiasAteProva(null, hoje)).toBe(-1);
+  });
+
+  it('calcula dias para prova futura usando a mais próxima', () => {
+    expect(calcularDiasAteProva(profileComProvas(['2026-07-10', '2026-08-01']), hoje)).toBe(14);
+  });
+
+  it('retorna valor <= 0 quando a prova já passou', () => {
+    expect(calcularDiasAteProva(profileComProvas(['2026-06-20']), hoje)).toBeLessThanOrEqual(0);
   });
 });
 
