@@ -186,6 +186,17 @@ Regras de uso:
 - Prefer the `@/` path aliases over deep relative paths (`../../../`). Available aliases: `@/`, `@/components`, `@/hooks`, `@/services`, `@/utils`, `@/types`, `@/config` (see the `@/features` gotcha above).
 - Keep import groups ordered: external (react, mui) → internal (`@/...`) → types.
 
+## Convenção de nomenclatura
+
+| Camada | Idioma | Exemplos |
+|---|---|---|
+| Arquivos, componentes, hooks, tipos TS, funções | **inglês** | `ReviewTabPanel`, `useCoachDashboard`, `CoachAthleteRow`, `formFromTSB` |
+| Strings de valor — domínio de negócio | **PT-BR** | `'ATRASADO'`, `'ALVO'`, `'AGUARDANDO_REVISAO'` |
+| Strings de valor — estados técnicos | **inglês** | `'PENDING'`, `'APPROVED'`, `'REJECTED'` |
+| Labels e copy na UI | **PT-BR** | `"Aderência"`, `"Fila de revisão"` |
+
+Não renomear arquivos/componentes existentes por esta regra — aplicar apenas em código novo.
+
 ## Mock Data
 
 The new shells contain placeholder mock data (e.g. `MOCK_TODAY`, ~40 occurrences across `features/`). Mock constants are temporary:
