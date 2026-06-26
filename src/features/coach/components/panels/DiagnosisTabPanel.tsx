@@ -7,7 +7,6 @@ import { TrendCard } from '../TrendCard';
 import { SectionCard } from '../SectionCard';
 import { formatKm, formatPercent } from '../coachInboxHelpers';
 import { ACTION_BTN_END_ICON_SX } from '../actionButtonSx';
-import { formFromTSB, formVariantLabel, getTsbFormaTone } from '../../types/AthleteForm';
 import { getAcuteLoadTone, getMonotonyTone, getStrainZone } from '../../adapters/coachInboxAdapters';
 import type { CoachAthleteRow } from '../../types/CoachInbox';
 import type { LimiareisInferidosDto } from '../../../../types/AtletaPerfilCoach';
@@ -81,7 +80,6 @@ interface DiagnosisTabPanelProps {
 }
 
 export function DiagnosisTabPanel({ selected, limiareisInferidos, onOpenPlan }: DiagnosisTabPanelProps) {
-  const tsbForma = selected.quickStats.tsb != null ? formFromTSB(selected.quickStats.tsb) : null;
   const strainZone = getStrainZone(selected.quickStats.strain);
   const statusColor = PLAN_STATUS_COLOR[selected.planStatus];
 
@@ -110,7 +108,7 @@ export function DiagnosisTabPanel({ selected, limiareisInferidos, onOpenPlan }: 
         </Box>
       </SectionCard>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(5, minmax(0, 1fr))' }, gap: { xs: 0.9, sm: 1.05, lg: 1.25, xl: 1.5 } }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: { xs: 0.9, sm: 1.05, lg: 1.25, xl: 1.5 } }}>
         <DetailMetric label="Carga aguda" value={formatKm(selected.quickStats.acuteLoad)} subtitle="Ideal: 110-150 km" tone={getAcuteLoadTone(selected.quickStats.acuteLoad)} />
         <DetailMetric label="Monotonia" value={selected.quickStats.monotony.toFixed(2)} subtitle="Ideal: < 2.0" tone={getMonotonyTone(selected.quickStats.monotony)} />
         <DetailMetric
@@ -118,12 +116,6 @@ export function DiagnosisTabPanel({ selected, limiareisInferidos, onOpenPlan }: 
           value={selected.quickStats.strain != null ? String(selected.quickStats.strain) : '—'}
           subtitle={strainZone.label}
           tone={strainZone.tone}
-        />
-        <DetailMetric
-          label="Forma"
-          value={tsbForma != null ? formVariantLabel[tsbForma] : '—'}
-          subtitle={selected.quickStats.tsb != null ? `TSB ${selected.quickStats.tsb}` : 'TSB não disponível'}
-          tone={tsbForma != null ? getTsbFormaTone(tsbForma) : 'neutral'}
         />
         <DetailMetric label="Recuperação" value={formatPercent(selected.quickStats.recovery)} subtitle="Boa" tone={selected.quickStats.recovery < 80 ? 'warning' : 'success'} />
       </Box>
