@@ -53,8 +53,8 @@ import { ROSTER_PAGE_SIZE } from '../hooks/useDashboardFilters';
 import type { SortKey, DashboardStatusFilter } from '../hooks/useDashboardFilters';
 import { elevation } from '../../../shared/design-tokens';
 import { content, primary, semantic, surface } from '../../../theme/tokens';
-import { buildRosterRowFromSummary, buildSelectedAthleteFromDashboard } from '../adapters/coachInboxAdapters';
-import { formFromTSB, formVariantLabel } from '../types/AthleteForm';
+import { buildRosterRowFromSummary, buildSelectedAthleteFromDashboard, getAcwrZone } from '../adapters/coachInboxAdapters';
+import { formFromTSB, formVariantLabel, getTsbFormaTone } from '../types/AthleteForm';
 import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
 
 type TabKey = 'review' | 'plan' | 'calendar' | 'status' | 'adherence';
@@ -132,6 +132,9 @@ function CoachInboxPage() {
 
   const nextRace = selected?.raceCalendar[0] ?? null;
   const isTargetRace = nextRace?.tag === 'ALVO';
+
+  const tsbForma = selected?.quickStats.tsb != null ? formFromTSB(selected.quickStats.tsb) : null;
+  const acwrZone = getAcwrZone(selected?.quickStats.acwr ?? null);
 
   useEffect(() => {
     if (rosterItems.length === 0) {
@@ -583,34 +586,16 @@ function CoachInboxPage() {
                 <MetricTile
                   compact
                   label="Forma"
-                  value={selected.quickStats.tsb != null ? formVariantLabel[formFromTSB(selected.quickStats.tsb)] : '—'}
+                  value={tsbForma != null ? formVariantLabel[tsbForma] : '—'}
                   delta={selected.quickStats.tsb != null ? `TSB ${selected.quickStats.tsb}` : 'TSB não disponível'}
-                  tone={
-                    selected.quickStats.tsb == null ? 'neutral'
-                    : formFromTSB(selected.quickStats.tsb) === 'form_critical' ? 'danger'
-                    : formFromTSB(selected.quickStats.tsb) === 'form_low' ? 'warning'
-                    : formFromTSB(selected.quickStats.tsb) === 'form_stable' ? 'neutral'
-                    : 'success'
-                  }
+                  tone={tsbForma != null ? getTsbFormaTone(tsbForma) : 'neutral'}
                 />
                 <MetricTile
                   compact
                   label="ACWR"
                   value={selected.quickStats.acwr != null ? selected.quickStats.acwr.toFixed(2) : '—'}
-                  delta={
-                    selected.quickStats.acwr == null ? 'Dado insuficiente'
-                    : selected.quickStats.acwr > 1.5 ? 'Risco'
-                    : selected.quickStats.acwr > 1.3 ? 'Atenção'
-                    : selected.quickStats.acwr >= 0.8 ? 'Ideal'
-                    : 'Muito baixo'
-                  }
-                  tone={
-                    selected.quickStats.acwr == null ? 'neutral'
-                    : selected.quickStats.acwr > 1.5 ? 'danger'
-                    : selected.quickStats.acwr > 1.3 ? 'warning'
-                    : selected.quickStats.acwr >= 0.8 ? 'success'
-                    : 'warning'
-                  }
+                  delta={selected.quickStats.acwr != null ? acwrZone.label : 'Dado insuficiente'}
+                  tone={acwrZone.tone}
                 />
                 <MetricTile compact label={isTargetRace ? 'Prova Alvo' : 'Próxima Prova'} delta={selected.raceCalendar[0]?.date ?? '—'} value={selected.raceCalendar[0]?.label ?? 'Sem prova próxima'} tone={isTargetRace ? 'warning' : 'neutral'} highlight={isTargetRace} />
               </Box>

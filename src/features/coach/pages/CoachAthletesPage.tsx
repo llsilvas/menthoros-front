@@ -36,7 +36,8 @@ import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { MetricCell } from '../../../shared/components/MetricCell';
 import { useCoachRoster } from '../../../hooks/useCoachRoster';
 import { deriveRosterKpis, daysSinceLastActivity, INACTIVITY_THRESHOLD_DAYS } from '../adapters/rosterKpis';
-import { calcularAcwr } from '../adapters/coachInboxAdapters';
+import { calcularAcwr, getAcwrZone } from '../adapters/coachInboxAdapters';
+import type { MetricTone } from '../types/AthleteForm';
 import type { CoachAtletaStatus } from '../../../types/Coach';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -68,6 +69,14 @@ const STATUS_LABEL: Record<CoachAtletaStatus, string> = {
 
 /** TSB a partir do qual a célula é marcada como perigo (sobrecarga). */
 const TSB_DANGER_THRESHOLD = -30;
+
+/** Mapeia o tom de uma métrica para a cor concreta do design system. */
+const TONE_COLOR: Record<MetricTone, string> = {
+  neutral: surface[400],
+  success: semantic.success[500],
+  warning: semantic.warning[500],
+  danger:  semantic.danger[500],
+};
 
 const TRAINING_PHASES: readonly TrainingPhase[] = ['BASE', 'BUILD', 'ESPECIFICO', 'TAPER', 'RECOVERY'];
 
@@ -329,12 +338,7 @@ export default function CoachAthletesPage() {
       align: 'left',
       renderCell: ({ row }) => {
         const acwr = row.acwr;
-        const color =
-          acwr == null ? 'inherit'
-          : acwr > 1.5 ? semantic.danger[500]
-          : acwr > 1.3 ? semantic.warning[500]
-          : acwr >= 0.8 ? semantic.success[500]
-          : semantic.warning[500];
+        const color = acwr == null ? 'inherit' : TONE_COLOR[getAcwrZone(acwr).tone];
         return (
           <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', color }}>
             <MetricCell value={acwr != null ? acwr.toFixed(2) : '—'} size="sm" tooltip="Razão Carga Aguda:Crônica (ATL/CTL) — risco de lesão" />

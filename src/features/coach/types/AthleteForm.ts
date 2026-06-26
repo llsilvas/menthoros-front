@@ -30,3 +30,20 @@ export function formFromTSB(tsb: number): FormVariant {
   if (tsb >= -20) return 'form_low';
   return 'form_critical';
 }
+
+export type MetricTone = 'neutral' | 'success' | 'warning' | 'danger';
+
+/** Mapeia a forma (variante de TSB) para o tom visual usado em tiles/métricas. */
+export function getTsbFormaTone(forma: FormVariant): MetricTone {
+  switch (forma) {
+    case 'form_excellent':
+    case 'form_good':
+      return 'success';
+    case 'form_stable':
+      return 'neutral';
+    case 'form_low':
+      return 'warning';
+    case 'form_critical':
+      return 'danger';
+  }
+}

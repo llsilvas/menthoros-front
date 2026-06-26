@@ -3,6 +3,7 @@ import type { CoachAtletaResumo, CoachAtletaStatus } from '../../../types/Coach'
 import type { AtletaPerfilCoachDto, PmcPontoRaw } from '../../../types/AtletaPerfilCoach';
 import type { Prova } from '../../../types/Prova';
 import type { CoachAthleteRow, RaceItem, SegmentFilter } from '../types/CoachInbox';
+import type { MetricTone } from '../types/AthleteForm';
 
 export function calcularMonotonia(pmcPoints: PmcPontoRaw[]): number {
   const ultimos7 = pmcPoints.slice(-7).map((p) => p.tss ?? 0).filter((v) => v > 0);
@@ -24,6 +25,18 @@ export function calcularLoadDelta(pmcPoints: PmcPontoRaw[]): number {
 export function calcularAcwr(atl: number | null, ctl: number | null): number | null {
   if (atl == null || ctl == null || ctl === 0) return null;
   return parseFloat((atl / ctl).toFixed(2));
+}
+
+/**
+ * Zona de risco do ACWR (Acute:Chronic Workload Ratio).
+ * Sweet spot 0.8–1.3; atenção até 1.5; acima é risco de lesão.
+ */
+export function getAcwrZone(acwr: number | null): { tone: MetricTone; label: string } {
+  if (acwr == null) return { tone: 'neutral', label: 'Sem dados' };
+  if (acwr > 1.5) return { tone: 'danger', label: 'Risco' };
+  if (acwr > 1.3) return { tone: 'warning', label: 'Atenção' };
+  if (acwr >= 0.8) return { tone: 'success', label: 'Ideal' };
+  return { tone: 'warning', label: 'Muito baixo' };
 }
 
 function formatDuration(iso: string | undefined): string {

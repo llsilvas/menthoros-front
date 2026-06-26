@@ -5,7 +5,7 @@ import { DashboardInsightsPanel } from '../DashboardInsightsPanel';
 import { DetailMetric } from '../DetailMetric';
 import { TrendCard } from '../TrendCard';
 import { formatKm, formatPercent } from '../coachInboxHelpers';
-import { formFromTSB, formVariantLabel } from '../../types/AthleteForm';
+import { formFromTSB, formVariantLabel, getTsbFormaTone } from '../../types/AthleteForm';
 import type { CoachAthleteRow } from '../../types/CoachInbox';
 import type { CoachInsights } from '../../../../types/Coach';
 import type { LimiareisInferidosDto } from '../../../../types/AtletaPerfilCoach';
@@ -14,6 +14,12 @@ const CONFIANCA_LABEL: Record<'ALTA' | 'MEDIA' | 'BAIXA', string> = {
   ALTA:  'Alta confiança',
   MEDIA: 'Média confiança',
   BAIXA: 'Baixa confiança',
+};
+
+const CONFIANCA_COLOR: Record<'ALTA' | 'MEDIA' | 'BAIXA', string> = {
+  ALTA:  semantic.success[500],
+  MEDIA: semantic.warning[500],
+  BAIXA: surface[400],
 };
 
 function LimiareisCard({ limiares }: { limiares: LimiareisInferidosDto }) {
@@ -44,7 +50,7 @@ function LimiareisCard({ limiares }: { limiares: LimiareisInferidosDto }) {
               {limiares.fcLimiarEstimado} bpm
             </Typography>
             {limiares.confiancaInferenciaFc && (
-              <Typography sx={{ fontSize: '0.68rem', color: limiares.confiancaInferenciaFc === 'ALTA' ? semantic.success[500] : limiares.confiancaInferenciaFc === 'MEDIA' ? semantic.warning[500] : surface[400] }}>
+              <Typography sx={{ fontSize: '0.68rem', color: CONFIANCA_COLOR[limiares.confiancaInferenciaFc] }}>
                 {CONFIANCA_LABEL[limiares.confiancaInferenciaFc]}
               </Typography>
             )}
@@ -57,7 +63,7 @@ function LimiareisCard({ limiares }: { limiares: LimiareisInferidosDto }) {
               {limiares.paceLimiarEstimadoFormatado} /km
             </Typography>
             {limiares.confiancaInferenciaPace && (
-              <Typography sx={{ fontSize: '0.68rem', color: limiares.confiancaInferenciaPace === 'ALTA' ? semantic.success[500] : limiares.confiancaInferenciaPace === 'MEDIA' ? semantic.warning[500] : surface[400] }}>
+              <Typography sx={{ fontSize: '0.68rem', color: CONFIANCA_COLOR[limiares.confiancaInferenciaPace] }}>
                 {CONFIANCA_LABEL[limiares.confiancaInferenciaPace]}
               </Typography>
             )}
@@ -90,7 +96,7 @@ export function StatusTabPanel({ dashboardInsights, selected, limiareisInferidos
         label="Forma"
         value={tsbForma != null ? formVariantLabel[tsbForma] : '—'}
         subtitle={selected.quickStats.tsb != null ? `TSB ${selected.quickStats.tsb}` : 'TSB não disponível'}
-        tone={tsbForma === 'form_critical' || tsbForma === 'form_low' ? 'warning' : 'success'}
+        tone={tsbForma != null ? getTsbFormaTone(tsbForma) : 'neutral'}
       />
       <DetailMetric label="Recuperação" value={formatPercent(selected.quickStats.recovery)} subtitle="Boa" tone={selected.quickStats.recovery < 80 ? 'warning' : 'success'} />
       <Box
