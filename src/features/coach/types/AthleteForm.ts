@@ -4,8 +4,8 @@ export type FormVariant =
   | 'form_excellent' // TSB >= 15  — primary-500 lime
   | 'form_good'      // TSB 5..14  — success-500 emerald
   | 'form_stable'    // TSB -10..4 — info-500 blue
-  | 'form_low'       // TSB -25..-11 — warning-500 amber
-  | 'form_critical'; // TSB < -25  — danger-500 red
+  | 'form_low'       // TSB -20..-11 — warning-500 amber
+  | 'form_critical'; // TSB < -20  — danger-500 red (alinhado com backend deriveStatus danger ≤ -20)
 
 export const formVariantColor: Record<FormVariant, string> = {
   form_excellent: primary[500],
@@ -27,6 +27,23 @@ export function formFromTSB(tsb: number): FormVariant {
   if (tsb >= 15)  return 'form_excellent';
   if (tsb >= 5)   return 'form_good';
   if (tsb >= -10) return 'form_stable';
-  if (tsb >= -25) return 'form_low';
+  if (tsb >= -20) return 'form_low';
   return 'form_critical';
+}
+
+export type MetricTone = 'neutral' | 'success' | 'warning' | 'danger';
+
+/** Mapeia a forma (variante de TSB) para o tom visual usado em tiles/métricas. */
+export function getTsbFormaTone(forma: FormVariant): MetricTone {
+  switch (forma) {
+    case 'form_excellent':
+    case 'form_good':
+      return 'success';
+    case 'form_stable':
+      return 'neutral';
+    case 'form_low':
+      return 'warning';
+    case 'form_critical':
+      return 'danger';
+  }
 }

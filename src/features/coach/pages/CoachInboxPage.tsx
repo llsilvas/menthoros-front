@@ -53,7 +53,8 @@ import { ROSTER_PAGE_SIZE } from '../hooks/useDashboardFilters';
 import type { SortKey, DashboardStatusFilter } from '../hooks/useDashboardFilters';
 import { elevation } from '../../../shared/design-tokens';
 import { content, primary, semantic, surface } from '../../../theme/tokens';
-import { buildRosterRowFromSummary, buildSelectedAthleteFromDashboard } from '../adapters/coachInboxAdapters';
+import { buildRosterRowFromSummary, buildSelectedAthleteFromDashboard, getAcwrZone } from '../adapters/coachInboxAdapters';
+import { formFromTSB, formVariantLabel, getTsbFormaTone } from '../types/AthleteForm';
 import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
 
 type TabKey = 'review' | 'plan' | 'calendar' | 'status' | 'adherence';
@@ -73,9 +74,6 @@ const DASHBOARD_STATUS_OPTIONS: Array<{ key: DashboardStatusFilter; label: strin
   { key: 'paused', label: 'Pausado' },
 ];
 
-
-
-
 const TABS: Array<{ key: TabKey; label: string; icon: ReactElement }> = [
   { key: 'review', label: 'Revisão do treino', icon: <CheckCircleIcon fontSize="small" /> },
   { key: 'plan', label: 'Ajustes de plano', icon: <TuneIcon fontSize="small" /> },
@@ -83,17 +81,6 @@ const TABS: Array<{ key: TabKey; label: string; icon: ReactElement }> = [
   { key: 'status', label: 'Status do treinamento', icon: <NotificationsNoneIcon fontSize="small" /> },
   { key: 'adherence', label: 'Adesão', icon: <FilterAltIcon fontSize="small" /> },
 ];
-
-
-
-
-
-
-
-
-
-
-
 
 function CoachInboxPage() {
   const navigate = useNavigate();
@@ -145,6 +132,9 @@ function CoachInboxPage() {
 
   const nextRace = selected?.raceCalendar[0] ?? null;
   const isTargetRace = nextRace?.tag === 'ALVO';
+
+  const tsbForma = selected?.quickStats.tsb != null ? formFromTSB(selected.quickStats.tsb) : null;
+  const acwrZone = getAcwrZone(selected?.quickStats.acwr ?? null);
 
   useEffect(() => {
     if (rosterItems.length === 0) {
@@ -247,23 +237,6 @@ function CoachInboxPage() {
             ),
           }}
         />
-
-        {/* <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <IconButton size="small" sx={{ border: `1px solid ${content.cardBorder}`, bgcolor: `${surface[0]}08` }}>
-            <NotificationsNoneIcon fontSize="small" />
-          </IconButton>
-          <IconButton size="small" sx={{ border: `1px solid ${content.cardBorder}`, bgcolor: `${surface[0]}08` }}>
-            <ChatBubbleOutlineIcon fontSize="small" />
-          </IconButton>
-          <Button
-            variant="outlined"
-            size="small"
-            endIcon={<ExpandMoreIcon />}
-            sx={{ textTransform: 'none', borderColor: content.cardBorder, color: surface[200], minWidth: 160 }}
-          >
-            Lucas Ferreira
-          </Button>
-        </Box> */}
       </Box>
 
       <Box
@@ -603,14 +576,27 @@ function CoachInboxPage() {
                   px: { xs: 1.1, sm: 1.2, lg: 1.3, xl: 2 },
                   py: { xs: 0.65, sm: 0.75, lg: 0.85, xl: 1.25 },
                   display: 'grid',
-                  gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, minmax(0, 1fr))' },
+                  gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(5, minmax(0, 1fr))' },
                   gap: { xs: 0.55, sm: 0.65, lg: 0.75, xl: 1.2 },
                   borderBottom: `1px solid ${content.divider}`,
                 }}
               >
-                <MetricTile compact label="Aderência" value={formatPercent(selected.adherence)} delta="Últimas 6 semanas" tone={selected.adherence >= 85 ? 'success' : selected.adherence >= 70 ? 'neutral' : 'warning'} />
+                <MetricTile compact label="Aderência" value={formatPercent(selected.adherence)} delta="Últimas 4 semanas" tone={selected.adherence >= 85 ? 'success' : selected.adherence >= 70 ? 'neutral' : 'warning'} />
                 <MetricTile compact label="Carga (7d)" value={formatKm(selected.load7d)} delta={`${selected.loadDelta >= 0 ? '+' : ''}${selected.loadDelta}% vs. ant.`} tone={selected.loadDelta >= 10 ? 'warning' : 'success'} />
-                <MetricTile compact label="Fadiga" value={selected.quickStats.fatigue} delta={`Monotonia ${selected.quickStats.monotony.toFixed(2)}`} tone={selected.quickStats.fatigue === 'Alta' ? 'danger' : selected.quickStats.fatigue === 'Média' ? 'warning' : 'success'} />
+                <MetricTile
+                  compact
+                  label="Forma"
+                  value={tsbForma != null ? formVariantLabel[tsbForma] : '—'}
+                  delta={selected.quickStats.tsb != null ? `TSB ${selected.quickStats.tsb}` : 'TSB não disponível'}
+                  tone={tsbForma != null ? getTsbFormaTone(tsbForma) : 'neutral'}
+                />
+                <MetricTile
+                  compact
+                  label="ACWR"
+                  value={selected.quickStats.acwr != null ? selected.quickStats.acwr.toFixed(2) : '—'}
+                  delta={selected.quickStats.acwr != null ? acwrZone.label : 'Dado insuficiente'}
+                  tone={acwrZone.tone}
+                />
                 <MetricTile compact label={isTargetRace ? 'Prova Alvo' : 'Próxima Prova'} delta={selected.raceCalendar[0]?.date ?? '—'} value={selected.raceCalendar[0]?.label ?? 'Sem prova próxima'} tone={isTargetRace ? 'warning' : 'neutral'} highlight={isTargetRace} />
               </Box>
 
@@ -691,6 +677,7 @@ function CoachInboxPage() {
                   <StatusTabPanel
                     dashboardInsights={dashboardInsights}
                     selected={selected}
+                    limiareisInferidos={selectedProfile?.limiareisInferidos ?? null}
                     onOpenInsights={() => navigate('/coach/insights')}
                   />
                 ) : null}
