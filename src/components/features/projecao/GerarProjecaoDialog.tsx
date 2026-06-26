@@ -6,22 +6,18 @@ import {
     Checkbox,
     Chip,
     CircularProgress,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
     Divider,
     FormControlLabel,
-    IconButton,
     MenuItem,
     Stack,
     TextField,
     Typography,
     useMediaQuery,
 } from '@mui/material';
-import { Close as CloseIcon, TrendingUp as TrendingUpIcon } from '@mui/icons-material';
+import { TrendingUp as TrendingUpIcon } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import Grid from '@mui/material/Grid';
+import { CoachDialog } from '../../../features/coach/components/CoachDialog';
 import { useProvas } from '../../../hooks/useProvas';
 import { useRaceProjection } from '../../../hooks/useRaceProjection';
 import type {
@@ -183,97 +179,62 @@ const GerarProjecaoDialog: React.FC<GerarProjecaoDialogProps> = ({
         return status !== 'CONCLUIDA' && status !== 'CANCELADA';
     });
 
+    const projChip = (
+        <Chip
+            icon={<TrendingUpIcon sx={{ fontSize: 14, color: `${primary[500]} !important` }} />}
+            label="Projeção de Prova"
+            size="small"
+            sx={{
+                bgcolor: `${surface[0]}1F`,
+                color: surface[200],
+                fontWeight: 700,
+                border: `1px solid ${surface[0]}1F`,
+            }}
+        />
+    );
+
     return (
         <>
-            <Dialog
+            <CoachDialog
                 open={open}
                 onClose={handleClose}
-                fullScreen={isMobile}
                 maxWidth="md"
-                fullWidth
-                slotProps={{
-                    paper: {
-                        sx: {
-                            overflow: 'hidden',
-                            borderRadius: 1,
-                            backgroundColor: elevation.base,
-                            border: `1px solid ${content.cardBorder}`,
-                        },
-                    },
+                disableClose={generating}
+                chip={projChip}
+                title={`Gerar Projeção — ${atletaNome}`}
+                subtitle="Pipeline de 3 camadas: regressão de pace + Riegel + ajuste por periodização e TSB"
+                component="form"
+                onSubmit={handleSubmit}
+                dividers
+                contentSx={{
+                    p: 0,
+                    background: `radial-gradient(circle at top right, ${primary[500]}14, transparent 24%), linear-gradient(180deg, ${elevation.base} 0%, ${elevation.panel} 100%)`,
                 }}
+                actionsHint={
+                    <Typography variant="caption" sx={{ color: surface[400] }}>
+                        A geração leva ~2–5 segundos (inclui análise por LLM)
+                    </Typography>
+                }
+                actions={
+                    <>
+                        <Button onClick={handleClose} disabled={generating} size="small" fullWidth={isMobile}>
+                            Cancelar
+                        </Button>
+                        <Button
+                            type="submit"
+                            variant="contained"
+                            disabled={generating || selectedDistances.length === 0}
+                            size="small"
+                            fullWidth={isMobile}
+                            startIcon={generating ? <CircularProgress size={14} color="inherit" /> : <TrendingUpIcon />}
+                            sx={{ bgcolor: primary[500], color: surface[900], fontWeight: 800, '&:hover': { bgcolor: primary[400] } }}
+                        >
+                            {generating ? 'Gerando...' : 'Gerar Projeção'}
+                        </Button>
+                    </>
+                }
             >
-                <DialogTitle
-                    sx={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: 2,
-                        px: { xs: 2, md: 3 },
-                        py: { xs: 2, md: 2.25 },
-                        pr: { xs: 7, md: 8 },
-                        color: surface[50],
-                        background: `linear-gradient(135deg, ${elevation.base} 0%, ${elevation.panel} 55%, ${elevation.card} 100%)`,
-                        borderBottom: `1px solid ${content.divider}`,
-                    }}
-                >
-                    <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1, mb: 1 }}>
-                            <Chip
-                                icon={<TrendingUpIcon sx={{ fontSize: 14, color: `${primary[500]} !important` }} />}
-                                label="Projeção de Prova"
-                                size="small"
-                                sx={{
-                                    bgcolor: `${surface[0]}1F`,
-                                    color: surface[200],
-                                    fontWeight: 700,
-                                    border: `1px solid ${surface[0]}1F`,
-                                }}
-                            />
-                        </Box>
-                        <Typography
-                            variant="h6"
-                            sx={{
-                                fontFamily: 'Syne, sans-serif',
-                                fontWeight: 800,
-                                lineHeight: 1.15,
-                                pr: 2,
-                                fontSize: { xs: '1.05rem', md: '1.25rem' },
-                            }}
-                        >
-                            Gerar Projeção — {atletaNome}
-                        </Typography>
-                        <Typography
-                            variant="body2"
-                            sx={{ mt: 0.75, color: surface[400], fontSize: { xs: '0.8rem', md: '0.875rem' } }}
-                        >
-                            Pipeline de 3 camadas: regressão de pace + Riegel + ajuste por periodização e TSB
-                        </Typography>
-                    </Box>
-                    <IconButton
-                        onClick={handleClose}
-                        disabled={generating}
-                        sx={{
-                            position: 'absolute',
-                            right: 12,
-                            top: 12,
-                            color: surface[50],
-                            bgcolor: `${surface[0]}0F`,
-                            border: `1px solid ${surface[0]}14`,
-                            '&:hover': { bgcolor: `${surface[0]}1F` },
-                        }}
-                    >
-                        <CloseIcon />
-                    </IconButton>
-                </DialogTitle>
-
-                <form onSubmit={handleSubmit} noValidate style={{ display: 'contents' }}>
-                    <DialogContent
-                        dividers
-                        sx={{
-                            p: 0,
-                            background: `radial-gradient(circle at top right, ${primary[500]}14, transparent 24%), linear-gradient(180deg, ${elevation.base} 0%, ${elevation.panel} 100%)`,
-                        }}
-                    >
-                        <Stack spacing={2} sx={{ p: { xs: 1.5, md: 3 } }}>
+                <Stack spacing={2} sx={{ p: { xs: 1.5, md: 3 } }}>
                             {(submitError || generateError) && (
                                 <Alert severity="error">{submitError ?? generateError}</Alert>
                             )}
@@ -507,43 +468,7 @@ const GerarProjecaoDialog: React.FC<GerarProjecaoDialogProps> = ({
                                 </Grid>
                             </Box>
                         </Stack>
-                    </DialogContent>
-
-                    <DialogActions
-                        sx={{
-                            px: { xs: 2, md: 3 },
-                            py: 2,
-                            background: elevation.panel,
-                            borderTop: `1px solid ${content.divider}`,
-                            flexDirection: { xs: 'column', sm: 'row' },
-                            alignItems: { xs: 'stretch', sm: 'center' },
-                            gap: 1,
-                        }}
-                    >
-                        <Box sx={{ flexGrow: 1 }}>
-                            <Typography variant="caption" sx={{ color: surface[400] }}>
-                                A geração leva ~2–5 segundos (inclui análise por LLM)
-                            </Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                            <Button onClick={handleClose} disabled={generating} size="small" fullWidth={isMobile}>
-                                Cancelar
-                            </Button>
-                            <Button
-                                type="submit"
-                                variant="contained"
-                                disabled={generating || selectedDistances.length === 0}
-                                size="small"
-                                fullWidth={isMobile}
-                                startIcon={generating ? <CircularProgress size={14} color="inherit" /> : <TrendingUpIcon />}
-                                sx={{ bgcolor: primary[500], color: surface[900], fontWeight: 800, '&:hover': { bgcolor: primary[400] } }}
-                            >
-                                {generating ? 'Gerando...' : 'Gerar Projeção'}
-                            </Button>
-                        </Box>
-                    </DialogActions>
-                </form>
-            </Dialog>
+            </CoachDialog>
 
             {resultSnapshot && (
                 <ProjecaoResultadoDialog
