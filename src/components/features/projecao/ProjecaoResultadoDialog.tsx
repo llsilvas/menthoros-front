@@ -210,7 +210,7 @@ const ProjecaoResultadoDialog: React.FC<ProjecaoResultadoDialogProps> = ({
                                         <TableCell sx={{ color: surface[200] }}>
                                             {formatPace(proj.projectedPaceSecPerKm)}
                                         </TableCell>
-                                        <TableCell sx={{ color: surface[500], fontSize: '0.75rem' }}>
+                                        <TableCell sx={{ color: surface[400], fontSize: '0.75rem' }}>
                                             {formatSeconds(proj.timeRangeOptimisticSec)} – {formatSeconds(proj.timeRangeConservativeSec)}
                                         </TableCell>
                                         <TableCell>
@@ -259,7 +259,7 @@ const ProjecaoResultadoDialog: React.FC<ProjecaoResultadoDialogProps> = ({
                             <Stack spacing={0.5} sx={{ mt: 1 }}>
                                 {currentSnapshot.keyAssumptions.map((assumption, i) => (
                                     <Box key={i} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                                        <Typography variant="body2" sx={{ color: surface[500], flexShrink: 0 }}>•</Typography>
+                                        <Typography variant="body2" sx={{ color: surface[400], flexShrink: 0 }}>•</Typography>
                                         <Typography variant="body2" sx={{ color: surface[200] }}>{assumption}</Typography>
                                     </Box>
                                 ))}
@@ -416,7 +416,7 @@ const ProjecaoResultadoDialog: React.FC<ProjecaoResultadoDialogProps> = ({
                             </Typography>
                         </Box>
                     ) : (
-                        <Typography variant="caption" sx={{ color: surface[500] }}>
+                        <Typography variant="caption" sx={{ color: surface[400] }}>
                             Marque como oficial para liberar ao atleta
                         </Typography>
                     )}

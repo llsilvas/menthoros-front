@@ -521,7 +521,7 @@ const GerarProjecaoDialog: React.FC<GerarProjecaoDialogProps> = ({
                         }}
                     >
                         <Box sx={{ flexGrow: 1 }}>
-                            <Typography variant="caption" sx={{ color: surface[500] }}>
+                            <Typography variant="caption" sx={{ color: surface[400] }}>
                                 A geração leva ~2–5 segundos (inclui análise por LLM)
                             </Typography>
                         </Box>
