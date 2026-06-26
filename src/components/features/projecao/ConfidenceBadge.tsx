@@ -2,27 +2,29 @@ import React from 'react';
 import { Chip } from '@mui/material';
 import type { ProjectionConfidence } from '../../../types/RaceProjection';
 import { CONFIDENCE_LABELS } from '../../../types/RaceProjection';
+import { semantic } from '../../../theme/tokens';
 
 interface ConfidenceBadgeProps {
     confidence: ProjectionConfidence;
     size?: 'small' | 'medium';
 }
 
+// Confiança mapeada às zonas semânticas: baixa→danger, média→warning, alta→success.
 const CONFIDENCE_STYLES: Record<ProjectionConfidence, { bg: string; color: string; border: string }> = {
     LOW: {
-        bg: 'rgba(231, 76, 60, 0.12)',
-        color: '#c0392b',
-        border: 'rgba(231, 76, 60, 0.3)',
+        bg: `${semantic.danger[500]}1F`,
+        color: semantic.danger[300],
+        border: `${semantic.danger[500]}4D`,
     },
     MEDIUM: {
-        bg: 'rgba(243, 156, 18, 0.12)',
-        color: '#b7770d',
-        border: 'rgba(243, 156, 18, 0.3)',
+        bg: `${semantic.warning[500]}1F`,
+        color: semantic.warning[400],
+        border: `${semantic.warning[500]}4D`,
     },
     HIGH: {
-        bg: 'rgba(39, 174, 96, 0.12)',
-        color: '#1e8449',
-        border: 'rgba(39, 174, 96, 0.3)',
+        bg: `${semantic.success[500]}1F`,
+        color: semantic.success[500],
+        border: `${semantic.success[500]}4D`,
     },
 };
 

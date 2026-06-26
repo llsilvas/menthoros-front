@@ -37,7 +37,8 @@ import {
 } from '../../../types/RaceProjection';
 import ConfidenceBadge from './ConfidenceBadge';
 import MarcarOficialButton from './MarcarOficialButton';
-import { primary } from '../../../theme/tokens';
+import { primary, surface, semantic, content } from '../../../theme/tokens';
+import { elevation } from '../../../shared/design-tokens';
 
 interface ProjecaoResultadoDialogProps {
     open: boolean;
@@ -47,17 +48,18 @@ interface ProjecaoResultadoDialogProps {
     atletaNome: string;
 }
 
+// Avaliação do gap mapeada às zonas semânticas: no alvo→success, alcançável→info, esforço→warning, improvável→danger.
 const GAP_ASSESSMENT_COLORS: Record<string, { bg: string; color: string }> = {
-    ON_TRACK:  { bg: 'rgba(39, 174, 96, 0.12)',  color: '#1e8449' },
-    REACHABLE: { bg: 'rgba(52, 152, 219, 0.12)', color: '#1a5f8a' },
-    STRETCH:   { bg: 'rgba(243, 156, 18, 0.12)', color: '#b7770d' },
-    UNLIKELY:  { bg: 'rgba(231, 76, 60, 0.12)',  color: '#c0392b' },
+    ON_TRACK:  { bg: `${semantic.success[500]}1F`, color: semantic.success[500] },
+    REACHABLE: { bg: `${semantic.info[500]}1F`,    color: semantic.info[500] },
+    STRETCH:   { bg: `${semantic.warning[500]}1F`, color: semantic.warning[400] },
+    UNLIKELY:  { bg: `${semantic.danger[500]}1F`,  color: semantic.danger[300] },
 };
 
 const CTL_TREND_COLORS: Record<string, string> = {
-    BUILDING:  '#27ae60',
-    STABLE:    '#2980b9',
-    DECLINING: '#e74c3c',
+    BUILDING:  semantic.success[500],
+    STABLE:    semantic.info[500],
+    DECLINING: semantic.danger[500],
 };
 
 const ProjecaoResultadoDialog: React.FC<ProjecaoResultadoDialogProps> = ({
@@ -93,7 +95,8 @@ const ProjecaoResultadoDialog: React.FC<ProjecaoResultadoDialogProps> = ({
                     sx: {
                         overflow: 'hidden',
                         borderRadius: 1,
-                        backgroundColor: '#ffffff',
+                        backgroundColor: elevation.base,
+                        border: `1px solid ${content.cardBorder}`,
                     },
                 },
             }}
@@ -106,9 +109,9 @@ const ProjecaoResultadoDialog: React.FC<ProjecaoResultadoDialogProps> = ({
                     px: { xs: 2, md: 3 },
                     py: { xs: 2, md: 2.25 },
                     pr: { xs: 7, md: 8 },
-                    color: 'white',
-                    background: 'linear-gradient(135deg, #082130 0%, #0e3147 55%, #133c56 100%)',
-                    borderBottom: '1px solid rgba(255,255,255,0.08)',
+                    color: surface[50],
+                    background: `linear-gradient(135deg, ${elevation.base} 0%, ${elevation.panel} 55%, ${elevation.card} 100%)`,
+                    borderBottom: `1px solid ${content.divider}`,
                 }}
             >
                 <Box sx={{ flexGrow: 1, minWidth: 0 }}>
@@ -117,7 +120,7 @@ const ProjecaoResultadoDialog: React.FC<ProjecaoResultadoDialogProps> = ({
                             icon={<TrendingUpIcon sx={{ fontSize: 14, color: `${primary[500]} !important` }} />}
                             label="Resultado da Projeção"
                             size="small"
-                            sx={{ bgcolor: 'rgba(255,255,255,0.12)', color: '#e8eaed', fontWeight: 700, border: '1px solid rgba(255,255,255,0.12)' }}
+                            sx={{ bgcolor: `${surface[0]}1F`, color: surface[200], fontWeight: 700, border: `1px solid ${surface[0]}1F` }}
                         />
                         {/* Overall confidence badge in header */}
                         <Chip
@@ -125,13 +128,13 @@ const ProjecaoResultadoDialog: React.FC<ProjecaoResultadoDialogProps> = ({
                             size="small"
                             sx={{
                                 bgcolor: overallConfidence === 'HIGH'
-                                    ? 'rgba(39,174,96,0.25)'
+                                    ? `${semantic.success[500]}3D`
                                     : overallConfidence === 'MEDIUM'
-                                        ? 'rgba(243,156,18,0.25)'
-                                        : 'rgba(231,76,60,0.25)',
-                                color: overallConfidence === 'HIGH' ? primary[500] : overallConfidence === 'MEDIUM' ? '#f9c74f' : '#ff6b6b',
+                                        ? `${semantic.warning[500]}3D`
+                                        : `${semantic.danger[500]}3D`,
+                                color: overallConfidence === 'HIGH' ? semantic.success[500] : overallConfidence === 'MEDIUM' ? semantic.warning[400] : semantic.danger[300],
                                 fontWeight: 700,
-                                border: '1px solid rgba(255,255,255,0.15)',
+                                border: `1px solid ${surface[0]}26`,
                             }}
                         />
                         {currentSnapshot.isOfficial && (
@@ -151,7 +154,7 @@ const ProjecaoResultadoDialog: React.FC<ProjecaoResultadoDialogProps> = ({
                     </Typography>
                     <Typography
                         variant="body2"
-                        sx={{ mt: 0.75, color: 'rgba(232, 234, 237, 0.72)', fontSize: { xs: '0.78rem', md: '0.85rem' } }}
+                        sx={{ mt: 0.75, color: surface[400], fontSize: { xs: '0.78rem', md: '0.85rem' } }}
                     >
                         {new Date(currentSnapshot.generatedAt).toLocaleString('pt-BR')} · {currentSnapshot.weeksToRace} semanas até a prova
                     </Typography>
@@ -162,10 +165,10 @@ const ProjecaoResultadoDialog: React.FC<ProjecaoResultadoDialogProps> = ({
                         position: 'absolute',
                         right: 12,
                         top: 12,
-                        color: 'white',
-                        bgcolor: 'rgba(255,255,255,0.06)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        '&:hover': { bgcolor: 'rgba(255,255,255,0.12)' },
+                        color: surface[50],
+                        bgcolor: `${surface[0]}0F`,
+                        border: `1px solid ${surface[0]}14`,
+                        '&:hover': { bgcolor: `${surface[0]}1F` },
                     }}
                 >
                     <CloseIcon />
@@ -176,14 +179,14 @@ const ProjecaoResultadoDialog: React.FC<ProjecaoResultadoDialogProps> = ({
                 dividers
                 sx={{
                     p: 0,
-                    background: 'radial-gradient(circle at top right, rgba(179,233,45,0.08), transparent 24%), linear-gradient(180deg, #eef3f8 0%, #e8edf4 100%)',
+                    background: `radial-gradient(circle at top right, ${primary[500]}14, transparent 24%), linear-gradient(180deg, ${elevation.base} 0%, ${elevation.panel} 100%)`,
                 }}
             >
                 <Stack spacing={2} sx={{ p: { xs: 1.5, md: 3 } }}>
 
                     {/* ── Tabela de projeções ── */}
-                    <Box sx={{ borderRadius: 1, border: '1px solid rgba(255,255,255,0.7)', background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.94) 100%)', p: { xs: 1.5, md: 2.5 }, overflowX: 'auto' }}>
-                        <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    <Box sx={{ borderRadius: 1, border: `1px solid ${content.cardBorder}`, background: elevation.card, p: { xs: 1.5, md: 2.5 }, overflowX: 'auto' }}>
+                        <Typography variant="caption" sx={{ fontWeight: 600, color: surface[400], textTransform: 'uppercase', letterSpacing: 0.5 }}>
                             Projeções por Distância
                         </Typography>
                         <Table size="small" sx={{ mt: 1 }}>
@@ -201,13 +204,13 @@ const ProjecaoResultadoDialog: React.FC<ProjecaoResultadoDialogProps> = ({
                                 {projectionEntries.map(([distKey, proj]) => (
                                     <TableRow key={distKey} hover>
                                         <TableCell sx={{ fontWeight: 700 }}>{formatDistanceLabel(parseInt(distKey, 10))}</TableCell>
-                                        <TableCell sx={{ fontWeight: 700, color: '#0e3147' }}>
+                                        <TableCell sx={{ fontWeight: 700, color: surface[50] }}>
                                             {formatSeconds(proj.projectedTimeSeconds)}
                                         </TableCell>
-                                        <TableCell sx={{ color: '#4a5568' }}>
+                                        <TableCell sx={{ color: surface[200] }}>
                                             {formatPace(proj.projectedPaceSecPerKm)}
                                         </TableCell>
-                                        <TableCell sx={{ color: '#6b7a8d', fontSize: '0.75rem' }}>
+                                        <TableCell sx={{ color: surface[400], fontSize: '0.75rem' }}>
                                             {formatSeconds(proj.timeRangeOptimisticSec)} – {formatSeconds(proj.timeRangeConservativeSec)}
                                         </TableCell>
                                         <TableCell>
@@ -215,7 +218,7 @@ const ProjecaoResultadoDialog: React.FC<ProjecaoResultadoDialogProps> = ({
                                         </TableCell>
                                         <TableCell>
                                             {proj.prPotential && (
-                                                <TrophyIcon sx={{ fontSize: 18, color: '#f39c12' }} titleAccess="Potencial de PR" />
+                                                <TrophyIcon sx={{ fontSize: 18, color: semantic.warning[500] }} titleAccess="Potencial de PR" />
                                             )}
                                         </TableCell>
                                     </TableRow>
@@ -226,20 +229,20 @@ const ProjecaoResultadoDialog: React.FC<ProjecaoResultadoDialogProps> = ({
 
                     {/* ── Narrativa e coach note ── */}
                     {currentSnapshot.progressionNarrative && (
-                        <Box sx={{ borderRadius: 1, border: '1px solid rgba(255,255,255,0.7)', background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.94) 100%)', p: { xs: 1.5, md: 2.5 } }}>
-                            <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        <Box sx={{ borderRadius: 1, border: `1px solid ${content.cardBorder}`, background: elevation.card, p: { xs: 1.5, md: 2.5 } }}>
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: surface[400], textTransform: 'uppercase', letterSpacing: 0.5 }}>
                                 Análise de Progressão
                             </Typography>
-                            <Typography variant="body2" sx={{ mt: 1, color: '#2d3748', lineHeight: 1.65 }}>
+                            <Typography variant="body2" sx={{ mt: 1, color: surface[200], lineHeight: 1.65 }}>
                                 {currentSnapshot.progressionNarrative}
                             </Typography>
                             {currentSnapshot.coachNote && (
                                 <>
                                     <Divider sx={{ my: 1.5 }} />
-                                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                    <Typography variant="caption" sx={{ fontWeight: 600, color: surface[400], textTransform: 'uppercase', letterSpacing: 0.5 }}>
                                         Nota do Coach
                                     </Typography>
-                                    <Typography variant="body2" sx={{ mt: 0.75, color: '#2d3748', fontStyle: 'italic' }}>
+                                    <Typography variant="body2" sx={{ mt: 0.75, color: surface[200], fontStyle: 'italic' }}>
                                         {currentSnapshot.coachNote}
                                     </Typography>
                                 </>
@@ -249,15 +252,15 @@ const ProjecaoResultadoDialog: React.FC<ProjecaoResultadoDialogProps> = ({
 
                     {/* ── Premissas ── */}
                     {currentSnapshot.keyAssumptions.length > 0 && (
-                        <Box sx={{ borderRadius: 1, border: '1px solid rgba(255,255,255,0.7)', background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.94) 100%)', p: { xs: 1.5, md: 2.5 } }}>
-                            <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        <Box sx={{ borderRadius: 1, border: `1px solid ${content.cardBorder}`, background: elevation.card, p: { xs: 1.5, md: 2.5 } }}>
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: surface[400], textTransform: 'uppercase', letterSpacing: 0.5 }}>
                                 Premissas e Limitações
                             </Typography>
                             <Stack spacing={0.5} sx={{ mt: 1 }}>
                                 {currentSnapshot.keyAssumptions.map((assumption, i) => (
                                     <Box key={i} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                                        <Typography variant="body2" sx={{ color: '#6b7a8d', flexShrink: 0 }}>•</Typography>
-                                        <Typography variant="body2" sx={{ color: '#4a5568' }}>{assumption}</Typography>
+                                        <Typography variant="body2" sx={{ color: surface[400], flexShrink: 0 }}>•</Typography>
+                                        <Typography variant="body2" sx={{ color: surface[200] }}>{assumption}</Typography>
                                     </Box>
                                 ))}
                             </Stack>
@@ -266,36 +269,36 @@ const ProjecaoResultadoDialog: React.FC<ProjecaoResultadoDialogProps> = ({
 
                     {/* ── CTL Forecast ── */}
                     {currentSnapshot.ctlForecast && (
-                        <Box sx={{ borderRadius: 1, border: '1px solid rgba(255,255,255,0.7)', background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.94) 100%)', p: { xs: 1.5, md: 2.5 } }}>
-                            <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        <Box sx={{ borderRadius: 1, border: `1px solid ${content.cardBorder}`, background: elevation.card, p: { xs: 1.5, md: 2.5 } }}>
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: surface[400], textTransform: 'uppercase', letterSpacing: 0.5 }}>
                                 Previsão de CTL
                             </Typography>
                             <Box sx={{ display: 'flex', gap: 3, mt: 1, flexWrap: 'wrap' }}>
                                 <Box>
-                                    <Typography variant="caption" color="text.secondary">CTL atual</Typography>
-                                    <Typography variant="h6" sx={{ fontWeight: 800, color: '#0e3147' }}>
+                                    <Typography variant="caption" sx={{ color: surface[400] }}>CTL atual</Typography>
+                                    <Typography variant="h6" sx={{ fontWeight: 800, color: surface[50] }}>
                                         {currentSnapshot.ctlForecast.currentCtl.toFixed(1)}
                                     </Typography>
                                 </Box>
                                 <Box>
-                                    <Typography variant="caption" color="text.secondary">CTL no dia da prova</Typography>
-                                    <Typography variant="h6" sx={{ fontWeight: 800, color: '#0e3147' }}>
+                                    <Typography variant="caption" sx={{ color: surface[400] }}>CTL no dia da prova</Typography>
+                                    <Typography variant="h6" sx={{ fontWeight: 800, color: surface[50] }}>
                                         {currentSnapshot.ctlForecast.projectedCtlRaceDay.toFixed(1)}
                                     </Typography>
                                 </Box>
                                 <Box>
-                                    <Typography variant="caption" color="text.secondary">Tendência</Typography>
+                                    <Typography variant="caption" sx={{ color: surface[400] }}>Tendência</Typography>
                                     <Typography
                                         variant="h6"
-                                        sx={{ fontWeight: 800, color: CTL_TREND_COLORS[currentSnapshot.ctlForecast.ctlTrend] ?? '#0e3147' }}
+                                        sx={{ fontWeight: 800, color: CTL_TREND_COLORS[currentSnapshot.ctlForecast.ctlTrend] ?? surface[50] }}
                                     >
                                         {CTL_TREND_LABELS[currentSnapshot.ctlForecast.ctlTrend]}
                                     </Typography>
                                 </Box>
                                 {currentSnapshot.ctlForecast.weeksToPeak != null && (
                                     <Box>
-                                        <Typography variant="caption" color="text.secondary">Semanas p/ pico</Typography>
-                                        <Typography variant="h6" sx={{ fontWeight: 800, color: '#0e3147' }}>
+                                        <Typography variant="caption" sx={{ color: surface[400] }}>Semanas p/ pico</Typography>
+                                        <Typography variant="h6" sx={{ fontWeight: 800, color: surface[50] }}>
                                             {currentSnapshot.ctlForecast.weeksToPeak}
                                         </Typography>
                                     </Box>
@@ -306,26 +309,26 @@ const ProjecaoResultadoDialog: React.FC<ProjecaoResultadoDialogProps> = ({
 
                     {/* ── Goal Gap Analysis (coach-only) ── */}
                     {currentSnapshot.goalGapAnalysis && (
-                        <Box sx={{ borderRadius: 1, border: '1px solid rgba(255,255,255,0.7)', background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.94) 100%)', p: { xs: 1.5, md: 2.5 } }}>
-                            <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        <Box sx={{ borderRadius: 1, border: `1px solid ${content.cardBorder}`, background: elevation.card, p: { xs: 1.5, md: 2.5 } }}>
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: surface[400], textTransform: 'uppercase', letterSpacing: 0.5 }}>
                                 Análise de Gap em Relação à Meta
                             </Typography>
                             <Box sx={{ display: 'flex', gap: 2, mt: 1, flexWrap: 'wrap', alignItems: 'center' }}>
                                 <Box>
-                                    <Typography variant="caption" color="text.secondary">Meta</Typography>
-                                    <Typography variant="h6" sx={{ fontWeight: 800, color: '#0e3147' }}>
+                                    <Typography variant="caption" sx={{ color: surface[400] }}>Meta</Typography>
+                                    <Typography variant="h6" sx={{ fontWeight: 800, color: surface[50] }}>
                                         {formatSeconds(currentSnapshot.goalGapAnalysis.goalTimeSeconds)}
                                     </Typography>
                                 </Box>
                                 <Box>
-                                    <Typography variant="caption" color="text.secondary">Projetado</Typography>
-                                    <Typography variant="h6" sx={{ fontWeight: 800, color: '#0e3147' }}>
+                                    <Typography variant="caption" sx={{ color: surface[400] }}>Projetado</Typography>
+                                    <Typography variant="h6" sx={{ fontWeight: 800, color: surface[50] }}>
                                         {formatSeconds(currentSnapshot.goalGapAnalysis.projectedTimeSeconds)}
                                     </Typography>
                                 </Box>
                                 <Box>
-                                    <Typography variant="caption" color="text.secondary">Gap</Typography>
-                                    <Typography variant="h6" sx={{ fontWeight: 800, color: currentSnapshot.goalGapAnalysis.gapSeconds <= 0 ? '#27ae60' : '#e74c3c' }}>
+                                    <Typography variant="caption" sx={{ color: surface[400] }}>Gap</Typography>
+                                    <Typography variant="h6" sx={{ fontWeight: 800, color: currentSnapshot.goalGapAnalysis.gapSeconds <= 0 ? semantic.success[500] : semantic.danger[500] }}>
                                         {currentSnapshot.goalGapAnalysis.gapSeconds > 0 ? '+' : ''}{formatSeconds(Math.abs(currentSnapshot.goalGapAnalysis.gapSeconds))}
                                         {' '}({currentSnapshot.goalGapAnalysis.gapPct > 0 ? '+' : ''}{currentSnapshot.goalGapAnalysis.gapPct.toFixed(1)}%)
                                     </Typography>
@@ -336,7 +339,7 @@ const ProjecaoResultadoDialog: React.FC<ProjecaoResultadoDialogProps> = ({
                                     sx={{
                                         ...GAP_ASSESSMENT_COLORS[currentSnapshot.goalGapAnalysis.gapAssessment],
                                         fontWeight: 700,
-                                        border: '1px solid rgba(0,0,0,0.08)',
+                                        border: `1px solid ${content.cardBorder}`,
                                     }}
                                 />
                             </Box>
@@ -350,14 +353,14 @@ const ProjecaoResultadoDialog: React.FC<ProjecaoResultadoDialogProps> = ({
 
                     {/* ── Metadados técnicos ── */}
                     {(currentSnapshot.regressionRSquared != null || currentSnapshot.riegelExponentUsed != null) && (
-                        <Box sx={{ borderRadius: 1, border: '1px solid rgba(255,255,255,0.7)', background: 'rgba(248,250,252,0.9)', p: { xs: 1.5, md: 2 } }}>
-                            <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        <Box sx={{ borderRadius: 1, border: `1px solid ${content.cardBorder}`, background: elevation.card, p: { xs: 1.5, md: 2 } }}>
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: surface[400], textTransform: 'uppercase', letterSpacing: 0.5 }}>
                                 Metadados Técnicos
                             </Typography>
                             <Box sx={{ display: 'flex', gap: 3, mt: 0.75, flexWrap: 'wrap' }}>
                                 {currentSnapshot.regressionRSquared != null && (
                                     <Box>
-                                        <Typography variant="caption" color="text.secondary">R² (regressão)</Typography>
+                                        <Typography variant="caption" sx={{ color: surface[400] }}>R² (regressão)</Typography>
                                         <Typography variant="body2" sx={{ fontWeight: 700 }}>
                                             {currentSnapshot.regressionRSquared.toFixed(3)}
                                         </Typography>
@@ -365,11 +368,11 @@ const ProjecaoResultadoDialog: React.FC<ProjecaoResultadoDialogProps> = ({
                                 )}
                                 {currentSnapshot.riegelExponentUsed != null && (
                                     <Box>
-                                        <Typography variant="caption" color="text.secondary">Exp. Riegel</Typography>
+                                        <Typography variant="caption" sx={{ color: surface[400] }}>Exp. Riegel</Typography>
                                         <Typography variant="body2" sx={{ fontWeight: 700 }}>
                                             {currentSnapshot.riegelExponentUsed.toFixed(4)}
                                             {currentSnapshot.riegelCalibrated === false && (
-                                                <Typography component="span" variant="caption" sx={{ ml: 0.5, color: '#b7770d' }}>
+                                                <Typography component="span" variant="caption" sx={{ ml: 0.5, color: semantic.warning[700] }}>
                                                     (padrão)
                                                 </Typography>
                                             )}
@@ -378,7 +381,7 @@ const ProjecaoResultadoDialog: React.FC<ProjecaoResultadoDialogProps> = ({
                                 )}
                                 {currentSnapshot.weeksOfTrainingData != null && (
                                     <Box>
-                                        <Typography variant="caption" color="text.secondary">Semanas de dados</Typography>
+                                        <Typography variant="caption" sx={{ color: surface[400] }}>Semanas de dados</Typography>
                                         <Typography variant="body2" sx={{ fontWeight: 700 }}>
                                             {currentSnapshot.weeksOfTrainingData}
                                         </Typography>
@@ -394,8 +397,8 @@ const ProjecaoResultadoDialog: React.FC<ProjecaoResultadoDialogProps> = ({
                 sx={{
                     px: { xs: 2, md: 3 },
                     py: 2,
-                    background: '#f8fafc',
-                    borderTop: '1px solid #e2e8f0',
+                    background: elevation.panel,
+                    borderTop: `1px solid ${content.divider}`,
                     flexDirection: { xs: 'column', sm: 'row' },
                     alignItems: { xs: 'stretch', sm: 'center' },
                     gap: 1,
@@ -404,8 +407,8 @@ const ProjecaoResultadoDialog: React.FC<ProjecaoResultadoDialogProps> = ({
                 <Box sx={{ flexGrow: 1 }}>
                     {currentSnapshot.isOfficial ? (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                            <CheckCircleIcon sx={{ fontSize: 16, color: '#27ae60' }} />
-                            <Typography variant="caption" sx={{ color: '#27ae60', fontWeight: 600 }}>
+                            <CheckCircleIcon sx={{ fontSize: 16, color: semantic.success[500] }} />
+                            <Typography variant="caption" sx={{ color: semantic.success[500], fontWeight: 600 }}>
                                 Projeção oficial
                                 {currentSnapshot.coachReviewedAt
                                     ? ` — revisada em ${new Date(currentSnapshot.coachReviewedAt).toLocaleDateString('pt-BR')}`
@@ -413,7 +416,7 @@ const ProjecaoResultadoDialog: React.FC<ProjecaoResultadoDialogProps> = ({
                             </Typography>
                         </Box>
                     ) : (
-                        <Typography variant="caption" sx={{ color: '#6b7a8d' }}>
+                        <Typography variant="caption" sx={{ color: surface[400] }}>
                             Marque como oficial para liberar ao atleta
                         </Typography>
                     )}
