@@ -24,9 +24,7 @@ import {
 } from '@mui/material';
 import {
   CalendarMonth as CalendarMonthIcon,
-  CheckCircle as CheckCircleIcon,
   ChatBubbleOutline as ChatBubbleOutlineIcon,
-  FilterAlt as FilterAltIcon,
   MoreHoriz as MoreHorizIcon,
   NotificationsNone as NotificationsNoneIcon,
   Search as SearchIcon,
@@ -39,15 +37,12 @@ import { MetricTile } from '../components/MetricTile';
 import { QueueRow } from '../components/QueueRow';
 import { formatKm, formatPercent, paletteForDecision } from '../components/coachInboxHelpers';
 import { ACTION_BTN_START_ICON_SX, ACTION_BTN_END_ICON_SX } from '../components/actionButtonSx';
-import { AdherenceTabPanel } from '../components/panels/AdherenceTabPanel';
-import { CalendarTabPanel } from '../components/panels/CalendarTabPanel';
+import { DiagnosisTabPanel } from '../components/panels/DiagnosisTabPanel';
 import { PlanTabPanel } from '../components/panels/PlanTabPanel';
-import { ReviewTabPanel } from '../components/panels/ReviewTabPanel';
-import { StatusTabPanel } from '../components/panels/StatusTabPanel';
+import { RacesSuggestionsTabPanel } from '../components/panels/RacesSuggestionsTabPanel';
 import { useCoachDashboard } from '../../../hooks/useCoachDashboard';
 import { useAthleteProfile } from '../../../hooks/useAthleteProfile';
 import { useDashboardFilters } from '../hooks/useDashboardFilters';
-import { usePlanDraft } from '../hooks/usePlanDraft';
 import { usePlanReview } from '../hooks/usePlanReview';
 import { ROSTER_PAGE_SIZE } from '../hooks/useDashboardFilters';
 import type { SortKey, DashboardStatusFilter } from '../hooks/useDashboardFilters';
@@ -57,7 +52,7 @@ import { buildRosterRowFromSummary, buildSelectedAthleteFromDashboard, getAcwrZo
 import { formFromTSB, formVariantLabel, getTsbFormaTone } from '../types/AthleteForm';
 import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
 
-type TabKey = 'review' | 'plan' | 'calendar' | 'status' | 'adherence';
+type TabKey = 'diagnosis' | 'plan' | 'races';
 
 
 const SORT_OPTIONS: Array<{ key: SortKey; label: string }> = [
@@ -75,18 +70,16 @@ const DASHBOARD_STATUS_OPTIONS: Array<{ key: DashboardStatusFilter; label: strin
 ];
 
 const TABS: Array<{ key: TabKey; label: string; icon: ReactElement }> = [
-  { key: 'review', label: 'Revisão do treino', icon: <CheckCircleIcon fontSize="small" /> },
-  { key: 'plan', label: 'Ajustes de plano', icon: <TuneIcon fontSize="small" /> },
-  { key: 'calendar', label: 'Calendário de provas', icon: <CalendarMonthIcon fontSize="small" /> },
-  { key: 'status', label: 'Status do treinamento', icon: <NotificationsNoneIcon fontSize="small" /> },
-  { key: 'adherence', label: 'Adesão', icon: <FilterAltIcon fontSize="small" /> },
+  { key: 'diagnosis', label: 'Diagnóstico', icon: <NotificationsNoneIcon fontSize="small" /> },
+  { key: 'plan', label: 'Plano', icon: <TuneIcon fontSize="small" /> },
+  { key: 'races', label: 'Provas & sugestões', icon: <CalendarMonthIcon fontSize="small" /> },
 ];
 
 function CoachInboxPage() {
   const navigate = useNavigate();
   const { reviewAprovar, reviewRejeitar, reviewFetchPendentes } = useOutletContext<CoachLayoutOutletContext>();
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabKey>('review');
+  const [activeTab, setActiveTab] = useState<TabKey>('diagnosis');
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const {
@@ -99,8 +92,6 @@ function CoachInboxPage() {
   const { profile: selectedProfile, fetchProfile: fetchSelectedProfile } = useAthleteProfile(selectedId ?? dashboardRoster[0]?.atletaId);
 
   const dashboardAttentionQueue = dashboard?.attentionQueue ?? [];
-  const dashboardCalendar = dashboard?.calendar ?? null;
-  const dashboardInsights = dashboard?.insights ?? null;
   const rosterItems = dashboardRoster;
   const dashboardRosterPage = dashboard?.roster ?? null;
   const rosterTotal = dashboardRosterPage?.totalElements ?? 0;
@@ -127,8 +118,6 @@ function CoachInboxPage() {
     handleRosterPageChange,
     resetFilters,
   } = useDashboardFilters({ fetchDashboard });
-
-  const { draftIntensity, setDraftIntensity, draftDistance, setDraftDistance, draftDuration, setDraftDuration } = usePlanDraft(selected);
 
   const nextRace = selected?.raceCalendar[0] ?? null;
   const isTargetRace = nextRace?.tag === 'ALVO';
@@ -192,11 +181,6 @@ function CoachInboxPage() {
     setMenuAnchor(null);
     openRejectDialogBase();
   }, [openRejectDialogBase]);
-
-  const saveAdjustment = useCallback(() => {
-    setFeedback('Ajustes rápidos ainda não persistem no backend. Use a revisão do plano.');
-    setActiveTab('review');
-  }, []);
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: elevation.base }}>
@@ -638,51 +622,31 @@ function CoachInboxPage() {
                   </Alert>
                 ) : null}
 
-                {activeTab === 'review' ? (
-                  <ReviewTabPanel
+                {activeTab === 'diagnosis' ? (
+                  <DiagnosisTabPanel
                     selected={selected}
-                    selectedProfile={selectedProfile}
-                    onMarkDone={() => setFeedback('Treino marcado como concluído localmente.')}
-                    onReagendar={() => setActiveTab('plan')}
-                    onOpenCalendar={() => navigate('/coach/calendar')}
+                    limiareisInferidos={selectedProfile?.limiareisInferidos ?? null}
+                    onOpenPlan={() => setActiveTab('plan')}
                   />
                 ) : null}
 
                 {activeTab === 'plan' ? (
                   <PlanTabPanel
                     selectedProfile={selectedProfile}
-                    selected={selected}
-                    draftIntensity={draftIntensity}
-                    setDraftIntensity={setDraftIntensity}
-                    draftDistance={draftDistance}
-                    setDraftDistance={setDraftDistance}
-                    draftDuration={draftDuration}
-                    setDraftDuration={setDraftDuration}
-                    saveAdjustment={saveAdjustment}
                     reloadDashboard={reloadDashboard}
                     fetchSelectedProfile={fetchSelectedProfile}
                     onOpenRevisao={() => navigate('/coach/planos/revisao')}
                   />
                 ) : null}
 
-                {activeTab === 'calendar' ? (
-                  <CalendarTabPanel
-                    dashboardCalendar={dashboardCalendar}
+                {activeTab === 'races' ? (
+                  <RacesSuggestionsTabPanel
                     selected={selected}
+                    selectedProfile={selectedProfile}
                     onOpenCalendar={() => navigate('/coach/calendar')}
+                    onOpenSuggestions={() => navigate('/coach/sugestoes')}
                   />
                 ) : null}
-
-                {activeTab === 'status' ? (
-                  <StatusTabPanel
-                    dashboardInsights={dashboardInsights}
-                    selected={selected}
-                    limiareisInferidos={selectedProfile?.limiareisInferidos ?? null}
-                    onOpenInsights={() => navigate('/coach/insights')}
-                  />
-                ) : null}
-
-                {activeTab === 'adherence' ? <AdherenceTabPanel selected={selected} /> : null}
               </Box>
 
               <Box

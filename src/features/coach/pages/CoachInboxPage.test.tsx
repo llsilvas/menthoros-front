@@ -189,31 +189,51 @@ describe('CoachInboxPage', () => {
     expect(screen.getByText(/Reduzir o volume do próximo longão/i)).toBeInTheDocument();
   });
 
-  it('mostra sugestões da IA no resumo do dashboard', async () => {
+  it('expõe exatamente 3 abas no drill-down do atleta', () => {
     renderPage();
 
+    expect(screen.getByRole('tab', { name: /Diagnóstico/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /^Plano$/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Provas & sugestões/i })).toBeInTheDocument();
+    expect(screen.getAllByRole('tab')).toHaveLength(3);
+    // abas antigas não existem mais
+    expect(screen.queryByRole('tab', { name: /Status do treinamento/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /Calendário de provas/i })).not.toBeInTheDocument();
+  });
+
+  it('mostra o diagnóstico do ATLETA na aba Diagnóstico (não insights globais)', () => {
+    renderPage();
+
+    // aba default é Diagnóstico
+    expect(screen.getByText(/Carga aguda/i)).toBeInTheDocument();
+    expect(screen.getByText(/Monotonia/i)).toBeInTheDocument();
+    expect(screen.getByText(/Adesão nas últimas semanas/i)).toBeInTheDocument();
+    expect(screen.getByText(/Sinais de atenção/i)).toBeInTheDocument();
+    // conteúdo global do dashboard não aparece no drill-down
+    expect(screen.queryByText(/Top atletas/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Treinos da semana/i)).not.toBeInTheDocument();
+  });
+
+  it('mostra provas e sugestões do ATLETA na aba Provas & sugestões (não o calendário global)', async () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole('tab', { name: /Provas & sugestões/i }));
+
+    expect(screen.getByText(/Provas do atleta/i)).toBeInTheDocument();
     expect(screen.getByText(/Sugestões recentes/i)).toBeInTheDocument();
     expect(await screen.findByText(/Reduzir intensidade do treino de quinta/i)).toBeInTheDocument();
-    expect(screen.getAllByText('Alta').length).toBeGreaterThan(0);
+    // calendário agregado do dashboard não aparece mais no drill-down
+    expect(screen.queryByText(/Calendário semanal do dashboard/i)).not.toBeInTheDocument();
   });
 
-  it('usa o calendário agregado do dashboard na aba Calendário', () => {
+  it('mostra o plano real do atleta na aba Plano (sem o mock "Ajuste rápido")', () => {
     renderPage();
 
-    fireEvent.click(screen.getByRole('tab', { name: /Calendário de provas/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /^Plano$/i }));
 
-    expect(screen.getByText(/Calendário semanal do dashboard/i)).toBeInTheDocument();
-    expect(screen.getByText(/Intervalado/i)).toBeInTheDocument();
-  });
-
-  it('usa insights agregados do dashboard na aba Status', () => {
-    renderPage();
-
-    fireEvent.click(screen.getByRole('tab', { name: /Status do treinamento/i }));
-
-    expect(screen.getByText(/Tendência de carga/i)).toBeInTheDocument();
-    expect(screen.getByText(/Top atletas/i)).toBeInTheDocument();
-    expect(screen.getByText(/Treinos da semana/i)).toBeInTheDocument();
+    expect(screen.getByText(/Plano real do atleta/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Ajuste rápido/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Impacto da alteração/i)).not.toBeInTheDocument();
   });
 
   it('abre diálogo de rejeição e chama o endpoint com motivo informado', async () => {

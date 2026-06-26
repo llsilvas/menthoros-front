@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calcularMonotonia, calcularLoadDelta, calcularAcwr, getAcwrZone } from './coachInboxAdapters';
+import { calcularMonotonia, calcularLoadDelta, calcularAcwr, getAcwrZone, getAcuteLoadTone, getMonotonyTone } from './coachInboxAdapters';
 import type { PmcPontoRaw } from '../../../types/AtletaPerfilCoach';
 
 function pmc(over: Partial<PmcPontoRaw>): PmcPontoRaw {
@@ -122,5 +122,19 @@ describe('getAcwrZone', () => {
 
   it('< 0.8 → warning / Muito baixo', () => {
     expect(getAcwrZone(0.5)).toEqual({ tone: 'warning', label: 'Muito baixo' });
+  });
+});
+
+describe('getAcuteLoadTone', () => {
+  it('BVA: 120 ainda é success (limiar é > 120)', () => {
+    expect(getAcuteLoadTone(120)).toBe('success');
+    expect(getAcuteLoadTone(121)).toBe('warning');
+  });
+});
+
+describe('getMonotonyTone', () => {
+  it('BVA: 1.4 ainda é success (limiar é > 1.4)', () => {
+    expect(getMonotonyTone(1.4)).toBe('success');
+    expect(getMonotonyTone(1.5)).toBe('warning');
   });
 });

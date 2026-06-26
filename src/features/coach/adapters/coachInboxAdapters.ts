@@ -27,6 +27,16 @@ export function calcularAcwr(atl: number | null, ctl: number | null): number | n
   return parseFloat((atl / ctl).toFixed(2));
 }
 
+/** Tom da carga aguda (ATL): acima de ~120 km/semana sinaliza atenção. */
+export function getAcuteLoadTone(acuteLoad: number): MetricTone {
+  return acuteLoad > 120 ? 'warning' : 'success';
+}
+
+/** Tom da monotonia (Foster): acima de 1.4 sinaliza treino pouco variado. */
+export function getMonotonyTone(monotony: number): MetricTone {
+  return monotony > 1.4 ? 'warning' : 'success';
+}
+
 /**
  * Zona de risco do ACWR (Acute:Chronic Workload Ratio).
  * Sweet spot 0.8–1.3; atenção até 1.5; acima é risco de lesão.
@@ -108,7 +118,6 @@ export function buildSelectedAthleteFromDashboard(
       distance: firstWorkout ? `${firstWorkout.distanciaKm} km` : '—',
       objective: firstWorkout ? 'Treino vindo do backend.' : 'Nenhum treino planejado no plano vigente.',
     },
-    lastWorkouts: [],
     raceCalendar: buildRaceCalendarFromProfile(profile),
     loadTrend: pmcPoints.map((p) => p.ctl).length > 0 ? pmcPoints.map((p) => p.ctl) : [roster.weeklyVolume],
     adherenceTrend: adherencePoints.map((p) => p.percentual),
@@ -152,7 +161,6 @@ export function buildRosterRowFromSummary(roster: CoachAtletaResumo): CoachAthle
       distance: '—',
       objective: 'Abra o atleta para ver o detalhe completo.',
     },
-    lastWorkouts: [],
     raceCalendar: [],
     loadTrend: [roster.weeklyVolume],
     adherenceTrend: [],
