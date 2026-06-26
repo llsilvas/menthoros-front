@@ -12,6 +12,10 @@ import {
   Stack,
   CircularProgress,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
   People as PeopleIcon,
@@ -20,13 +24,21 @@ import {
   Warning as WarningIcon,
   Speed as SpeedIcon,
   WifiOff as WifiOffIcon,
+  EventNote as EventNoteIcon,
+  TrendingUp as TrendingUpIcon,
+  Sync as SyncIcon,
 } from '@mui/icons-material';
 import {
   DataGrid,
+  GridActionsCellItem,
   type GridColDef,
   type GridRowSelectionModel,
   type GridCellParams,
+  type GridRowParams,
 } from '@mui/x-data-grid';
+import PlanosDialog from '../../../components/features/planos/planosDialog';
+import GerarProjecaoDialog from '../../../components/features/projecao/GerarProjecaoDialog';
+import SyncStravaButton from '../../../components/features/strava/SyncStravaButton';
 import { primary, surface, semantic, glassSx } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import { CoachAthleteAvatar } from '../components/CoachAthleteAvatar';
@@ -188,12 +200,20 @@ function BulkBar({ count }: { count: number }) {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
+/** Ação por-atleta acionada pelo menu da grade. */
+type RosterActionType = 'plano' | 'projecao' | 'strava';
+
 export default function CoachAthletesPage() {
   const navigate = useNavigate();
   const [searchRaw, setSearchRaw] = useState('');
   const [activeView, setActiveView] = useState<ViewKey>('all');
   const [statusFilter, setStatusFilter] = useState<CoachAtletaStatus | 'all'>('all');
   const [selection, setSelection]   = useState<GridRowSelectionModel>({ type: 'include', ids: new Set() });
+
+  // Ação por-atleta acionada pelo menu da grade (plano / projeção / strava)
+  const [action, setAction] = useState<RosterActionType | null>(null);
+  const [actionTarget, setActionTarget] = useState<{ atletaId: string; nome: string } | null>(null);
+  const closeAction = () => { setAction(null); setActionTarget(null); };
 
   const search = useDebounce(searchRaw, 300);
 
@@ -385,6 +405,21 @@ export default function CoachAthletesPage() {
             </Typography>
           </Box>
         );
+      },
+    },
+    {
+      field: 'actions',
+      type: 'actions',
+      headerName: 'Ações',
+      width: 70,
+      getActions: (params: GridRowParams<AthleteRow>) => {
+        const target = { atletaId: params.row.id, nome: params.row.name };
+        const open = (type: RosterActionType) => () => { setActionTarget(target); setAction(type); };
+        return [
+          <GridActionsCellItem key="plano" icon={<EventNoteIcon />} label="Plano" showInMenu onClick={open('plano')} />,
+          <GridActionsCellItem key="strava" icon={<SyncIcon />} label="Sincronizar Strava" showInMenu onClick={open('strava')} />,
+          <GridActionsCellItem key="projecao" icon={<TrendingUpIcon />} label="Projeção de prova" showInMenu onClick={open('projecao')} />,
+        ];
       },
     },
   ], [hoje]);
@@ -579,7 +614,8 @@ export default function CoachAthletesPage() {
             rowSelectionModel={selection}
             onRowSelectionModelChange={setSelection}
             onRowClick={(params, event) => {
-                if ((event.target as HTMLElement).closest('[data-field="__check__"]')) return;
+                const target = event.target as HTMLElement;
+                if (target.closest('[data-field="__check__"]') || target.closest('[data-field="actions"]')) return;
                 navigate(`/coach/athletes/${params.id}`);
             }}
             rowHeight={52}
@@ -609,6 +645,37 @@ export default function CoachAthletesPage() {
             }}
           />
         </Box>
+      )}
+
+      {actionTarget && (
+        <>
+          <PlanosDialog
+            open={action === 'plano'}
+            onClose={() => { closeAction(); void fetchRoster(); }}
+            atletaId={actionTarget.atletaId}
+            atletaNome={actionTarget.nome}
+          />
+          {/* Projeção é read-only (gera snapshot de previsão) — não altera o roster, logo não recarrega. */}
+          <GerarProjecaoDialog
+            open={action === 'projecao'}
+            onClose={closeAction}
+            atletaId={actionTarget.atletaId}
+            atletaNome={actionTarget.nome}
+          />
+          <Dialog open={action === 'strava'} onClose={closeAction} maxWidth="xs" fullWidth>
+            <DialogTitle>Sincronizar Strava — {actionTarget.nome}</DialogTitle>
+            <DialogContent sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+              <SyncStravaButton
+                atletaId={actionTarget.atletaId}
+                connected
+                onSyncComplete={() => { void fetchRoster(); }}
+              />
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={closeAction}>Fechar</Button>
+            </DialogActions>
+          </Dialog>
+        </>
       )}
     </Box>
   );
