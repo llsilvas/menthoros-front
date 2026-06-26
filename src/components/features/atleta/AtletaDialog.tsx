@@ -272,7 +272,7 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                 <CloseIcon />
             </IconButton>
         </DialogTitle>
-        <form onSubmit={handleSubmit} noValidate>
+        <form onSubmit={handleSubmit} noValidate style={{ display: 'contents' }}>
             <DialogContent
                 dividers
                 sx={{
