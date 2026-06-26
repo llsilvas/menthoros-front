@@ -36,7 +36,8 @@ import {
 } from '../../../types/RaceProjection';
 import { extractStatusKey } from '../../../types/Prova';
 import ProjecaoResultadoDialog from './ProjecaoResultadoDialog';
-import { primary } from '../../../theme/tokens';
+import { primary, surface, content } from '../../../theme/tokens';
+import { elevation } from '../../../shared/design-tokens';
 
 interface GerarProjecaoDialogProps {
     open: boolean;
@@ -195,7 +196,8 @@ const GerarProjecaoDialog: React.FC<GerarProjecaoDialogProps> = ({
                         sx: {
                             overflow: 'hidden',
                             borderRadius: 1,
-                            backgroundColor: '#ffffff',
+                            backgroundColor: elevation.base,
+                            border: `1px solid ${content.cardBorder}`,
                         },
                     },
                 }}
@@ -208,9 +210,9 @@ const GerarProjecaoDialog: React.FC<GerarProjecaoDialogProps> = ({
                         px: { xs: 2, md: 3 },
                         py: { xs: 2, md: 2.25 },
                         pr: { xs: 7, md: 8 },
-                        color: 'white',
-                        background: 'linear-gradient(135deg, #082130 0%, #0e3147 55%, #133c56 100%)',
-                        borderBottom: '1px solid rgba(255,255,255,0.08)',
+                        color: surface[50],
+                        background: `linear-gradient(135deg, ${elevation.base} 0%, ${elevation.panel} 55%, ${elevation.card} 100%)`,
+                        borderBottom: `1px solid ${content.divider}`,
                     }}
                 >
                     <Box sx={{ flexGrow: 1, minWidth: 0 }}>
@@ -220,10 +222,10 @@ const GerarProjecaoDialog: React.FC<GerarProjecaoDialogProps> = ({
                                 label="Projeção de Prova"
                                 size="small"
                                 sx={{
-                                    bgcolor: 'rgba(255,255,255,0.12)',
-                                    color: '#e8eaed',
+                                    bgcolor: `${surface[0]}1F`,
+                                    color: surface[200],
                                     fontWeight: 700,
-                                    border: '1px solid rgba(255,255,255,0.12)',
+                                    border: `1px solid ${surface[0]}1F`,
                                 }}
                             />
                         </Box>
@@ -241,7 +243,7 @@ const GerarProjecaoDialog: React.FC<GerarProjecaoDialogProps> = ({
                         </Typography>
                         <Typography
                             variant="body2"
-                            sx={{ mt: 0.75, color: 'rgba(232, 234, 237, 0.72)', fontSize: { xs: '0.8rem', md: '0.875rem' } }}
+                            sx={{ mt: 0.75, color: surface[400], fontSize: { xs: '0.8rem', md: '0.875rem' } }}
                         >
                             Pipeline de 3 camadas: regressão de pace + Riegel + ajuste por periodização e TSB
                         </Typography>
@@ -253,10 +255,10 @@ const GerarProjecaoDialog: React.FC<GerarProjecaoDialogProps> = ({
                             position: 'absolute',
                             right: 12,
                             top: 12,
-                            color: 'white',
-                            bgcolor: 'rgba(255,255,255,0.06)',
-                            border: '1px solid rgba(255,255,255,0.08)',
-                            '&:hover': { bgcolor: 'rgba(255,255,255,0.12)' },
+                            color: surface[50],
+                            bgcolor: `${surface[0]}0F`,
+                            border: `1px solid ${surface[0]}14`,
+                            '&:hover': { bgcolor: `${surface[0]}1F` },
                         }}
                     >
                         <CloseIcon />
@@ -268,8 +270,7 @@ const GerarProjecaoDialog: React.FC<GerarProjecaoDialogProps> = ({
                         dividers
                         sx={{
                             p: 0,
-                            background:
-                                'radial-gradient(circle at top right, rgba(179,233,45,0.08), transparent 24%), linear-gradient(180deg, #eef3f8 0%, #e8edf4 100%)',
+                            background: `radial-gradient(circle at top right, ${primary[500]}14, transparent 24%), linear-gradient(180deg, ${elevation.base} 0%, ${elevation.panel} 100%)`,
                         }}
                     >
                         <Stack spacing={2} sx={{ p: { xs: 1.5, md: 3 } }}>
@@ -278,8 +279,8 @@ const GerarProjecaoDialog: React.FC<GerarProjecaoDialogProps> = ({
                             )}
 
                             {/* ── Prova e distâncias ── */}
-                            <Box sx={{ borderRadius: 1, border: '1px solid rgba(255,255,255,0.7)', background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.94) 100%)', p: { xs: 2, md: 2.5 } }}>
-                                <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                            <Box sx={{ borderRadius: 1, border: `1px solid ${content.cardBorder}`, background: elevation.card, p: { xs: 2, md: 2.5 } }}>
+                                <Typography variant="caption" sx={{ fontWeight: 600, color: surface[400], textTransform: 'uppercase', letterSpacing: 0.5 }}>
                                     Prova e Distâncias-Alvo
                                 </Typography>
                                 <Grid container spacing={1.5} sx={{ mt: 0.5 }}>
@@ -307,7 +308,7 @@ const GerarProjecaoDialog: React.FC<GerarProjecaoDialogProps> = ({
                                         )}
                                     </Grid>
                                     <Grid size={12}>
-                                        <Typography variant="caption" sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}>
+                                        <Typography variant="caption" sx={{ color: surface[400], mb: 0.5, display: 'block' }}>
                                             Distâncias para projetar *
                                         </Typography>
                                         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
@@ -330,8 +331,8 @@ const GerarProjecaoDialog: React.FC<GerarProjecaoDialogProps> = ({
                             </Box>
 
                             {/* ── Carga de treinamento ── */}
-                            <Box sx={{ borderRadius: 1, border: '1px solid rgba(255,255,255,0.7)', background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.94) 100%)', p: { xs: 2, md: 2.5 } }}>
-                                <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                            <Box sx={{ borderRadius: 1, border: `1px solid ${content.cardBorder}`, background: elevation.card, p: { xs: 2, md: 2.5 } }}>
+                                <Typography variant="caption" sx={{ fontWeight: 600, color: surface[400], textTransform: 'uppercase', letterSpacing: 0.5 }}>
                                     Carga de Treinamento
                                 </Typography>
                                 <Grid container spacing={1.5} sx={{ mt: 0.5 }}>
@@ -444,8 +445,8 @@ const GerarProjecaoDialog: React.FC<GerarProjecaoDialogProps> = ({
                             </Box>
 
                             {/* ── Overrides opcionais ── */}
-                            <Box sx={{ borderRadius: 1, border: '1px solid rgba(255,255,255,0.7)', background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.94) 100%)', p: { xs: 2, md: 2.5 } }}>
-                                <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                            <Box sx={{ borderRadius: 1, border: `1px solid ${content.cardBorder}`, background: elevation.card, p: { xs: 2, md: 2.5 } }}>
+                                <Typography variant="caption" sx={{ fontWeight: 600, color: surface[400], textTransform: 'uppercase', letterSpacing: 0.5 }}>
                                     Opcionais
                                 </Typography>
                                 <Grid container spacing={1.5} sx={{ mt: 0.5 }}>
@@ -512,15 +513,15 @@ const GerarProjecaoDialog: React.FC<GerarProjecaoDialogProps> = ({
                         sx={{
                             px: { xs: 2, md: 3 },
                             py: 2,
-                            background: '#f8fafc',
-                            borderTop: '1px solid #e2e8f0',
+                            background: elevation.panel,
+                            borderTop: `1px solid ${content.divider}`,
                             flexDirection: { xs: 'column', sm: 'row' },
                             alignItems: { xs: 'stretch', sm: 'center' },
                             gap: 1,
                         }}
                     >
                         <Box sx={{ flexGrow: 1 }}>
-                            <Typography variant="caption" sx={{ color: '#6b7a8d' }}>
+                            <Typography variant="caption" sx={{ color: surface[500] }}>
                                 A geração leva ~2–5 segundos (inclui análise por LLM)
                             </Typography>
                         </Box>
@@ -535,7 +536,7 @@ const GerarProjecaoDialog: React.FC<GerarProjecaoDialogProps> = ({
                                 size="small"
                                 fullWidth={isMobile}
                                 startIcon={generating ? <CircularProgress size={14} color="inherit" /> : <TrendingUpIcon />}
-                                sx={{ bgcolor: '#0e3147', '&:hover': { bgcolor: '#082130' } }}
+                                sx={{ bgcolor: primary[500], color: surface[900], fontWeight: 800, '&:hover': { bgcolor: primary[400] } }}
                             >
                                 {generating ? 'Gerando...' : 'Gerar Projeção'}
                             </Button>
