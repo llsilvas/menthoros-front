@@ -1,11 +1,13 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router';
 import CoachAthletesPage from './CoachAthletesPage';
 import { useCoachRoster } from '../../../hooks/useCoachRoster';
+import { AtletasService } from '../../../api/services/AtletasService';
 import type { CoachAtletaResumo } from '../../../types/Coach';
 
 vi.mock('../../../hooks/useCoachRoster');
+vi.mock('../../../api/services/AtletasService');
 
 // @mui/x-data-grid importa um .css que o vitest não resolve (por isso o projeto não testa DataGrid).
 // Stub que renderiza headers e, para a coluna `actions`, executa o `getActions` real desta página —
@@ -39,6 +41,15 @@ vi.mock('../../../components/features/projecao/GerarProjecaoDialog', () => ({
 vi.mock('../../../components/features/strava/SyncStravaButton', () => ({
   default: () => <div>stub-strava</div>,
 }));
+vi.mock('../../../components/features/atleta/AtletaDialog', () => ({
+  // distingue criar (sem atleta) de editar (com atleta) pelo texto renderizado
+  default: ({ open, atleta }: { open: boolean; atleta?: { id: string } }) =>
+    open ? <div>stub-atleta-dialog {atleta ? 'edit' : 'new'}</div> : null,
+}));
+vi.mock('../../../shared/components/ConfirmDialog', () => ({
+  ConfirmDialog: ({ open, onConfirm }: { open: boolean; onConfirm: () => void }) =>
+    open ? <button onClick={onConfirm}>stub-confirm</button> : null,
+}));
 
 const ROSTER: CoachAtletaResumo[] = [
   { atletaId: 'a1', nome: 'Ana Silva', status: 'active', weeklyVolume: 32, ctl: 50, atl: 48, tsb: 2, fase: 'BASE', lastActivity: '2026-06-24' },
@@ -53,6 +64,9 @@ describe('CoachAthletesPage — ações por atleta', () => {
       error: null,
       fetchRoster: vi.fn().mockResolvedValue(undefined),
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(AtletasService.buscarAtletaPorId).mockResolvedValue({ id: 'a1', nome: 'Ana Silva' } as any);
+    vi.mocked(AtletasService.deletarAtleta).mockResolvedValue(undefined);
   });
 
   function renderPage() {
@@ -93,5 +107,34 @@ describe('CoachAthletesPage — ações por atleta', () => {
     renderPage();
     fireEvent.click(screen.getByText('Sincronizar Strava'));
     expect(screen.getByText('stub-strava')).toBeInTheDocument();
+  });
+
+  it('"Adicionar" abre o dialog de novo atleta (sem dados)', () => {
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: /Adicionar/i }));
+    expect(screen.getByText(/stub-atleta-dialog\s+new/)).toBeInTheDocument();
+  });
+
+  it('"Editar" busca o atleta completo e abre o dialog preenchido', async () => {
+    renderPage();
+    fireEvent.click(screen.getByText('Editar'));
+    expect(await screen.findByText(/stub-atleta-dialog\s+edit/)).toBeInTheDocument();
+    expect(AtletasService.buscarAtletaPorId).toHaveBeenCalledWith('a1');
+  });
+
+  it('"Excluir" pede confirmação e chama deletarAtleta ao confirmar', async () => {
+    renderPage();
+    fireEvent.click(screen.getByText('Excluir'));
+    const confirmar = screen.getByText('stub-confirm');
+    fireEvent.click(confirmar);
+    await waitFor(() => expect(AtletasService.deletarAtleta).toHaveBeenCalledWith('a1'));
+  });
+
+  it('falha na exclusão exibe feedback de erro', async () => {
+    vi.mocked(AtletasService.deletarAtleta).mockRejectedValueOnce(new Error('boom'));
+    renderPage();
+    fireEvent.click(screen.getByText('Excluir'));
+    fireEvent.click(screen.getByText('stub-confirm'));
+    expect(await screen.findByText(/Não foi possível excluir o atleta/i)).toBeInTheDocument();
   });
 });

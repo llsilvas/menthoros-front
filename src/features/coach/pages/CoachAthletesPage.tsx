@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { parseISO } from 'date-fns';
 import { useDebounce } from '../../../shared/hooks/useDebounce';
@@ -16,6 +16,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Snackbar,
 } from '@mui/material';
 import {
   People as PeopleIcon,
@@ -27,6 +28,8 @@ import {
   EventNote as EventNoteIcon,
   TrendingUp as TrendingUpIcon,
   Sync as SyncIcon,
+  EditOutlined as EditIcon,
+  DeleteOutline as DeleteIcon,
 } from '@mui/icons-material';
 import {
   DataGrid,
@@ -39,6 +42,10 @@ import {
 import PlanosDialog from '../../../components/features/planos/planosDialog';
 import GerarProjecaoDialog from '../../../components/features/projecao/GerarProjecaoDialog';
 import SyncStravaButton from '../../../components/features/strava/SyncStravaButton';
+import AtletaDialog from '../../../components/features/atleta/AtletaDialog';
+import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
+import { AtletasService } from '../../../api/services/AtletasService';
+import type { Atleta, CreateAtleta, UpdateAtleta } from '../../../types/Atleta';
 import { primary, surface, semantic, glassSx } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import { CoachAthleteAvatar } from '../components/CoachAthleteAvatar';
@@ -201,7 +208,7 @@ function BulkBar({ count }: { count: number }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 /** Ação por-atleta acionada pelo menu da grade. */
-type RosterActionType = 'plano' | 'projecao' | 'strava';
+type RosterActionType = 'plano' | 'projecao' | 'strava' | 'atleta-new' | 'atleta-edit' | 'atleta-delete';
 
 export default function CoachAthletesPage() {
   const navigate = useNavigate();
@@ -210,10 +217,13 @@ export default function CoachAthletesPage() {
   const [statusFilter, setStatusFilter] = useState<CoachAtletaStatus | 'all'>('all');
   const [selection, setSelection]   = useState<GridRowSelectionModel>({ type: 'include', ids: new Set() });
 
-  // Ação por-atleta acionada pelo menu da grade (plano / projeção / strava)
+  // Ação por-atleta acionada pelo menu da grade (plano / projeção / strava / CRUD)
   const [action, setAction] = useState<RosterActionType | null>(null);
   const [actionTarget, setActionTarget] = useState<{ atletaId: string; nome: string } | null>(null);
-  const closeAction = () => { setAction(null); setActionTarget(null); };
+  const [atletaParaEditar, setAtletaParaEditar] = useState<Atleta | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [erroAcao, setErroAcao] = useState<string | null>(null);
+  const closeAction = useCallback(() => { setAction(null); setActionTarget(null); setAtletaParaEditar(null); }, []);
 
   const search = useDebounce(searchRaw, 300);
 
@@ -221,6 +231,45 @@ export default function CoachAthletesPage() {
   useEffect(() => {
     fetchRoster();
   }, [fetchRoster]);
+
+  // CRUD de atleta (reusa AtletaDialog/AtletasService legados; recarrega o roster ao salvar/excluir)
+  const abrirNovoAtleta = () => { setAtletaParaEditar(null); setActionTarget(null); setAction('atleta-new'); };
+
+  const abrirEdicaoAtleta = useCallback(async (atletaId: string, nome: string) => {
+    setActionTarget({ atletaId, nome });
+    try {
+      const atleta = await AtletasService.buscarAtletaPorId(atletaId);
+      setAtletaParaEditar(atleta);
+      setAction('atleta-edit');
+    } catch {
+      closeAction();
+      setErroAcao('Não foi possível carregar os dados do atleta para edição.');
+    }
+  }, [closeAction]);
+
+  const salvarAtleta = async (dados: CreateAtleta | UpdateAtleta) => {
+    if (action === 'atleta-edit' && atletaParaEditar) {
+      // UpdateAtleta é Partial<CreateAtleta>: mescla com o atleta já carregado (sem 2ª busca)
+      await AtletasService.atualizarAtleta(atletaParaEditar.id, { ...atletaParaEditar, ...dados } as CreateAtleta);
+    } else {
+      await AtletasService.cadastraAtleta(dados as CreateAtleta);
+    }
+    await fetchRoster();
+  };
+
+  const confirmarExclusao = async () => {
+    if (!actionTarget) return;
+    setDeleting(true);
+    try {
+      await AtletasService.deletarAtleta(actionTarget.atletaId);
+      closeAction();
+      await fetchRoster();
+    } catch {
+      setErroAcao('Não foi possível excluir o atleta.');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const hoje = useMemo(() => new Date(), []);
 
@@ -419,10 +468,12 @@ export default function CoachAthletesPage() {
           <GridActionsCellItem key="plano" icon={<EventNoteIcon />} label="Plano" showInMenu onClick={open('plano')} />,
           <GridActionsCellItem key="strava" icon={<SyncIcon />} label="Sincronizar Strava" showInMenu onClick={open('strava')} />,
           <GridActionsCellItem key="projecao" icon={<TrendingUpIcon />} label="Projeção de prova" showInMenu onClick={open('projecao')} />,
+          <GridActionsCellItem key="editar" icon={<EditIcon />} label="Editar" showInMenu onClick={() => { void abrirEdicaoAtleta(target.atletaId, target.nome); }} />,
+          <GridActionsCellItem key="excluir" icon={<DeleteIcon />} label="Excluir" showInMenu onClick={open('atleta-delete')} />,
         ];
       },
     },
-  ], [hoje]);
+  ], [hoje, abrirEdicaoAtleta]);
 
   const statusOptions: Array<{ value: CoachAtletaStatus | 'all'; label: string }> = [
     { value: 'all',     label: 'Todos os status' },
@@ -515,6 +566,7 @@ export default function CoachAthletesPage() {
             size="small"
             startIcon={<PersonAddIcon />}
             sx={{ fontWeight: 600, fontSize: '0.8rem', whiteSpace: 'nowrap' }}
+            onClick={abrirNovoAtleta}
           >
             Adicionar
           </Button>
@@ -675,8 +727,37 @@ export default function CoachAthletesPage() {
               <Button onClick={closeAction}>Fechar</Button>
             </DialogActions>
           </Dialog>
+          <ConfirmDialog
+            open={action === 'atleta-delete'}
+            title="Excluir atleta"
+            message={`Excluir ${actionTarget.nome}? Esta ação não pode ser desfeita.`}
+            confirmLabel="Excluir"
+            severity="danger"
+            loading={deleting}
+            onClose={closeAction}
+            onConfirm={confirmarExclusao}
+          />
         </>
       )}
+
+      {/* Criar/editar atleta — fora do guard de actionTarget pois "Novo atleta" não tem alvo. */}
+      <AtletaDialog
+        open={action === 'atleta-new' || action === 'atleta-edit'}
+        onClose={closeAction}
+        onSave={salvarAtleta}
+        atleta={atletaParaEditar ?? undefined}
+      />
+
+      <Snackbar
+        open={erroAcao !== null}
+        autoHideDuration={6000}
+        onClose={() => setErroAcao(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="error" variant="filled" onClose={() => setErroAcao(null)}>
+          {erroAcao}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }
