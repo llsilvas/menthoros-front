@@ -3,7 +3,8 @@ import type { CoachAtletaResumo, CoachAtletaStatus } from '../../../types/Coach'
 import type { AtletaPerfilCoachDto, PmcPontoRaw } from '../../../types/AtletaPerfilCoach';
 import type { Prova } from '../../../types/Prova';
 import type { CoachAthleteRow, RaceItem, SegmentFilter } from '../types/CoachInbox';
-import type { MetricTone } from '../types/AthleteForm';
+import { formFromTSB } from '../types/AthleteForm';
+import type { FormVariant, MetricTone } from '../types/AthleteForm';
 
 /** TSS positivos dos últimos `n` dias do histórico PMC (descansos com tss=0 são descartados). */
 function ultimosTssValidos(pmcPoints: PmcPontoRaw[], n = 7): number[] {
@@ -93,17 +94,47 @@ function formatRaceDate(dateIso: string): string {
     .replace('.', '');
 }
 
-export function buildRaceCalendarFromProfile(profile: AtletaPerfilCoachDto | null): RaceItem[] {
+/** Provas do perfil que têm data, ordenadas por data crescente (não muta o array original). */
+function provasOrdenadas(profile: AtletaPerfilCoachDto | null): Prova[] {
   const provas = profile?.provas?.length ? profile.provas : profile?.proximaProva ? [profile.proximaProva] : [];
-
   return [...provas]
     .filter((prova): prova is Prova => Boolean(prova?.dataProva))
-    .sort((a, b) => a.dataProva.localeCompare(b.dataProva))
+    .sort((a, b) => a.dataProva.localeCompare(b.dataProva));
+}
+
+export function buildRaceCalendarFromProfile(profile: AtletaPerfilCoachDto | null): RaceItem[] {
+  return provasOrdenadas(profile)
     .map((prova) => ({
       date: formatRaceDate(prova.dataProva),
       label: prova.nomeProva,
       tag: prova.provaAlvo ? 'ALVO' : 'PRINCIPAL',
     }));
+}
+
+/**
+ * Previsão de forma no dia da prova via decaimento exponencial do PMC (taper puro, carga zero):
+ * CTL(d) = CTL₀·e^(−d/42), ATL(d) = ATL₀·e^(−d/7), TSB(d) = CTL(d) − ATL(d).
+ * Fallback null quando falta ctl/atl ou a prova já passou (diasAteProva ≤ 0).
+ */
+export function calcularPrevisaoForma(
+  ctl: number | null,
+  atl: number | null,
+  diasAteProva: number,
+): { tsbPrevisto: number; formaPrevista: FormVariant } | null {
+  if (ctl == null || atl == null || diasAteProva <= 0) return null;
+  const ctlPrevisto = ctl * Math.exp(-diasAteProva / 42);
+  const atlPrevisto = atl * Math.exp(-diasAteProva / 7);
+  const tsbPrevisto = parseFloat((ctlPrevisto - atlPrevisto).toFixed(1));
+  return { tsbPrevisto, formaPrevista: formFromTSB(tsbPrevisto) };
+}
+
+const MS_POR_DIA = 86_400_000;
+
+/** Dias até a próxima prova futura do perfil. -1 quando não há prova cadastrada. */
+export function calcularDiasAteProva(profile: AtletaPerfilCoachDto | null, hoje: Date): number {
+  const proxima = provasOrdenadas(profile)[0];
+  if (!proxima) return -1;
+  return Math.ceil((new Date(`${proxima.dataProva}T12:00:00`).getTime() - hoje.getTime()) / MS_POR_DIA);
 }
 
 export function statusToSegment(status: CoachAtletaStatus): SegmentFilter {
@@ -116,12 +147,16 @@ export function statusToSegment(status: CoachAtletaStatus): SegmentFilter {
 export function buildSelectedAthleteFromDashboard(
   roster: CoachAtletaResumo,
   profile: AtletaPerfilCoachDto | null,
+  hoje: Date = new Date(),
 ): CoachAthleteRow {
   const pmcPoints = profile?.pmc ?? [];
   const adherencePoints = profile?.aderenciaSemanal ?? [];
   const firstWorkout = profile?.planoVigente?.treinos[0] ?? null;
   const latestPmc = pmcPoints[pmcPoints.length - 1] ?? null;
   const latestAdherence = adherencePoints[adherencePoints.length - 1] ?? null;
+
+  const diasAteProva = calcularDiasAteProva(profile, hoje);
+  const previsao = calcularPrevisaoForma(latestPmc?.ctl ?? null, latestPmc?.atl ?? null, diasAteProva);
 
   return {
     id: roster.atletaId,
@@ -163,6 +198,7 @@ export function buildSelectedAthleteFromDashboard(
       strain: calcularStrain(pmcPoints),
       recovery: latestAdherence?.percentual ?? 0,
     },
+    racePrediction: previsao ? { diasAteProva, ...previsao } : null,
   };
 }
 
@@ -205,5 +241,6 @@ export function buildRosterRowFromSummary(roster: CoachAtletaResumo): CoachAthle
       strain: null, // resumo do roster não traz histórico PMC; strain só no perfil completo
       recovery: 0,
     },
+    racePrediction: null, // resumo não traz provas nem PMC
   };
 }
