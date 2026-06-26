@@ -3,15 +3,6 @@ export type SegmentFilter = 'all' | 'attention' | 'drop' | 'stable' | 'growth';
 export type PlanStatus = 'ATRASADO' | 'NO_PRAZO' | 'CONCLUIDO';
 export type TrainingType = 'Corrida' | 'Força' | 'Mobilidade' | 'Descanso';
 
-export interface WorkoutItem {
-  date: string;
-  title: string;
-  distance: string;
-  zone: string;
-  completion: number;
-  state: 'ok' | 'warn' | 'miss';
-}
-
 export interface RaceItem {
   date: string;
   label: string;
@@ -43,7 +34,6 @@ export interface CoachAthleteRow {
     distance: string;
     objective: string;
   };
-  lastWorkouts: WorkoutItem[];
   raceCalendar: RaceItem[];
   loadTrend: number[];
   adherenceTrend: number[];
@@ -54,6 +44,7 @@ export interface CoachAthleteRow {
     monotony: number;
     tsb: number | null;
     acwr: number | null;
+    /** % de aderência da semana mais recente — NÃO é recuperação fisiológica (TSB). Ver follow-up de semântica. */
     recovery: number;
   };
 }
