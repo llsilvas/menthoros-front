@@ -265,7 +265,7 @@ const GerarProjecaoDialog: React.FC<GerarProjecaoDialogProps> = ({
                     </IconButton>
                 </DialogTitle>
 
-                <form onSubmit={handleSubmit} noValidate>
+                <form onSubmit={handleSubmit} noValidate style={{ display: 'contents' }}>
                     <DialogContent
                         dividers
                         sx={{
