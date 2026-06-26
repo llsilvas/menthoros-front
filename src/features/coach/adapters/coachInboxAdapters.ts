@@ -1,8 +1,30 @@
 import { formatWorkoutTypeLabel, statusLabel } from '../components/coachInboxHelpers';
 import type { CoachAtletaResumo, CoachAtletaStatus } from '../../../types/Coach';
-import type { AtletaPerfilCoachDto } from '../../../types/AtletaPerfilCoach';
+import type { AtletaPerfilCoachDto, PmcPontoRaw } from '../../../types/AtletaPerfilCoach';
 import type { Prova } from '../../../types/Prova';
 import type { CoachAthleteRow, RaceItem, SegmentFilter } from '../types/CoachInbox';
+
+export function calcularMonotonia(pmcPoints: PmcPontoRaw[]): number {
+  const ultimos7 = pmcPoints.slice(-7).map((p) => p.tss ?? 0).filter((v) => v > 0);
+  if (ultimos7.length < 3) return 1.0;
+  const media = ultimos7.reduce((a, b) => a + b, 0) / ultimos7.length;
+  const variancia = ultimos7.reduce((a, b) => a + (b - media) ** 2, 0) / ultimos7.length;
+  const stddev = Math.sqrt(variancia);
+  return stddev === 0 ? 1.0 : parseFloat((media / stddev).toFixed(2));
+}
+
+export function calcularLoadDelta(pmcPoints: PmcPontoRaw[]): number {
+  if (pmcPoints.length < 8) return 0;
+  const ctlAtual = pmcPoints[pmcPoints.length - 1]?.ctl ?? 0;
+  const ctlSemanaPassada = pmcPoints[pmcPoints.length - 8]?.ctl ?? 0;
+  if (ctlSemanaPassada === 0) return 0;
+  return parseFloat(((ctlAtual - ctlSemanaPassada) / ctlSemanaPassada * 100).toFixed(1));
+}
+
+export function calcularAcwr(atl: number | null, ctl: number | null): number | null {
+  if (atl == null || ctl == null || ctl === 0) return null;
+  return parseFloat((atl / ctl).toFixed(2));
+}
 
 function formatDuration(iso: string | undefined): string {
   if (!iso) return '—';
@@ -63,7 +85,7 @@ export function buildSelectedAthleteFromDashboard(
     decision: 'PENDING',
     adherence: roster.aderenciaPercentual ?? latestAdherence?.percentual ?? 0,
     load7d: roster.weeklyVolume,
-    loadDelta: 0,
+    loadDelta: calcularLoadDelta(pmcPoints),
     delay: 0,
     nextWorkout: {
       title: firstWorkout ? formatWorkoutTypeLabel(firstWorkout.tipoTreino) : 'Sem treino planejado',
@@ -82,9 +104,10 @@ export function buildSelectedAthleteFromDashboard(
       ? profile.sinaisRecentes.map((s) => s.acaoSugerida).slice(0, 3)
       : ['Abrir o perfil do atleta para detalhes completos'],
     quickStats: {
-      acuteLoad: latestPmc?.ctl ?? roster.weeklyVolume,
-      monotony: 1,
-      fatigue: latestPmc && latestPmc.tsb < -10 ? 'Alta' : latestPmc && latestPmc.tsb < 0 ? 'Média' : 'Baixa',
+      acuteLoad: latestPmc?.atl ?? roster.weeklyVolume,
+      monotony: calcularMonotonia(pmcPoints),
+      tsb: latestPmc?.tsb ?? null,
+      acwr: calcularAcwr(latestPmc?.atl ?? null, latestPmc?.ctl ?? null),
       recovery: latestAdherence?.percentual ?? 0,
     },
   };
@@ -125,7 +148,8 @@ export function buildRosterRowFromSummary(roster: CoachAtletaResumo): CoachAthle
     quickStats: {
       acuteLoad: roster.weeklyVolume,
       monotony: 1,
-      fatigue: roster.status === 'danger' ? 'Alta' : roster.status === 'warning' ? 'Média' : 'Baixa',
+      tsb: null,
+      acwr: calcularAcwr(roster.atl ?? null, roster.ctl ?? null),
       recovery: 0,
     },
   };
