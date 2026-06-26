@@ -44,6 +44,8 @@ export interface CoachAthleteRow {
     monotony: number;
     tsb: number | null;
     acwr: number | null;
+    /** Training Strain = TSS_semanal × monotonia — qualidade do ciclo de treino. */
+    strain: number | null;
     /** % de aderência da semana mais recente — NÃO é recuperação fisiológica (TSB). Ver follow-up de semântica. */
     recovery: number;
   };
