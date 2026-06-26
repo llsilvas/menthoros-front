@@ -3,6 +3,8 @@ import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, M
 import { Close as CloseIcon } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import Grid from '@mui/material/Grid';
+import { primary, surface, content } from '../../../theme/tokens';
+import { elevation } from '../../../shared/design-tokens';
 
 import type { Atleta, CreateAtleta, UpdateAtleta, AtletaDialogProps, diaSemana, Sexo } from "../../../types/Atleta";
 
@@ -194,7 +196,8 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                 sx: {
                     overflow: 'hidden',
                     borderRadius: 1,
-                    backgroundColor: '#ffffff',
+                    backgroundColor: elevation.base,
+                    border: `1px solid ${content.cardBorder}`,
                 },
             },
         }}
@@ -207,9 +210,9 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                 px: { xs: 2, md: 3 },
                 py: { xs: 2, md: 2.25 },
                 pr: { xs: 7, md: 8 },
-                color: 'white',
-                background: 'linear-gradient(135deg, #082130 0%, #0e3147 55%, #133c56 100%)',
-                borderBottom: '1px solid rgba(255,255,255,0.08)',
+                color: surface[50],
+                background: `linear-gradient(135deg, ${elevation.base} 0%, ${elevation.panel} 55%, ${elevation.card} 100%)`,
+                borderBottom: `1px solid ${content.divider}`,
             }}
         >
             <Box sx={{ flexGrow: 1, minWidth: 0 }}>
@@ -218,10 +221,10 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                         label={isEditMode ? 'Edição' : 'Cadastro'}
                         size="small"
                         sx={{
-                            bgcolor: 'rgba(255,255,255,0.12)',
-                            color: '#e8eaed',
+                            bgcolor: content.cardBgHover,
+                            color: surface[200],
                             fontWeight: 700,
-                            border: '1px solid rgba(255,255,255,0.12)',
+                            border: `1px solid ${content.cardBorder}`,
                         }}
                     />
                 </Box>
@@ -242,7 +245,7 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                     variant="body2"
                     sx={{
                         mt: 0.75,
-                        color: 'rgba(232, 234, 237, 0.72)',
+                        color: surface[400],
                         maxWidth: 720,
                         fontSize: { xs: '0.8rem', md: '0.875rem' },
                     }}
@@ -258,11 +261,11 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                     position: 'absolute',
                     right: 12,
                     top: 12,
-                    color: 'white',
-                    bgcolor: 'rgba(255,255,255,0.06)',
-                    border: '1px solid rgba(255,255,255,0.08)',
+                    color: surface[50],
+                    bgcolor: content.inputBg,
+                    border: `1px solid ${content.cardBorder}`,
                     '&:hover': {
-                        bgcolor: 'rgba(255,255,255,0.12)',
+                        bgcolor: content.cardBgHover,
                     },
                 }}
             >
@@ -274,8 +277,7 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                 dividers
                 sx={{
                     p: 0,
-                    background:
-                        'radial-gradient(circle at top right, rgba(179,233,45,0.08), transparent 24%), linear-gradient(180deg, #eef3f8 0%, #e8edf4 100%)',
+                    background: `radial-gradient(circle at top right, ${primary[500]}14, transparent 24%), linear-gradient(180deg, ${elevation.base} 0%, ${elevation.panel} 100%)`,
                 }}
             >
                 <Stack spacing={2.5} sx={{ p: { xs: 1.5, md: 3 } }}>
@@ -283,8 +285,8 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                     <Box
                         sx={{
                             borderRadius: 1,
-                            border: '1px solid rgba(255,255,255,0.7)',
-                            background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.94) 100%)',
+                            border: `1px solid ${content.cardBorder}`,
+                            background: elevation.card,
                             p: { xs: 2, md: 2.5 },
                         }}
                     >
@@ -294,12 +296,12 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                                     fontFamily: 'Syne, sans-serif',
                                     fontSize: '1.1rem',
                                     fontWeight: 800,
-                                    color: '#1a2535',
+                                    color: surface[50],
                                 }}
                             >
                                 Dados do atleta
                             </Typography>
-                            <Typography variant="body2" sx={{ mt: 0.5, color: '#6b7a8d' }}>
+                            <Typography variant="body2" sx={{ mt: 0.5, color: surface[400] }}>
                                 Preencha as informações obrigatórias, rotina disponível e eventuais restrições.
                             </Typography>
                         </Box>
@@ -489,9 +491,9 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                     </Box>
                 </Stack>
             </DialogContent>
-            <DialogActions sx={{ px: { xs: 2, md: 3 }, py: 2, background: '#f8fafc', borderTop: '1px solid #e2e8f0', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: 1 }}>
+            <DialogActions sx={{ px: { xs: 2, md: 3 }, py: 2, background: elevation.panel, borderTop: `1px solid ${content.divider}`, flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: 1 }}>
                 <Box sx={{ flexGrow: 1 }}>
-                    <Typography variant="caption" sx={{ color: '#6b7a8d' }}>
+                    <Typography variant="caption" sx={{ color: surface[400] }}>
                         Tamanho e estilo padronizados com os dialogs de planos e detalhe.
                     </Typography>
                 </Box>
