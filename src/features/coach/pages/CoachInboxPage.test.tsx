@@ -207,6 +207,7 @@ describe('CoachInboxPage', () => {
     // aba default é Diagnóstico
     expect(screen.getByText(/Carga aguda/i)).toBeInTheDocument();
     expect(screen.getByText(/Monotonia/i)).toBeInTheDocument();
+    expect(screen.getByText(/Strain/i)).toBeInTheDocument();
     expect(screen.getByText(/Adesão nas últimas semanas/i)).toBeInTheDocument();
     expect(screen.getByText(/Sinais de atenção/i)).toBeInTheDocument();
     // conteúdo global do dashboard não aparece no drill-down
