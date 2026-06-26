@@ -52,7 +52,8 @@ export interface CoachAthleteRow {
   quickStats: {
     acuteLoad: number;
     monotony: number;
-    fatigue: 'Baixa' | 'Média' | 'Alta';
+    tsb: number | null;
+    acwr: number | null;
     recovery: number;
   };
 }

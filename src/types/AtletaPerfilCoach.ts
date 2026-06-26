@@ -65,6 +65,15 @@ export interface RecordeDto {
     treinoId: string;
 }
 
+/** Limiares de treinamento inferidos pela IA (FC e pace limiar). */
+export interface LimiareisInferidosDto {
+    fcLimiarEstimado?: number | null;
+    paceLimiarEstimadoFormatado?: string | null;
+    confiancaInferenciaFc?: 'ALTA' | 'MEDIA' | 'BAIXA' | null;
+    confiancaInferenciaPace?: 'ALTA' | 'MEDIA' | 'BAIXA' | null;
+    dataInferenciaLimiar?: string | null;
+}
+
 /** Perfil consolidado de um atleta para o coach (endpoint único agregador). */
 export interface AtletaPerfilCoachDto {
     atletaId: string;
@@ -82,4 +91,5 @@ export interface AtletaPerfilCoachDto {
     recordes: RecordeDto[];
     geradoEm: string;
     avisos: string[] | null;
+    limiareisInferidos?: LimiareisInferidosDto | null;
 }
