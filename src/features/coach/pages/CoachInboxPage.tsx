@@ -54,6 +54,7 @@ import type { SortKey, DashboardStatusFilter } from '../hooks/useDashboardFilter
 import { elevation } from '../../../shared/design-tokens';
 import { content, primary, semantic, surface } from '../../../theme/tokens';
 import { buildRosterRowFromSummary, buildSelectedAthleteFromDashboard } from '../adapters/coachInboxAdapters';
+import { formFromTSB, formVariantLabel } from '../types/AthleteForm';
 import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
 
 type TabKey = 'review' | 'plan' | 'calendar' | 'status' | 'adherence';
@@ -572,14 +573,45 @@ function CoachInboxPage() {
                   px: { xs: 1.1, sm: 1.2, lg: 1.3, xl: 2 },
                   py: { xs: 0.65, sm: 0.75, lg: 0.85, xl: 1.25 },
                   display: 'grid',
-                  gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, minmax(0, 1fr))' },
+                  gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(5, minmax(0, 1fr))' },
                   gap: { xs: 0.55, sm: 0.65, lg: 0.75, xl: 1.2 },
                   borderBottom: `1px solid ${content.divider}`,
                 }}
               >
                 <MetricTile compact label="Aderência" value={formatPercent(selected.adherence)} delta="Últimas 4 semanas" tone={selected.adherence >= 85 ? 'success' : selected.adherence >= 70 ? 'neutral' : 'warning'} />
                 <MetricTile compact label="Carga (7d)" value={formatKm(selected.load7d)} delta={`${selected.loadDelta >= 0 ? '+' : ''}${selected.loadDelta}% vs. ant.`} tone={selected.loadDelta >= 10 ? 'warning' : 'success'} />
-                <MetricTile compact label="Fadiga" value={selected.quickStats.fatigue} delta={`Monotonia ${selected.quickStats.monotony.toFixed(2)}`} tone={selected.quickStats.fatigue === 'Alta' ? 'danger' : selected.quickStats.fatigue === 'Média' ? 'warning' : 'success'} />
+                <MetricTile
+                  compact
+                  label="Forma"
+                  value={selected.quickStats.tsb != null ? formVariantLabel[formFromTSB(selected.quickStats.tsb)] : '—'}
+                  delta={selected.quickStats.tsb != null ? `TSB ${selected.quickStats.tsb}` : 'TSB não disponível'}
+                  tone={
+                    selected.quickStats.tsb == null ? 'neutral'
+                    : formFromTSB(selected.quickStats.tsb) === 'form_critical' ? 'danger'
+                    : formFromTSB(selected.quickStats.tsb) === 'form_low' ? 'warning'
+                    : formFromTSB(selected.quickStats.tsb) === 'form_stable' ? 'neutral'
+                    : 'success'
+                  }
+                />
+                <MetricTile
+                  compact
+                  label="ACWR"
+                  value={selected.quickStats.acwr != null ? selected.quickStats.acwr.toFixed(2) : '—'}
+                  delta={
+                    selected.quickStats.acwr == null ? 'Dado insuficiente'
+                    : selected.quickStats.acwr > 1.5 ? 'Risco'
+                    : selected.quickStats.acwr > 1.3 ? 'Atenção'
+                    : selected.quickStats.acwr >= 0.8 ? 'Ideal'
+                    : 'Muito baixo'
+                  }
+                  tone={
+                    selected.quickStats.acwr == null ? 'neutral'
+                    : selected.quickStats.acwr > 1.5 ? 'danger'
+                    : selected.quickStats.acwr > 1.3 ? 'warning'
+                    : selected.quickStats.acwr >= 0.8 ? 'success'
+                    : 'warning'
+                  }
+                />
                 <MetricTile compact label={isTargetRace ? 'Prova Alvo' : 'Próxima Prova'} delta={selected.raceCalendar[0]?.date ?? '—'} value={selected.raceCalendar[0]?.label ?? 'Sem prova próxima'} tone={isTargetRace ? 'warning' : 'neutral'} highlight={isTargetRace} />
               </Box>
 
@@ -660,6 +692,7 @@ function CoachInboxPage() {
                   <StatusTabPanel
                     dashboardInsights={dashboardInsights}
                     selected={selected}
+                    limiareisInferidos={selectedProfile?.limiareisInferidos ?? null}
                     onOpenInsights={() => navigate('/coach/insights')}
                   />
                 ) : null}

@@ -36,6 +36,7 @@ import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { MetricCell } from '../../../shared/components/MetricCell';
 import { useCoachRoster } from '../../../hooks/useCoachRoster';
 import { deriveRosterKpis, daysSinceLastActivity, INACTIVITY_THRESHOLD_DAYS } from '../adapters/rosterKpis';
+import { calcularAcwr } from '../adapters/coachInboxAdapters';
 import type { CoachAtletaStatus } from '../../../types/Coach';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -49,6 +50,7 @@ interface AthleteRow {
   ctl?: number;
   atl?: number;
   tsb?: number;
+  acwr?: number;
   weeklyVolume: number;
   lastActivity?: string;
 }
@@ -204,6 +206,7 @@ export default function CoachAthletesPage() {
         ctl: a.ctl,
         atl: a.atl,
         tsb: a.tsb,
+        acwr: calcularAcwr(a.atl ?? null, a.ctl ?? null) ?? undefined,
         weeklyVolume: a.weeklyVolume,
         lastActivity: a.lastActivity,
       })),
@@ -316,6 +319,28 @@ export default function CoachAthletesPage() {
           <MetricCell value={row.tsb ?? '—'} size="sm" tooltip="Balanço de Estresse de Treino" />
         </Box>
       ),
+    },
+    {
+      field: 'acwr',
+      headerName: 'ACWR',
+      width: 80,
+      type: 'number',
+      headerAlign: 'left',
+      align: 'left',
+      renderCell: ({ row }) => {
+        const acwr = row.acwr;
+        const color =
+          acwr == null ? 'inherit'
+          : acwr > 1.5 ? semantic.danger[500]
+          : acwr > 1.3 ? semantic.warning[500]
+          : acwr >= 0.8 ? semantic.success[500]
+          : semantic.warning[500];
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', color }}>
+            <MetricCell value={acwr != null ? acwr.toFixed(2) : '—'} size="sm" tooltip="Razão Carga Aguda:Crônica (ATL/CTL) — risco de lesão" />
+          </Box>
+        );
+      },
     },
     {
       field: 'weeklyVolume',
