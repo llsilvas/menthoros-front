@@ -40,6 +40,7 @@ export interface CoachAthleteRow {
     when: string;
     zone: string;
     duration: string;
+    distance: string;
     objective: string;
   };
   lastWorkouts: WorkoutItem[];

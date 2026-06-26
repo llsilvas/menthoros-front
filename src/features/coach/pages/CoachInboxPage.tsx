@@ -73,9 +73,6 @@ const DASHBOARD_STATUS_OPTIONS: Array<{ key: DashboardStatusFilter; label: strin
   { key: 'paused', label: 'Pausado' },
 ];
 
-
-
-
 const TABS: Array<{ key: TabKey; label: string; icon: ReactElement }> = [
   { key: 'review', label: 'Revisão do treino', icon: <CheckCircleIcon fontSize="small" /> },
   { key: 'plan', label: 'Ajustes de plano', icon: <TuneIcon fontSize="small" /> },
@@ -83,17 +80,6 @@ const TABS: Array<{ key: TabKey; label: string; icon: ReactElement }> = [
   { key: 'status', label: 'Status do treinamento', icon: <NotificationsNoneIcon fontSize="small" /> },
   { key: 'adherence', label: 'Adesão', icon: <FilterAltIcon fontSize="small" /> },
 ];
-
-
-
-
-
-
-
-
-
-
-
 
 function CoachInboxPage() {
   const navigate = useNavigate();
@@ -247,23 +233,6 @@ function CoachInboxPage() {
             ),
           }}
         />
-
-        {/* <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <IconButton size="small" sx={{ border: `1px solid ${content.cardBorder}`, bgcolor: `${surface[0]}08` }}>
-            <NotificationsNoneIcon fontSize="small" />
-          </IconButton>
-          <IconButton size="small" sx={{ border: `1px solid ${content.cardBorder}`, bgcolor: `${surface[0]}08` }}>
-            <ChatBubbleOutlineIcon fontSize="small" />
-          </IconButton>
-          <Button
-            variant="outlined"
-            size="small"
-            endIcon={<ExpandMoreIcon />}
-            sx={{ textTransform: 'none', borderColor: content.cardBorder, color: surface[200], minWidth: 160 }}
-          >
-            Lucas Ferreira
-          </Button>
-        </Box> */}
       </Box>
 
       <Box
@@ -608,7 +577,7 @@ function CoachInboxPage() {
                   borderBottom: `1px solid ${content.divider}`,
                 }}
               >
-                <MetricTile compact label="Aderência" value={formatPercent(selected.adherence)} delta="Últimas 6 semanas" tone={selected.adherence >= 85 ? 'success' : selected.adherence >= 70 ? 'neutral' : 'warning'} />
+                <MetricTile compact label="Aderência" value={formatPercent(selected.adherence)} delta="Últimas 4 semanas" tone={selected.adherence >= 85 ? 'success' : selected.adherence >= 70 ? 'neutral' : 'warning'} />
                 <MetricTile compact label="Carga (7d)" value={formatKm(selected.load7d)} delta={`${selected.loadDelta >= 0 ? '+' : ''}${selected.loadDelta}% vs. ant.`} tone={selected.loadDelta >= 10 ? 'warning' : 'success'} />
                 <MetricTile compact label="Fadiga" value={selected.quickStats.fatigue} delta={`Monotonia ${selected.quickStats.monotony.toFixed(2)}`} tone={selected.quickStats.fatigue === 'Alta' ? 'danger' : selected.quickStats.fatigue === 'Média' ? 'warning' : 'success'} />
                 <MetricTile compact label={isTargetRace ? 'Prova Alvo' : 'Próxima Prova'} delta={selected.raceCalendar[0]?.date ?? '—'} value={selected.raceCalendar[0]?.label ?? 'Sem prova próxima'} tone={isTargetRace ? 'warning' : 'neutral'} highlight={isTargetRace} />

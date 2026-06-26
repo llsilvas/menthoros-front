@@ -36,17 +36,10 @@ export function ReviewTabPanel({ selected, selectedProfile, onMarkDone, onReagen
             <Box>
               <Typography sx={{ fontSize: { xs: '0.92rem', sm: '0.96rem', lg: '1rem', xl: '1.1rem' }, fontWeight: 700, color: surface[50] }}>{selected.nextWorkout.title}</Typography>
               <Typography sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem', lg: '0.8rem', xl: '0.86rem' }, color: surface[400], mt: 0.2 }}>
-                {selected.nextWorkout.when} · {selected.nextWorkout.zone} · {selected.nextWorkout.duration}
+                {selected.nextWorkout.when} · {selected.nextWorkout.duration} - {selected.nextWorkout.distance}
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
-            {selected.nivelExperiencia ? (
-              <Chip
-                size="small"
-                label={selected.nivelExperiencia}
-                sx={{ fontSize: { xs: '0.6rem', xl: '0.66rem' }, fontWeight: 600, bgcolor: `${surface[500]}20`, color: surface[200] }}
-              />
-            ) : null}
             <Chip
               size="small"
               label={selected.planStatus === 'ATRASADO' ? 'Atrasado' : selected.planStatus === 'NO_PRAZO' ? 'No prazo' : 'Concluído'}

@@ -4,6 +4,14 @@ import type { AtletaPerfilCoachDto } from '../../../types/AtletaPerfilCoach';
 import type { Prova } from '../../../types/Prova';
 import type { CoachAthleteRow, RaceItem, SegmentFilter } from '../types/CoachInbox';
 
+function formatDuration(iso: string | undefined): string {
+  if (!iso) return '—';
+  const h = parseInt(iso.match(/(\d+)H/)?.[1] ?? '0', 10);
+  const m = parseInt(iso.match(/(\d+)M/)?.[1] ?? '0', 10);
+  if (h === 0 && m === 0) return '—';
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
 function formatRaceDate(dateIso: string): string {
   return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' })
     .format(new Date(`${dateIso}T12:00:00`))
@@ -61,7 +69,8 @@ export function buildSelectedAthleteFromDashboard(
       title: firstWorkout ? formatWorkoutTypeLabel(firstWorkout.tipoTreino) : 'Sem treino planejado',
       when: firstWorkout ? firstWorkout.diaSemana : 'Sem data',
       zone: firstWorkout?.zonaAlvo ?? '—',
-      duration: firstWorkout?.duracaoMin ?? '—',
+      duration: formatDuration(firstWorkout?.duracaoMin),
+      distance: firstWorkout ? `${firstWorkout.distanciaKm} km` : '—',
       objective: firstWorkout ? 'Treino vindo do backend.' : 'Nenhum treino planejado no plano vigente.',
     },
     lastWorkouts: [],
@@ -104,6 +113,7 @@ export function buildRosterRowFromSummary(roster: CoachAtletaResumo): CoachAthle
       when: '—',
       zone: '—',
       duration: '—',
+      distance: '—',
       objective: 'Abra o atleta para ver o detalhe completo.',
     },
     lastWorkouts: [],
