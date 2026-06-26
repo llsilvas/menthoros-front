@@ -521,15 +521,20 @@ function CoachInboxPage() {
                       />
                     </Box>
                     {selected.nivelExperiencia ? (
-                      <Typography sx={{ fontSize: { xs: '0.60rem', sm: '0.68rem', lg: '0.76rem', xl: '0.8rem' }, color: surface[400], mt: 0.15 }}>
-                        {selected.nivelExperiencia} - 
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap', mt: 0.15 }}>
+                        <Typography component="span" sx={{ fontSize: { xs: '0.60rem', sm: '0.68rem', lg: '0.76rem', xl: '0.8rem' }, color: surface[400] }}>
+                          {selected.nivelExperiencia}
+                        </Typography>
                         {selected.age > 0 ? (
-                            <Chip size="small" label={`${selected.age} anos`}
-                              sx={{ fontSize: '0.6rem', bgcolor: `${surface[500]}20`, color: surface[200] }} />
-                          ) : null}
-                      </Typography>
+                          <Chip
+                            size="small"
+                            label={`${selected.age} anos`}
+                            sx={{ height: 18, fontSize: '0.6rem', bgcolor: `${surface[500]}20`, color: surface[200] }}
+                          />
+                        ) : null}
+                      </Box>
                     ) : null}
-                    <Typography sx={{ fontSize: { xs: '0.40rem', sm: '0.50rem', lg: '0.60rem', xl: '0.8rem' }, color: surface[400], mt: 0.2 }}>
+                    <Typography sx={{ fontSize: { xs: '0.62rem', sm: '0.68rem', lg: '0.74rem', xl: '0.8rem' }, color: surface[400], mt: 0.2 }}>
                       {selected.discipline}
                     </Typography>
                   </Box>
