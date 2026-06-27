@@ -1,15 +1,8 @@
 import React, { useState } from 'react';
-import {
-    Button,
-    CircularProgress,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogContentText,
-    DialogTitle,
-} from '@mui/material';
+import { Button, CircularProgress } from '@mui/material';
 import { CheckCircle as CheckCircleIcon } from '@mui/icons-material';
 import { useRaceProjection } from '../../../hooks/useRaceProjection';
+import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { semantic, surface } from '../../../theme/tokens';
 import type { RaceProjectionSnapshot } from '../../../types/RaceProjection';
 
@@ -53,26 +46,15 @@ const MarcarOficialButton: React.FC<MarcarOficialButtonProps> = ({
                 {loading ? 'Marcando...' : 'Marcar como Oficial'}
             </Button>
 
-            <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} maxWidth="xs" fullWidth>
-                <DialogTitle sx={{ fontWeight: 700 }}>Marcar como Oficial?</DialogTitle>
-                <DialogContent>
-                    <DialogContentText>
-                        Esta projeção será marcada como oficial e ficará visível ao atleta.
-                        A projeção oficial anterior (se houver) será substituída.
-                    </DialogContentText>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setConfirmOpen(false)} size="small">Cancelar</Button>
-                    <Button
-                        onClick={handleConfirm}
-                        variant="contained"
-                        size="small"
-                        sx={{ bgcolor: semantic.success[500], color: surface[900], '&:hover': { bgcolor: semantic.success[700] } }}
-                    >
-                        Confirmar
-                    </Button>
-                </DialogActions>
-            </Dialog>
+            <ConfirmDialog
+                open={confirmOpen}
+                title="Marcar como Oficial?"
+                message="Esta projeção será marcada como oficial e ficará visível ao atleta. A projeção oficial anterior (se houver) será substituída."
+                confirmLabel="Confirmar"
+                loading={loading}
+                onClose={() => setConfirmOpen(false)}
+                onConfirm={handleConfirm}
+            />
         </>
     );
 };
