@@ -4,10 +4,6 @@ import {
     Box,
     Button,
     CircularProgress,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
     FormControl,
     IconButton,
     InputLabel,
@@ -18,8 +14,9 @@ import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import RepeatIcon from '@mui/icons-material/Repeat';
 import { primary, surface, semantic, categorical } from '../../../theme/tokens';
-import { shadow } from '../../../shared/design-tokens';
 import { useTreinoPlanejado } from '../../../hooks/useTreinoPlanejado';
+import { CoachDialog } from './CoachDialog';
+import { GHOST_BTN_SX, PRIMARY_BTN_SX } from './actionButtonSx';
 import type { TreinoPlanejadoDto, TreinoPlanejadoAddPayload, EtapaInputPayload } from '../../../types/PlanoReview';
 
 // ── Paleta metabólica ─────────────────────────────────────────────────────────
@@ -367,50 +364,57 @@ export function TreinoAddDialog({
 
     // ── Render ────────────────────────────────────────────────────────────────
 
-    return (
-        <Dialog
-            open={open} onClose={isSaving ? undefined : handleClose}
-            maxWidth="sm" fullWidth
-            PaperProps={{
-                sx: {
-                    bgcolor: surface[900], borderRadius: '12px', overflow: 'hidden',
-                    border: `1px solid ${surface[0]}1A`,
-                    boxShadow: `0 0 0 1px ${surface[0]}08, ${shadow.modal}`,
-                },
-            }}
-        >
-            {/* ── Header ─────────────────────────────────────────────────── */}
-            <DialogTitle sx={{ p: 0 }}>
-                <Box sx={{
-                    px: 2.5, pt: 2, pb: 1.5, borderBottom: `1px solid ${surface[0]}12`,
-                    display: 'flex', alignItems: 'center', gap: 1.5,
-                }}>
-                    <Box sx={{
-                        width: 28, height: 28, flexShrink: 0,
-                        bgcolor: `${primary[500]}18`, border: `1px solid ${primary[500]}40`,
-                        borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                        <Box component="svg" viewBox="0 0 16 16" sx={{ width: 14, height: 14, color: primary[500] }}>
-                            <path fill="currentColor" d="M2 3h4v10H2V3zm5 0h2v10H7V3zm3 0h4v10h-4V3z" opacity=".35"/>
-                            <path fill="currentColor" d="M2 3h4v4H2V3zm5 3h2v4H7V6zm3 2h4v5h-4V8z"/>
-                        </Box>
-                    </Box>
-                    <Box>
-                        <Box sx={{
-                            fontFamily: '"Courier New", Courier, monospace', fontSize: '0.62rem',
-                            letterSpacing: '0.14em', color: primary[500], textTransform: 'uppercase',
-                            lineHeight: 1, mb: 0.25,
-                        }}>
-                            COACH · SESSÃO
-                        </Box>
-                        <Box sx={{ fontSize: '0.95rem', fontWeight: 700, color: surface[50], lineHeight: 1.2, letterSpacing: '-0.01em' }}>
-                            Adicionar treino
-                        </Box>
-                    </Box>
+    const sessaoChip = (
+        <Box sx={{
+            display: 'flex', alignItems: 'center', gap: 1,
+        }}>
+            <Box sx={{
+                width: 24, height: 24, flexShrink: 0,
+                bgcolor: `${primary[500]}18`, border: `1px solid ${primary[500]}40`,
+                borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+                <Box component="svg" viewBox="0 0 16 16" sx={{ width: 12, height: 12, color: primary[500] }}>
+                    <path fill="currentColor" d="M2 3h4v10H2V3zm5 0h2v10H7V3zm3 0h4v10h-4V3z" opacity=".35"/>
+                    <path fill="currentColor" d="M2 3h4v4H2V3zm5 3h2v4H7V6zm3 2h4v5h-4V8z"/>
                 </Box>
-            </DialogTitle>
+            </Box>
+            <Box sx={{
+                fontFamily: '"Courier New", Courier, monospace', fontSize: '0.62rem',
+                letterSpacing: '0.14em', color: primary[500], textTransform: 'uppercase', lineHeight: 1,
+            }}>
+                COACH · SESSÃO
+            </Box>
+        </Box>
+    );
 
-            <DialogContent sx={{ px: 2.5, py: 4, display: 'flex', flexDirection: 'column', gap: 1.9 }}>
+    return (
+        <CoachDialog
+            open={open}
+            onClose={handleClose}
+            maxWidth="sm"
+            disableClose={isSaving}
+            chip={sessaoChip}
+            title="Adicionar treino"
+            contentSx={{ px: 2.5, py: 4, display: 'flex', flexDirection: 'column', gap: 1.9 }}
+            actions={
+                <>
+                    <Button variant="text" onClick={handleClose} disabled={isSaving}
+                        sx={{ ...GHOST_BTN_SX, fontSize: '0.78rem' }}>
+                        Cancelar
+                    </Button>
+                    <Button variant="contained" onClick={handleSalvar}
+                        disabled={!canSave || isSaving}
+                        aria-label="Salvar treino"
+                        sx={{
+                            ...PRIMARY_BTN_SX,
+                            fontSize: '0.8rem', px: 2.5,
+                            '&.Mui-disabled': { bgcolor: surface[800], color: surface[600] },
+                        }}>
+                        {isSaving ? <CircularProgress size={14} sx={{ color: surface[900] }} /> : 'Salvar'}
+                    </Button>
+                </>
+            }
+        >
 
                 {/* ── Tipo + Data ─────────────────────────────────────────── */}
                 <Box sx={{ display: 'flex', gap: 1.9, py: 2.5, mb: 1.5, borderBottom: `1px solid ${surface[0]}1` }}>
@@ -753,31 +757,6 @@ export function TreinoAddDialog({
                         {apiError}
                     </Alert>
                 )}
-            </DialogContent>
-
-            {/* ── Actions ──────────────────────────────────────────────────── */}
-            <DialogActions sx={{ px: 2.5, pb: 2, pt: 1, gap: 1, borderTop: `1px solid ${surface[0]}0E` }}>
-                <Button variant="text" onClick={handleClose} disabled={isSaving}
-                    sx={{ color: surface[500], textTransform: 'none', fontSize: '0.78rem',
-                        '&:hover': { color: surface[300], bgcolor: 'transparent' } }}>
-                    Cancelar
-                </Button>
-                <Button variant="contained" onClick={handleSalvar}
-                    disabled={!canSave || isSaving}
-                    aria-label="Salvar treino"
-                    sx={{
-                        bgcolor: canSave ? primary[500] : surface[700],
-                        color: canSave ? surface[900] : surface[500],
-                        fontWeight: 800, fontSize: '0.8rem', textTransform: 'none', px: 2.5,
-                        letterSpacing: '-0.01em', fontFamily: '"Courier New", Courier, monospace',
-                        boxShadow: canSave ? `0 0 16px ${primary[500]}40` : 'none',
-                        '&:hover': { bgcolor: primary[400], boxShadow: `0 0 22px ${primary[500]}60` },
-                        '&.Mui-disabled': { bgcolor: surface[800], color: surface[600] },
-                        transition: 'all 0.2s',
-                    }}>
-                    {isSaving ? <CircularProgress size={14} sx={{ color: surface[900] }} /> : 'SALVAR'}
-                </Button>
-            </DialogActions>
-        </Dialog>
+        </CoachDialog>
     );
 }

@@ -3,9 +3,6 @@ import {
     Box,
     Button,
     CircularProgress,
-    Dialog,
-    DialogActions,
-    DialogContent,
     IconButton,
     MenuItem,
     Select,
@@ -18,6 +15,7 @@ import { primary, surface } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import { GHOST_BTN_SX, PRIMARY_BTN_SX } from './actionButtonSx';
 import { WORKOUT_STAGE_COLORS } from '../theme/workoutColors';
+import { CoachDialog } from './CoachDialog';
 import type { TreinoPlanejadoDto, TreinoPlanejadoPatch, EtapaTreinoDto } from '../../../types/PlanoReview';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -394,75 +392,129 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
         },
     } as const;
 
-    return (
-        <Dialog
-            open={open}
-            onClose={isSaving ? undefined : onClose}
-            maxWidth="sm"
-            fullWidth
-            PaperProps={{
-                sx: {
-                    bgcolor: elevation.highest,
-                    border: '1px solid rgba(255,255,255,0.09)',
-                    borderRadius: '14px',
-                    overflow: 'hidden',
-                },
+    const handleClose = () => {
+        if (!isSaving) onClose();
+    };
+
+    const diaChip = (
+        <Box
+            sx={{
+                px: 0.75,
+                py: 0.25,
+                borderRadius: '4px',
+                bgcolor: 'rgba(255,255,255,0.07)',
+                fontSize: '0.62rem',
+                fontWeight: 700,
+                color: surface[400],
+                fontFamily: 'monospace',
+                letterSpacing: '0.07em',
+                userSelect: 'none',
             }}
         >
-            {/* ── Cabeçalho ── */}
-            <Box
+            {diaSemana.slice(0, 3).toUpperCase()}
+        </Box>
+    );
+
+    const tipoSelect = (
+        <Select
+            value={tipoTreino}
+            onChange={e => setTipoTreino(e.target.value)}
+            size="small"
+            disabled={isSaving}
+            variant="standard"
+            disableUnderline
+            sx={{
+                fontSize: '0.95rem',
+                fontWeight: 700,
+                color: surface[50],
+                '& .MuiSvgIcon-root': { color: surface[500], fontSize: '1.1rem' },
+                '&.MuiInputBase-root': { bgcolor: 'transparent' },
+            }}
+            MenuProps={{ PaperProps: { sx: { bgcolor: elevation.highest, borderRadius: '10px', mt: 0.5 } } }}
+        >
+            {TIPOS_TREINO.map(t => (
+                <MenuItem key={t.value} value={t.value} sx={{ fontSize: '0.85rem' }}>
+                    {t.label}
+                </MenuItem>
+            ))}
+        </Select>
+    );
+
+    const totalHint = (totalKm || totalMin) ? (
+        <Box
+            sx={{
+                px: 1.5,
+                py: 0.7,
+                borderRadius: '6px',
+                bgcolor: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                display: 'flex',
+                gap: 2.5,
+            }}
+        >
+            <Typography
                 sx={{
-                    px: 2.5,
-                    py: 1.75,
-                    borderBottom: '1px solid rgba(255,255,255,0.07)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1.5,
+                    fontSize: '0.68rem',
+                    fontWeight: 600,
+                    color: surface[500],
+                    fontFamily: 'monospace',
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
                 }}
             >
-                <Box
-                    sx={{
-                        px: 0.75,
-                        py: 0.25,
-                        borderRadius: '4px',
-                        bgcolor: 'rgba(255,255,255,0.07)',
-                        fontSize: '0.62rem',
-                        fontWeight: 700,
-                        color: surface[400],
-                        fontFamily: 'monospace',
-                        letterSpacing: '0.07em',
-                        userSelect: 'none',
-                    }}
-                >
-                    {diaSemana.slice(0, 3).toUpperCase()}
-                </Box>
+                Total
+            </Typography>
+            {totalKm && (
+                <Typography sx={{ fontSize: '0.68rem', color: surface[200], fontFamily: 'monospace' }}>
+                    {totalKm} km
+                </Typography>
+            )}
+            {totalMin && (
+                <Typography sx={{ fontSize: '0.68rem', color: surface[200], fontFamily: 'monospace' }}>
+                    {totalMin} min
+                </Typography>
+            )}
+        </Box>
+    ) : null;
 
-                <Select
-                    value={tipoTreino}
-                    onChange={e => setTipoTreino(e.target.value)}
-                    size="small"
-                    disabled={isSaving}
-                    variant="standard"
-                    disableUnderline
-                    sx={{
-                        fontSize: '0.95rem',
-                        fontWeight: 700,
-                        color: surface[50],
-                        '& .MuiSvgIcon-root': { color: surface[500], fontSize: '1.1rem' },
-                        '&.MuiInputBase-root': { bgcolor: 'transparent' },
-                    }}
-                    MenuProps={{ PaperProps: { sx: { bgcolor: elevation.highest, borderRadius: '10px', mt: 0.5 } } }}
-                >
-                    {TIPOS_TREINO.map(t => (
-                        <MenuItem key={t.value} value={t.value} sx={{ fontSize: '0.85rem' }}>
-                            {t.label}
-                        </MenuItem>
-                    ))}
-                </Select>
-            </Box>
-
-            {/* ── Conteúdo ── */}
-            <DialogContent sx={{ px: 2.5, py: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+    return (
+        <CoachDialog
+            open={open}
+            onClose={handleClose}
+            maxWidth="sm"
+            disableClose={isSaving}
+            chip={diaChip}
+            title="Editar treino"
+            headerAction={tipoSelect}
+            contentSx={{ px: 2.5, py: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}
+            actionsHint={totalHint}
+            actions={
+                <>
+                    <Button
+                        variant="text"
+                        onClick={onClose}
+                        disabled={isSaving}
+                        sx={{ ...GHOST_BTN_SX, fontSize: '0.8rem' }}
+                    >
+                        Cancelar
+                    </Button>
+                    <Button
+                        variant="contained"
+                        onClick={handleSalvar}
+                        disabled={isSaving}
+                        aria-label="Salvar"
+                        sx={{
+                            ...PRIMARY_BTN_SX,
+                            fontSize: '0.8rem',
+                            px: 2.5,
+                            '&.Mui-disabled': { bgcolor: surface[700], color: surface[500] },
+                        }}
+                    >
+                        {isSaving ? <CircularProgress size={14} sx={{ color: surface[900] }} /> : 'Salvar'}
+                    </Button>
+                </>
+            }
+        >
 
                 {/* ── Aquecimento — presente em todos os tipos ── */}
                 <BlocoCard
@@ -606,73 +658,6 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
                         sx={footerFieldSx}
                     />
                 </Box>
-            </DialogContent>
-
-            {/* ── Rodapé ── */}
-            <DialogActions sx={{ px: 2.5, pb: 2, pt: 0, flexDirection: 'column', gap: 1, alignItems: 'stretch' }}>
-                {/* Sumário live de totais */}
-                {(totalKm || totalMin) && (
-                    <Box
-                        sx={{
-                            px: 1.5,
-                            py: 0.7,
-                            borderRadius: '6px',
-                            bgcolor: 'rgba(255,255,255,0.04)',
-                            border: '1px solid rgba(255,255,255,0.08)',
-                            display: 'flex',
-                            gap: 2.5,
-                        }}
-                    >
-                        <Typography
-                            sx={{
-                                fontSize: '0.68rem',
-                                fontWeight: 600,
-                                color: surface[500],
-                                fontFamily: 'monospace',
-                                letterSpacing: '0.06em',
-                                textTransform: 'uppercase',
-                            }}
-                        >
-                            Total
-                        </Typography>
-                        {totalKm && (
-                            <Typography sx={{ fontSize: '0.68rem', color: surface[200], fontFamily: 'monospace' }}>
-                                {totalKm} km
-                            </Typography>
-                        )}
-                        {totalMin && (
-                            <Typography sx={{ fontSize: '0.68rem', color: surface[200], fontFamily: 'monospace' }}>
-                                {totalMin} min
-                            </Typography>
-                        )}
-                    </Box>
-                )}
-
-                <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-                    <Button
-                        variant="text"
-                        onClick={onClose}
-                        disabled={isSaving}
-                        sx={{ ...GHOST_BTN_SX, fontSize: '0.8rem' }}
-                    >
-                        Cancelar
-                    </Button>
-                    <Button
-                        variant="contained"
-                        onClick={handleSalvar}
-                        disabled={isSaving}
-                        aria-label="Salvar"
-                        sx={{
-                            ...PRIMARY_BTN_SX,
-                            fontSize: '0.8rem',
-                            px: 2.5,
-                            '&.Mui-disabled': { bgcolor: surface[700], color: surface[500] },
-                        }}
-                    >
-                        {isSaving ? <CircularProgress size={14} sx={{ color: surface[900] }} /> : 'Salvar'}
-                    </Button>
-                </Box>
-            </DialogActions>
-        </Dialog>
+        </CoachDialog>
     );
 }
