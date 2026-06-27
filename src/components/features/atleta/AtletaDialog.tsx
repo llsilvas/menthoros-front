@@ -5,6 +5,7 @@ import Grid from '@mui/material/Grid';
 import { primary, surface, content } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import { CoachDialog } from '../../../features/coach/components/CoachDialog';
+import { GHOST_BTN_SX, PRIMARY_BTN_SX } from '../../../features/coach/components/actionButtonSx';
 
 import type { Atleta, CreateAtleta, UpdateAtleta, AtletaDialogProps, diaSemana, Sexo } from "../../../types/Atleta";
 
@@ -220,8 +221,8 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
             }
             actions={
                 <>
-                    <Button onClick={handleClose} disabled={loading} size="small" fullWidth={isMobile} sx={{ fontSize: { xs: '0.8rem', md: '0.875rem' }, minHeight: { xs: 40, md: 32 } }}>Cancelar</Button>
-                    <Button type="submit" variant="contained" color="primary" disabled={loading} size="small" fullWidth={isMobile} sx={{ fontSize: { xs: '0.8rem', md: '0.875rem' }, minHeight: { xs: 40, md: 32 } }}>
+                    <Button onClick={handleClose} disabled={loading} size="small" fullWidth={isMobile} sx={{ ...GHOST_BTN_SX, fontSize: { xs: '0.8rem', md: '0.875rem' }, minHeight: { xs: 40, md: 32 } }}>Cancelar</Button>
+                    <Button type="submit" variant="contained" disabled={loading} size="small" fullWidth={isMobile} sx={{ ...PRIMARY_BTN_SX, fontSize: { xs: '0.8rem', md: '0.875rem' }, minHeight: { xs: 40, md: 32 } }}>
                         {loading ? 'Salvando...' : 'Salvar'}
                     </Button>
                 </>

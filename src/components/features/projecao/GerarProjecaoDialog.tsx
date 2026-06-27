@@ -18,6 +18,7 @@ import { TrendingUp as TrendingUpIcon } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import Grid from '@mui/material/Grid';
 import { CoachDialog } from '../../../features/coach/components/CoachDialog';
+import { GHOST_BTN_SX, PRIMARY_BTN_SX } from '../../../features/coach/components/actionButtonSx';
 import { useProvas } from '../../../hooks/useProvas';
 import { useRaceProjection } from '../../../hooks/useRaceProjection';
 import type {
@@ -217,7 +218,7 @@ const GerarProjecaoDialog: React.FC<GerarProjecaoDialogProps> = ({
                 }
                 actions={
                     <>
-                        <Button onClick={handleClose} disabled={generating} size="small" fullWidth={isMobile}>
+                        <Button onClick={handleClose} disabled={generating} size="small" fullWidth={isMobile} sx={GHOST_BTN_SX}>
                             Cancelar
                         </Button>
                         <Button
@@ -227,7 +228,7 @@ const GerarProjecaoDialog: React.FC<GerarProjecaoDialogProps> = ({
                             size="small"
                             fullWidth={isMobile}
                             startIcon={generating ? <CircularProgress size={14} color="inherit" /> : <TrendingUpIcon />}
-                            sx={{ bgcolor: primary[500], color: surface[900], fontWeight: 800, '&:hover': { bgcolor: primary[400] } }}
+                            sx={PRIMARY_BTN_SX}
                         >
                             {generating ? 'Gerando...' : 'Gerar Projeção'}
                         </Button>

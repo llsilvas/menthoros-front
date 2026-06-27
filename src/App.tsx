@@ -24,7 +24,7 @@ import AthleteProgressPage from './features/athlete/pages/AthleteProgressPage';
 import AthleteCoachPage from './features/athlete/pages/AthleteCoachPage';
 import AthleteProfilePage from './features/athlete/pages/AthleteProfilePage';
 import ManualTrainingFormPage from './features/athlete/pages/ManualTrainingFormPage';
-import { colors, text, content, backgrounds } from './theme/tokens';
+import { colors, text, content, backgrounds, semantic } from './theme/tokens';
 
 const theme = createTheme({
   palette: {
@@ -41,6 +41,10 @@ const theme = createTheme({
       dark:         colors.secondary.dark,
       contrastText: colors.secondary.contrastText,
     },
+    error:   { main: semantic.danger[500],  dark: semantic.danger[700],  light: semantic.danger[300]  },
+    warning: { main: semantic.warning[500], dark: semantic.warning[700], light: semantic.warning[300] },
+    success: { main: semantic.success[500], dark: semantic.success[700] },
+    info:    { main: semantic.info[500],    dark: semantic.info[700] },
     background: {
       default: backgrounds.canvas, // #0A1628 — navy canvas
       paper:   backgrounds.card,   // #131F35 — elevated cards

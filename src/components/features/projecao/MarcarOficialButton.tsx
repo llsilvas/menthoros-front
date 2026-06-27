@@ -3,7 +3,7 @@ import { Button, CircularProgress } from '@mui/material';
 import { CheckCircle as CheckCircleIcon } from '@mui/icons-material';
 import { useRaceProjection } from '../../../hooks/useRaceProjection';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
-import { semantic, surface } from '../../../theme/tokens';
+import { SUCCESS_BTN_SX } from '../../../features/coach/components/actionButtonSx';
 import type { RaceProjectionSnapshot } from '../../../types/RaceProjection';
 
 interface MarcarOficialButtonProps {
@@ -41,7 +41,7 @@ const MarcarOficialButton: React.FC<MarcarOficialButtonProps> = ({
                 disabled={loading}
                 onClick={() => setConfirmOpen(true)}
                 startIcon={loading ? <CircularProgress size={14} color="inherit" /> : <CheckCircleIcon />}
-                sx={{ bgcolor: semantic.success[500], color: surface[900], '&:hover': { bgcolor: semantic.success[700] } }}
+                sx={SUCCESS_BTN_SX}
             >
                 {loading ? 'Marcando...' : 'Marcar como Oficial'}
             </Button>

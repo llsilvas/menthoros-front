@@ -16,6 +16,7 @@ import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import { primary, surface } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
+import { GHOST_BTN_SX, PRIMARY_BTN_SX } from './actionButtonSx';
 import type { TreinoPlanejadoDto, TreinoPlanejadoPatch, EtapaTreinoDto } from '../../../types/PlanoReview';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -657,7 +658,7 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
                         variant="text"
                         onClick={onClose}
                         disabled={isSaving}
-                        sx={{ color: surface[400], textTransform: 'none', fontSize: '0.8rem' }}
+                        sx={{ ...GHOST_BTN_SX, fontSize: '0.8rem' }}
                     >
                         Cancelar
                     </Button>
@@ -667,13 +668,9 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
                         disabled={isSaving}
                         aria-label="Salvar"
                         sx={{
-                            bgcolor: primary[500],
-                            color: surface[900],
-                            fontWeight: 800,
+                            ...PRIMARY_BTN_SX,
                             fontSize: '0.8rem',
-                            textTransform: 'none',
                             px: 2.5,
-                            '&:hover': { bgcolor: '#bfef30' },
                             '&.Mui-disabled': { bgcolor: surface[700], color: surface[500] },
                         }}
                     >
