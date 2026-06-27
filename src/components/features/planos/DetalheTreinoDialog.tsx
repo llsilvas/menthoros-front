@@ -29,9 +29,9 @@ import { getSafeValue, getSafeNumber, getSafeLabel, getSafeColor } from '../../.
 import { glass, text, zones, primary, surface, semantic, categorical, content } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import { WorkoutTimelineChart, toWorkoutBlocks } from './WorkoutTimelineChart';
-import { CoachDialog } from '../../../features/coach/components/CoachDialog';
-import { PRIMARY_BTN_SX } from '../../../features/coach/components/actionButtonSx';
-import { effortColor } from '../../../features/coach/theme/workoutColors';
+import { CoachDialog } from '../../../shared/components/CoachDialog';
+import { PRIMARY_BTN_SX } from '../../../shared/components/actionButtonSx';
+import { effortColor } from '../../../shared/theme/workoutColors';
 
 interface DetalheTreinoDialogProps {
     open: boolean;

@@ -1,4 +1,4 @@
-import { primary, semantic, surface, content } from '../../../theme/tokens';
+import { primary, semantic, surface, content } from '../../theme/tokens';
 
 export const ACTION_BTN_SX = {
   textTransform: 'none' as const,

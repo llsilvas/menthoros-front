@@ -37,9 +37,9 @@ import { getSafeValue, getSafeNumber } from '../../../utils/safeValues';
 import { useTheme } from '@mui/material/styles';
 import { primary, surface, content } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
-import { effortColor, EFFORT_GRADIENT } from '../../../features/coach/theme/workoutColors';
-import { CoachDialog } from '../../../features/coach/components/CoachDialog';
-import { GHOST_BTN_SX, SUCCESS_BTN_SX } from '../../../features/coach/components/actionButtonSx';
+import { effortColor, EFFORT_GRADIENT } from '../../../shared/theme/workoutColors';
+import { CoachDialog } from '../../../shared/components/CoachDialog';
+import { GHOST_BTN_SX, SUCCESS_BTN_SX } from '../../../shared/components/actionButtonSx';
 
 interface TreinoRealizadoDialogProps {
     open: boolean;

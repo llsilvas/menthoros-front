@@ -3,7 +3,7 @@ import { Button, CircularProgress } from '@mui/material';
 import { CheckCircle as CheckCircleIcon } from '@mui/icons-material';
 import { useRaceProjection } from '../../../hooks/useRaceProjection';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
-import { SUCCESS_BTN_SX } from '../../../features/coach/components/actionButtonSx';
+import { SUCCESS_BTN_SX } from '../../../shared/components/actionButtonSx';
 import type { RaceProjectionSnapshot } from '../../../types/RaceProjection';
 
 interface MarcarOficialButtonProps {

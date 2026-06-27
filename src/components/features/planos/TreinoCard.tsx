@@ -32,9 +32,9 @@ import type { AnaliseWorkout } from '../../../types/AnaliseWorkout';
 import { PRIMARY_CAUSE_LABEL } from '../../../types/AnaliseWorkout';
 import { getSafeValue, getSafeNumber } from '../../../utils/safeValues';
 import { glassSx, glass, semantic, surface } from '../../../theme/tokens';
-import { CoachDialog } from '../../../features/coach/components/CoachDialog';
-import { GHOST_BTN_SX } from '../../../features/coach/components/actionButtonSx';
-import { effortColor } from '../../../features/coach/theme/workoutColors';
+import { CoachDialog } from '../../../shared/components/CoachDialog';
+import { GHOST_BTN_SX } from '../../../shared/components/actionButtonSx';
+import { effortColor } from '../../../shared/theme/workoutColors';
 
 interface TreinoCardProps {
     treino: TreinoPlanejado;

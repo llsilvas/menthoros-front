@@ -40,8 +40,8 @@ import GerarProjecaoDialog from '../../../components/features/projecao/GerarProj
 import SyncStravaButton from '../../../components/features/strava/SyncStravaButton';
 import AtletaDialog from '../../../components/features/atleta/AtletaDialog';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
-import { CoachDialog } from '../components/CoachDialog';
-import { GHOST_BTN_SX } from '../components/actionButtonSx';
+import { CoachDialog } from '../../../shared/components/CoachDialog';
+import { GHOST_BTN_SX } from '../../../shared/components/actionButtonSx';
 import { AtletasService } from '../../../api/services/AtletasService';
 import type { Atleta, CreateAtleta, UpdateAtleta } from '../../../types/Atleta';
 import { primary, surface, semantic, glassSx } from '../../../theme/tokens';

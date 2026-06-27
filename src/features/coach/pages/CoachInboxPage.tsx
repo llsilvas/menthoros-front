@@ -26,15 +26,15 @@ import {
   Search as SearchIcon,
   Tune as TuneIcon,
 } from '@mui/icons-material';
-import { CoachDialog } from '../components/CoachDialog';
-import { DANGER_BTN_SX, GHOST_BTN_SX } from '../components/actionButtonSx';
+import { CoachDialog } from '../../../shared/components/CoachDialog';
+import { DANGER_BTN_SX, GHOST_BTN_SX } from '../../../shared/components/actionButtonSx';
 import { CoachAthleteAvatar } from '../components/CoachAthleteAvatar';
 import { DashboardAttentionQueueRow } from '../components/DashboardAttentionQueueRow';
 import { DashboardRosterPreviewRow } from '../components/DashboardRosterPreviewRow';
 import { MetricTile } from '../components/MetricTile';
 import { QueueRow } from '../components/QueueRow';
 import { formatKm, formatPercent, paletteForDecision } from '../components/coachInboxHelpers';
-import { ACTION_BTN_START_ICON_SX, ACTION_BTN_END_ICON_SX } from '../components/actionButtonSx';
+import { ACTION_BTN_START_ICON_SX, ACTION_BTN_END_ICON_SX } from '../../../shared/components/actionButtonSx';
 import { DiagnosisTabPanel } from '../components/panels/DiagnosisTabPanel';
 import { PlanTabPanel } from '../components/panels/PlanTabPanel';
 import { RacesSuggestionsTabPanel } from '../components/panels/RacesSuggestionsTabPanel';

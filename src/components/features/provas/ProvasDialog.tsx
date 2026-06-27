@@ -21,8 +21,8 @@ import type { GridColDef, GridRowParams } from '@mui/x-data-grid';
 import { useProvas } from '../../../hooks/useProvas';
 import { primary, surface, content } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
-import { CoachDialog } from '../../../features/coach/components/CoachDialog';
-import { PRIMARY_BTN_SX } from '../../../features/coach/components/actionButtonSx';
+import { CoachDialog } from '../../../shared/components/CoachDialog';
+import { PRIMARY_BTN_SX } from '../../../shared/components/actionButtonSx';
 import ProvaFormDialog from './ProvaFormDialog';
 import type { Prova, CreateProva, UpdateProva } from '../../../types/Prova';
 import {

@@ -1,4 +1,4 @@
-import { primary, surface, semantic, categorical } from '../../../theme/tokens';
+import { primary, surface, semantic, categorical } from '../../theme/tokens';
 
 /**
  * Fonte única de cor do domínio de treino. Três taxonomias distintas:

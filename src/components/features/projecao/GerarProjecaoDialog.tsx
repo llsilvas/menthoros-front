@@ -17,8 +17,8 @@ import {
 import { TrendingUp as TrendingUpIcon } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import Grid from '@mui/material/Grid';
-import { CoachDialog } from '../../../features/coach/components/CoachDialog';
-import { GHOST_BTN_SX, PRIMARY_BTN_SX } from '../../../features/coach/components/actionButtonSx';
+import { CoachDialog } from '../../../shared/components/CoachDialog';
+import { GHOST_BTN_SX, PRIMARY_BTN_SX } from '../../../shared/components/actionButtonSx';
 import { useProvas } from '../../../hooks/useProvas';
 import { useRaceProjection } from '../../../hooks/useRaceProjection';
 import type {

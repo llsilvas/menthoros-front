@@ -15,8 +15,8 @@ import RemoveIcon from '@mui/icons-material/Remove';
 import RepeatIcon from '@mui/icons-material/Repeat';
 import { primary, surface, semantic, categorical } from '../../../theme/tokens';
 import { useTreinoPlanejado } from '../../../hooks/useTreinoPlanejado';
-import { CoachDialog } from './CoachDialog';
-import { GHOST_BTN_SX, PRIMARY_BTN_SX } from './actionButtonSx';
+import { CoachDialog } from '../../../shared/components/CoachDialog';
+import { GHOST_BTN_SX, PRIMARY_BTN_SX } from '../../../shared/components/actionButtonSx';
 import type { TreinoPlanejadoDto, TreinoPlanejadoAddPayload, EtapaInputPayload } from '../../../types/PlanoReview';
 
 // ── Paleta metabólica ─────────────────────────────────────────────────────────

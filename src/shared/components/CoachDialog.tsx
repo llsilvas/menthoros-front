@@ -11,8 +11,8 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import { useTheme, type SxProps, type Theme } from '@mui/material/styles';
 import type { Breakpoint } from '@mui/material';
-import { elevation } from '../../../shared/design-tokens';
-import { content, surface } from '../../../theme/tokens';
+import { elevation } from '../design-tokens';
+import { content, surface } from '../../theme/tokens';
 
 interface CoachDialogProps {
   open: boolean;

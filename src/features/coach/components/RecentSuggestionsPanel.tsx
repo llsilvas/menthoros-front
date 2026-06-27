@@ -12,8 +12,8 @@ import { SugestaoService } from '../../../api/services/SugestaoService';
 import type { SugestaoCoachOutputDto } from '../../../types/SugestaoCoach';
 import type { SugestaoRecenteDto } from '../../../types/AtletaPerfilCoach';
 import { categorical, content, semantic, surface } from '../../../theme/tokens';
-import { CoachDialog } from './CoachDialog';
-import { GHOST_BTN_SX } from './actionButtonSx';
+import { CoachDialog } from '../../../shared/components/CoachDialog';
+import { GHOST_BTN_SX } from '../../../shared/components/actionButtonSx';
 
 interface RecentSuggestionsPanelProps {
   sugestoes: SugestaoRecenteDto[];

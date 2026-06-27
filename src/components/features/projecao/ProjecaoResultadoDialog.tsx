@@ -20,7 +20,7 @@ import {
     TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
-import { CoachDialog } from '../../../features/coach/components/CoachDialog';
+import { CoachDialog } from '../../../shared/components/CoachDialog';
 import type { RaceProjectionSnapshot } from '../../../types/RaceProjection';
 import {
     CTL_TREND_LABELS,

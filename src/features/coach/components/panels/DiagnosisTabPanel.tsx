@@ -6,7 +6,7 @@ import { DetailMetric } from '../DetailMetric';
 import { TrendCard } from '../TrendCard';
 import { SectionCard } from '../SectionCard';
 import { formatKm, formatPercent } from '../coachInboxHelpers';
-import { ACTION_BTN_END_ICON_SX } from '../actionButtonSx';
+import { ACTION_BTN_END_ICON_SX } from '../../../../shared/components/actionButtonSx';
 import { getAcuteLoadTone, getMonotonyTone, getStrainZone } from '../../adapters/coachInboxAdapters';
 import type { CoachAthleteRow } from '../../types/CoachInbox';
 import type { LimiareisInferidosDto } from '../../../../types/AtletaPerfilCoach';

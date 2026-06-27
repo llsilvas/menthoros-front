@@ -13,9 +13,9 @@ import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import { primary, surface } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
-import { GHOST_BTN_SX, PRIMARY_BTN_SX } from './actionButtonSx';
-import { WORKOUT_STAGE_COLORS } from '../theme/workoutColors';
-import { CoachDialog } from './CoachDialog';
+import { GHOST_BTN_SX, PRIMARY_BTN_SX } from '../../../shared/components/actionButtonSx';
+import { WORKOUT_STAGE_COLORS } from '../../../shared/theme/workoutColors';
+import { CoachDialog } from '../../../shared/components/CoachDialog';
 import type { TreinoPlanejadoDto, TreinoPlanejadoPatch, EtapaTreinoDto } from '../../../types/PlanoReview';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
