@@ -53,6 +53,29 @@ const HEADER_BG = `linear-gradient(135deg, ${elevation.base} 0%, ${elevation.pan
  * Shell único dos dialogs do coach: superfície dark-first (`elevation.highest`), header com gradiente e
  * tipografia Syne, botão de fechar e rodapé padronizados, `fullScreen` responsivo e `<form>` opcional.
  * Centraliza a linguagem visual e o tratamento do clipping de ações em formulários.
+ *
+ * Padrões de uso (montar os nós fora do JSX de retorno e passá-los via prop):
+ *
+ * 1. Diálogo simples (confirmação):
+ * ```tsx
+ * <CoachDialog open={open} onClose={onClose} maxWidth="xs" title="Excluir?"
+ *   actions={<><Button sx={GHOST_BTN_SX} onClick={onClose}>Cancelar</Button>
+ *            <Button sx={DANGER_BTN_SX} onClick={onConfirm}>Excluir</Button></>}>
+ *   <Typography>...</Typography>
+ * </CoachDialog>
+ * ```
+ *
+ * 2. Formulário (usa `component="form"` + `onSubmit`; o botão de submit vai em `actions`):
+ * ```tsx
+ * <CoachDialog open={open} onClose={handleClose} component="form" onSubmit={handleSubmit}
+ *   chip={meuChip} title="Editar" subtitle="..."
+ *   actions={<Button type="submit" sx={PRIMARY_BTN_SX}>Salvar</Button>}>
+ *   {campos}
+ * </CoachDialog>
+ * ```
+ *
+ * Convenções: `chip`/`subtitle`/`actionsHint` são nós montados inline antes do `return`;
+ * botões de ação sempre usam os helpers de `actionButtonSx` (PRIMARY/SUCCESS/DANGER/GHOST).
  */
 export function CoachDialog({
   open,
