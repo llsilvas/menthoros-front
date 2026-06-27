@@ -669,8 +669,8 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                                             label="Resumo"
                                                             size="small"
                                                             sx={{
-                                                                bgcolor: alpha('#3498db', 0.1),
-                                                                color: '#1a5f8a',
+                                                                bgcolor: alpha(categorical.cat1, 0.14),
+                                                                color: categorical.cat1,
                                                                 fontWeight: 700,
                                                             }}
                                                         />
@@ -680,7 +680,7 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                                         {etapasOrdenadas.map((etapa, index) => {
                                                             const block = blocks[index];
                                                             const metric = resolveStageMetric(etapa);
-                                                            const stageColor = block ? zones[block.zoneKey].border : getSafeColor(etapa.tipoEtapa, '#1976d2');
+                                                            const stageColor = block ? zones[block.zoneKey].border : getSafeColor(etapa.tipoEtapa, categorical.cat1);
 
                                                             return (
                                                                 <Box

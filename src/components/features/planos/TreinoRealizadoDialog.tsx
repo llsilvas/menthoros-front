@@ -617,7 +617,7 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
 
                                 {etapasRealizadas.map((etapa, index) => {
                                     const tipoOpt = TIPO_ETAPA_OPTIONS.find(o => o.value === etapa.tipoEtapa);
-                                    const tipoColor = tipoOpt?.color || '#9E9E9E';
+                                    const tipoColor = tipoOpt?.color || surface[400];
                                     const ref = etapa._planejado;
 
                                     return (
