@@ -1,14 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import {
     Alert,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
     Button,
     Typography,
     Box,
-    IconButton,
     Chip,
     Grid,
     Card,
@@ -18,7 +13,6 @@ import {
     useMediaQuery,
 } from '@mui/material';
 import {
-    Close as CloseIcon,
     CloudSync as CloudSyncIcon,
     DirectionsRun as RunIcon,
     Schedule as ScheduleIcon,
@@ -35,6 +29,9 @@ import { getSafeValue, getSafeNumber, getSafeLabel, getSafeColor } from '../../.
 import { glass, text, zones, primary, surface, semantic, categorical, content } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import { WorkoutTimelineChart, toWorkoutBlocks } from './WorkoutTimelineChart';
+import { CoachDialog } from '../../../features/coach/components/CoachDialog';
+import { PRIMARY_BTN_SX } from '../../../features/coach/components/actionButtonSx';
+import { effortColor } from '../../../features/coach/theme/workoutColors';
 
 interface DetalheTreinoDialogProps {
     open: boolean;
@@ -125,13 +122,6 @@ const MetricCard: React.FC<{
 );
 
 const RpeScale: React.FC<{ value: number }> = ({ value }) => {
-    const getColor = (v: number): string => {
-        if (v <= 3) return '#4caf50';
-        if (v <= 6) return '#ff9800';
-        if (v <= 8) return '#f44336';
-        return '#b71c1c';
-    };
-
     return (
         <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
             {Array.from({ length: 10 }, (_, i) => (
@@ -141,7 +131,7 @@ const RpeScale: React.FC<{ value: number }> = ({ value }) => {
                         width: 12,
                         height: 12,
                         borderRadius: 1,
-                        bgcolor: i < value ? getColor(value) : glass.background,
+                        bgcolor: i < value ? effortColor(value) : glass.background,
                     }}
                 />
             ))}
@@ -225,113 +215,55 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
     const dateLabel = formatDate(dados.dataTreino);
     const observacaoPrincipal = dados.observacao || dados.descricao;
 
+    const detalheChips = (
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
+            <Chip
+                label={statusLabel}
+                size="small"
+                sx={{
+                    bgcolor: statusColor,
+                    color: surface[50],
+                    fontWeight: 800,
+                }}
+            />
+            {dominantZoneKey && (
+                <Chip
+                    label={`${dominantZoneKey} • ${zones[dominantZoneKey].label}`}
+                    size="small"
+                    sx={{
+                        bgcolor: alpha(zones[dominantZoneKey].border, 0.14),
+                        color: surface[200],
+                        border: `1px solid ${alpha(zones[dominantZoneKey].border, 0.28)}`,
+                        fontWeight: 700,
+                    }}
+                />
+            )}
+        </Box>
+    );
+
     return (
-        <Dialog
+        <CoachDialog
             open={open}
             onClose={onClose}
-            fullScreen={isMobile}
             maxWidth="lg"
-            fullWidth
-            slotProps={{
-                paper: {
-                    sx: {
-                        overflow: 'hidden',
-                        borderRadius: 1,
-                        backgroundColor: elevation.base,
-                        border: `1px solid ${content.cardBorder}`,
-                    },
-                },
-            }}
+            chip={detalheChips}
+            title={String(getSafeValue(dados.tipoTreino))}
+            subtitle="Visualização da estrutura do treino com foco em duração, carga e distribuição entre etapas."
+            dividers
+            contentSx={{ p: 0, background: elevation.base }}
+            actionsHint={
+                dados.tssPlanejado != null ? (
+                    <Typography variant="caption" sx={{ color: surface[400] }}>
+                        TSS planejado: <Box component="span" sx={{ fontWeight: 700, color: surface[50] }}>{dados.tssPlanejado}</Box>
+                    </Typography>
+                ) : null
+            }
+            actions={
+                <Button onClick={onClose} size="small" variant="contained" fullWidth={isMobile} sx={{ ...PRIMARY_BTN_SX, fontSize: { xs: '0.8rem', md: '0.875rem' }, minHeight: { xs: 40, md: 32 } }}>
+                    Fechar
+                </Button>
+            }
         >
-            <DialogTitle
-                sx={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 2,
-                    px: { xs: 2, md: 3 },
-                    py: { xs: 2, md: 2.25 },
-                    pr: { xs: 7, md: 8 },
-                    color: surface[50],
-                    background: `linear-gradient(135deg, ${elevation.base} 0%, ${elevation.panel} 55%, ${elevation.card} 100%)`,
-                    borderBottom: `1px solid ${content.divider}`,
-                }}
-            >
-                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1, mb: 1 }}>
-                        <Chip
-                            label={statusLabel}
-                            size="small"
-                            sx={{
-                                bgcolor: statusColor,
-                                color: 'white',
-                                fontWeight: 800,
-                            }}
-                        />
-                        {dominantZoneKey && (
-                            <Chip
-                                label={`${dominantZoneKey} • ${zones[dominantZoneKey].label}`}
-                                size="small"
-                                sx={{
-                                    bgcolor: alpha(zones[dominantZoneKey].border, 0.14),
-                                    color: '#e8eaed',
-                                    border: `1px solid ${alpha(zones[dominantZoneKey].border, 0.28)}`,
-                                    fontWeight: 700,
-                                }}
-                            />
-                        )}
-                    </Box>
-
-                    <Typography
-                        variant="h6"
-                        component="div"
-                        sx={{
-                            fontFamily: 'Syne, sans-serif',
-                            fontWeight: 800,
-                            lineHeight: 1.15,
-                            pr: 2,
-                            fontSize: { xs: '1.05rem', md: '1.25rem' },
-                        }}
-                    >
-                        {getSafeValue(dados.tipoTreino)}
-                    </Typography>
-                    <Typography
-                        variant="body2"
-                        sx={{
-                            mt: 0.75,
-                            color: 'rgba(232, 234, 237, 0.72)',
-                            maxWidth: 720,
-                            fontSize: { xs: '0.8rem', md: '0.875rem' },
-                        }}
-                    >
-                        Visualização da estrutura do treino com foco em duração, carga e distribuição entre etapas.
-                    </Typography>
-                </Box>
-
-                <IconButton
-                    onClick={onClose}
-                    sx={{
-                        position: 'absolute',
-                        right: 12,
-                        top: 12,
-                        color: 'white',
-                        bgcolor: 'rgba(255,255,255,0.06)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        '&:hover': {
-                            bgcolor: 'rgba(255,255,255,0.12)',
-                        },
-                    }}
-                >
-                    <CloseIcon />
-                </IconButton>
-            </DialogTitle>
-
-            <DialogContent
-                dividers
-                sx={{
-                    p: 0,
-                    background: elevation.base,
-                }}
-            >
                 {loadingDetalhes ? (
                     <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" minHeight="320px">
                         <CircularProgress size={48} />
@@ -875,21 +807,7 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                         </Grid>
                     </Stack>
                 )}
-            </DialogContent>
-
-            <DialogActions sx={{ px: { xs: 2, md: 3 }, py: 2, background: elevation.panel, borderTop: `1px solid `, flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: 1 }}>
-                <Box sx={{ flexGrow: 1 }}>
-                    {dados.tssPlanejado != null && (
-                        <Typography variant="caption" sx={{ color: surface[400] }}>
-                            TSS planejado: <Box component="span" sx={{ fontWeight: 700, color: surface[50] }}>{dados.tssPlanejado}</Box>
-                        </Typography>
-                    )}
-                </Box>
-                <Button onClick={onClose} color="primary" size="small" variant="contained" fullWidth={isMobile} sx={{ fontSize: { xs: '0.8rem', md: '0.875rem' }, minHeight: { xs: 40, md: 32 } }}>
-                    Fechar
-                </Button>
-            </DialogActions>
-        </Dialog>
+        </CoachDialog>
     );
 };
 

@@ -1,9 +1,5 @@
 import React, { useState } from 'react';
 import {
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
     Button,
     Typography,
     Box,
@@ -42,6 +38,8 @@ import { useTheme } from '@mui/material/styles';
 import { primary, surface, content } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import { effortColor, EFFORT_GRADIENT } from '../../../features/coach/theme/workoutColors';
+import { CoachDialog } from '../../../features/coach/components/CoachDialog';
+import { GHOST_BTN_SX, SUCCESS_BTN_SX } from '../../../features/coach/components/actionButtonSx';
 
 interface TreinoRealizadoDialogProps {
     open: boolean;
@@ -295,92 +293,59 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
 
     if (!treino) return null;
 
+    const conclusaoChip = (
+        <Chip
+            icon={<CheckCircleIcon sx={{ fontSize: '0.9rem !important', color: `${primary[500]} !important` }} />}
+            label="Conclusão de treino"
+            size="small"
+            sx={{
+                bgcolor: content.cardBgHover,
+                color: surface[200],
+                fontWeight: 700,
+                border: `1px solid ${content.cardBorder}`,
+            }}
+        />
+    );
+
     return (
-        <Dialog
+        <CoachDialog
             open={open}
             onClose={handleClose}
-            fullScreen={isMobile}
             maxWidth="lg"
-            fullWidth
-            slotProps={{
-                paper: {
-                    sx: {
-                        overflow: 'hidden',
-                        borderRadius: 1,
-                        backgroundColor: elevation.base,
-                        border: `1px solid ${content.cardBorder}`,
-                    },
-                },
-            }}
-        >
-            <DialogTitle
-                sx={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 2,
-                    px: { xs: 2, md: 3 },
-                    py: { xs: 2, md: 2.25 },
-                    pr: { xs: 7, md: 8 },
-                    color: surface[50],
-                    background: `linear-gradient(135deg, ${elevation.base} 0%, ${elevation.panel} 55%, ${elevation.card} 100%)`,
-                    borderBottom: `1px solid ${content.divider}`,
-                }}
-            >
-                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1, mb: 1 }}>
-                        <Chip
-                            icon={<CheckCircleIcon sx={{ fontSize: '0.9rem !important', color: `${primary[500]} !important` }} />}
-                            label="Conclusão de treino"
-                            size="small"
-                            sx={{
-                                bgcolor: 'rgba(255,255,255,0.12)',
-                                color: '#e8eaed',
-                                fontWeight: 700,
-                                border: '1px solid rgba(255,255,255,0.12)',
-                            }}
-                        />
-                    </Box>
-                    <Typography
-                        variant="h6"
-                        sx={{
-                            fontFamily: 'Syne, sans-serif',
-                            fontWeight: 800,
-                            lineHeight: 1.15,
-                            pr: 2,
-                            fontSize: { xs: '1.05rem', md: '1.25rem' },
-                        }}
+            chip={conclusaoChip}
+            title="Marcar Treino como Realizado"
+            subtitle="Registre dados executados, etapas e feedback do atleta dentro do mesmo padrão visual dos dialogs de treino."
+            contentSx={{ p: 0, background: elevation.base }}
+            actionsHint={
+                <Typography variant="caption" sx={{ color: surface[400] }}>
+                    Mesmo dimensionamento e linguagem visual dos demais dialogs do fluxo.
+                </Typography>
+            }
+            actions={
+                <>
+                    <Button
+                        onClick={handleClose}
+                        startIcon={<CloseIcon />}
+                        size="small"
+                        fullWidth={isMobile}
+                        sx={{ ...GHOST_BTN_SX, fontSize: { xs: '0.8rem', md: '0.875rem' }, minHeight: { xs: 40, md: 32 } }}
                     >
-                        Marcar Treino como Realizado
-                    </Typography>
-                    <Typography variant="body2" sx={{ mt: 0.75, color: 'rgba(232, 234, 237, 0.72)', maxWidth: 760, fontSize: { xs: '0.8rem', md: '0.875rem' } }}>
-                        Registre dados executados, etapas e feedback do atleta dentro do mesmo padrão visual dos dialogs de treino.
-                    </Typography>
-                </Box>
-
-                <IconButton
-                    onClick={handleClose}
-                    size="small"
-                    sx={{
-                        position: 'absolute',
-                        right: 12,
-                        top: 12,
-                        color: 'white',
-                        bgcolor: 'rgba(255,255,255,0.06)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        '&:hover': { bgcolor: 'rgba(255,255,255,0.12)' },
-                    }}
-                >
-                    <CloseIcon />
-                </IconButton>
-            </DialogTitle>
-
-            <DialogContent
-                sx={{
-                    p: 0,
-                    background:
-                        elevation.base,
-                }}
-            >
+                        Cancelar
+                    </Button>
+                    <Button
+                        onClick={handleMarcarComoRealizado}
+                        variant="contained"
+                        startIcon={loadingSave ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
+                        disabled={loadingSave}
+                        size="small"
+                        fullWidth={isMobile}
+                        sx={{ ...SUCCESS_BTN_SX, fontSize: { xs: '0.8rem', md: '0.875rem' }, minHeight: { xs: 40, md: 32 } }}
+                    >
+                        {loadingSave ? 'Salvando...' : 'Marcar como Realizado'}
+                    </Button>
+                </>
+            }
+        >
                 <Stack spacing={2.5} sx={{ p: { xs: 1.5, md: 3 } }}>
                 {/* Informações do treino */}
                 <Card
@@ -943,38 +908,7 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
                     </Box>
                 </Stack>
                 </Stack>
-            </DialogContent>
-
-            <DialogActions sx={{ px: { xs: 2, md: 3 }, py: 2, background: elevation.panel, borderTop: `1px solid `, flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: 1 }}>
-                <Box sx={{ flexGrow: 1 }}>
-                    <Typography variant="caption" sx={{ color: surface[400] }}>
-                        Mesmo dimensionamento e linguagem visual dos demais dialogs do fluxo.
-                    </Typography>
-                </Box>
-                <Button
-                    onClick={handleClose}
-                    variant="outlined"
-                    startIcon={<CloseIcon />}
-                    size="small"
-                    fullWidth={isMobile}
-                    sx={{ fontSize: { xs: '0.8rem', md: '0.875rem' }, minHeight: { xs: 40, md: 32 } }}
-                >
-                    Cancelar
-                </Button>
-                <Button
-                    onClick={handleMarcarComoRealizado}
-                    variant="contained"
-                    color="success"
-                    startIcon={loadingSave ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
-                    disabled={loadingSave}
-                    size="small"
-                    fullWidth={isMobile}
-                    sx={{ fontSize: { xs: '0.8rem', md: '0.875rem' }, minHeight: { xs: 40, md: 32 } }}
-                >
-                    {loadingSave ? 'Salvando...' : 'Marcar como Realizado'}
-                </Button>
-            </DialogActions>
-        </Dialog>
+        </CoachDialog>
     );
 };
 
