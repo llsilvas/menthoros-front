@@ -12,10 +12,6 @@ import {
   Stack,
   CircularProgress,
   Alert,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Snackbar,
 } from '@mui/material';
 import {
@@ -44,6 +40,8 @@ import GerarProjecaoDialog from '../../../components/features/projecao/GerarProj
 import SyncStravaButton from '../../../components/features/strava/SyncStravaButton';
 import AtletaDialog from '../../../components/features/atleta/AtletaDialog';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
+import { CoachDialog } from '../components/CoachDialog';
+import { GHOST_BTN_SX } from '../components/actionButtonSx';
 import { AtletasService } from '../../../api/services/AtletasService';
 import type { Atleta, CreateAtleta, UpdateAtleta } from '../../../types/Atleta';
 import { primary, surface, semantic, glassSx } from '../../../theme/tokens';
@@ -714,19 +712,23 @@ export default function CoachAthletesPage() {
             atletaId={actionTarget.atletaId}
             atletaNome={actionTarget.nome}
           />
-          <Dialog open={action === 'strava'} onClose={closeAction} maxWidth="xs" fullWidth>
-            <DialogTitle>Sincronizar Strava — {actionTarget.nome}</DialogTitle>
-            <DialogContent sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+          <CoachDialog
+            open={action === 'strava'}
+            onClose={closeAction}
+            maxWidth="xs"
+            title={`Sincronizar Strava — ${actionTarget.nome}`}
+            actions={
+              <Button onClick={closeAction} sx={GHOST_BTN_SX}>Fechar</Button>
+            }
+          >
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
               <SyncStravaButton
                 atletaId={actionTarget.atletaId}
                 connected
                 onSyncComplete={() => { void fetchRoster(); }}
               />
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={closeAction}>Fechar</Button>
-            </DialogActions>
-          </Dialog>
+            </Box>
+          </CoachDialog>
           <ConfirmDialog
             open={action === 'atleta-delete'}
             title="Excluir atleta"
