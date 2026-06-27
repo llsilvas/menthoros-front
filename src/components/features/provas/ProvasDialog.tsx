@@ -1,9 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
     Button,
     Typography,
     Box,
@@ -14,17 +10,19 @@ import {
 } from '@mui/material';
 import {
     Add as AddIcon,
-    Close as CloseIcon,
     EditOutlined as EditIcon,
     DeleteOutline as DeleteIcon,
     EmojiEvents as EmojiEventsIcon,
     TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
-import { alpha } from '@mui/material/styles';
 import { useTheme } from '@mui/material/styles';
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
 import type { GridColDef, GridRowParams } from '@mui/x-data-grid';
 import { useProvas } from '../../../hooks/useProvas';
+import { primary, surface, content } from '../../../theme/tokens';
+import { elevation } from '../../../shared/design-tokens';
+import { CoachDialog } from '../../../features/coach/components/CoachDialog';
+import { PRIMARY_BTN_SX } from '../../../features/coach/components/actionButtonSx';
 import ProvaFormDialog from './ProvaFormDialog';
 import type { Prova, CreateProva, UpdateProva } from '../../../types/Prova';
 import {
@@ -139,8 +137,8 @@ const ProvasDialog: React.FC<ProvasDialogProps> = ({ open, onClose, atletaId, at
                         label={PROVA_STATUS_LABELS[key] ?? key}
                         size="small"
                         sx={{
-                            bgcolor: PROVA_STATUS_COLORS[key] ?? '#757575',
-                            color: 'white',
+                            bgcolor: PROVA_STATUS_COLORS[key] ?? surface[500],
+                            color: surface[50],
                             fontWeight: 600,
                             fontSize: '0.7rem',
                             height: 22,
@@ -200,7 +198,7 @@ const ProvasDialog: React.FC<ProvasDialogProps> = ({ open, onClose, atletaId, at
                     actions.unshift(
                         <GridActionsCellItem
                             key="projetar"
-                            icon={<TrendingUpIcon sx={{ color: '#b3ff00' }} />}
+                            icon={<TrendingUpIcon sx={{ color: primary[500] }} />}
                             label="Projetar Tempo"
                             showInMenu={false}
                             onClick={() => onGerarProjecao(prova.id)}
@@ -212,119 +210,62 @@ const ProvasDialog: React.FC<ProvasDialogProps> = ({ open, onClose, atletaId, at
         },
     ];
 
+    const provasChip = (
+        <Chip
+            label={`${provas.length} prova(s)`}
+            size="small"
+            sx={{
+                bgcolor: content.cardBgHover,
+                color: surface[200],
+                fontWeight: 700,
+                border: `1px solid ${content.cardBorder}`,
+            }}
+        />
+    );
+
+    const novaProvaButton = (
+        <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => handleOpenForm()}
+            disabled={loading}
+            size="small"
+            sx={{
+                ...PRIMARY_BTN_SX,
+                width: { xs: '100%', sm: 'auto' },
+                fontSize: { xs: '0.78rem', md: '0.8125rem' },
+                minHeight: { xs: 38, md: 32 },
+            }}
+        >
+            Nova Prova
+        </Button>
+    );
+
     return (
         <>
-            <Dialog
+            <CoachDialog
                 open={open}
                 onClose={onClose}
-                fullScreen={isMobile}
                 maxWidth="lg"
-                fullWidth
-                slotProps={{
-                    paper: {
-                        sx: {
-                            overflow: 'hidden',
-                            borderRadius: 1,
-                            backgroundColor: '#ffffff',
-                        },
-                    },
+                chip={provasChip}
+                title={`Provas de ${atletaNome}`}
+                subtitle="Visualize provas cadastradas, status e contagem regressiva no mesmo padrão dos dialogs de atleta e planos."
+                headerAction={novaProvaButton}
+                contentSx={{
+                    p: 0,
+                    background: `radial-gradient(circle at top right, ${primary[500]}14, transparent 24%), linear-gradient(180deg, ${elevation.base} 0%, ${elevation.panel} 100%)`,
                 }}
+                actionsHint={
+                    <Typography variant="caption" sx={{ color: surface[400] }}>
+                        Padrão visual alinhado à jornada de atletas, planos e treino.
+                    </Typography>
+                }
+                actions={
+                    <Button onClick={onClose} size="small" variant="contained" fullWidth={isMobile} sx={{ ...PRIMARY_BTN_SX, fontSize: { xs: '0.8rem', md: '0.875rem' }, minHeight: { xs: 40, md: 32 } }}>
+                        Fechar
+                    </Button>
+                }
             >
-                <DialogTitle
-                    sx={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: 2,
-                        px: { xs: 2, md: 3 },
-                        py: { xs: 2, md: 2.25 },
-                        pr: { xs: 7, md: 8 },
-                        color: 'white',
-                        background: 'linear-gradient(135deg, #082130 0%, #0e3147 55%, #133c56 100%)',
-                        borderBottom: '1px solid rgba(255,255,255,0.08)',
-                    }}
-                >
-                    <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1, mb: 1 }}>
-                            <Chip
-                                label={`${provas.length} prova(s)`}
-                                size="small"
-                                sx={{
-                                    bgcolor: 'rgba(255,255,255,0.12)',
-                                    color: '#e8eaed',
-                                    fontWeight: 700,
-                                    border: '1px solid rgba(255,255,255,0.12)',
-                                }}
-                            />
-                        </Box>
-                        <Typography
-                            variant="h6"
-                            sx={{
-                                fontFamily: 'Syne, sans-serif',
-                                fontWeight: 800,
-                                lineHeight: 1.15,
-                                pr: 2,
-                                fontSize: { xs: '1.05rem', md: '1.25rem' },
-                            }}
-                        >
-                            Provas de {atletaNome}
-                        </Typography>
-                        <Typography variant="body2" sx={{ mt: 0.75, color: 'rgba(232, 234, 237, 0.72)', maxWidth: 720, fontSize: { xs: '0.8rem', md: '0.875rem' } }}>
-                            Visualize provas cadastradas, status e contagem regressiva no mesmo padrão dos dialogs de atleta e planos.
-                        </Typography>
-                    </Box>
-
-                    <Button
-                        variant="contained"
-                        startIcon={<AddIcon />}
-                        onClick={() => handleOpenForm()}
-                        disabled={loading}
-                        size="small"
-                        sx={{
-                            mr: { xs: 0, md: 2 },
-                            mt: { xs: 1.5, md: 0 },
-                            width: { xs: '100%', sm: 'auto' },
-                            bgcolor: '#b3ff00',
-                            color: '#082130',
-                            fontWeight: 700,
-                            fontSize: { xs: '0.78rem', md: '0.8125rem' },
-                            minHeight: { xs: 38, md: 32 },
-                            '&:hover': {
-                                bgcolor: '#c8ff4d',
-                            },
-                        }}
-                    >
-                        Nova Prova
-                    </Button>
-
-                    <Button
-                        onClick={onClose}
-                        sx={{
-                            position: 'absolute',
-                            right: 12,
-                            top: 12,
-                            minWidth: 0,
-                            width: 36,
-                            height: 36,
-                            p: 0,
-                            color: 'white',
-                            border: '1px solid rgba(255,255,255,0.08)',
-                            bgcolor: 'rgba(255,255,255,0.06)',
-                            '&:hover': {
-                                bgcolor: 'rgba(255,255,255,0.12)',
-                            },
-                        }}
-                    >
-                        <CloseIcon fontSize="small" />
-                    </Button>
-                </DialogTitle>
-
-                <DialogContent
-                    sx={{
-                        p: 0,
-                        background:
-                            'radial-gradient(circle at top right, rgba(179,233,45,0.08), transparent 24%), linear-gradient(180deg, #eef3f8 0%, #e8edf4 100%)',
-                    }}
-                >
                     {error && (
                         <Alert severity="error" onClose={clearError} sx={{ m: 3 }}>
                             {error}
@@ -344,8 +285,8 @@ const ProvasDialog: React.FC<ProvasDialogProps> = ({ open, onClose, atletaId, at
                         <Box
                             sx={{
                                 borderRadius: 1,
-                                border: '1px solid rgba(255,255,255,0.7)',
-                                background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.94) 100%)',
+                                border: `1px solid ${content.cardBorder}`,
+                                background: elevation.card,
                                 p: 2,
                                 minHeight: 300,
                             }}
@@ -373,11 +314,10 @@ const ProvasDialog: React.FC<ProvasDialogProps> = ({ open, onClose, atletaId, at
                                     disableRowSelectionOnClick
                                     sx={{
                                         border: 'none',
-                                        '--DataGrid-containerBackground': 'rgba(255, 255, 255, 0.55)',
+                                        '--DataGrid-containerBackground': 'transparent',
                                         '& .MuiDataGrid-columnHeaders': {
                                             minHeight: 44,
                                             borderRadius: 1,
-                                            bgcolor: alpha('#0e3147', 0.04),
                                         },
                                         '& .MuiDataGrid-columnHeaderTitle': { fontWeight: 600 },
                                         '& .MuiDataGrid-cell': { py: 0.5 },
@@ -387,19 +327,7 @@ const ProvasDialog: React.FC<ProvasDialogProps> = ({ open, onClose, atletaId, at
                             )}
                         </Box>
                     </Box>
-                </DialogContent>
-
-                <DialogActions sx={{ px: { xs: 2, md: 3 }, py: 2, background: '#f8fafc', borderTop: '1px solid #e2e8f0', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: 1 }}>
-                    <Box sx={{ flexGrow: 1 }}>
-                        <Typography variant="caption" sx={{ color: '#6b7a8d' }}>
-                            Padrão visual alinhado à jornada de atletas, planos e treino.
-                        </Typography>
-                    </Box>
-                    <Button onClick={onClose} color="primary" size="small" variant="contained" fullWidth={isMobile} sx={{ fontSize: { xs: '0.8rem', md: '0.875rem' }, minHeight: { xs: 40, md: 32 } }}>
-                        Fechar
-                    </Button>
-                </DialogActions>
-            </Dialog>
+            </CoachDialog>
 
             <ProvaFormDialog
                 open={formOpen}
