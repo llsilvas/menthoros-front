@@ -1,9 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
     Button,
     Typography,
     Box,
@@ -22,7 +18,6 @@ import {
 } from '@mui/material';
 import {
     Add as AddIcon,
-    Close as CloseIcon,
     Delete as DeleteIcon,
     Flag as FlagIcon,
     Assignment as AssignmentIcon,
@@ -44,6 +39,8 @@ import type { TreinoPlanejado } from '../../../types/TreinoPlanejado';
 import TreinoRealizadoDialog from './TreinoRealizadoDialog';
 import DetalheTreinoDialog from './DetalheTreinoDialog';
 import TreinoCard from './TreinoCard';
+import { CoachDialog } from '../../../shared/components/CoachDialog';
+import { PRIMARY_BTN_SX } from '../../../shared/components/actionButtonSx';
 import { getSafeValue, getSafeNumber } from '../../../utils/safeValues';
 import { primary, surface, semantic, categorical, content } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
@@ -273,90 +270,35 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
     const planoAtivo = planos.find(p => p.status === 'ATIVO');
     const temPlanoAtivo = !!planoAtivo;
 
-    return (
-        <>
-        <Dialog
-            open={open}
-            onClose={onClose}
-            fullScreen={isMobile}
-            maxWidth="lg"
-            fullWidth
-            slotProps={{
-                paper: {
-                    sx: {
-                        overflow: 'hidden',
-                        borderRadius: 1,
-                        backgroundColor: elevation.base,
-                        border: `1px solid ${content.cardBorder}`,
-                    },
-                },
-            }}
-        >
-            <DialogTitle
+    const planosChips = (
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
+            <Chip
+                label={`${planos.length} plano(s)`}
+                size="small"
                 sx={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 2,
-                    px: { xs: 2, md: 3 },
-                    py: { xs: 2, md: 2.25 },
-                    pr: { xs: 7, md: 8 },
-                    color: surface[50],
-                    background: `linear-gradient(135deg, ${elevation.base} 0%, ${elevation.panel} 55%, ${elevation.card} 100%)`,
-                    borderBottom: `1px solid ${content.divider}`,
+                    bgcolor: `${surface[0]}1F`,
+                    color: surface[200],
+                    fontWeight: 700,
+                    border: `1px solid ${surface[0]}1F`,
                 }}
-            >
-                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1, mb: 1 }}>
-                        <Chip
-                            label={`${planos.length} plano(s)`}
-                            size="small"
-                            sx={{
-                                bgcolor: `${surface[0]}1F`,
-                                color: surface[200],
-                                fontWeight: 700,
-                                border: `1px solid ${surface[0]}1F`,
-                            }}
-                        />
-                        {temPlanoAtivo && (
-                            <Chip
-                                label="Plano ativo"
-                                size="small"
-                                sx={{
-                                    bgcolor: `${primary[500]}26`,
-                                    color: primary[500],
-                                    border: `1px solid ${primary[500]}4D`,
-                                    fontWeight: 700,
-                                }}
-                            />
-                        )}
-                    </Box>
-                    <Typography
-                        variant="h6"
-                        component="div"
-                        sx={{
-                            fontFamily: 'Syne, sans-serif',
-                            fontWeight: 800,
-                            lineHeight: 1.15,
-                            pr: 2,
-                            fontSize: { xs: '1.05rem', md: '1.25rem' },
-                        }}
-                    >
-                        Planos Semanais de {atletaNome}
-                    </Typography>
-                    <Typography
-                        variant="body2"
-                        sx={{
-                            mt: 0.75,
-                            color: surface[400],
-                            maxWidth: 760,
-                            fontSize: { xs: '0.8rem', md: '0.875rem' },
-                        }}
-                    >
-                        Acompanhe volume, progresso e treinos planejados com a mesma leitura visual usada no detalhe do treino.
-                    </Typography>
-                </Box>
+            />
+            {temPlanoAtivo && (
+                <Chip
+                    label="Plano ativo"
+                    size="small"
+                    sx={{
+                        bgcolor: `${primary[500]}26`,
+                        color: primary[500],
+                        border: `1px solid ${primary[500]}4D`,
+                        fontWeight: 700,
+                    }}
+                />
+            )}
+        </Box>
+    );
 
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', justifyContent: { xs: 'flex-start', md: 'flex-end' }, mr: { xs: 0, md: 2 }, mt: { xs: 1.5, md: 0 }, width: { xs: '100%', md: 'auto' } }}>
+    const planosHeaderActions = (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', justifyContent: { xs: 'flex-start', md: 'flex-end' }, width: { xs: '100%', md: 'auto' } }}>
                     <ToggleButtonGroup
                         value={modoGeracao}
                         exclusive
@@ -433,46 +375,34 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                         disabled={loading || temPlanoAtivo}
                         size="small"
                         sx={{
+                            ...PRIMARY_BTN_SX,
                             width: { xs: '100%', sm: 'auto' },
-                            bgcolor: primary[500],
-                            color: surface[900],
-                            fontWeight: 700,
                             fontSize: { xs: '0.78rem', md: '0.8125rem' },
                             minHeight: { xs: 38, md: 32 },
-                            '&:hover': { bgcolor: primary[400] },
                         }}
                     >
                         {loading ? 'Gerando...' : 'Gerar Plano'}
                     </Button>
                 </Box>
+    );
 
-                <Button
-                    onClick={onClose}
-                    sx={{
-                        position: 'absolute',
-                        right: 12,
-                        top: 12,
-                        minWidth: 0,
-                        width: 36,
-                        height: 36,
-                        p: 0,
-                        color: surface[50],
-                        border: `1px solid ${surface[0]}14`,
-                        bgcolor: `${surface[0]}0F`,
-                        '&:hover': {
-                            bgcolor: `${surface[0]}1F`,
-                        },
-                    }}
-                >
-                    <CloseIcon fontSize="small" />
+    return (
+        <>
+        <CoachDialog
+            open={open}
+            onClose={onClose}
+            maxWidth="lg"
+            chip={planosChips}
+            title={`Planos Semanais de ${atletaNome}`}
+            subtitle="Acompanhe volume, progresso e treinos planejados com a mesma leitura visual usada no detalhe do treino."
+            headerAction={planosHeaderActions}
+            contentSx={{ p: 0, background: elevation.base }}
+            actions={
+                <Button onClick={onClose} size="small" variant="contained" fullWidth={isMobile} sx={{ ...PRIMARY_BTN_SX, fontSize: { xs: '0.8rem', md: '0.875rem' }, minHeight: { xs: 40, md: 32 } }}>
+                    Fechar
                 </Button>
-            </DialogTitle>
-            <DialogContent
-                sx={{
-                    p: 0,
-                    background: elevation.base,
-                }}
-            >
+            }
+        >
                 {loading && (
                     <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" minHeight="320px">
                         <CircularProgress size={60} />
@@ -721,18 +651,7 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                         })}
                     </Stack>
                 )}
-            </DialogContent>
-            <DialogActions sx={{ px: { xs: 2, md: 3 }, py: 2, background: elevation.panel, borderTop: `1px solid ${content.divider}`, flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: 1 }}>
-                {/* <Box sx={{ flexGrow: 1 }}>
-                    <Typography variant="caption" sx={{ color: surface[500] }}>
-                        Visual alinhado ao detalhe do treino para manter consistência entre lista e drill-down.
-                    </Typography>
-                </Box> */}
-                <Button onClick={onClose} color="primary" size="small" variant="contained" fullWidth={isMobile} sx={{ fontSize: { xs: '0.8rem', md: '0.875rem' }, minHeight: { xs: 40, md: 32 } }}>
-                    Fechar
-                </Button>
-            </DialogActions>
-        </Dialog>
+        </CoachDialog>
 
         <TreinoRealizadoDialog
             open={conclusaoModalOpen}

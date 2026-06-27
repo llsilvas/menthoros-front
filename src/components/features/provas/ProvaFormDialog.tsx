@@ -1,9 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
     Button,
     TextField,
     MenuItem,
@@ -11,16 +7,18 @@ import {
     Typography,
     Box,
     Chip,
-    IconButton,
     Stack,
     FormControlLabel,
     Checkbox,
     Divider,
     useMediaQuery,
 } from '@mui/material';
-import { Close as CloseIcon } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import Grid from '@mui/material/Grid';
+import { primary, surface, content } from '../../../theme/tokens';
+import { elevation } from '../../../shared/design-tokens';
+import { CoachDialog } from '../../../shared/components/CoachDialog';
+import { GHOST_BTN_SX, PRIMARY_BTN_SX } from '../../../shared/components/actionButtonSx';
 import type {
     Prova,
     CreateProva,
@@ -151,90 +149,51 @@ const ProvaFormDialog: React.FC<ProvaFormDialogProps> = ({ open, onClose, onSave
         if (!loading) onClose();
     };
 
+    const provaChip = (
+        <Chip
+            label={isEditMode ? 'Edição' : 'Cadastro'}
+            size="small"
+            sx={{
+                bgcolor: content.cardBgHover,
+                color: surface[200],
+                fontWeight: 700,
+                border: `1px solid ${content.cardBorder}`,
+            }}
+        />
+    );
+
     return (
-        <Dialog
+        <CoachDialog
             open={open}
             onClose={handleClose}
-            fullScreen={isMobile}
             maxWidth="lg"
-            fullWidth
-            slotProps={{
-                paper: {
-                    sx: {
-                        overflow: 'hidden',
-                        borderRadius: 1,
-                        backgroundColor: '#ffffff',
-                    },
-                },
+            disableClose={loading}
+            chip={provaChip}
+            title={isEditMode ? 'Editar Prova' : 'Nova Prova'}
+            subtitle="Cadastre prova, objetivos e resultado no mesmo padrão visual aplicado aos demais dialogs."
+            component="form"
+            onSubmit={handleSubmit}
+            dividers
+            contentSx={{
+                p: 0,
+                background: `radial-gradient(circle at top right, ${primary[500]}14, transparent 24%), linear-gradient(180deg, ${elevation.base} 0%, ${elevation.panel} 100%)`,
             }}
+            actionsHint={
+                <Typography variant="caption" sx={{ color: surface[400] }}>
+                    Estrutura visual padronizada com atleta, planos, detalhes e provas.
+                </Typography>
+            }
+            actions={
+                <>
+                    <Button onClick={handleClose} disabled={loading} size="small" fullWidth={isMobile} sx={{ ...GHOST_BTN_SX, fontSize: { xs: '0.8rem', md: '0.875rem' }, minHeight: { xs: 40, md: 32 } }}>
+                        Cancelar
+                    </Button>
+                    <Button type="submit" variant="contained" disabled={loading} size="small" fullWidth={isMobile} sx={{ ...PRIMARY_BTN_SX, fontSize: { xs: '0.8rem', md: '0.875rem' }, minHeight: { xs: 40, md: 32 } }}>
+                        {loading ? 'Salvando...' : 'Salvar'}
+                    </Button>
+                </>
+            }
         >
-            <DialogTitle
-                sx={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 2,
-                    px: { xs: 2, md: 3 },
-                    py: { xs: 2, md: 2.25 },
-                    pr: { xs: 7, md: 8 },
-                    color: 'white',
-                    background: 'linear-gradient(135deg, #082130 0%, #0e3147 55%, #133c56 100%)',
-                    borderBottom: '1px solid rgba(255,255,255,0.08)',
-                }}
-            >
-                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1, mb: 1 }}>
-                        <Chip
-                            label={isEditMode ? 'Edição' : 'Cadastro'}
-                            size="small"
-                            sx={{
-                                bgcolor: 'rgba(255,255,255,0.12)',
-                                color: '#e8eaed',
-                                fontWeight: 700,
-                                border: '1px solid rgba(255,255,255,0.12)',
-                            }}
-                        />
-                    </Box>
-                    <Typography
-                        variant="h6"
-                        sx={{
-                            fontFamily: 'Syne, sans-serif',
-                            fontWeight: 800,
-                            lineHeight: 1.15,
-                            pr: 2,
-                            fontSize: { xs: '1.05rem', md: '1.25rem' },
-                        }}
-                    >
-                        {isEditMode ? 'Editar Prova' : 'Nova Prova'}
-                    </Typography>
-                    <Typography variant="body2" sx={{ mt: 0.75, color: 'rgba(232, 234, 237, 0.72)', maxWidth: 720, fontSize: { xs: '0.8rem', md: '0.875rem' } }}>
-                        Cadastre prova, objetivos e resultado no mesmo padrão visual aplicado aos demais dialogs.
-                    </Typography>
-                </Box>
-                <IconButton
-                    onClick={handleClose}
-                    disabled={loading}
-                    sx={{
-                        position: 'absolute',
-                        right: 12,
-                        top: 12,
-                        color: 'white',
-                        bgcolor: 'rgba(255,255,255,0.06)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        '&:hover': { bgcolor: 'rgba(255,255,255,0.12)' },
-                    }}
-                >
-                    <CloseIcon />
-                </IconButton>
-            </DialogTitle>
-            <form onSubmit={handleSubmit} noValidate>
-                <DialogContent
-                    dividers
-                    sx={{
-                        p: 0,
-                        background:
-                            'radial-gradient(circle at top right, rgba(179,233,45,0.08), transparent 24%), linear-gradient(180deg, #eef3f8 0%, #e8edf4 100%)',
-                    }}
-                >
                     <Stack spacing={2.5} sx={{ p: { xs: 1.5, md: 3 } }}>
                         {submitError && (
                             <Alert severity="error">
@@ -245,8 +204,8 @@ const ProvaFormDialog: React.FC<ProvaFormDialogProps> = ({ open, onClose, onSave
                         <Box
                             sx={{
                                 borderRadius: 1,
-                                border: '1px solid rgba(255,255,255,0.7)',
-                                background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.94) 100%)',
+                                border: `1px solid ${content.cardBorder}`,
+                                background: elevation.card,
                                 p: { xs: 2, md: 2.5 },
                             }}
                         >
@@ -551,25 +510,7 @@ const ProvaFormDialog: React.FC<ProvaFormDialogProps> = ({ open, onClose, onSave
                     </Grid>
                         </Box>
                     </Stack>
-                </DialogContent>
-
-                <DialogActions sx={{ px: { xs: 2, md: 3 }, py: 2, background: '#f8fafc', borderTop: '1px solid #e2e8f0', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: 1 }}>
-                    <Box sx={{ flexGrow: 1 }}>
-                        <Typography variant="caption" sx={{ color: '#6b7a8d' }}>
-                            Estrutura visual padronizada com atleta, planos, detalhes e provas.
-                        </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                        <Button onClick={handleClose} disabled={loading} size="small" fullWidth={isMobile} sx={{ fontSize: { xs: '0.8rem', md: '0.875rem' }, minHeight: { xs: 40, md: 32 } }}>
-                            Cancelar
-                        </Button>
-                        <Button type="submit" variant="contained" color="primary" disabled={loading} size="small" fullWidth={isMobile} sx={{ fontSize: { xs: '0.8rem', md: '0.875rem' }, minHeight: { xs: 40, md: 32 } }}>
-                            {loading ? 'Salvando...' : 'Salvar'}
-                        </Button>
-                    </Box>
-                </DialogActions>
-            </form>
-        </Dialog>
+        </CoachDialog>
     );
 };
 

@@ -8,10 +8,6 @@ import {
   Chip,
   FormControl,
   InputAdornment,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   LinearProgress,
   Menu,
   MenuItem,
@@ -30,13 +26,15 @@ import {
   Search as SearchIcon,
   Tune as TuneIcon,
 } from '@mui/icons-material';
+import { CoachDialog } from '../../../shared/components/CoachDialog';
+import { DANGER_BTN_SX, GHOST_BTN_SX } from '../../../shared/components/actionButtonSx';
 import { CoachAthleteAvatar } from '../components/CoachAthleteAvatar';
 import { DashboardAttentionQueueRow } from '../components/DashboardAttentionQueueRow';
 import { DashboardRosterPreviewRow } from '../components/DashboardRosterPreviewRow';
 import { MetricTile } from '../components/MetricTile';
 import { QueueRow } from '../components/QueueRow';
 import { formatKm, formatPercent, paletteForDecision } from '../components/coachInboxHelpers';
-import { ACTION_BTN_START_ICON_SX, ACTION_BTN_END_ICON_SX } from '../components/actionButtonSx';
+import { ACTION_BTN_START_ICON_SX, ACTION_BTN_END_ICON_SX } from '../../../shared/components/actionButtonSx';
 import { DiagnosisTabPanel } from '../components/panels/DiagnosisTabPanel';
 import { PlanTabPanel } from '../components/panels/PlanTabPanel';
 import { RacesSuggestionsTabPanel } from '../components/panels/RacesSuggestionsTabPanel';
@@ -735,36 +733,40 @@ function CoachInboxPage() {
                   </MenuItem>
                 </Menu>
               </Box>
-              <Dialog open={rejectDialogOpen} onClose={closeRejectDialog} maxWidth="sm" fullWidth>
-                <DialogTitle>Rejeitar plano</DialogTitle>
-                <DialogContent sx={{ pt: 1 }}>
-                  <Typography sx={{ color: surface[400], fontSize: '0.9rem', mb: 2 }}>
-                    Informe um motivo objetivo para a rejeição. Isso entra no histórico do plano.
-                  </Typography>
-                  <TextField
-                    autoFocus
-                    fullWidth
-                    multiline
-                    minRows={4}
-                    label="Motivo"
-                    value={rejectReason}
-                    onChange={(event) => setRejectReason(event.target.value)}
-                  />
-                </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 2.5 }}>
-                  <Button onClick={closeRejectDialog} sx={{ textTransform: 'none' }}>
-                    Cancelar
-                  </Button>
-                  <Button
-                    variant="contained"
-                    onClick={() => void handleRejectPlan(rejectReason)}
-                    disabled={!rejectReason.trim()}
-                    sx={{ textTransform: 'none' }}
-                  >
-                    Confirmar rejeição
-                  </Button>
-                </DialogActions>
-              </Dialog>
+              <CoachDialog
+                open={rejectDialogOpen}
+                onClose={closeRejectDialog}
+                maxWidth="sm"
+                title="Rejeitar plano"
+                actions={
+                  <>
+                    <Button onClick={closeRejectDialog} sx={GHOST_BTN_SX}>
+                      Cancelar
+                    </Button>
+                    <Button
+                      variant="contained"
+                      onClick={() => void handleRejectPlan(rejectReason)}
+                      disabled={!rejectReason.trim()}
+                      sx={DANGER_BTN_SX}
+                    >
+                      Confirmar rejeição
+                    </Button>
+                  </>
+                }
+              >
+                <Typography sx={{ color: surface[400], fontSize: '0.9rem', mb: 2 }}>
+                  Informe um motivo objetivo para a rejeição. Isso entra no histórico do plano.
+                </Typography>
+                <TextField
+                  autoFocus
+                  fullWidth
+                  multiline
+                  minRows={4}
+                  label="Motivo"
+                  value={rejectReason}
+                  onChange={(event) => setRejectReason(event.target.value)}
+                />
+              </CoachDialog>
             </>
           ) : (
             <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4 }}>

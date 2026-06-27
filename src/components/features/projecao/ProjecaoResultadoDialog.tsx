@@ -4,12 +4,7 @@ import {
     Box,
     Button,
     Chip,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
     Divider,
-    IconButton,
     Stack,
     Table,
     TableBody,
@@ -20,12 +15,12 @@ import {
     useMediaQuery,
 } from '@mui/material';
 import {
-    Close as CloseIcon,
     CheckCircle as CheckCircleIcon,
     EmojiEvents as TrophyIcon,
     TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
+import { CoachDialog } from '../../../shared/components/CoachDialog';
 import type { RaceProjectionSnapshot } from '../../../types/RaceProjection';
 import {
     CTL_TREND_LABELS,
@@ -83,106 +78,87 @@ const ProjecaoResultadoDialog: React.FC<ProjecaoResultadoDialogProps> = ({
         return order.indexOf(p.confidence) > order.indexOf(worst) ? p.confidence : worst;
     }, null) ?? 'LOW';
 
+    const headerChips = (
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
+            <Chip
+                icon={<TrendingUpIcon sx={{ fontSize: 14, color: `${primary[500]} !important` }} />}
+                label="Resultado da Projeção"
+                size="small"
+                sx={{ bgcolor: `${surface[0]}1F`, color: surface[200], fontWeight: 700, border: `1px solid ${surface[0]}1F` }}
+            />
+            <Chip
+                label={`Confiança ${CONFIDENCE_LABELS[overallConfidence as keyof typeof CONFIDENCE_LABELS]}`}
+                size="small"
+                sx={{
+                    bgcolor: overallConfidence === 'HIGH'
+                        ? `${semantic.success[500]}3D`
+                        : overallConfidence === 'MEDIUM'
+                            ? `${semantic.warning[500]}3D`
+                            : `${semantic.danger[500]}3D`,
+                    color: overallConfidence === 'HIGH' ? semantic.success[500] : overallConfidence === 'MEDIUM' ? semantic.warning[400] : semantic.danger[300],
+                    fontWeight: 700,
+                    border: `1px solid ${surface[0]}26`,
+                }}
+            />
+            {currentSnapshot.isOfficial && (
+                <Chip
+                    icon={<CheckCircleIcon sx={{ fontSize: 13, color: `${primary[500]} !important` }} />}
+                    label="Oficial"
+                    size="small"
+                    sx={{ bgcolor: `${primary[500]}2E`, color: primary[500], fontWeight: 700, border: `1px solid ${primary[500]}4D` }}
+                />
+            )}
+        </Box>
+    );
+
+    const footerHint = currentSnapshot.isOfficial ? (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+            <CheckCircleIcon sx={{ fontSize: 16, color: semantic.success[500] }} />
+            <Typography variant="caption" sx={{ color: semantic.success[500], fontWeight: 600 }}>
+                Projeção oficial
+                {currentSnapshot.coachReviewedAt
+                    ? ` — revisada em ${new Date(currentSnapshot.coachReviewedAt).toLocaleDateString('pt-BR')}`
+                    : ''}
+            </Typography>
+        </Box>
+    ) : (
+        <Typography variant="caption" sx={{ color: surface[400] }}>
+            Marque como oficial para liberar ao atleta
+        </Typography>
+    );
+
     return (
-        <Dialog
+        <CoachDialog
             open={open}
             onClose={onClose}
-            fullScreen={isMobile}
             maxWidth="md"
-            fullWidth
-            slotProps={{
-                paper: {
-                    sx: {
-                        overflow: 'hidden',
-                        borderRadius: 1,
-                        backgroundColor: elevation.base,
-                        border: `1px solid ${content.cardBorder}`,
-                    },
-                },
+            chip={headerChips}
+            title={`Projeção — ${atletaNome}`}
+            subtitle={`${new Date(currentSnapshot.generatedAt).toLocaleString('pt-BR')} · ${currentSnapshot.weeksToRace} semanas até a prova`}
+            dividers
+            contentSx={{
+                p: 0,
+                background: `radial-gradient(circle at top right, ${primary[500]}14, transparent 24%), linear-gradient(180deg, ${elevation.base} 0%, ${elevation.panel} 100%)`,
             }}
+            actionsHint={footerHint}
+            actions={
+                <>
+                    <Button onClick={onClose} size="small" fullWidth={isMobile}>
+                        Fechar
+                    </Button>
+                    {!currentSnapshot.isOfficial && currentSnapshot.provaId && (
+                        <MarcarOficialButton
+                            atletaId={atletaId}
+                            snapshotId={currentSnapshot.id}
+                            provaId={currentSnapshot.provaId}
+                            onSuccess={updated => setCurrentSnapshot(updated)}
+                            fullWidth={isMobile}
+                        />
+                    )}
+                </>
+            }
         >
-            <DialogTitle
-                sx={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 2,
-                    px: { xs: 2, md: 3 },
-                    py: { xs: 2, md: 2.25 },
-                    pr: { xs: 7, md: 8 },
-                    color: surface[50],
-                    background: `linear-gradient(135deg, ${elevation.base} 0%, ${elevation.panel} 55%, ${elevation.card} 100%)`,
-                    borderBottom: `1px solid ${content.divider}`,
-                }}
-            >
-                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1, mb: 1 }}>
-                        <Chip
-                            icon={<TrendingUpIcon sx={{ fontSize: 14, color: `${primary[500]} !important` }} />}
-                            label="Resultado da Projeção"
-                            size="small"
-                            sx={{ bgcolor: `${surface[0]}1F`, color: surface[200], fontWeight: 700, border: `1px solid ${surface[0]}1F` }}
-                        />
-                        {/* Overall confidence badge in header */}
-                        <Chip
-                            label={`Confiança ${CONFIDENCE_LABELS[overallConfidence as keyof typeof CONFIDENCE_LABELS]}`}
-                            size="small"
-                            sx={{
-                                bgcolor: overallConfidence === 'HIGH'
-                                    ? `${semantic.success[500]}3D`
-                                    : overallConfidence === 'MEDIUM'
-                                        ? `${semantic.warning[500]}3D`
-                                        : `${semantic.danger[500]}3D`,
-                                color: overallConfidence === 'HIGH' ? semantic.success[500] : overallConfidence === 'MEDIUM' ? semantic.warning[400] : semantic.danger[300],
-                                fontWeight: 700,
-                                border: `1px solid ${surface[0]}26`,
-                            }}
-                        />
-                        {currentSnapshot.isOfficial && (
-                            <Chip
-                                icon={<CheckCircleIcon sx={{ fontSize: 13, color: `${primary[500]} !important` }} />}
-                                label="Oficial"
-                                size="small"
-                                sx={{ bgcolor: `${primary[500]}2E`, color: primary[500], fontWeight: 700, border: `1px solid ${primary[500]}4D` }}
-                            />
-                        )}
-                    </Box>
-                    <Typography
-                        variant="h6"
-                        sx={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, lineHeight: 1.15, pr: 2, fontSize: { xs: '1.05rem', md: '1.25rem' } }}
-                    >
-                        Projeção — {atletaNome}
-                    </Typography>
-                    <Typography
-                        variant="body2"
-                        sx={{ mt: 0.75, color: surface[400], fontSize: { xs: '0.78rem', md: '0.85rem' } }}
-                    >
-                        {new Date(currentSnapshot.generatedAt).toLocaleString('pt-BR')} · {currentSnapshot.weeksToRace} semanas até a prova
-                    </Typography>
-                </Box>
-                <IconButton
-                    onClick={onClose}
-                    sx={{
-                        position: 'absolute',
-                        right: 12,
-                        top: 12,
-                        color: surface[50],
-                        bgcolor: `${surface[0]}0F`,
-                        border: `1px solid ${surface[0]}14`,
-                        '&:hover': { bgcolor: `${surface[0]}1F` },
-                    }}
-                >
-                    <CloseIcon />
-                </IconButton>
-            </DialogTitle>
-
-            <DialogContent
-                dividers
-                sx={{
-                    p: 0,
-                    background: `radial-gradient(circle at top right, ${primary[500]}14, transparent 24%), linear-gradient(180deg, ${elevation.base} 0%, ${elevation.panel} 100%)`,
-                }}
-            >
-                <Stack spacing={2} sx={{ p: { xs: 1.5, md: 3 } }}>
+            <Stack spacing={2} sx={{ p: { xs: 1.5, md: 3 } }}>
 
                     {/* ── Tabela de projeções ── */}
                     <Box sx={{ borderRadius: 1, border: `1px solid ${content.cardBorder}`, background: elevation.card, p: { xs: 1.5, md: 2.5 }, overflowX: 'auto' }}>
@@ -391,52 +367,7 @@ const ProjecaoResultadoDialog: React.FC<ProjecaoResultadoDialogProps> = ({
                         </Box>
                     )}
                 </Stack>
-            </DialogContent>
-
-            <DialogActions
-                sx={{
-                    px: { xs: 2, md: 3 },
-                    py: 2,
-                    background: elevation.panel,
-                    borderTop: `1px solid ${content.divider}`,
-                    flexDirection: { xs: 'column', sm: 'row' },
-                    alignItems: { xs: 'stretch', sm: 'center' },
-                    gap: 1,
-                }}
-            >
-                <Box sx={{ flexGrow: 1 }}>
-                    {currentSnapshot.isOfficial ? (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                            <CheckCircleIcon sx={{ fontSize: 16, color: semantic.success[500] }} />
-                            <Typography variant="caption" sx={{ color: semantic.success[500], fontWeight: 600 }}>
-                                Projeção oficial
-                                {currentSnapshot.coachReviewedAt
-                                    ? ` — revisada em ${new Date(currentSnapshot.coachReviewedAt).toLocaleDateString('pt-BR')}`
-                                    : ''}
-                            </Typography>
-                        </Box>
-                    ) : (
-                        <Typography variant="caption" sx={{ color: surface[400] }}>
-                            Marque como oficial para liberar ao atleta
-                        </Typography>
-                    )}
-                </Box>
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Button onClick={onClose} size="small" fullWidth={isMobile}>
-                        Fechar
-                    </Button>
-                    {!currentSnapshot.isOfficial && currentSnapshot.provaId && (
-                        <MarcarOficialButton
-                            atletaId={atletaId}
-                            snapshotId={currentSnapshot.id}
-                            provaId={currentSnapshot.provaId}
-                            onSuccess={updated => setCurrentSnapshot(updated)}
-                            fullWidth={isMobile}
-                        />
-                    )}
-                </Box>
-            </DialogActions>
-        </Dialog>
+        </CoachDialog>
     );
 };
 

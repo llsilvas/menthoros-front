@@ -1,16 +1,9 @@
 import React, { useState } from 'react';
-import {
-    Button,
-    CircularProgress,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogContentText,
-    DialogTitle,
-} from '@mui/material';
+import { Button, CircularProgress } from '@mui/material';
 import { CheckCircle as CheckCircleIcon } from '@mui/icons-material';
 import { useRaceProjection } from '../../../hooks/useRaceProjection';
-import { semantic, surface } from '../../../theme/tokens';
+import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
+import { SUCCESS_BTN_SX } from '../../../shared/components/actionButtonSx';
 import type { RaceProjectionSnapshot } from '../../../types/RaceProjection';
 
 interface MarcarOficialButtonProps {
@@ -48,31 +41,20 @@ const MarcarOficialButton: React.FC<MarcarOficialButtonProps> = ({
                 disabled={loading}
                 onClick={() => setConfirmOpen(true)}
                 startIcon={loading ? <CircularProgress size={14} color="inherit" /> : <CheckCircleIcon />}
-                sx={{ bgcolor: semantic.success[500], color: surface[900], '&:hover': { bgcolor: semantic.success[700] } }}
+                sx={SUCCESS_BTN_SX}
             >
                 {loading ? 'Marcando...' : 'Marcar como Oficial'}
             </Button>
 
-            <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} maxWidth="xs" fullWidth>
-                <DialogTitle sx={{ fontWeight: 700 }}>Marcar como Oficial?</DialogTitle>
-                <DialogContent>
-                    <DialogContentText>
-                        Esta projeção será marcada como oficial e ficará visível ao atleta.
-                        A projeção oficial anterior (se houver) será substituída.
-                    </DialogContentText>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setConfirmOpen(false)} size="small">Cancelar</Button>
-                    <Button
-                        onClick={handleConfirm}
-                        variant="contained"
-                        size="small"
-                        sx={{ bgcolor: semantic.success[500], color: surface[900], '&:hover': { bgcolor: semantic.success[700] } }}
-                    >
-                        Confirmar
-                    </Button>
-                </DialogActions>
-            </Dialog>
+            <ConfirmDialog
+                open={confirmOpen}
+                title="Marcar como Oficial?"
+                message="Esta projeção será marcada como oficial e ficará visível ao atleta. A projeção oficial anterior (se houver) será substituída."
+                confirmLabel="Confirmar"
+                loading={loading}
+                onClose={() => setConfirmOpen(false)}
+                onConfirm={handleConfirm}
+            />
         </>
     );
 };

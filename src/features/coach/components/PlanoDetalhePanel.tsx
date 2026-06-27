@@ -3,10 +3,6 @@ import {
     Box,
     Button,
     CircularProgress,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
     IconButton,
     TextField,
     Typography,
@@ -16,8 +12,10 @@ import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import AddIcon from '@mui/icons-material/Add';
 import { resolveReviewStatus } from '../../../types/PlanoReview';
 import type { DiaSemanaDto, PlanoSemanalDto, TreinoPlanejadoDto } from '../../../types/PlanoReview';
-import { primary, surface, semantic, categorical, content } from '../../../theme/tokens';
-import { elevation } from '../../../shared/design-tokens';
+import { primary, surface, semantic, content } from '../../../theme/tokens';
+import { workoutTypeColor } from '../../../shared/theme/workoutColors';
+import { CoachDialog } from '../../../shared/components/CoachDialog';
+import { DANGER_BTN_SX, GHOST_BTN_SX } from '../../../shared/components/actionButtonSx';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -53,21 +51,6 @@ function formatarData(iso: string): string {
     });
 }
 
-const TIPO_COLORS: Record<string, string> = {
-    FACIL:       surface[400],
-    LONGO:       categorical.cat1,
-    TEMPO:       semantic.warning[500],
-    INTERVALADO: semantic.danger[500],
-    REGENERATIVO: semantic.success[500],
-    FARTLEK:     categorical.cat4,
-    CONTINUO:    semantic.warning[400],
-    DEFAULT:     surface[500],
-};
-
-function tipoColor(tipo: string): string {
-    return TIPO_COLORS[tipo?.toUpperCase()] ?? TIPO_COLORS.DEFAULT;
-}
-
 // ── Tag de treino ─────────────────────────────────────────────────────────────
 
 function TreinoTag({
@@ -79,7 +62,7 @@ function TreinoTag({
     onEditar?: () => void;
     onExcluir?: () => void;
 }) {
-    const cor = tipoColor(treino.tipoTreino);
+    const cor = workoutTypeColor(treino.tipoTreino);
     const abbrev = treino.tipoTreino;
     const dia = resolverDiaSemana(treino.diaSemana).slice(0, 3).toUpperCase();
     const duracaoDisplay = treino.duracaoMin ? parseDuracao(treino.duracaoMin) : null;
@@ -276,78 +259,57 @@ function RejeicaoModal({ open, isActing, onClose, onConfirmar }: RejeicaoModalPr
     };
 
     return (
-        <Dialog
+        <CoachDialog
             open={open}
             onClose={handleClose}
             maxWidth="sm"
-            fullWidth
-            PaperProps={{
-                sx: {
-                    bgcolor: elevation.highest,
-                    border: `1px solid ${content.cardBorder}`,
-                    borderRadius: '12px',
-                },
-            }}
+            disableClose={isActing}
+            title="Rejeitar plano"
+            actions={
+                <>
+                    <Button
+                        variant="text"
+                        onClick={handleClose}
+                        disabled={isActing}
+                        sx={{ ...GHOST_BTN_SX, fontSize: '0.8rem' }}
+                    >
+                        Cancelar
+                    </Button>
+                    <Button
+                        variant="contained"
+                        onClick={handleConfirmar}
+                        disabled={!motivo.trim() || isActing}
+                        sx={{
+                            ...DANGER_BTN_SX,
+                            fontSize: '0.8rem',
+                            px: 2.5,
+                            '&.Mui-disabled': { bgcolor: surface[700], color: surface[500] },
+                        }}
+                    >
+                        {isActing
+                            ? <CircularProgress size={14} sx={{ color: surface[900] }} />
+                            : 'Confirmar rejeição'}
+                    </Button>
+                </>
+            }
         >
-            <DialogTitle
-                sx={{
-                    fontFamily: 'Syne, sans-serif',
-                    fontSize: '1rem',
-                    fontWeight: 700,
-                    color: surface[50],
-                    pb: 1,
-                }}
-            >
-                Rejeitar plano
-            </DialogTitle>
-            <DialogContent>
-                <Typography sx={{ fontSize: '0.8rem', color: surface[400], mb: 1.5 }}>
-                    Explique ao atleta o motivo pelo qual este plano não será utilizado.
-                </Typography>
-                <TextField
-                    autoFocus
-                    fullWidth
-                    multiline
-                    rows={4}
-                    label="Motivo da rejeição"
-                    value={motivo}
-                    onChange={(e) => setMotivo(e.target.value)}
-                    disabled={isActing}
-                    inputProps={{ maxLength: 1000 }}
-                    helperText={`${motivo.length}/1000`}
-                    sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.85rem' } }}
-                />
-            </DialogContent>
-            <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
-                <Button
-                    variant="text"
-                    onClick={handleClose}
-                    disabled={isActing}
-                    sx={{ color: surface[400], textTransform: 'none', fontSize: '0.8rem' }}
-                >
-                    Cancelar
-                </Button>
-                <Button
-                    variant="contained"
-                    onClick={handleConfirmar}
-                    disabled={!motivo.trim() || isActing}
-                    sx={{
-                        bgcolor: semantic.danger[500],
-                        color: surface[900],
-                        textTransform: 'none',
-                        fontWeight: 700,
-                        fontSize: '0.8rem',
-                        px: 2.5,
-                        '&:hover': { bgcolor: semantic.danger[700] },
-                        '&.Mui-disabled': { bgcolor: surface[700], color: surface[500] },
-                    }}
-                >
-                    {isActing
-                        ? <CircularProgress size={14} sx={{ color: surface[900] }} />
-                        : 'Confirmar rejeição'}
-                </Button>
-            </DialogActions>
-        </Dialog>
+            <Typography sx={{ fontSize: '0.8rem', color: surface[400], mb: 1.5 }}>
+                Explique ao atleta o motivo pelo qual este plano não será utilizado.
+            </Typography>
+            <TextField
+                autoFocus
+                fullWidth
+                multiline
+                rows={4}
+                label="Motivo da rejeição"
+                value={motivo}
+                onChange={(e) => setMotivo(e.target.value)}
+                disabled={isActing}
+                inputProps={{ maxLength: 1000 }}
+                helperText={`${motivo.length}/1000`}
+                sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.85rem' } }}
+            />
+        </CoachDialog>
     );
 }
 

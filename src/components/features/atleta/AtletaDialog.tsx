@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem, FormControlLabel, Checkbox, Alert, Typography, FormGroup, Box, Chip, IconButton, Stack, useMediaQuery } from "@mui/material";
-import { Close as CloseIcon } from '@mui/icons-material';
+import { Button, TextField, MenuItem, FormControlLabel, Checkbox, Alert, Typography, FormGroup, Box, Chip, Stack, useMediaQuery } from "@mui/material";
 import { useTheme } from '@mui/material/styles';
 import Grid from '@mui/material/Grid';
 import { primary, surface, content } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
+import { CoachDialog } from '../../../shared/components/CoachDialog';
+import { GHOST_BTN_SX, PRIMARY_BTN_SX } from '../../../shared/components/actionButtonSx';
 
 import type { Atleta, CreateAtleta, UpdateAtleta, AtletaDialogProps, diaSemana, Sexo } from "../../../types/Atleta";
 
@@ -184,102 +185,49 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
             onClose();
         }
     };
-    return (
-    <Dialog
-        open={open}
-        onClose={handleClose}
-        fullScreen={isMobile}
-        maxWidth="lg"
-        fullWidth
-        slotProps={{
-            paper: {
-                sx: {
-                    overflow: 'hidden',
-                    borderRadius: 1,
-                    backgroundColor: elevation.base,
-                    border: `1px solid ${content.cardBorder}`,
-                },
-            },
-        }}
-    >
-        <DialogTitle
+    const atletaChip = (
+        <Chip
+            label={isEditMode ? 'Edição' : 'Cadastro'}
+            size="small"
             sx={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: 2,
-                px: { xs: 2, md: 3 },
-                py: { xs: 2, md: 2.25 },
-                pr: { xs: 7, md: 8 },
-                color: surface[50],
-                background: `linear-gradient(135deg, ${elevation.base} 0%, ${elevation.panel} 55%, ${elevation.card} 100%)`,
-                borderBottom: `1px solid ${content.divider}`,
+                bgcolor: content.cardBgHover,
+                color: surface[200],
+                fontWeight: 700,
+                border: `1px solid ${content.cardBorder}`,
             }}
-        >
-            <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1, mb: 1 }}>
-                    <Chip
-                        label={isEditMode ? 'Edição' : 'Cadastro'}
-                        size="small"
-                        sx={{
-                            bgcolor: content.cardBgHover,
-                            color: surface[200],
-                            fontWeight: 700,
-                            border: `1px solid ${content.cardBorder}`,
-                        }}
-                    />
-                </Box>
-                <Typography
-                    variant="h6"
-                    component="div"
-                    sx={{
-                        fontFamily: 'Syne, sans-serif',
-                        fontWeight: 800,
-                        lineHeight: 1.15,
-                        pr: 2,
-                        fontSize: { xs: '1.05rem', md: '1.25rem' },
-                    }}
-                >
-                    {isEditMode ? 'Editar Atleta' : 'Adicionar Atleta'}
-                </Typography>
-                <Typography
-                    variant="body2"
-                    sx={{
-                        mt: 0.75,
-                        color: surface[400],
-                        maxWidth: 720,
-                        fontSize: { xs: '0.8rem', md: '0.875rem' },
-                    }}
-                >
-                    Atualize os dados de perfil, disponibilidade e preferências mantendo a mesma linguagem visual dos outros dialogs.
-                </Typography>
-            </Box>
+        />
+    );
 
-            <IconButton
-                onClick={handleClose}
-                disabled={loading}
-                sx={{
-                    position: 'absolute',
-                    right: 12,
-                    top: 12,
-                    color: surface[50],
-                    bgcolor: content.inputBg,
-                    border: `1px solid ${content.cardBorder}`,
-                    '&:hover': {
-                        bgcolor: content.cardBgHover,
-                    },
-                }}
-            >
-                <CloseIcon />
-            </IconButton>
-        </DialogTitle>
-        <form onSubmit={handleSubmit} noValidate style={{ display: 'contents' }}>
-            <DialogContent
-                dividers
-                sx={{
-                    p: 0,
-                    background: `radial-gradient(circle at top right, ${primary[500]}14, transparent 24%), linear-gradient(180deg, ${elevation.base} 0%, ${elevation.panel} 100%)`,
-                }}
-            >
+    return (
+        <CoachDialog
+            open={open}
+            onClose={handleClose}
+            maxWidth="lg"
+            disableClose={loading}
+            chip={atletaChip}
+            title={isEditMode ? 'Editar Atleta' : 'Adicionar Atleta'}
+            subtitle="Atualize os dados de perfil, disponibilidade e preferências mantendo a mesma linguagem visual dos outros dialogs."
+            component="form"
+            onSubmit={handleSubmit}
+            dividers
+            contentSx={{
+                p: 0,
+                background: `radial-gradient(circle at top right, ${primary[500]}14, transparent 24%), linear-gradient(180deg, ${elevation.base} 0%, ${elevation.panel} 100%)`,
+            }}
+            actionsHint={
+                <Typography variant="caption" sx={{ color: surface[400] }}>
+                    Tamanho e estilo padronizados com os dialogs de planos e detalhe.
+                </Typography>
+            }
+            actions={
+                <>
+                    <Button onClick={handleClose} disabled={loading} size="small" fullWidth={isMobile} sx={{ ...GHOST_BTN_SX, fontSize: { xs: '0.8rem', md: '0.875rem' }, minHeight: { xs: 40, md: 32 } }}>Cancelar</Button>
+                    <Button type="submit" variant="contained" disabled={loading} size="small" fullWidth={isMobile} sx={{ ...PRIMARY_BTN_SX, fontSize: { xs: '0.8rem', md: '0.875rem' }, minHeight: { xs: 40, md: 32 } }}>
+                        {loading ? 'Salvando...' : 'Salvar'}
+                    </Button>
+                </>
+            }
+        >
                 <Stack spacing={2.5} sx={{ p: { xs: 1.5, md: 3 } }}>
                     {submitError && <Alert severity="error">{submitError}</Alert>}
                     <Box
@@ -490,22 +438,9 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                         </Grid>
                     </Box>
                 </Stack>
-            </DialogContent>
-            <DialogActions sx={{ px: { xs: 2, md: 3 }, py: 2, background: elevation.panel, borderTop: `1px solid ${content.divider}`, flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: 1 }}>
-                <Box sx={{ flexGrow: 1 }}>
-                    <Typography variant="caption" sx={{ color: surface[400] }}>
-                        Tamanho e estilo padronizados com os dialogs de planos e detalhe.
-                    </Typography>
-                </Box>
-                <Button onClick={handleClose} disabled={loading} size="small" fullWidth={isMobile} sx={{ fontSize: { xs: '0.8rem', md: '0.875rem' }, minHeight: { xs: 40, md: 32 } }}>Cancelar</Button>
-                <Button type="submit" variant="contained" color="primary" disabled={loading} size="small" fullWidth={isMobile} sx={{ fontSize: { xs: '0.8rem', md: '0.875rem' }, minHeight: { xs: 40, md: 32 } }}>
-                    {loading ? 'Salvando...' : 'Salvar'}
-                </Button>
-            </DialogActions>
-        </form>
-    </Dialog>
+        </CoachDialog>
     )
-    
+
 }
 
 export default AtletaDialog;

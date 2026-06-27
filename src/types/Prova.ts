@@ -1,3 +1,5 @@
+import { surface, semantic, categorical } from '../theme/tokens';
+
 // Enum keys (usados no envio ao backend)
 export type TipoProva = 'CORRIDA_RUA' | 'TRAIL' | 'MEIA' | 'MARATONA';
 export type DistanciaProva = 'KM_5' | 'KM_10' | 'KM_21' | 'KM_42';
@@ -58,10 +60,10 @@ export const PROVA_STATUS_LABELS: Record<ProvaStatus, string> = {
 };
 
 export const PROVA_STATUS_COLORS: Record<ProvaStatus, string> = {
-    PLANEJADA: '#9E9E9E',
-    CONFIRMADA: '#2196F3',
-    CONCLUIDA: '#4CAF50',
-    CANCELADA: '#F44336',
+    PLANEJADA: surface[400],
+    CONFIRMADA: categorical.cat1,
+    CONCLUIDA: semantic.success[500],
+    CANCELADA: semantic.danger[500],
 };
 
 // Extrai o key do enum de um valor que pode vir como string ou como objeto serializado

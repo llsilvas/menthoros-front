@@ -8,6 +8,7 @@ import { resolveReviewStatus } from '../../../types/PlanoReview';
 import { TreinoEditDialog } from './TreinoEditDialog';
 import { useTreinoPlanejado } from '../../../hooks/useTreinoPlanejado';
 import { primary, surface, semantic } from '../../../theme/tokens';
+import { WORKOUT_STATUS_COLORS as STATUS_COLORS } from '../../../shared/theme/workoutColors';
 
 interface CurrentWeekPlanProps {
     plano: PlanoVigenteDto | null;
@@ -15,15 +16,6 @@ interface CurrentWeekPlanProps {
     onRevisarPlano: () => void;
     onTreinoEditado?: () => void;
 }
-
-const STATUS_COLORS: Record<string, string> = {
-    REALIZADO:  semantic.success[500],
-    CONCLUIDO:  semantic.success[500],
-    PENDENTE:   surface[400],
-    PERDIDO:    semantic.danger[500],
-    PARCIAL:    semantic.warning[400],
-    LIVRE:      surface[400],
-};
 
 function parseDuracao(valor: string): string | null {
     if (!valor) return null;

@@ -8,10 +8,6 @@ import {
     Box,
     Chip,
     Stack,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
     Slider,
 } from '@mui/material';
 import {
@@ -35,8 +31,10 @@ import type { TreinoPlanejado } from '../../../types/TreinoPlanejado';
 import type { AnaliseWorkout } from '../../../types/AnaliseWorkout';
 import { PRIMARY_CAUSE_LABEL } from '../../../types/AnaliseWorkout';
 import { getSafeValue, getSafeNumber } from '../../../utils/safeValues';
-import { glassSx, glass, semantic, surface, content } from '../../../theme/tokens';
-import { elevation } from '../../../shared/design-tokens';
+import { glassSx, glass, semantic, surface } from '../../../theme/tokens';
+import { CoachDialog } from '../../../shared/components/CoachDialog';
+import { GHOST_BTN_SX } from '../../../shared/components/actionButtonSx';
+import { effortColor } from '../../../shared/theme/workoutColors';
 
 interface TreinoCardProps {
     treino: TreinoPlanejado;
@@ -64,13 +62,6 @@ const MetricItem: React.FC<{ icon: React.ReactNode; label: string; value: string
 );
 
 const RPE_MARKS = [1,2,3,4,5,6,7,8,9,10].map(v => ({ value: v, label: String(v) }));
-
-/** Cor por zona de RPE (1–10): ≤4 baixo/recuperação, 5–7 moderado, 8–10 alto/máximo. */
-function getRpeColor(rpe: number): string {
-    if (rpe <= 4) return semantic.success[500];
-    if (rpe <= 7) return semantic.warning[500];
-    return semantic.danger[500];
-}
 
 const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRealizado, onMarcarPerdido }) => {
     const [expandedInsight, setExpandedInsight] = useState(false);
@@ -196,7 +187,7 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                         <Typography
                                             variant="body2"
-                                            sx={{ fontWeight: 700, color: getRpeColor(currentRpe) }}
+                                            sx={{ fontWeight: 700, color: effortColor(currentRpe) }}
                                         >
                                             {currentRpe}/10
                                         </Typography>
@@ -269,7 +260,7 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                                 label={`${analise.executionScore}/10`}
                                 size="small"
                                 sx={{
-                                    bgcolor: getRpeColor(analise.executionScore),
+                                    bgcolor: effortColor(analise.executionScore),
                                     color: surface[900],
                                     fontWeight: 700,
                                     fontSize: '0.7rem',
@@ -418,91 +409,75 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
             </CardActions>
 
             {/* Dialog de RPE */}
-            <Dialog
+            <CoachDialog
                 open={rpeDialogOpen}
                 onClose={() => setRpeDialogOpen(false)}
                 maxWidth="xs"
-                fullWidth
-                slotProps={{
-                    paper: {
-                        sx: {
-                            bgcolor: elevation.card,
-                            border: `1px solid ${content.cardBorder}`,
-                            borderRadius: 1,
-                        },
-                    },
-                }}
-            >
-                <DialogTitle sx={{ pb: 1, borderBottom: `1px solid ${content.divider}` }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <RpeIcon sx={{ color: surface[400] }} />
-                        <Typography variant="h6" sx={{ color: surface[50] }}>Percepção de Esforço (RPE)</Typography>
-                    </Box>
-                    <Typography variant="caption" sx={{ color: surface[400] }}>
-                        Como você avalia o esforço deste treino?
-                    </Typography>
-                </DialogTitle>
-                <DialogContent>
-                    <Box sx={{ px: 1, pt: 2, pb: 1 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-                            <Typography
-                                variant="h2"
-                                sx={{ fontWeight: 800, color: getRpeColor(rpeValue), lineHeight: 1 }}
-                            >
-                                {rpeValue}
-                            </Typography>
-                            <Typography variant="h5" sx={{ alignSelf: 'flex-end', color: surface[400], ml: 0.5 }}>
-                                /10
-                            </Typography>
-                        </Box>
-                        <Slider
-                            value={rpeValue}
-                            onChange={(_, v) => setRpeValue(v as number)}
-                            min={1}
-                            max={10}
-                            step={1}
-                            marks={RPE_MARKS}
-                            sx={{
-                                color: getRpeColor(rpeValue),
-                                '& .MuiSlider-markLabel': { fontSize: '0.7rem', color: surface[400] },
+                disableClose={savingRpe}
+                title="Percepção de Esforço (RPE)"
+                subtitle="Como você avalia o esforço deste treino?"
+                actions={
+                    <>
+                        <Button
+                            onClick={() => setRpeDialogOpen(false)}
+                            disabled={savingRpe}
+                            sx={GHOST_BTN_SX}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            variant="contained"
+                            disabled={savingRpe}
+                            onClick={async () => {
+                                if (!treino.treinoRealizadoId) return;
+                                setSavingRpe(true);
+                                try {
+                                    await TreinoService.atualizarTreino(treino.treinoRealizadoId, {
+                                        percepcaoEsforco: rpeValue,
+                                    });
+                                    setCurrentRpe(rpeValue);
+                                    setRpeDialogOpen(false);
+                                } finally {
+                                    setSavingRpe(false);
+                                }
                             }}
-                        />
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
-                            <Typography variant="caption" sx={{ color: surface[400] }}>Muito leve</Typography>
-                            <Typography variant="caption" sx={{ color: surface[400] }}>Máximo</Typography>
-                        </Box>
+                            sx={{ textTransform: 'none', fontWeight: 700, bgcolor: effortColor(rpeValue), color: surface[50], '&:hover': { bgcolor: effortColor(rpeValue), filter: 'brightness(0.9)' } }}
+                        >
+                            {savingRpe ? 'Salvando…' : 'Salvar RPE'}
+                        </Button>
+                    </>
+                }
+            >
+                <Box sx={{ px: 1, pt: 2, pb: 1 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+                        <Typography
+                            variant="h2"
+                            sx={{ fontWeight: 800, color: effortColor(rpeValue), lineHeight: 1 }}
+                        >
+                            {rpeValue}
+                        </Typography>
+                        <Typography variant="h5" sx={{ alignSelf: 'flex-end', color: surface[400], ml: 0.5 }}>
+                            /10
+                        </Typography>
                     </Box>
-                </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 2, borderTop: `1px solid ${content.divider}` }}>
-                    <Button
-                        onClick={() => setRpeDialogOpen(false)}
-                        disabled={savingRpe}
-                        sx={{ color: surface[400] }}
-                    >
-                        Cancelar
-                    </Button>
-                    <Button
-                        variant="contained"
-                        disabled={savingRpe}
-                        onClick={async () => {
-                            if (!treino.treinoRealizadoId) return;
-                            setSavingRpe(true);
-                            try {
-                                await TreinoService.atualizarTreino(treino.treinoRealizadoId, {
-                                    percepcaoEsforco: rpeValue,
-                                });
-                                setCurrentRpe(rpeValue);
-                                setRpeDialogOpen(false);
-                            } finally {
-                                setSavingRpe(false);
-                            }
+                    <Slider
+                        value={rpeValue}
+                        onChange={(_, v) => setRpeValue(v as number)}
+                        min={1}
+                        max={10}
+                        step={1}
+                        marks={RPE_MARKS}
+                        sx={{
+                            color: effortColor(rpeValue),
+                            '& .MuiSlider-markLabel': { fontSize: '0.7rem', color: surface[400] },
                         }}
-                        sx={{ bgcolor: getRpeColor(rpeValue), color: surface[50], '&:hover': { bgcolor: getRpeColor(rpeValue), filter: 'brightness(0.9)' } }}
-                    >
-                        {savingRpe ? 'Salvando…' : 'Salvar RPE'}
-                    </Button>
-                </DialogActions>
-            </Dialog>
+                    />
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+                        <Typography variant="caption" sx={{ color: surface[400] }}>Muito leve</Typography>
+                        <Typography variant="caption" sx={{ color: surface[400] }}>Máximo</Typography>
+                    </Box>
+                </Box>
+            </CoachDialog>
         </Card>
     );
 };

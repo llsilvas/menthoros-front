@@ -1,4 +1,5 @@
 import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
+import { primary, semantic, surface } from '../../theme/tokens';
 
 type ConfirmSeverity = 'default' | 'danger';
 
@@ -25,17 +26,19 @@ export function ConfirmDialog({
     onClose,
     onConfirm,
 }: ConfirmDialogProps) {
-    const confirmBg = severity === 'danger' ? 'error.main' : 'primary.main';
-    const confirmHover = severity === 'danger' ? 'error.dark' : 'primary.dark';
+    const isDanger = severity === 'danger';
+    const confirmSx = isDanger
+        ? { bgcolor: semantic.danger[500], color: surface[50], '&:hover': { bgcolor: semantic.danger[700] } }
+        : { bgcolor: primary[500], color: surface[900], fontWeight: 700, '&:hover': { bgcolor: primary[600] } };
 
     return (
         <Dialog open={open} onClose={loading ? undefined : onClose} maxWidth="xs" fullWidth>
-            <DialogTitle sx={{ fontWeight: 700 }}>{title}</DialogTitle>
+            <DialogTitle sx={{ fontFamily: 'Syne, sans-serif', fontWeight: 800 }}>{title}</DialogTitle>
             <DialogContent>
-                <DialogContentText>{message}</DialogContentText>
+                <DialogContentText sx={{ color: surface[200] }}>{message}</DialogContentText>
             </DialogContent>
-            <DialogActions>
-                <Button onClick={onClose} size="small" disabled={loading}>
+            <DialogActions sx={{ px: 2, pb: 2, gap: 1 }}>
+                <Button onClick={onClose} size="small" disabled={loading} sx={{ color: surface[400] }}>
                     {cancelLabel}
                 </Button>
                 <Button
@@ -43,7 +46,7 @@ export function ConfirmDialog({
                     variant="contained"
                     size="small"
                     disabled={loading}
-                    sx={{ bgcolor: confirmBg, '&:hover': { bgcolor: confirmHover } }}
+                    sx={confirmSx}
                 >
                     {confirmLabel}
                 </Button>
