@@ -3,10 +3,6 @@ import {
     Box,
     Button,
     CircularProgress,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
     IconButton,
     TextField,
     Typography,
@@ -17,8 +13,9 @@ import AddIcon from '@mui/icons-material/Add';
 import { resolveReviewStatus } from '../../../types/PlanoReview';
 import type { DiaSemanaDto, PlanoSemanalDto, TreinoPlanejadoDto } from '../../../types/PlanoReview';
 import { primary, surface, semantic, content } from '../../../theme/tokens';
-import { elevation } from '../../../shared/design-tokens';
 import { workoutTypeColor } from '../theme/workoutColors';
+import { CoachDialog } from './CoachDialog';
+import { DANGER_BTN_SX, GHOST_BTN_SX } from './actionButtonSx';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -262,78 +259,57 @@ function RejeicaoModal({ open, isActing, onClose, onConfirmar }: RejeicaoModalPr
     };
 
     return (
-        <Dialog
+        <CoachDialog
             open={open}
             onClose={handleClose}
             maxWidth="sm"
-            fullWidth
-            PaperProps={{
-                sx: {
-                    bgcolor: elevation.highest,
-                    border: `1px solid ${content.cardBorder}`,
-                    borderRadius: '12px',
-                },
-            }}
+            disableClose={isActing}
+            title="Rejeitar plano"
+            actions={
+                <>
+                    <Button
+                        variant="text"
+                        onClick={handleClose}
+                        disabled={isActing}
+                        sx={{ ...GHOST_BTN_SX, fontSize: '0.8rem' }}
+                    >
+                        Cancelar
+                    </Button>
+                    <Button
+                        variant="contained"
+                        onClick={handleConfirmar}
+                        disabled={!motivo.trim() || isActing}
+                        sx={{
+                            ...DANGER_BTN_SX,
+                            fontSize: '0.8rem',
+                            px: 2.5,
+                            '&.Mui-disabled': { bgcolor: surface[700], color: surface[500] },
+                        }}
+                    >
+                        {isActing
+                            ? <CircularProgress size={14} sx={{ color: surface[900] }} />
+                            : 'Confirmar rejeição'}
+                    </Button>
+                </>
+            }
         >
-            <DialogTitle
-                sx={{
-                    fontFamily: 'Syne, sans-serif',
-                    fontSize: '1rem',
-                    fontWeight: 700,
-                    color: surface[50],
-                    pb: 1,
-                }}
-            >
-                Rejeitar plano
-            </DialogTitle>
-            <DialogContent>
-                <Typography sx={{ fontSize: '0.8rem', color: surface[400], mb: 1.5 }}>
-                    Explique ao atleta o motivo pelo qual este plano não será utilizado.
-                </Typography>
-                <TextField
-                    autoFocus
-                    fullWidth
-                    multiline
-                    rows={4}
-                    label="Motivo da rejeição"
-                    value={motivo}
-                    onChange={(e) => setMotivo(e.target.value)}
-                    disabled={isActing}
-                    inputProps={{ maxLength: 1000 }}
-                    helperText={`${motivo.length}/1000`}
-                    sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.85rem' } }}
-                />
-            </DialogContent>
-            <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
-                <Button
-                    variant="text"
-                    onClick={handleClose}
-                    disabled={isActing}
-                    sx={{ color: surface[400], textTransform: 'none', fontSize: '0.8rem' }}
-                >
-                    Cancelar
-                </Button>
-                <Button
-                    variant="contained"
-                    onClick={handleConfirmar}
-                    disabled={!motivo.trim() || isActing}
-                    sx={{
-                        bgcolor: semantic.danger[500],
-                        color: surface[900],
-                        textTransform: 'none',
-                        fontWeight: 700,
-                        fontSize: '0.8rem',
-                        px: 2.5,
-                        '&:hover': { bgcolor: semantic.danger[700] },
-                        '&.Mui-disabled': { bgcolor: surface[700], color: surface[500] },
-                    }}
-                >
-                    {isActing
-                        ? <CircularProgress size={14} sx={{ color: surface[900] }} />
-                        : 'Confirmar rejeição'}
-                </Button>
-            </DialogActions>
-        </Dialog>
+            <Typography sx={{ fontSize: '0.8rem', color: surface[400], mb: 1.5 }}>
+                Explique ao atleta o motivo pelo qual este plano não será utilizado.
+            </Typography>
+            <TextField
+                autoFocus
+                fullWidth
+                multiline
+                rows={4}
+                label="Motivo da rejeição"
+                value={motivo}
+                onChange={(e) => setMotivo(e.target.value)}
+                disabled={isActing}
+                inputProps={{ maxLength: 1000 }}
+                helperText={`${motivo.length}/1000`}
+                sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.85rem' } }}
+            />
+        </CoachDialog>
     );
 }
 

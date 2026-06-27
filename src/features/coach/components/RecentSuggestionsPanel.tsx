@@ -4,11 +4,6 @@ import {
   Box,
   Button,
   Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Divider,
   LinearProgress,
   Stack,
   Typography,
@@ -17,6 +12,8 @@ import { SugestaoService } from '../../../api/services/SugestaoService';
 import type { SugestaoCoachOutputDto } from '../../../types/SugestaoCoach';
 import type { SugestaoRecenteDto } from '../../../types/AtletaPerfilCoach';
 import { categorical, content, semantic, surface } from '../../../theme/tokens';
+import { CoachDialog } from './CoachDialog';
+import { GHOST_BTN_SX } from './actionButtonSx';
 
 interface RecentSuggestionsPanelProps {
   sugestoes: SugestaoRecenteDto[];
@@ -318,17 +315,22 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas }: RecentSuggesti
         })}
       </Stack>
 
-      <Dialog open={selected !== null} onClose={() => setSelected(null)} fullWidth maxWidth="md">
-        <DialogTitle sx={{ pb: 1 }}>
+      <CoachDialog
+        open={selected !== null}
+        onClose={() => setSelected(null)}
+        maxWidth="md"
+        chip={
           <Typography sx={{ fontSize: '0.72rem', color: surface[400], textTransform: 'uppercase', letterSpacing: '0.08em' }}>
             Sugestão completa
           </Typography>
-          <Typography sx={{ fontSize: '1.05rem', fontWeight: 800, color: surface[50], mt: 0.4 }}>
-            {selected?.summary}
-          </Typography>
-        </DialogTitle>
-        <Divider />
-        <DialogContent sx={{ pt: 2 }}>
+        }
+        title={selected?.summary ?? ''}
+        actions={
+          <Button onClick={() => setSelected(null)} sx={GHOST_BTN_SX}>
+            Fechar
+          </Button>
+        }
+      >
           {selected ? (
             <Stack spacing={1.5}>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
@@ -390,13 +392,7 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas }: RecentSuggesti
               ) : null}
             </Stack>
           ) : null}
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setSelected(null)} sx={{ textTransform: 'none' }}>
-            Fechar
-          </Button>
-        </DialogActions>
-      </Dialog>
+      </CoachDialog>
     </>
   );
 }
