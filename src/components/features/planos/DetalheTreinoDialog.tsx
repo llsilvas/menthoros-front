@@ -189,7 +189,7 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
     );
 
     const statusLabel = getSafeLabel(dados.statusTreino);
-    const statusColor = getSafeColor(dados.statusTreino, '#9E9E9E');
+    const statusColor = getSafeColor(dados.statusTreino, surface[400]);
     const diaSemanaLabel = getSafeLabel(dados.diaSemana);
     const fonteDadosLabel = getSafeLabel(dados.fonteDados);
     const fonteDadosValue = typeof dados.fonteDados === 'object' ? dados.fonteDados?.value : dados.fonteDados;
@@ -426,8 +426,8 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                         label={fonteDadosLabel}
                                         size="small"
                                         sx={{
-                                            bgcolor: alpha(getSafeColor(dados.fonteDados, '#64748b'), 0.12),
-                                            color: getSafeColor(dados.fonteDados, '#64748b'),
+                                            bgcolor: alpha(getSafeColor(dados.fonteDados, surface[500]), 0.12),
+                                            color: getSafeColor(dados.fonteDados, surface[500]),
                                             fontWeight: 700,
                                         }}
                                     />

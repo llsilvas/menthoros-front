@@ -41,6 +41,7 @@ import { getSafeValue, getSafeNumber } from '../../../utils/safeValues';
 import { useTheme } from '@mui/material/styles';
 import { primary, surface, content } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
+import { effortColor, EFFORT_GRADIENT } from '../../../features/coach/theme/workoutColors';
 
 interface TreinoRealizadoDialogProps {
     open: boolean;
@@ -85,20 +86,13 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
     const [nivelEstresse, setNivelEstresse] = useState<number | ''>(5);
     const [etapasRealizadas, setEtapasRealizadas] = useState<EtapaRealizadaInput[]>([]);
 
-    const getEffortColor = (value: number) => {
-        if (value <= 3) return '#66bb6a';
-        if (value <= 7) return '#ffcc80';
-        if (value <= 9) return '#ff8a65';
-        return '#ef5350';
-    };
-
     const gradientSliderSx = {
         '& .MuiSlider-rail': {
             opacity: 1,
-            backgroundImage: 'linear-gradient(90deg, #a5d6a7 0%, #ffe0b2 55%, #ef9a9a 100%)',
+            backgroundImage: EFFORT_GRADIENT,
         },
         '& .MuiSlider-track': {
-            backgroundImage: 'linear-gradient(90deg, #a5d6a7 0%, #ffe0b2 55%, #ef9a9a 100%)',
+            backgroundImage: EFFORT_GRADIENT,
         },
         '& .MuiSlider-thumb': {
             bgcolor: elevation.card,
@@ -108,9 +102,9 @@ const TreinoRealizadoDialog: React.FC<TreinoRealizadoDialogProps> = ({
     } as const;
 
     const sliderActiveSx = (value: number) => ({
-        color: getEffortColor(value),
+        color: effortColor(value),
         '& .MuiSlider-track': {
-            backgroundColor: getEffortColor(value),
+            backgroundColor: effortColor(value),
         },
     });
 

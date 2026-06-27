@@ -48,3 +48,15 @@ export const WORKOUT_STAGE_COLORS = {
   desaquecimento: semantic.info[500],
   principal:      primary[500],
 } as const;
+
+// ── Percepção de esforço (RPE 1-10) ─────────────────────────────────────────────
+/** Cor por nível de esforço: leve → sucesso, moderado → atenção, intenso → perigo. */
+export function effortColor(value: number): string {
+  if (value <= 3) return semantic.success[500];
+  if (value <= 7) return semantic.warning[400];
+  if (value <= 9) return semantic.warning[500];
+  return semantic.danger[500];
+}
+
+/** Gradiente da trilha do slider de esforço (leve → intenso). */
+export const EFFORT_GRADIENT = `linear-gradient(90deg, ${semantic.success[500]} 0%, ${semantic.warning[400]} 55%, ${semantic.danger[500]} 100%)`;
