@@ -17,6 +17,7 @@ import RemoveIcon from '@mui/icons-material/Remove';
 import { primary, surface } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import { GHOST_BTN_SX, PRIMARY_BTN_SX } from './actionButtonSx';
+import { WORKOUT_STAGE_COLORS } from '../theme/workoutColors';
 import type { TreinoPlanejadoDto, TreinoPlanejadoPatch, EtapaTreinoDto } from '../../../types/PlanoReview';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -60,13 +61,7 @@ const TIPOS_TREINO = [
 
 const TIPOS_INTERVALADOS = new Set(['INTERVALADO', 'FARTLEK']);
 
-const ACCENT = {
-    aquecimento:    '#F59E0B',
-    esforco:        '#EF4444',
-    recuperacao:    '#10B981',
-    desaquecimento: '#60A5FA',
-    principal:      '#D4FF3A',
-} as const;
+const ACCENT = WORKOUT_STAGE_COLORS;
 
 // ── Estado de bloco ───────────────────────────────────────────────────────────
 

@@ -16,8 +16,9 @@ import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import AddIcon from '@mui/icons-material/Add';
 import { resolveReviewStatus } from '../../../types/PlanoReview';
 import type { DiaSemanaDto, PlanoSemanalDto, TreinoPlanejadoDto } from '../../../types/PlanoReview';
-import { primary, surface, semantic, categorical, content } from '../../../theme/tokens';
+import { primary, surface, semantic, content } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
+import { workoutTypeColor } from '../theme/workoutColors';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -53,21 +54,6 @@ function formatarData(iso: string): string {
     });
 }
 
-const TIPO_COLORS: Record<string, string> = {
-    FACIL:       surface[400],
-    LONGO:       categorical.cat1,
-    TEMPO:       semantic.warning[500],
-    INTERVALADO: semantic.danger[500],
-    REGENERATIVO: semantic.success[500],
-    FARTLEK:     categorical.cat4,
-    CONTINUO:    semantic.warning[400],
-    DEFAULT:     surface[500],
-};
-
-function tipoColor(tipo: string): string {
-    return TIPO_COLORS[tipo?.toUpperCase()] ?? TIPO_COLORS.DEFAULT;
-}
-
 // ── Tag de treino ─────────────────────────────────────────────────────────────
 
 function TreinoTag({
@@ -79,7 +65,7 @@ function TreinoTag({
     onEditar?: () => void;
     onExcluir?: () => void;
 }) {
-    const cor = tipoColor(treino.tipoTreino);
+    const cor = workoutTypeColor(treino.tipoTreino);
     const abbrev = treino.tipoTreino;
     const dia = resolverDiaSemana(treino.diaSemana).slice(0, 3).toUpperCase();
     const duracaoDisplay = treino.duracaoMin ? parseDuracao(treino.duracaoMin) : null;
