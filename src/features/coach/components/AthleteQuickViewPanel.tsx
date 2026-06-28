@@ -1,11 +1,14 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { Box, Typography, Button, Chip, CircularProgress, Alert, IconButton, Tooltip } from '@mui/material';
 import {
     OpenInNew as OpenInNewIcon,
     ExpandLess as ExpandLessIcon,
     ShowChart as ShowChartIcon,
 } from '@mui/icons-material';
-import { PMCChart, type PMCRange } from '../../athlete/components/PMCChart';
+import type { PMCRange } from '../../athlete/components/PMCChart';
+
+// Lazy como na página de perfil: mantém o recharts fora do chunk principal (carrega ao expandir).
+const PMCChart = lazy(() => import('../../athlete/components/PMCChart'));
 import { useAthletePmc } from '../../../hooks/useAthletePmc';
 import { CoachAthleteAvatar } from './CoachAthleteAvatar';
 import { PhaseIndicator, type TrainingPhase } from '../../../shared/components/PhaseIndicator';
@@ -157,7 +160,9 @@ export function AthleteQuickViewPanel({ snapshot, onVerPerfilCompleto, onClose }
                     <Typography sx={{ fontSize: '0.85rem' }}>Sem histórico de PMC para exibir ainda.</Typography>
                 </Box>
             ) : (
-                <PMCChart data={data} range={range} defaultMode="advanced" onRangeChange={setRange} />
+                <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}><CircularProgress size={28} /></Box>}>
+                    <PMCChart data={data} range={range} defaultMode="advanced" onRangeChange={setRange} />
+                </Suspense>
             )}
 
             {/* ── CTA: perfil completo ── */}

@@ -27,8 +27,9 @@ const SERIE: PMCDataPoint[] = [
 ];
 
 function mockPmc(over: Partial<ReturnType<typeof useAthletePmc>> = {}) {
+    // Default sem série: evita montar o PMCChart (lazy) nos testes que não o asseram.
     vi.mocked(useAthletePmc).mockReturnValue({
-        data: SERIE,
+        data: [],
         isLoading: false,
         error: null,
         refetch: vi.fn().mockResolvedValue(undefined),
@@ -83,10 +84,11 @@ describe('AthleteQuickViewPanel', () => {
         expect(screen.queryByText('stub-pmc-chart')).not.toBeInTheDocument();
     });
 
-    it('renderiza o PMCChart quando há série', () => {
-        mockPmc();
+    it('renderiza o PMCChart quando há série', async () => {
+        mockPmc({ data: SERIE });
         render(<AthleteQuickViewPanel snapshot={SNAPSHOT} onVerPerfilCompleto={vi.fn()} />);
-        expect(screen.getByText('stub-pmc-chart')).toBeInTheDocument();
+        // PMCChart é lazy — aguarda o stub resolver via Suspense.
+        expect(await screen.findByText('stub-pmc-chart')).toBeInTheDocument();
     });
 
     it('aciona onVerPerfilCompleto no CTA "Ver perfil completo"', () => {
