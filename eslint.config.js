@@ -45,7 +45,6 @@ const RAW_COLOR_RATCHET = [
   'src/features/athlete/components/PMCChart.tsx',
   'src/features/athlete/components/TodayHeroCard.tsx',
   'src/features/coach/components/TreinoEditDialog.tsx',
-  'src/features/coach/layout/CoachSidebar.tsx',
   'src/features/coach/pages/CoachInboxPage.tsx',
   'src/pages/atletas/AtletasList.tsx',
   'src/pages/auth/LoginPage.tsx',

@@ -18,15 +18,11 @@ import PeopleIcon from '@mui/icons-material/People';
 import RateReviewIcon from '@mui/icons-material/RateReview';
 
 import type { CoachRoute } from '../../../constants/routes';
-import {
-  content,
-  gradients,
-  primary,
-  semantic,
-  sidebar,
-  surface,
-} from '../../../theme/tokens';
+import { content, gradients, semantic, surface } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
+import { activeTheme } from '../../../theme/activeTheme';
+
+const { primary, sidebar, overlayBlack } = activeTheme;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -263,7 +259,7 @@ function TenantSwitcher({
             sx: {
               bgcolor: elevation.highest,
               border: `1px solid ${content.cardBorder}`,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+              boxShadow: `0 4px 12px ${overlayBlack[40]}`,
               minWidth: 200,
               mt: -1,
             },
