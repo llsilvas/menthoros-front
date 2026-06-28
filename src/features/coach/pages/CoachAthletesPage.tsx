@@ -13,6 +13,8 @@ import {
   CircularProgress,
   Alert,
   Snackbar,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import {
   People as PeopleIcon,
@@ -26,6 +28,8 @@ import {
   Sync as SyncIcon,
   EditOutlined as EditIcon,
   DeleteOutline as DeleteIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
 } from '@mui/icons-material';
 import {
   DataGrid,
@@ -51,6 +55,7 @@ import { PhaseIndicator } from '../../../shared/components/PhaseIndicator';
 import type { TrainingPhase } from '../../../shared/components/PhaseIndicator';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { MetricCell } from '../../../shared/components/MetricCell';
+import { AthleteQuickViewPanel } from '../components/AthleteQuickViewPanel';
 import { useCoachRoster } from '../../../hooks/useCoachRoster';
 import { deriveRosterKpis, daysSinceLastActivity, INACTIVITY_THRESHOLD_DAYS } from '../adapters/rosterKpis';
 import { calcularAcwr, getAcwrZone } from '../adapters/coachInboxAdapters';
@@ -215,6 +220,12 @@ export default function CoachAthletesPage() {
   const [statusFilter, setStatusFilter] = useState<CoachAtletaStatus | 'all'>('all');
   const [selection, setSelection]   = useState<GridRowSelectionModel>({ type: 'include', ids: new Set() });
 
+  // Visão rápida inline: um painel de tendência PMC aberto por vez (acionado pelo ícone da linha).
+  const [expandedAthleteId, setExpandedAthleteId] = useState<string | null>(null);
+  const toggleExpand = useCallback((atletaId: string) => {
+    setExpandedAthleteId((prev) => (prev === atletaId ? null : atletaId));
+  }, []);
+
   // Ação por-atleta acionada pelo menu da grade (plano / projeção / strava / CRUD)
   const [action, setAction] = useState<RosterActionType | null>(null);
   const [actionTarget, setActionTarget] = useState<{ atletaId: string; nome: string } | null>(null);
@@ -300,6 +311,12 @@ export default function CoachAthletesPage() {
     });
   }, [athletes, activeView, statusFilter, search]);
 
+  // Atleta com o painel de visão rápida aberto (snapshot vem da própria linha do roster).
+  const expandedAthlete = useMemo(
+    () => (expandedAthleteId ? athletes.find((a) => a.id === expandedAthleteId) ?? null : null),
+    [expandedAthleteId, athletes],
+  );
+
   // KPIs (sempre sobre o roster completo)
   const kpis = useMemo(() => deriveRosterKpis(roster, hoje), [roster, hoje]);
 
@@ -307,6 +324,35 @@ export default function CoachAthletesPage() {
 
   // Column definitions
   const columns: GridColDef<AthleteRow>[] = useMemo(() => [
+    {
+      // Coluna dedicada do expand/collapse da visão rápida. Fora da seleção em massa,
+      // não ordenável/filtrável; o clique faz stopPropagation para NÃO navegar (onRowClick preservado).
+      field: '__expand__',
+      headerName: '',
+      width: 48,
+      sortable: false,
+      filterable: false,
+      hideable: false,
+      disableColumnMenu: true,
+      renderHeader: () => null,
+      renderCell: ({ row }) => {
+        const isOpen = expandedAthleteId === row.id;
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+            <Tooltip title={isOpen ? 'Recolher tendência' : 'Ver tendência (PMC)'}>
+              <IconButton
+                size="small"
+                aria-label={isOpen ? 'Recolher tendência' : 'Ver tendência'}
+                onClick={(event) => { event.stopPropagation(); toggleExpand(row.id); }}
+                sx={{ color: isOpen ? primary[500] : surface[400] }}
+              >
+                {isOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+              </IconButton>
+            </Tooltip>
+          </Box>
+        );
+      },
+    },
     {
       field: 'name',
       headerName: 'Atleta',
@@ -471,7 +517,7 @@ export default function CoachAthletesPage() {
         ];
       },
     },
-  ], [hoje, abrirEdicaoAtleta]);
+  ], [hoje, abrirEdicaoAtleta, expandedAthleteId, toggleExpand]);
 
   const statusOptions: Array<{ value: CoachAtletaStatus | 'all'; label: string }> = [
     { value: 'all',     label: 'Todos os status' },
@@ -643,57 +689,79 @@ export default function CoachAthletesPage() {
           <CircularProgress />
         </Box>
       ) : (
-        <Box
-          sx={{
-            flex: 1,
-            minHeight: 0,
-            borderRadius: 2,
-            overflow: 'hidden',
-            border: `1px solid ${surface[0]}1A`,
-            // TSB danger cell class
-            '& .tsb-danger': {
-              backgroundColor: `${semantic.danger[500]}1A`,
-            },
-          }}
-        >
-          <DataGrid<AthleteRow>
-            rows={rows}
-            columns={columns}
-            checkboxSelection
-            disableRowSelectionOnClick
-            rowSelectionModel={selection}
-            onRowSelectionModelChange={setSelection}
-            onRowClick={(params, event) => {
-                const target = event.target as HTMLElement;
-                if (target.closest('[data-field="__check__"]') || target.closest('[data-field="actions"]')) return;
-                navigate(`/coach/athletes/${params.id}`);
-            }}
-            rowHeight={52}
-            columnHeaderHeight={44}
-            pageSizeOptions={[10, 25, 50]}
-            initialState={{
-              pagination: { paginationModel: { pageSize: 10 } },
-            }}
-            localeText={{
-              noRowsLabel: 'Nenhum atleta na sua assessoria ainda',
-              footerRowSelected: (count) =>
-                count === 1 ? `${count} atleta selecionado` : `${count} atletas selecionados`,
-            }}
+        <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Box
             sx={{
-              border: 'none',
-              height: '100%',
-              fontFamily: 'inherit',
-              '& .MuiDataGrid-row': {
-                cursor: 'pointer',
+              flex: 1,
+              minHeight: 0,
+              borderRadius: 2,
+              overflow: 'hidden',
+              border: `1px solid ${surface[0]}1A`,
+              // TSB danger cell class
+              '& .tsb-danger': {
+                backgroundColor: `${semantic.danger[500]}1A`,
               },
-              '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': {
-                outline: 'none',
-              },
-              '& .MuiDataGrid-columnHeader:focus, & .MuiDataGrid-columnHeader:focus-within': {
-                outline: 'none',
+              // Linha com a visão rápida aberta — destaque para ligar painel ↔ linha.
+              '& .row-expanded': {
+                backgroundColor: `${primary[500]}14`,
               },
             }}
-          />
+          >
+            <DataGrid<AthleteRow>
+              rows={rows}
+              columns={columns}
+              checkboxSelection
+              disableRowSelectionOnClick
+              rowSelectionModel={selection}
+              onRowSelectionModelChange={setSelection}
+              getRowClassName={(params) => (params.id === expandedAthleteId ? 'row-expanded' : '')}
+              onRowClick={(params, event) => {
+                  const target = event.target as HTMLElement;
+                  if (
+                    target.closest('[data-field="__check__"]') ||
+                    target.closest('[data-field="actions"]') ||
+                    target.closest('[data-field="__expand__"]')
+                  ) return;
+                  navigate(`/coach/athletes/${params.id}`);
+              }}
+              rowHeight={52}
+              columnHeaderHeight={44}
+              pageSizeOptions={[10, 25, 50]}
+              initialState={{
+                pagination: { paginationModel: { pageSize: 10 } },
+              }}
+              localeText={{
+                noRowsLabel: 'Nenhum atleta na sua assessoria ainda',
+                footerRowSelected: (count) =>
+                  count === 1 ? `${count} atleta selecionado` : `${count} atletas selecionados`,
+              }}
+              sx={{
+                border: 'none',
+                height: '100%',
+                fontFamily: 'inherit',
+                '& .MuiDataGrid-row': {
+                  cursor: 'pointer',
+                },
+                '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': {
+                  outline: 'none',
+                },
+                '& .MuiDataGrid-columnHeader:focus, & .MuiDataGrid-columnHeader:focus-within': {
+                  outline: 'none',
+                },
+              }}
+            />
+          </Box>
+
+          {/* Visão rápida inline: painel de tendência PMC ancorado abaixo da grade (sem sair da página). */}
+          {expandedAthlete && (
+            <Box sx={{ flexShrink: 0, maxHeight: '52%', overflowY: 'auto' }}>
+              <AthleteQuickViewPanel
+                snapshot={expandedAthlete}
+                onVerPerfilCompleto={() => navigate(`/coach/athletes/${expandedAthlete.id}`)}
+                onClose={() => setExpandedAthleteId(null)}
+              />
+            </Box>
+          )}
         </Box>
       )}
 
