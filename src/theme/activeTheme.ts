@@ -51,10 +51,10 @@ const premiumColors = {
 // trainingStatus OFF = mapa atual completo; ON aplica o delta v2.0 (só PARCIAL
 // sai de warning[400] para warning[500]). REALIZADO/CONCLUIDO/PENDENTE/PERDIDO/
 // LIVRE são idênticos entre as paletas.
-const premiumTrainingStatus = {
+const premiumTrainingStatus: Record<string, string> = {
   ...WORKOUT_STATUS_COLORS,
   PARCIAL: semantic.warning[500],
-} as const;
+};
 
 export const activeTheme = {
   // invariantes

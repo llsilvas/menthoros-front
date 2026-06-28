@@ -7,8 +7,10 @@ import type { TreinoPlanejadoDto, TreinoPlanejadoPatch } from '../../../types/Pl
 import { resolveReviewStatus } from '../../../types/PlanoReview';
 import { TreinoEditDialog } from './TreinoEditDialog';
 import { useTreinoPlanejado } from '../../../hooks/useTreinoPlanejado';
-import { primary, surface, semantic } from '../../../theme/tokens';
-import { WORKOUT_STATUS_COLORS as STATUS_COLORS } from '../../../shared/theme/workoutColors';
+import { surface, semantic } from '../../../theme/tokens';
+import { activeTheme } from '../../../theme/activeTheme';
+
+const { primary, trainingStatus: STATUS_COLORS } = activeTheme;
 
 interface CurrentWeekPlanProps {
     plano: PlanoVigenteDto | null;
