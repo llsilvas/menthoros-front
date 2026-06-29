@@ -1,17 +1,20 @@
 import { parseISO } from 'date-fns';
 import type { PMCDataPoint } from '../components/PMCChart';
-import type { PmcHistoricoPonto } from '../../../types/MetricasPmc';
+import type { PmcPontoRaw } from '../../../types/AtletaPerfilCoach';
 
 /**
- * Converte a série PMC crua do backend (`data: string` ISO) no formato consumido
- * pelo `PMCChart` (`date: Date`). Campos numéricos ausentes viram `0` (dia sem métrica).
+ * Converte a série PMC do perfil do atleta (`PmcPontoRaw`, `data: string` ISO) no formato
+ * consumido pelo `PMCChart` (`date: Date`); demais campos numéricos 1:1.
+ *
+ * Fonte única do mapeamento PMC → chart, reusada pelo perfil do atleta e pela aba
+ * Diagnóstico do dashboard do coach (ambas já carregam o perfil via `useAthleteProfile`).
  */
-export function mapPmcHistoricoToDataPoints(pontos: PmcHistoricoPonto[]): PMCDataPoint[] {
+export function buildPmcDataPoints(pontos: PmcPontoRaw[]): PMCDataPoint[] {
     return pontos.map((p) => ({
         date: parseISO(p.data),
-        ctl: p.ctl ?? 0,
-        atl: p.atl ?? 0,
-        tsb: p.tsb ?? 0,
-        tss: p.tss ?? 0,
+        ctl: p.ctl,
+        atl: p.atl,
+        tsb: p.tsb,
+        tss: p.tss,
     }));
 }

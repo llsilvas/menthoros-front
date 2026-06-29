@@ -1,6 +1,5 @@
 import { lazy, Suspense, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
-import { parseISO } from 'date-fns';
 import {
     Alert,
     Box,
@@ -16,7 +15,8 @@ import {
     ArrowBack as ArrowBackIcon,
     Refresh as RefreshIcon,
 } from '@mui/icons-material';
-import type { PMCDataPoint, PMCRange } from '../../athlete/components/PMCChart';
+import type { PMCRange } from '../../athlete/components/PMCChart';
+import { buildPmcDataPoints } from '../../athlete/adapters/pmcAdapter';
 
 const PMCChart = lazy(() => import('../../athlete/components/PMCChart'));
 import { CoachAthleteAvatar } from '../components/CoachAthleteAvatar';
@@ -62,17 +62,7 @@ export default function CoachAthleteProfilePage() {
 
     const { profile, isLoading, error, errorKind, fetchProfile } = useAthleteProfile(atletaId);
 
-    const pmcData: PMCDataPoint[] = useMemo(
-        () =>
-            (profile?.pmc ?? []).map((p) => ({
-                date: parseISO(p.data),
-                ctl: p.ctl,
-                atl: p.atl,
-                tsb: p.tsb,
-                tss: p.tss,
-            })),
-        [profile?.pmc],
-    );
+    const pmcData = useMemo(() => buildPmcDataPoints(profile?.pmc ?? []), [profile?.pmc]);
 
     if (!atletaId) {
         return (

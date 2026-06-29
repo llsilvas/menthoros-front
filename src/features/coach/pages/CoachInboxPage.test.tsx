@@ -7,6 +7,7 @@ import { SugestaoService } from '../../../api/services/SugestaoService';
 import { useCoachDashboard } from '../../../hooks/useCoachDashboard';
 import { useAthleteProfile } from '../../../hooks/useAthleteProfile';
 import type { CoachDashboard } from '../../../types/Coach';
+import type { AtletaPerfilCoachDto, PmcPontoRaw } from '../../../types/AtletaPerfilCoach';
 import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
 
 vi.mock('react-router', async () => {
@@ -17,6 +18,35 @@ vi.mock('react-router', async () => {
 vi.mock('../../../api/services/SugestaoService');
 vi.mock('../../../hooks/useCoachDashboard');
 vi.mock('../../../hooks/useAthleteProfile');
+// PMCChart usa recharts (ResponsiveContainer colapsa em jsdom) — stub para isolar a aba.
+vi.mock('../../athlete/components/PMCChart', () => ({
+  default: () => <div>stub-pmc-chart</div>,
+  PMCChart: () => <div>stub-pmc-chart</div>,
+}));
+
+const makeProfile = (pmc: PmcPontoRaw[] = []): AtletaPerfilCoachDto => ({
+  atletaId: 'a1',
+  nomeAtleta: 'Ana Silva',
+  objetivo: null,
+  proximaProva: null,
+  nivelExperiencia: null,
+  pmc,
+  aderenciaSemanal: [],
+  planoVigente: {
+    planoId: 'plano-1',
+    semanaInicio: '2026-06-23',
+    semanaFim: '2026-06-29',
+    reviewStatus: 'AGUARDANDO_REVISAO',
+    treinos: [],
+  },
+  sinaisRecentes: [],
+  sugestoesRecentes: [
+    { id: 's1', tipo: 'AJUSTE_PLANO', status: 'PENDING', criadoEm: '2026-06-24T13:30:00Z' },
+  ],
+  recordes: [],
+  geradoEm: '2026-06-24T13:32:25Z',
+  avisos: null,
+});
 
 const mockRefetchQueue = vi.fn();
 const mockReviewFetchPendentes = vi.fn().mockResolvedValue(undefined);
@@ -147,34 +177,7 @@ describe('CoachInboxPage', () => {
       fetchDashboard: vi.fn(),
     });
     vi.mocked(useAthleteProfile).mockReturnValue({
-      profile: {
-        atletaId: 'a1',
-        nomeAtleta: 'Ana Silva',
-        objetivo: null,
-        proximaProva: null,
-        nivelExperiencia: null,
-        pmc: [],
-        aderenciaSemanal: [],
-        planoVigente: {
-          planoId: 'plano-1',
-          semanaInicio: '2026-06-23',
-          semanaFim: '2026-06-29',
-          reviewStatus: 'AGUARDANDO_REVISAO',
-          treinos: [],
-        },
-        sinaisRecentes: [],
-        sugestoesRecentes: [
-          {
-            id: 's1',
-            tipo: 'AJUSTE_PLANO',
-            status: 'PENDING',
-            criadoEm: '2026-06-24T13:30:00Z',
-          },
-        ],
-        recordes: [],
-        geradoEm: '2026-06-24T13:32:25Z',
-        avisos: null,
-      },
+      profile: makeProfile(),
       isLoading: false,
       error: null,
       errorKind: null,
@@ -213,6 +216,31 @@ describe('CoachInboxPage', () => {
     // conteúdo global do dashboard não aparece no drill-down
     expect(screen.queryByText(/Top atletas/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Treinos da semana/i)).not.toBeInTheDocument();
+  });
+
+  it('mostra a tendência de forma (PMC) junto da tendência de carga; vazio sem série', () => {
+    renderPage();
+
+    expect(screen.getByText(/Tendência de carga/i)).toBeInTheDocument();
+    expect(screen.getByText(/Tendência de forma \(PMC\)/i)).toBeInTheDocument();
+    // mock default sem série → estado vazio, sem montar o chart (recharts)
+    expect(screen.getByText(/Sem histórico de PMC/i)).toBeInTheDocument();
+    expect(screen.queryByText('stub-pmc-chart')).not.toBeInTheDocument();
+  });
+
+  it('renderiza o gráfico de tendência PMC quando o atleta tem série', async () => {
+    vi.mocked(useAthleteProfile).mockReturnValue({
+      profile: makeProfile([{ data: '2026-06-17', ctl: 52, atl: 60, tsb: -8, tss: 85 }]),
+      isLoading: false,
+      error: null,
+      errorKind: null,
+      fetchProfile: mockFetchProfile,
+    });
+
+    renderPage();
+
+    // PMCChart é lazy — aguarda o stub resolver via Suspense.
+    expect(await screen.findByText('stub-pmc-chart')).toBeInTheDocument();
   });
 
   it('mostra provas e sugestões do ATLETA na aba Provas & sugestões (não o calendário global)', async () => {

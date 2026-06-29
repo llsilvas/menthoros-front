@@ -47,6 +47,7 @@ import type { SortKey, DashboardStatusFilter } from '../hooks/useDashboardFilter
 import { elevation } from '../../../shared/design-tokens';
 import { content, primary, semantic, surface } from '../../../theme/tokens';
 import { buildRosterRowFromSummary, buildSelectedAthleteFromDashboard, getAcwrZone } from '../adapters/coachInboxAdapters';
+import { buildPmcDataPoints } from '../../athlete/adapters/pmcAdapter';
 import { formFromTSB, formVariantLabel, getTsbFormaTone } from '../types/AthleteForm';
 import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
 
@@ -102,6 +103,8 @@ function CoachInboxPage() {
     if (!selectedRosterItem) return null;
     return buildSelectedAthleteFromDashboard(selectedRosterItem, selectedProfile);
   }, [selectedProfile, selectedRosterItem]);
+  // Série PMC (CTL/ATL/TSB) do atleta selecionado — já vem no perfil agregado, sem fetch extra.
+  const selectedPmc = useMemo(() => buildPmcDataPoints(selectedProfile?.pmc ?? []), [selectedProfile?.pmc]);
   const {
     search,
     dashboardPage,
@@ -629,6 +632,7 @@ function CoachInboxPage() {
                   <DiagnosisTabPanel
                     selected={selected}
                     limiareisInferidos={selectedProfile?.limiareisInferidos ?? null}
+                    pmc={selectedPmc}
                     onOpenPlan={() => setActiveTab('plan')}
                   />
                 ) : null}
