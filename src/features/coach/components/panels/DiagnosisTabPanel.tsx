@@ -1,4 +1,5 @@
-import { Box, Button, Chip, LinearProgress, Typography } from '@mui/material';
+import { lazy, Suspense, useState } from 'react';
+import { Box, Button, Chip, CircularProgress, LinearProgress, Typography } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { primary, semantic, surface } from '../../../../theme/tokens';
@@ -10,6 +11,10 @@ import { ACTION_BTN_END_ICON_SX } from '../../../../shared/components/actionButt
 import { getAcuteLoadTone, getMonotonyTone, getStrainZone } from '../../adapters/coachInboxAdapters';
 import type { CoachAthleteRow } from '../../types/CoachInbox';
 import type { LimiareisInferidosDto } from '../../../../types/AtletaPerfilCoach';
+import type { PMCDataPoint, PMCRange } from '../../../athlete/components/PMCChart';
+
+// Lazy como nas demais superfícies: mantém o recharts fora do chunk principal.
+const PMCChart = lazy(() => import('../../../athlete/components/PMCChart'));
 
 const CONFIANCA_LABEL: Record<'ALTA' | 'MEDIA' | 'BAIXA', string> = {
   ALTA:  'Alta confiança',
@@ -76,12 +81,15 @@ const PLAN_STATUS_COLOR: Record<CoachAthleteRow['planStatus'], string> = {
 interface DiagnosisTabPanelProps {
   selected: CoachAthleteRow;
   limiareisInferidos?: LimiareisInferidosDto | null;
+  /** Série PMC (CTL/ATL/TSB) do atleta selecionado, já mapeada do perfil. */
+  pmc: PMCDataPoint[];
   onOpenPlan: () => void;
 }
 
-export function DiagnosisTabPanel({ selected, limiareisInferidos, onOpenPlan }: DiagnosisTabPanelProps) {
+export function DiagnosisTabPanel({ selected, limiareisInferidos, pmc, onOpenPlan }: DiagnosisTabPanelProps) {
   const strainZone = getStrainZone(selected.quickStats.strain);
   const statusColor = PLAN_STATUS_COLOR[selected.planStatus];
+  const [pmcRange, setPmcRange] = useState<PMCRange>('12w');
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 0.9, sm: 1.05, lg: 1.25, xl: 1.5 } }}>
@@ -127,6 +135,24 @@ export function DiagnosisTabPanel({ selected, limiareisInferidos, onOpenPlan }: 
           </Typography>
         </Box>
         <TrendCard data={selected.loadTrend} />
+      </SectionCard>
+
+      <SectionCard title="Tendência de forma (PMC)">
+        {pmc.length === 0 ? (
+          <Typography sx={{ fontSize: '0.82rem', color: surface[400] }}>
+            Sem histórico de PMC para exibir ainda.
+          </Typography>
+        ) : (
+          <Suspense
+            fallback={
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress size={24} />
+              </Box>
+            }
+          >
+            <PMCChart data={pmc} range={pmcRange} defaultMode="advanced" onRangeChange={setPmcRange} />
+          </Suspense>
+        )}
       </SectionCard>
 
       <SectionCard title="Adesão nas últimas semanas">
