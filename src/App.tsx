@@ -24,7 +24,9 @@ import AthleteProgressPage from './features/athlete/pages/AthleteProgressPage';
 import AthleteCoachPage from './features/athlete/pages/AthleteCoachPage';
 import AthleteProfilePage from './features/athlete/pages/AthleteProfilePage';
 import ManualTrainingFormPage from './features/athlete/pages/ManualTrainingFormPage';
-import { colors, text, content, backgrounds, semantic } from './theme/tokens';
+import { activeTheme } from './theme/activeTheme';
+
+const { colors, text, content, backgrounds, semantic } = activeTheme;
 
 const theme = createTheme({
   palette: {

@@ -4,7 +4,9 @@ import type {} from '@mui/material/themeCssVarsAugmentation';
 import DashboardSidebarContext from '../../context/DashboardSidebarContext';
 import { DRAWER_WIDTH } from '../../constants/constants';
 import { getDrawerSxTransitionMixin } from '../../utils/mixins';
-import { sidebar as sidebarTokens } from '../../theme/tokens';
+import { activeTheme } from '../../theme/activeTheme';
+
+const { sidebar: sidebarTokens } = activeTheme;
 
 export interface DashboardSidebarHeaderItemProps {
   children?: React.ReactNode;

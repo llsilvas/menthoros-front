@@ -1,0 +1,167 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// theme.premium.ts — Premium v2.0 token tree (single source of truth)
+//
+// Árvore canônica de cor da paleta Premium v2.0. Resolve os dois débitos do
+// sistema atual: colisão semântica (categorias apontando para tokens semantic)
+// e lime sem disciplina (#D4FF3A vazando para estado/banda).
+//
+// Princípios:
+//   - Estados ancoram em `semantic`; categorias ancoram em `categorical` dedicado.
+//   - Lime (`primary`, suavizado para #BDDE5A) só em brand/primary-action.
+//   - Heat ramp Z1–Z5 preservado; apenas Z2 muda (lime → green #34D399).
+//
+// Esta é a camada de tokens (theme/**): hex raw é legítimo aqui. Componentes
+// nunca referenciam hex — apenas estes tokens.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Primary (marca / primary-action) — lime suavizado ────────────────────────
+export const primary = {
+  50:  '#F6FAE8',
+  100: '#EDF6D1',
+  200: '#DFEFB0',
+  300: '#D2E98F',
+  400: '#C7E373',
+  500: '#BDDE5A', // brand canônico v2.0 — lime suavizado
+  600: '#94B144',
+  700: '#748E32',
+  800: '#536A20',
+  900: '#2A3D0A', // âncora escura (inalterada)
+  contrastText: '#0A1628', // navy sobre superfície lime
+} as const;
+
+// ── Surface — navy canvas + ramp neutro para bordas/superfícies secundárias ───
+export const surface = {
+  0:   '#FFFFFF',
+  50:  '#F8FAFC',
+  100: '#F1F5F9',
+  200: '#E2E8F0',
+  300: '#CBD5E1',
+  400: '#94A3B8',
+  500: '#64748B',
+  600: '#475569',
+  700: '#1E293B',
+  900: '#0A1628', // navy canônico — canvas base
+} as const;
+
+// ── SurfaceShift — elevação por shift de cor (panel < card < raised) ──────────
+export const surfaceShift = {
+  panel:  '#0E1B30', // side panels, column headers
+  card:   '#131F35', // cards, table rows
+  raised: '#1A2940', // modais, dropdowns (novo nível)
+} as const;
+
+// ── Text — hierarquia explícita ──────────────────────────────────────────────
+export const text = {
+  primary:   '#F8FAFC', // off-white
+  secondary: '#94A3B8', // clareado p/ legibilidade (era #64748B)
+  muted:     '#64748B', // muted explícito
+  onAccent:  '#0A1628', // navy sobre lime/accents
+} as const;
+
+// ── Semantic (âncoras estáveis — inalteradas) ────────────────────────────────
+export const semantic = {
+  danger:  '#EF4444',
+  warning: '#F59E0B',
+  success: '#10B981',
+  info:    '#3B82F6', // exclusivamente informativo; nunca em brand/hero
+} as const;
+
+// ── Categorical — hues dedicados (não colidem com semantic) ───────────────────
+// `injuryResponse` é intencionalmente o vermelho de perigo (lesão = alerta).
+export const categorical = {
+  slate:          '#8694A8',
+  teal:           '#2BB6A3',
+  cyan:           '#22D3EE', // reservado — distinto de teal e de info(blue)
+  violet:         '#A855F7',
+  magenta:        '#E0529C',
+  coral:          '#F2845C',
+  gold:           '#E8C547',
+  sage:           '#7FB894',
+  injuryResponse: semantic.danger, // exceção declarada: lesão = perigo
+} as const;
+
+// ── Readiness (collision fix + lime discipline) ──────────────────────────────
+// Backend é dono das bandas; a UI só pinta a banda já resolvida.
+export const readiness = {
+  critical: semantic.danger,  // #EF4444
+  caution:  semantic.warning, // #F59E0B
+  good:     '#2DD4BF',        // teal — tira lime da prontidão
+  optimal:  semantic.success, // #10B981
+} as const;
+
+// ── TrainingType — categórico dedicado (sai de semantic) ─────────────────────
+export const trainingType = {
+  FACIL:        categorical.slate,
+  LONGO:        categorical.teal,
+  TEMPO:        categorical.coral,
+  INTERVALADO:  categorical.magenta,
+  REGENERATIVO: categorical.sage,
+  FARTLEK:      categorical.violet,
+  CONTINUO:     categorical.gold,
+} as const;
+
+// ── TrainingStage — categórico dedicado (sai do lime e de semantic) ──────────
+export const trainingStage = {
+  aquecimento:    categorical.gold,
+  principal:      categorical.teal, // tira lime da etapa
+  esforco:        categorical.coral,
+  recuperacao:    categorical.sage,
+  desaquecimento: categorical.slate,
+} as const;
+
+// ── Zone — heat ramp preservado; só Z2 muda (lime → green) ───────────────────
+export const zone = {
+  Z1: '#C8CDD4',        // frio/cinza
+  Z2: '#34D399',        // green (única mudança intencional; era lime)
+  Z3: semantic.info,    // #3B82F6
+  Z4: semantic.warning, // #F59E0B
+  Z5: semantic.danger,  // #EF4444
+} as const;
+
+// ── TrainingStatus — estado (ancora em semantic, sem colisão) ────────────────
+export const trainingStatus = {
+  REALIZADO: semantic.success,
+  PENDENTE:  text.secondary,
+  PERDIDO:   semantic.danger,
+  PARCIAL:   semantic.warning,
+} as const;
+
+// ── Sidebar — lime tint de seleção (uso de lime permitido = ação) ─────────────
+export const sidebar = {
+  text:           text.secondary,
+  textHover:      text.primary,
+  selectedBg:     'rgba(189,222,90,0.15)', // lime tint = seleção/ação
+  selectedBorder: primary[500],
+  selectedIcon:   primary[500],
+  hoverBg:        'rgba(255,255,255,0.08)',
+  headerColor:    primary[500],
+  divider:        'rgba(255,255,255,0.12)',
+} as const;
+
+// ── Glass — material translúcido / hairline ──────────────────────────────────
+export const glass = {
+  background:      'rgba(255,255,255,0.08)',
+  backgroundHover: 'rgba(255,255,255,0.12)',
+  border:          'rgba(255,255,255,0.15)',
+  backdropFilter:  'blur(10px)',
+  boxShadow:       '0 8px 32px rgba(0,0,0,0.40)',
+} as const;
+
+// ── Agregado canônico ────────────────────────────────────────────────────────
+export const premiumTokens = {
+  primary,
+  surface,
+  surfaceShift,
+  text,
+  semantic,
+  categorical,
+  readiness,
+  trainingType,
+  trainingStage,
+  zone,
+  trainingStatus,
+  sidebar,
+  glass,
+} as const;
+
+export type PremiumTokens = typeof premiumTokens;

@@ -3,6 +3,9 @@ import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import { glassAzulSx, glassAzulSxHover, transitions } from '../../../theme/tokens';
+import { activeTheme } from '../../../theme/activeTheme';
+
+const { primary, surface, overlayWhite } = activeTheme;
 
 interface StatCardProps {
   icon: React.ReactNode;
@@ -16,7 +19,7 @@ export default function StatCard({
   icon,
   label,
   value,
-  color = '#D4FF3A',
+  color = primary[500],
   onClick,
 }: StatCardProps) {
   return (
@@ -51,7 +54,7 @@ export default function StatCard({
         sx={{
           fontWeight: 700,
           fontSize: '1.75rem',
-          color: '#ffffff',
+          color: surface[0],
           mb: 0.5,
         }}
       >
@@ -60,7 +63,7 @@ export default function StatCard({
       <Typography
         variant="caption"
         sx={{
-          color: 'rgba(255, 255, 255, 0.7)',
+          color: overlayWhite[70],
           fontSize: '0.8rem',
           fontWeight: 500,
         }}

@@ -15,6 +15,9 @@ import {
 } from '@mui/icons-material';
 import { alpha } from '@mui/material/styles';
 import { semantic, categorical } from '../../../theme/tokens';
+import { activeTheme } from '../../../theme/activeTheme';
+
+const { primary, surface, overlayWhite } = activeTheme;
 import type { Atleta } from '../../../types/Atleta';
 import PlanosDialog from '../../../components/features/planos/planosDialog';
 import ProvasDialog from '../../../components/features/provas/ProvasDialog';
@@ -115,7 +118,7 @@ export default function AtletaStatusRow({ atleta, onEditAtleta }: AtletaStatusRo
           display: 'flex',
           flexDirection: 'column',
           gap: 1,
-          border: `1px solid rgba(255,255,255,0.15)`,
+          border: `1px solid ${overlayWhite[15]}`,
           borderLeft: `4px solid ${statusStyle.border}`,
           borderRadius: 1,
           bgcolor: statusStyle.bg,
@@ -123,7 +126,7 @@ export default function AtletaStatusRow({ atleta, onEditAtleta }: AtletaStatusRo
           transition: 'all 0.2s ease',
           '&:hover': {
             bgcolor: statusStyle.bg,
-            borderColor: 'rgba(255,255,255,0.25)',
+            borderColor: overlayWhite[25],
           },
         }}
       >
@@ -157,7 +160,7 @@ export default function AtletaStatusRow({ atleta, onEditAtleta }: AtletaStatusRo
               sx={{
                 fontSize: '0.95rem',
                 fontWeight: 700,
-                color: '#ffffff',
+                color: surface[0],
                 lineHeight: 1.2,
               }}
             >
@@ -166,7 +169,7 @@ export default function AtletaStatusRow({ atleta, onEditAtleta }: AtletaStatusRo
             <Typography
               variant="caption"
               sx={{
-                color: 'rgba(255,255,255,0.6)',
+                color: overlayWhite[60],
                 fontSize: '0.75rem',
                 mt: 0.25,
                 display: 'block',
@@ -221,21 +224,21 @@ export default function AtletaStatusRow({ atleta, onEditAtleta }: AtletaStatusRo
           )}
         </Box>
 
-        <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)' }} />
+        <Divider sx={{ borderColor: overlayWhite[10] }} />
 
         <Stack spacing={1}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <FitnessCenterIcon
               sx={{
                 fontSize: 18,
-                color: '#D4FF3A',
+                color: primary[500],
                 opacity: 0.8,
               }}
             />
             <Typography
               variant="caption"
               sx={{
-                color: 'rgba(255,255,255,0.7)',
+                color: overlayWhite[70],
                 fontWeight: 600,
                 fontSize: '0.75rem',
                 textTransform: 'uppercase',
@@ -269,12 +272,12 @@ export default function AtletaStatusRow({ atleta, onEditAtleta }: AtletaStatusRo
             sx={{
               width: 32,
               height: 32,
-              border: '1px solid rgba(255,255,255,0.2)',
+              border: `1px solid ${overlayWhite[20]}`,
               borderRadius: 1,
-              bgcolor: 'rgba(255,255,255,0.08)',
-              color: '#D4FF3A',
+              bgcolor: overlayWhite[8],
+              color: primary[500],
               '&:hover': {
-                bgcolor: 'rgba(255,255,255,0.12)',
+                bgcolor: overlayWhite[12],
               },
             }}
           >
@@ -287,12 +290,12 @@ export default function AtletaStatusRow({ atleta, onEditAtleta }: AtletaStatusRo
             sx={{
               width: 32,
               height: 32,
-              border: '1px solid rgba(255,255,255,0.2)',
+              border: `1px solid ${overlayWhite[20]}`,
               borderRadius: 1,
-              bgcolor: 'rgba(255,255,255,0.08)',
-              color: '#D4FF3A',
+              bgcolor: overlayWhite[8],
+              color: primary[500],
               '&:hover': {
-                bgcolor: 'rgba(255,255,255,0.12)',
+                bgcolor: overlayWhite[12],
               },
             }}
           >
@@ -306,12 +309,12 @@ export default function AtletaStatusRow({ atleta, onEditAtleta }: AtletaStatusRo
               sx={{
                 width: 32,
                 height: 32,
-                border: '1px solid rgba(255,255,255,0.2)',
+                border: `1px solid ${overlayWhite[20]}`,
                 borderRadius: 1,
-                bgcolor: 'rgba(255,255,255,0.08)',
-                color: 'rgba(255,255,255,0.8)',
+                bgcolor: overlayWhite[8],
+                color: overlayWhite[80],
                 '&:hover': {
-                  bgcolor: 'rgba(255,255,255,0.12)',
+                  bgcolor: overlayWhite[12],
                 },
               }}
             >

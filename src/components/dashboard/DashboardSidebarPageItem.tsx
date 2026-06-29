@@ -15,7 +15,10 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { Link } from 'react-router';
 import DashboardSidebarContext from '../../context/DashboardSidebarContext';
 import { MINI_DRAWER_WIDTH } from '../../constants/constants';
-import { sidebar as sidebarTokens, gradients, primary } from '../../theme/tokens';
+import { gradients } from '../../theme/tokens';
+import { activeTheme } from '../../theme/activeTheme';
+
+const { sidebar: sidebarTokens, primary } = activeTheme;
 
 export interface DashboardSidebarPageItemProps {
   id: string;
