@@ -106,7 +106,9 @@ function scrollTo(id: string) {
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const goToDashboard = () => navigate('/atletas');
+  // Pré-lançamento: os CTAs de conversão levam à waitlist; "Entrar" segue para o login.
+  const goToWaitlist = () => navigate('/waitlist');
+  const goToLogin = () => navigate('/auth/login');
 
   return (
     <Box sx={{ background: gradients.background, minHeight: '100vh', color: surface[0], fontFamily: 'Inter, sans-serif', overflowX: 'hidden' }}>
@@ -150,12 +152,12 @@ export default function LandingPage() {
               sx={{ fontSize: '14px', color: overlayWhite[70], cursor: 'pointer', transition: 'color 0.2s', '&:hover': { color: surface[0] } }}
             >{label}</Typography>
           ))}
-          <Button onClick={goToDashboard} variant="contained" size="small"
+          <Button onClick={goToLogin} variant="contained" size="small"
             sx={{ backgroundColor: LIME, color: NAVY_DARK, fontWeight: 700, fontSize: '13px', borderRadius: '8px', px: 2.5, minHeight: 36, '&:hover': { backgroundColor: '#c8ff4d' }, transition: 'background-color 0.2s' }}
           >Entrar</Button>
         </Box>
 
-        <Button onClick={goToDashboard} variant="contained" size="small"
+        <Button onClick={goToLogin} variant="contained" size="small"
           sx={{ display: { xs: 'flex', md: 'none' }, backgroundColor: LIME, color: NAVY_DARK, fontWeight: 700, fontSize: '13px', borderRadius: '8px', minHeight: 36, '&:hover': { backgroundColor: '#c8ff4d' } }}
         >Entrar</Button>
       </Box>
@@ -250,7 +252,7 @@ export default function LandingPage() {
           </Typography>
 
           <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Button onClick={goToDashboard} variant="contained" size="medium" endIcon={<ArrowForwardIcon />}
+            <Button onClick={goToWaitlist} variant="contained" size="medium" endIcon={<ArrowForwardIcon />}
               sx={{ backgroundColor: LIME, color: NAVY_DARK, fontWeight: 700, fontSize: '14px', borderRadius: '10px', px: 3.5, py: 1.4, '&:hover': { backgroundColor: '#c8ff4d', transform: 'translateY(-1px)' }, transition: 'all 0.2s', boxShadow: `0 4px 20px rgba(179,255,0,0.35)` }}
             >Começar grátis</Button>
             <Button onClick={() => scrollTo('how-it-works')} variant="outlined" size="medium"
@@ -499,7 +501,7 @@ export default function LandingPage() {
                       </Box>
                     ))}
                   </Box>
-                  <Button onClick={goToDashboard} variant={plan.highlight ? 'contained' : 'outlined'} fullWidth
+                  <Button onClick={goToWaitlist} variant={plan.highlight ? 'contained' : 'outlined'} fullWidth
                     sx={plan.highlight
                       ? { backgroundColor: LIME, color: NAVY_DARK, fontWeight: 700, borderRadius: '10px', py: 1.25, '&:hover': { backgroundColor: '#c8ff4d' }, transition: 'background-color 0.2s' }
                       : { borderColor: 'rgba(255,255,255,0.22)', color: surface[0], borderRadius: '10px', py: 1.25, '&:hover': { borderColor: 'rgba(255,255,255,0.45)', backgroundColor: 'rgba(255,255,255,0.05)' }, transition: 'all 0.2s' }}
@@ -526,7 +528,7 @@ export default function LandingPage() {
               <Typography sx={{ fontSize: { xs: '15px', md: '18px' }, color: 'rgba(255,255,255,0.65)', mb: 5, lineHeight: 1.75, maxWidth: '480px', mx: 'auto' }}>
                 Experimente grátis por 14 dias. Sem cartão de crédito. Cancele quando quiser.
               </Typography>
-              <Button onClick={goToDashboard} variant="contained" size="large" endIcon={<ArrowForwardIcon />}
+              <Button onClick={goToWaitlist} variant="contained" size="large" endIcon={<ArrowForwardIcon />}
                 sx={{ backgroundColor: LIME, color: NAVY_DARK, fontWeight: 700, fontSize: '16px', borderRadius: '12px', px: 5, py: 1.75, '&:hover': { backgroundColor: '#c8ff4d', transform: 'translateY(-2px)' }, transition: 'all 0.2s' }}
               >Começar agora</Button>
             </Box>
