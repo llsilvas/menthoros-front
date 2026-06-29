@@ -1,4 +1,5 @@
 import type { FormVariant } from './AthleteForm';
+import type { FaixaTsbStatus } from '../../../types/FaixaTsb';
 
 export type DecisionState = 'PENDING' | 'APPROVED' | 'REJECTED';
 export type SegmentFilter = 'all' | 'attention' | 'drop' | 'stable' | 'growth';
@@ -45,6 +46,8 @@ export interface CoachAthleteRow {
     acuteLoad: number;
     monotony: number;
     tsb: number | null;
+    /** Faixa de forma resolvida pelo backend (FaixaTsb); null quando sem TSB. */
+    statusForma: FaixaTsbStatus | null;
     acwr: number | null;
     /** Training Strain = TSS_semanal × monotonia — qualidade do ciclo de treino. */
     strain: number | null;

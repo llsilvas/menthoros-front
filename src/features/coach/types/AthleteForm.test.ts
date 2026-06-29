@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { formFromTSB, getTsbFormaTone } from './AthleteForm';
+import { formFromTSB, getTsbFormaTone, FAIXA_APRESENTACAO } from './AthleteForm';
+import type { FaixaTsbStatus } from '../../../types/FaixaTsb';
 
+// Nota: formFromTSB/getTsbFormaTone permanecem só para a projeção de taper
+// (calcularPrevisaoForma); a forma ATUAL consome statusForma via FAIXA_APRESENTACAO.
 describe('formFromTSB', () => {
   it('form_excellent: TSB >= 15', () => {
     expect(formFromTSB(15)).toBe('form_excellent');
@@ -44,5 +47,31 @@ describe('getTsbFormaTone', () => {
 
   it('mapeia critical para danger', () => {
     expect(getTsbFormaTone('form_critical')).toBe('danger');
+  });
+});
+
+describe('FAIXA_APRESENTACAO', () => {
+  const faixas: FaixaTsbStatus[] = [
+    'FADIGA_EXCESSIVA', 'FADIGA_ALTA', 'FADIGA_MODERADA', 'ACUMULANDO_FADIGA',
+    'FATIGADO', 'RECUPERANDO', 'FORMA_IDEAL', 'DESCANSADO', 'MUITO_DESCANSADO',
+  ];
+
+  it('cobre as 9 faixas com label não-vazio e tom válido', () => {
+    const tons = new Set(['neutral', 'success', 'warning', 'danger']);
+    faixas.forEach((f) => {
+      const apres = FAIXA_APRESENTACAO[f];
+      expect(apres.label.trim().length).toBeGreaterThan(0);
+      expect(tons.has(apres.tone)).toBe(true);
+    });
+  });
+
+  it('mapeia os tons por severidade (danger/warning/neutral/success)', () => {
+    expect(FAIXA_APRESENTACAO.FADIGA_EXCESSIVA.tone).toBe('danger');
+    expect(FAIXA_APRESENTACAO.FADIGA_ALTA.tone).toBe('danger');
+    expect(FAIXA_APRESENTACAO.FADIGA_MODERADA.tone).toBe('warning');
+    expect(FAIXA_APRESENTACAO.MUITO_DESCANSADO.tone).toBe('warning');
+    expect(FAIXA_APRESENTACAO.FATIGADO.tone).toBe('neutral');
+    expect(FAIXA_APRESENTACAO.FORMA_IDEAL.tone).toBe('success');
+    expect(FAIXA_APRESENTACAO.DESCANSADO.tone).toBe('success');
   });
 });
