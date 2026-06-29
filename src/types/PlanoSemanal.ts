@@ -1,4 +1,5 @@
 import type { TreinoPlanejado, CreateTreinoPlanejado } from './TreinoPlanejado';
+import { surface, semantic } from '../theme/tokens';
 
 // Enums e tipos base — espelha PlanoStatus.java no backend
 export type PlanoStatus = 'PLANEJADO' | 'INICIADO' | 'EM_ANDAMENTO' | 'ATIVO' | 'CONCLUIDO';
@@ -69,14 +70,14 @@ export const formatarPeriodoSemana = (inicio: string, fim: string): string => {
 
 export const obterStatusColor = (status: PlanoStatus): string => {
   const statusColors: Record<PlanoStatus, string> = {
-    PLANEJADO: '#9e9e9e',
-    INICIADO: '#1976d2',
-    EM_ANDAMENTO: '#f57c00',
-    ATIVO: '#1976d2',
-    CONCLUIDO: '#388e3c',
+    PLANEJADO: surface[500],
+    INICIADO: semantic.info[500],
+    EM_ANDAMENTO: semantic.warning[500],
+    ATIVO: semantic.info[500],
+    CONCLUIDO: semantic.success[500],
   };
 
-  return statusColors[status] ?? '#666666';
+  return statusColors[status] ?? surface[500];
 };
 
 export const obterStatusLabel = (status: PlanoStatus): string => {

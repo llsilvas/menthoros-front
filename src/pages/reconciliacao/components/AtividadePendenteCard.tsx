@@ -18,6 +18,7 @@ import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { PendingActivityReview, ReconciliationAction } from '../../../types/Reconciliacao';
+import { overlayWhite } from '../../../theme/overlays';
 import { CandidatoItem } from './CandidatoItem';
 import type { CandidateMatch } from '../../../types/Reconciliacao';
 import { colors } from '../../../theme/tokens';
@@ -83,13 +84,13 @@ export function AtividadePendenteCard({
         onChange={() => onToggleExpanded(activity.id)}
         sx={{
           mb: 1,
-          backgroundColor: 'rgba(255,255,255,0.50)',
-          border: '1px solid rgba(255,255,255,0.3)',
+          backgroundColor: overlayWhite[50],
+          border: `1px solid ${overlayWhite[30]}`,
           '&:hover': {
-            backgroundColor: 'rgba(255,255,255,0.55)',
+            backgroundColor: overlayWhite[55],
           },
           '&.Mui-expanded': {
-            backgroundColor: 'rgba(255,255,255,0.55)',
+            backgroundColor: overlayWhite[55],
           },
         }}
         slotProps={{

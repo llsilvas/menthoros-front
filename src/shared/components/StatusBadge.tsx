@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Box } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { semantic, surface } from '../../theme/tokens';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -21,17 +22,6 @@ export interface StatusBadgeProps {
 
 // ── Token maps ────────────────────────────────────────────────────────────────
 
-/**
- * Converts a hex colour string to an rgba background at the requested opacity.
- * Works for 6-digit hex only (which all our tokens are).
- */
-function hexBg(hex: string, opacity: number): string {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-}
-
 interface BadgeTokens {
   bg: string;
   color: string;
@@ -41,17 +31,17 @@ function getTokens(variant: StatusBadgeVariant): BadgeTokens {
   switch (variant) {
     case 'active':
       return {
-        bg: hexBg(semantic.success[500], 0.15),
+        bg: alpha(semantic.success[500], 0.15),
         color: semantic.success[500],
       };
     case 'warning':
       return {
-        bg: hexBg(semantic.warning[500], 0.15),
+        bg: alpha(semantic.warning[500], 0.15),
         color: semantic.warning[500],
       };
     case 'danger':
       return {
-        bg: hexBg(semantic.danger[500], 0.15),
+        bg: alpha(semantic.danger[500], 0.15),
         color: semantic.danger[500],
       };
     case 'paused':
@@ -66,7 +56,7 @@ function getTokens(variant: StatusBadgeVariant): BadgeTokens {
       };
     case 'pending':
       return {
-        bg: hexBg(semantic.info[500], 0.15),
+        bg: alpha(semantic.info[500], 0.15),
         color: semantic.info[500],
       };
   }

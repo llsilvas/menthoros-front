@@ -1,6 +1,6 @@
 import { Box, Typography } from '@mui/material';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
-import { zones } from '../../../theme/tokens';
+import { zones } from '../../../theme/activeTheme';
 import { semantic, surface } from '../../../theme/tokens';
 import { glassSx } from '../../../theme/tokens';
 

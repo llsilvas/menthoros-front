@@ -1,6 +1,7 @@
 import { Box, Paper, Stack, TextField, Chip } from '@mui/material';
 import { Search as SearchIcon } from '@mui/icons-material';
-import { glassAzulSx, transitions, primary } from '../../../theme/tokens';
+import { glassAzulSx, transitions, primary, surface } from '../../../theme/tokens';
+import { overlayWhite } from '../../../theme/overlays';
 
 type NivelExperienciaKey = 'INICIANTE' | 'INTERMEDIARIO' | 'AVANCADO';
 type AtletaStatus = 'EM_DIA' | 'ATENCAO' | 'SEM_ROTINA';
@@ -61,11 +62,11 @@ export default function AtletasFiltros({
             startAdornment: <SearchIcon sx={{ mr: 1, color: primary[500], opacity: 0.7 }} />,
           }}
           InputLabelProps={{
-            style: { color: 'rgba(255, 255, 255, 0.7)' },
+            style: { color: overlayWhite[70] },
           }}
           sx={{
             '& .MuiOutlinedInput-root': {
-              color: '#ffffff',
+              color: surface[0],
               '& fieldset': {
                 borderColor: `${primary[500]}4D`,
               },
@@ -77,7 +78,7 @@ export default function AtletasFiltros({
               },
             },
             '& .MuiOutlinedInput-input::placeholder': {
-              color: 'rgba(255, 255, 255, 0.5)',
+              color: overlayWhite[50],
               opacity: 1,
             },
           }}
@@ -93,7 +94,7 @@ export default function AtletasFiltros({
                 size="small"
                 sx={{
                   bgcolor: status === s ? primary[500] : `${primary[500]}26`,
-                  color: status === s ? '#0e3147' : primary[500],
+                  color: status === s ? surface[900] : primary[500],
                   fontWeight: status === s ? 700 : 600,
                   fontSize: '0.85rem',
                   cursor: 'pointer',
@@ -118,7 +119,7 @@ export default function AtletasFiltros({
                 size="small"
                 sx={{
                   bgcolor: nivel === n ? primary[500] : `${primary[500]}26`,
-                  color: nivel === n ? '#0e3147' : primary[500],
+                  color: nivel === n ? surface[900] : primary[500],
                   fontWeight: nivel === n ? 700 : 600,
                   fontSize: '0.85rem',
                   cursor: 'pointer',

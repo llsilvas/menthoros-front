@@ -1,6 +1,8 @@
 import { Card, LinearProgress, Stack, Typography, Button, Box } from '@mui/material';
 import type { CandidateMatch } from '../../../types/Reconciliacao';
-import { colors } from '../../../theme/tokens';
+import { alpha } from '@mui/material/styles';
+import { colors, semantic, primary } from '../../../theme/tokens';
+import { overlayWhite, overlayBlack } from '../../../theme/overlays';
 
 interface CandidatoItemProps {
   candidato: CandidateMatch;
@@ -18,12 +20,12 @@ export function CandidatoItem({ candidato, onSelect, selected }: CandidatoItemPr
         mb: 1.5,
         p: 2,
         cursor: 'pointer',
-        border: selected ? `2px solid ${colors.secondary.main}` : '1px solid rgba(255,255,255,0.2)',
-        backgroundColor: selected ? 'rgba(177,233,45,0.08)' : 'rgba(255,255,255,0.45)',
+        border: selected ? `2px solid ${colors.secondary.main}` : `1px solid ${overlayWhite[20]}`,
+        backgroundColor: selected ? alpha(primary[500], 0.08) : overlayWhite[45],
         transition: 'all 150ms ease',
         '&:hover': {
-          backgroundColor: 'rgba(255,255,255,0.55)',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          backgroundColor: overlayWhite[55],
+          boxShadow: `0 4px 12px ${overlayBlack[15]}`,
         },
       }}
       onClick={() => onSelect(candidato.treinoPlanejadoId)}
@@ -63,9 +65,9 @@ export function CandidatoItem({ candidato, onSelect, selected }: CandidatoItemPr
             flex: 1,
             height: 6,
             borderRadius: 3,
-            backgroundColor: 'rgba(0,0,0,0.1)',
+            backgroundColor: overlayBlack[10],
             '& .MuiLinearProgress-bar': {
-              backgroundColor: isHighScore ? colors.secondary.main : '#fbbf24',
+              backgroundColor: isHighScore ? colors.secondary.main : semantic.warning[400],
               borderRadius: 3,
             },
           }}
@@ -84,7 +86,7 @@ export function CandidatoItem({ candidato, onSelect, selected }: CandidatoItemPr
       </Stack>
 
       {selected && (
-        <Box mt={1.5} pt={1.5} sx={{ borderTop: '1px solid rgba(0,0,0,0.1)' }}>
+        <Box mt={1.5} pt={1.5} sx={{ borderTop: `1px solid ${overlayBlack[10]}` }}>
           <Button
             variant="contained"
             size="small"

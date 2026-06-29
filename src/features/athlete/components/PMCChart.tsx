@@ -15,6 +15,7 @@ import {
 } from 'recharts';
 import { primary, surface, semantic } from '../../../theme/tokens';
 import { glassSx } from '../../../theme/tokens';
+import { overlayWhite } from '../../../theme/overlays';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -39,7 +40,7 @@ type ViewMode = 'simple' | 'advanced';
 
 // ── Chart tokens ──────────────────────────────────────────────────────────────
 
-const CHART_GRID_STROKE = 'rgba(255, 255, 255, 0.08)';
+const CHART_GRID_STROKE = overlayWhite[8];
 const CHART_AXIS_STROKE = surface[400];
 const CHART_TOOLTIP_BG = surface[700];
 const CHART_TOOLTIP_COLOR = surface[50];

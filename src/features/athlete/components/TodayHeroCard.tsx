@@ -2,6 +2,7 @@ import { Box, Button, Typography } from '@mui/material';
 import { workoutGradients, timeOfDayOverlay } from '../../../shared/design-tokens/gradients';
 import type { WorkoutType, TimeOfDay } from '../../../shared/design-tokens/gradients';
 import { primary, surface } from '../../../theme/tokens';
+import { overlayWhite } from '../../../theme/overlays';
 import { elevation } from '../../../shared/design-tokens';
 
 export type { WorkoutType, TimeOfDay };
@@ -98,7 +99,7 @@ export function TodayHeroCard({
           sx={{
             position: 'relative',
             zIndex: 1,
-            bgcolor: 'rgba(255,255,255,0.08)',
+            bgcolor: overlayWhite[8],
             borderRadius: 1,
             p: 1.5,
           }}

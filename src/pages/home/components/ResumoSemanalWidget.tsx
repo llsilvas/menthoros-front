@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Box, CircularProgress, Paper, Stack, Typography } from '@mui/material';
 import { MetricasService } from '../../../services/MetricasService';
 import type { ResumoSemanalTreino } from '../../../types/Metricas';
-import { glassAzulSx, glassAzulSxHover, transitions, primary } from '../../../theme/tokens';
+import { glassAzulSx, glassAzulSxHover, transitions, primary, surface } from '../../../theme/tokens';
+import { overlayWhite } from '../../../theme/overlays';
 
 interface ResumoSemanalWidgetProps {
   atletaId: string;
@@ -42,7 +43,7 @@ export default function ResumoSemanalWidget({ atletaId, atletaNome }: ResumoSema
         variant="h6"
         sx={{
           fontWeight: 700,
-          color: '#ffffff',
+          color: surface[0],
           mb: 2,
           fontSize: '1rem',
         }}
@@ -66,7 +67,7 @@ export default function ResumoSemanalWidget({ atletaId, atletaNome }: ResumoSema
             <Typography
               variant="caption"
               sx={{
-                color: 'rgba(255, 255, 255, 0.7)',
+                color: overlayWhite[70],
                 fontSize: '0.75rem',
               }}
             >
@@ -88,7 +89,7 @@ export default function ResumoSemanalWidget({ atletaId, atletaNome }: ResumoSema
             <Typography
               variant="caption"
               sx={{
-                color: 'rgba(255, 255, 255, 0.7)',
+                color: overlayWhite[70],
                 fontSize: '0.75rem',
               }}
             >
@@ -110,7 +111,7 @@ export default function ResumoSemanalWidget({ atletaId, atletaNome }: ResumoSema
             <Typography
               variant="caption"
               sx={{
-                color: 'rgba(255, 255, 255, 0.7)',
+                color: overlayWhite[70],
                 fontSize: '0.75rem',
               }}
             >
@@ -132,7 +133,7 @@ export default function ResumoSemanalWidget({ atletaId, atletaNome }: ResumoSema
             <Typography
               variant="caption"
               sx={{
-                color: 'rgba(255, 255, 255, 0.7)',
+                color: overlayWhite[70],
                 fontSize: '0.75rem',
               }}
             >
@@ -142,11 +143,11 @@ export default function ResumoSemanalWidget({ atletaId, atletaNome }: ResumoSema
         </Box>
 
         {resumo.resumo.ultimoTreino && (
-          <Box sx={{ pt: 1, borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+          <Box sx={{ pt: 1, borderTop: `1px solid ${overlayWhite[10]}` }}>
             <Typography
               variant="caption"
               sx={{
-                color: 'rgba(255, 255, 255, 0.6)',
+                color: overlayWhite[60],
                 fontSize: '0.75rem',
               }}
             >

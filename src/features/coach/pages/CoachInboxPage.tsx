@@ -688,7 +688,7 @@ function CoachInboxPage() {
                   disabled={!selectedPlanId || selectedReviewStatus !== 'AGUARDANDO_REVISAO' || selected.decision !== 'PENDING'}
                   sx={{
                     bgcolor: semantic.success[500],
-                    color: '#fff',
+                    color: surface[0],
                     textTransform: 'none',
                     minWidth: { xs: 112, xl: 150 },
                     fontSize: { xs: '0.72rem', xl: '0.8125rem' },

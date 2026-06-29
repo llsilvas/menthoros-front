@@ -25,6 +25,7 @@ import AthleteCoachPage from './features/athlete/pages/AthleteCoachPage';
 import AthleteProfilePage from './features/athlete/pages/AthleteProfilePage';
 import ManualTrainingFormPage from './features/athlete/pages/ManualTrainingFormPage';
 import { activeTheme } from './theme/activeTheme';
+import { overlayWhite } from './theme/overlays';
 
 const { colors, text, content, backgrounds, semantic } = activeTheme;
 
@@ -32,7 +33,7 @@ const theme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main:         colors.primary.main,         // #D4FF3A — brand lime
+      main:         colors.primary.main,         // #BDDE5A — brand lime
       light:        colors.primary.light,
       dark:         colors.primary.dark,
       contrastText: colors.primary.contrastText, // #0A1628 navy on lime
@@ -77,18 +78,18 @@ const theme = createTheme({
       styleOverrides: {
         paper: {
           backgroundColor: backgrounds.highest,
-          border: `1px solid rgba(255,255,255,0.12)`,
+          border: `1px solid ${overlayWhite[12]}`,
         },
       },
     },
     MuiOutlinedInput: {
       styleOverrides: {
         notchedOutline: {
-          borderColor: 'rgba(255,255,255,0.15)',
+          borderColor: overlayWhite[15],
         },
         root: {
           '&:hover .MuiOutlinedInput-notchedOutline': {
-            borderColor: 'rgba(255,255,255,0.30)',
+            borderColor: overlayWhite[30],
           },
           '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
             borderColor: colors.primary.main,
@@ -112,17 +113,17 @@ const theme = createTheme({
           '--DataGrid-containerBackground': backgrounds.card,
           backgroundColor: backgrounds.card,
           color: text.primary,
-          borderColor: 'rgba(255,255,255,0.10)',
+          borderColor: overlayWhite[10],
           '& .MuiDataGrid-mainContent':     { backgroundColor: backgrounds.card },
           '& .MuiDataGrid-virtualScroller': { backgroundColor: backgrounds.card },
           '& .MuiDataGrid-overlayWrapper':  { backgroundColor: backgrounds.card },
           '& .MuiDataGrid-columnHeaders':   { backgroundColor: backgrounds.panel },
           '& .MuiDataGrid-columnHeader':    { backgroundColor: backgrounds.panel },
           '& .MuiDataGrid-columnHeaderTitle': { color: text.secondary },
-          '& .MuiDataGrid-columnSeparator': { color: 'rgba(255,255,255,0.10)' },
-          '& .MuiDataGrid-cell':            { color: text.primary, borderColor: 'rgba(255,255,255,0.06)' },
-          '& .MuiDataGrid-row:hover':       { backgroundColor: 'rgba(255,255,255,0.04)' },
-          '& .MuiDataGrid-footerContainer': { backgroundColor: backgrounds.panel, color: text.secondary, borderColor: 'rgba(255,255,255,0.10)' },
+          '& .MuiDataGrid-columnSeparator': { color: overlayWhite[10] },
+          '& .MuiDataGrid-cell':            { color: text.primary, borderColor: overlayWhite[6] },
+          '& .MuiDataGrid-row:hover':       { backgroundColor: overlayWhite[4] },
+          '& .MuiDataGrid-footerContainer': { backgroundColor: backgrounds.panel, color: text.secondary, borderColor: overlayWhite[10] },
           '& .MuiTablePagination-root':     { color: text.secondary },
           '& .MuiTablePagination-selectIcon': { color: text.secondary },
           '& .MuiIconButton-root':          { color: text.secondary },

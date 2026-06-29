@@ -22,7 +22,8 @@ import imgRunnerUniform from '../../assets/images/landing/runner-uniform.jpeg';
 import imgRunnerPortrait from '../../assets/images/landing/runner-portrait.jpeg';
 import imgCoachPolo from '../../assets/images/landing/coach-polo.jpeg';
 import imgTeamOffice from '../../assets/images/landing/team-office.jpeg';
-import { gradients } from '../../theme/tokens';
+import { gradients, surface } from '../../theme/tokens';
+import { overlayWhite } from '../../theme/overlays';
 
 const LIME = '#b3ff00';
 const NAVY_DARK = '#082130';
@@ -48,7 +49,7 @@ const sectionLabel = {
 const headingSx = {
   fontFamily: 'Syne, sans-serif',
   fontWeight: 800,
-  color: '#fff',
+  color: surface[0],
 };
 
 const testimonials = [
@@ -108,7 +109,7 @@ export default function LandingPage() {
   const goToDashboard = () => navigate('/atletas');
 
   return (
-    <Box sx={{ background: gradients.background, minHeight: '100vh', color: '#fff', fontFamily: 'Inter, sans-serif', overflowX: 'hidden' }}>
+    <Box sx={{ background: gradients.background, minHeight: '100vh', color: surface[0], fontFamily: 'Inter, sans-serif', overflowX: 'hidden' }}>
 
       {/* ── NAVBAR ─────────────────────────────────────────────────── */}
       <Box
@@ -119,7 +120,7 @@ export default function LandingPage() {
           px: { xs: 2.5, md: 6 }, py: 2,
           backgroundColor: 'rgba(8, 33, 48, 0.88)',
           backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          borderBottom: `1px solid ${overlayWhite[8]}`,
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -133,7 +134,7 @@ export default function LandingPage() {
               fontFamily: 'Syne, sans-serif',
               fontWeight: 800,
               fontSize: { xs: '18px', md: '22px' },
-              color: '#fff',
+              color: surface[0],
               letterSpacing: '0.5px',
               lineHeight: 1,
               '& span': { color: LIME },
@@ -146,7 +147,7 @@ export default function LandingPage() {
         <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 4, alignItems: 'center' }}>
           {[{ label: 'Funcionalidades', id: 'features' }, { label: 'Como funciona', id: 'how-it-works' }, { label: 'Preços', id: 'pricing' }].map(({ label, id }) => (
             <Typography key={id} onClick={() => scrollTo(id)}
-              sx={{ fontSize: '14px', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', transition: 'color 0.2s', '&:hover': { color: '#fff' } }}
+              sx={{ fontSize: '14px', color: overlayWhite[70], cursor: 'pointer', transition: 'color 0.2s', '&:hover': { color: surface[0] } }}
             >{label}</Typography>
           ))}
           <Button onClick={goToDashboard} variant="contained" size="small"
@@ -253,7 +254,7 @@ export default function LandingPage() {
               sx={{ backgroundColor: LIME, color: NAVY_DARK, fontWeight: 700, fontSize: '14px', borderRadius: '10px', px: 3.5, py: 1.4, '&:hover': { backgroundColor: '#c8ff4d', transform: 'translateY(-1px)' }, transition: 'all 0.2s', boxShadow: `0 4px 20px rgba(179,255,0,0.35)` }}
             >Começar grátis</Button>
             <Button onClick={() => scrollTo('how-it-works')} variant="outlined" size="medium"
-              sx={{ borderColor: 'rgba(255,255,255,0.35)', color: '#fff', fontSize: '14px', borderRadius: '10px', px: 3.5, py: 1.4, backdropFilter: 'blur(8px)', backgroundColor: 'rgba(255,255,255,0.06)', '&:hover': { borderColor: 'rgba(255,255,255,0.6)', backgroundColor: 'rgba(255,255,255,0.1)' }, transition: 'all 0.2s' }}
+              sx={{ borderColor: 'rgba(255,255,255,0.35)', color: surface[0], fontSize: '14px', borderRadius: '10px', px: 3.5, py: 1.4, backdropFilter: 'blur(8px)', backgroundColor: overlayWhite[6], '&:hover': { borderColor: overlayWhite[60], backgroundColor: overlayWhite[10] }, transition: 'all 0.2s' }}
             >Ver como funciona</Button>
           </Box>
 
@@ -264,7 +265,7 @@ export default function LandingPage() {
       </Box>
 
       {/* ── STATS ──────────────────────────────────────────────────── */}
-      <Box sx={{ borderTop: '1px solid rgba(255,255,255,0.08)', borderBottom: '1px solid rgba(255,255,255,0.08)', py: { xs: 6, md: 8 } }}>
+      <Box sx={{ borderTop: `1px solid ${overlayWhite[8]}`, borderBottom: `1px solid ${overlayWhite[8]}`, py: { xs: 6, md: 8 } }}>
         <Container maxWidth="lg">
           <Grid container spacing={4} justifyContent="center">
             {[
@@ -286,7 +287,7 @@ export default function LandingPage() {
         <Container maxWidth="lg">
           <Grid container spacing={{ xs: 6, md: 10 }} alignItems="center">
             <Grid size={{ xs: 12, md: 6 }}>
-              <Box sx={{ borderRadius: '20px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 60px rgba(0,0,0,0.45)' }}>
+              <Box sx={{ borderRadius: '20px', overflow: 'hidden', border: `1px solid ${overlayWhite[10]}`, boxShadow: '0 20px 60px rgba(0,0,0,0.45)' }}>
                 <img src={imgCoachDashboard} alt="Treinador analisando dashboard do Menthoros" style={{ width: '100%', display: 'block', objectFit: 'cover' }} />
               </Box>
             </Grid>
@@ -300,7 +301,7 @@ export default function LandingPage() {
                 O Menthoros é desenhado para a rotina da assessoria. A pergunta central não é "o que mostrar para o atleta?", mas sim:
               </Typography>
               <Box sx={{ ...glassCard, p: 3, borderLeft: `3px solid ${LIME}`, borderRadius: '12px' }}>
-                <Typography sx={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: { xs: '17px', md: '20px' }, color: '#fff', fontStyle: 'italic', lineHeight: 1.5 }}>
+                <Typography sx={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: { xs: '17px', md: '20px' }, color: surface[0], fontStyle: 'italic', lineHeight: 1.5 }}>
                   "O que o treinador precisa saber agora para decidir melhor?"
                 </Typography>
               </Box>
@@ -310,7 +311,7 @@ export default function LandingPage() {
       </Box>
 
       {/* ── FEATURES ───────────────────────────────────────────────── */}
-      <Box id="features" component="section" sx={{ py: { xs: 8, md: 12 }, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+      <Box id="features" component="section" sx={{ py: { xs: 8, md: 12 }, borderTop: `1px solid ${overlayWhite[8]}` }}>
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 8 }}>
             <Typography sx={sectionLabel}>Funcionalidades</Typography>
@@ -337,8 +338,8 @@ export default function LandingPage() {
                     <Box sx={{ display: 'inline-block', px: 1.5, py: 0.5, mb: 2, borderRadius: '6px', backgroundColor: 'rgba(179,255,0,0.12)', border: '1px solid rgba(179,255,0,0.22)', alignSelf: 'flex-start' }}>
                       <Typography sx={{ fontSize: '11px', color: LIME, fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase' }}>{f.badge}</Typography>
                     </Box>
-                    <Typography sx={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '17px', color: '#fff', mb: 1.5, lineHeight: 1.3 }}>{f.title}</Typography>
-                    <Typography sx={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', lineHeight: 1.7 }}>{f.desc}</Typography>
+                    <Typography sx={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '17px', color: surface[0], mb: 1.5, lineHeight: 1.3 }}>{f.title}</Typography>
+                    <Typography sx={{ fontSize: '14px', color: overlayWhite[60], lineHeight: 1.7 }}>{f.desc}</Typography>
                   </Box>
                 </Box>
               </Grid>
@@ -352,7 +353,7 @@ export default function LandingPage() {
                     <Box sx={{ display: 'inline-block', px: 1.5, py: 0.5, mb: 2, borderRadius: '6px', backgroundColor: 'rgba(179,255,0,0.15)', border: '1px solid rgba(179,255,0,0.3)' }}>
                       <Typography sx={{ fontSize: '11px', color: LIME, fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase' }}>Planos de Treino</Typography>
                     </Box>
-                    <Typography sx={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: { xs: '20px', md: '24px' }, color: '#fff', mb: 2, lineHeight: 1.3 }}>
+                    <Typography sx={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: { xs: '20px', md: '24px' }, color: surface[0], mb: 2, lineHeight: 1.3 }}>
                       Ciclo fechado: planejado → realizado → próximo ajuste
                     </Typography>
                     <Typography sx={{ fontSize: '15px', color: 'rgba(255,255,255,0.65)', lineHeight: 1.75, mb: 3, maxWidth: '600px' }}>
@@ -369,7 +370,7 @@ export default function LandingPage() {
                   <Grid size={{ xs: 12, md: 4 }}>
                     <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
                       {[{ label: 'TSB médio', value: '+12', color: '#3498db' }, { label: 'Planos ativos', value: '3', color: LIME }, { label: 'Provas em 30d', value: '2', color: '#f39c12' }].map((m) => (
-                        <Box key={m.label} sx={{ p: 2, borderRadius: '12px', backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center', minWidth: '90px' }}>
+                        <Box key={m.label} sx={{ p: 2, borderRadius: '12px', backgroundColor: overlayWhite[6], border: `1px solid ${overlayWhite[10]}`, textAlign: 'center', minWidth: '90px' }}>
                           <Typography sx={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '28px', color: m.color, lineHeight: 1 }}>{m.value}</Typography>
                           <Typography sx={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', mt: 0.5 }}>{m.label}</Typography>
                         </Box>
@@ -437,7 +438,7 @@ export default function LandingPage() {
       </Box>
 
       {/* ── TESTIMONIALS ───────────────────────────────────────────── */}
-      <Box component="section" sx={{ py: { xs: 8, md: 12 }, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+      <Box component="section" sx={{ py: { xs: 8, md: 12 }, borderTop: `1px solid ${overlayWhite[8]}` }}>
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 8 }}>
             <Typography sx={sectionLabel}>Depoimentos</Typography>
@@ -452,11 +453,11 @@ export default function LandingPage() {
                   <Typography sx={{ fontSize: '15px', color: 'rgba(255,255,255,0.78)', lineHeight: 1.78, mb: 3, fontStyle: 'italic', flex: 1 }}>
                     "{t.quote}"
                   </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, borderTop: '1px solid rgba(255,255,255,0.1)', pt: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, borderTop: `1px solid ${overlayWhite[10]}`, pt: 2 }}>
                     <Avatar src={t.avatar} alt={t.name}
                       sx={{ width: 44, height: 44, border: `2px solid ${LIME}33`, objectFit: 'cover' }} />
                     <Box>
-                      <Typography sx={{ fontWeight: 700, color: '#fff', fontSize: '14px' }}>{t.name}</Typography>
+                      <Typography sx={{ fontWeight: 700, color: surface[0], fontSize: '14px' }}>{t.name}</Typography>
                       <Typography sx={{ fontSize: '12px', color: LIME }}>{t.role}</Typography>
                     </Box>
                   </Box>
@@ -468,7 +469,7 @@ export default function LandingPage() {
       </Box>
 
       {/* ── PRICING ────────────────────────────────────────────────── */}
-      <Box id="pricing" component="section" sx={{ py: { xs: 8, md: 12 }, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+      <Box id="pricing" component="section" sx={{ py: { xs: 8, md: 12 }, borderTop: `1px solid ${overlayWhite[8]}` }}>
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 8 }}>
             <Typography sx={sectionLabel}>Preços</Typography>
@@ -485,7 +486,7 @@ export default function LandingPage() {
                       Mais popular
                     </Box>
                   )}
-                  <Typography sx={{ ...headingSx, fontSize: '20px', mb: 1, color: plan.highlight ? LIME : '#fff' }}>{plan.name}</Typography>
+                  <Typography sx={{ ...headingSx, fontSize: '20px', mb: 1, color: plan.highlight ? LIME : surface[0] }}>{plan.name}</Typography>
                   <Box sx={{ mb: 3 }}>
                     <Typography sx={{ ...headingSx, fontSize: '38px', lineHeight: 1 }}>{plan.price}</Typography>
                     <Typography sx={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', mt: 0.5 }}>{plan.period}</Typography>
@@ -501,7 +502,7 @@ export default function LandingPage() {
                   <Button onClick={goToDashboard} variant={plan.highlight ? 'contained' : 'outlined'} fullWidth
                     sx={plan.highlight
                       ? { backgroundColor: LIME, color: NAVY_DARK, fontWeight: 700, borderRadius: '10px', py: 1.25, '&:hover': { backgroundColor: '#c8ff4d' }, transition: 'background-color 0.2s' }
-                      : { borderColor: 'rgba(255,255,255,0.22)', color: '#fff', borderRadius: '10px', py: 1.25, '&:hover': { borderColor: 'rgba(255,255,255,0.45)', backgroundColor: 'rgba(255,255,255,0.05)' }, transition: 'all 0.2s' }}
+                      : { borderColor: 'rgba(255,255,255,0.22)', color: surface[0], borderRadius: '10px', py: 1.25, '&:hover': { borderColor: 'rgba(255,255,255,0.45)', backgroundColor: 'rgba(255,255,255,0.05)' }, transition: 'all 0.2s' }}
                   >{plan.cta}</Button>
                 </Box>
               </Grid>
@@ -534,7 +535,7 @@ export default function LandingPage() {
       </Box>
 
       {/* ── FOOTER ─────────────────────────────────────────────────── */}
-      <Box component="footer" sx={{ borderTop: '1px solid rgba(255,255,255,0.08)', py: 5 }}>
+      <Box component="footer" sx={{ borderTop: `1px solid ${overlayWhite[8]}`, py: 5 }}>
         <Container maxWidth="lg">
           <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'center', justifyContent: 'space-between', gap: 3 }}>
             <img src={logoNavbar} alt="Menthoros" style={{ height: 26, opacity: 0.6 }} />
@@ -562,7 +563,7 @@ export default function LandingPage() {
                 <Typography sx={{ fontSize: '13px', fontWeight: 500 }}>@Menthoros</Typography>
               </Box>
 
-              <Box sx={{ width: '1px', height: 14, bgcolor: 'rgba(255,255,255,0.12)' }} />
+              <Box sx={{ width: '1px', height: 14, bgcolor: overlayWhite[12] }} />
 
               {['Privacidade', 'Termos', 'Contato'].map((link) => (
                 <Typography key={link} sx={{ fontSize: '13px', color: 'rgba(255,255,255,0.38)', cursor: 'pointer', transition: 'color 0.2s', '&:hover': { color: 'rgba(255,255,255,0.75)' } }}>

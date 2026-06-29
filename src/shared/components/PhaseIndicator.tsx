@@ -1,4 +1,5 @@
 import { Box, Typography } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { primary, semantic, surface } from '../../shared/design-tokens';
 
 export type TrainingPhase = 'BASE' | 'BUILD' | 'ESPECIFICO' | 'TAPER' | 'RECOVERY';
@@ -21,23 +22,6 @@ const phaseConfig: Record<TrainingPhase, PhaseConfig> = {
   TAPER:      { color: semantic.success[500],  label: 'Polimento'   },
   RECOVERY:   { color: surface[400],           label: 'Recuperação' },
 };
-
-function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result
-    ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16),
-      }
-    : null;
-}
-
-function withOpacity(hex: string, opacity: number): string {
-  const rgb = hexToRgb(hex);
-  if (!rgb) return hex;
-  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity})`;
-}
 
 export function PhaseIndicator({
   phase,
@@ -76,7 +60,7 @@ export function PhaseIndicator({
         borderRadius:    '999px',
         px:              1,
         py:              0.25,
-        backgroundColor: withOpacity(config.color, 0.15),
+        backgroundColor: alpha(config.color, 0.15),
       }}
     >
       {resolvedShowLabel && (

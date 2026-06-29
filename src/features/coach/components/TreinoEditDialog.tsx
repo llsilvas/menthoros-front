@@ -9,12 +9,14 @@ import {
     TextField,
     Typography,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import { primary, surface } from '../../../theme/tokens';
+import { overlayWhite } from '../../../theme/overlays';
 import { elevation } from '../../../shared/design-tokens';
 import { GHOST_BTN_SX, PRIMARY_BTN_SX } from '../../../shared/components/actionButtonSx';
-import { WORKOUT_STAGE_COLORS } from '../../../shared/theme/workoutColors';
+import { activeTheme } from '../../../theme/activeTheme';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
 import type { TreinoPlanejadoDto, TreinoPlanejadoPatch, EtapaTreinoDto } from '../../../types/PlanoReview';
 
@@ -59,7 +61,7 @@ const TIPOS_TREINO = [
 
 const TIPOS_INTERVALADOS = new Set(['INTERVALADO', 'FARTLEK']);
 
-const ACCENT = WORKOUT_STAGE_COLORS;
+const ACCENT = activeTheme.trainingStage;
 
 // ── Estado de bloco ───────────────────────────────────────────────────────────
 
@@ -97,9 +99,9 @@ function fieldSx(accent: string) {
         '& .MuiOutlinedInput-root': {
             fontSize: '0.82rem',
             color: surface[100],
-            bgcolor: 'rgba(255,255,255,0.04)',
-            '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' },
-            '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.22)' },
+            bgcolor: overlayWhite[4],
+            '& fieldset': { borderColor: overlayWhite[10] },
+            '&:hover fieldset': { borderColor: overlayWhite[22] },
             '&.Mui-focused fieldset': { borderColor: accent },
         },
         '& .MuiInputLabel-root': { fontSize: '0.72rem', color: surface[500] },
@@ -125,7 +127,7 @@ function BlocoCard({ label, accent, bloco, onChange, disabled, actions }: BlocoC
             sx={{
                 borderLeft: `3px solid ${accent}`,
                 borderRadius: '0 8px 8px 0',
-                bgcolor: 'rgba(255,255,255,0.025)',
+                bgcolor: alpha(surface[0], 0.025),
                 p: 1.5,
                 display: 'flex',
                 flexDirection: 'column',
@@ -380,9 +382,9 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
         '& .MuiOutlinedInput-root': {
             fontSize: '0.82rem',
             color: surface[100],
-            bgcolor: 'rgba(255,255,255,0.04)',
-            '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' },
-            '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.22)' },
+            bgcolor: overlayWhite[4],
+            '& fieldset': { borderColor: overlayWhite[10] },
+            '&:hover fieldset': { borderColor: overlayWhite[22] },
             '&.Mui-focused fieldset': { borderColor: primary[500] },
         },
         '& .MuiInputLabel-root': { fontSize: '0.72rem', color: surface[500] },
@@ -402,7 +404,7 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
                 px: 0.75,
                 py: 0.25,
                 borderRadius: '4px',
-                bgcolor: 'rgba(255,255,255,0.07)',
+                bgcolor: overlayWhite[7],
                 fontSize: '0.62rem',
                 fontWeight: 700,
                 color: surface[400],
@@ -446,8 +448,8 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
                 px: 1.5,
                 py: 0.7,
                 borderRadius: '6px',
-                bgcolor: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                bgcolor: overlayWhite[4],
+                border: `1px solid ${overlayWhite[8]}`,
                 display: 'flex',
                 gap: 2.5,
             }}
@@ -527,13 +529,13 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
 
                 {isIntervalado ? (
                     /* ── Série (Intervalado / Fartlek) ── */
-                    <Box sx={{ border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', overflow: 'hidden' }}>
+                    <Box sx={{ border: `1px solid ${overlayWhite[10]}`, borderRadius: '10px', overflow: 'hidden' }}>
                         <Box
                             sx={{
                                 px: 1.5,
                                 py: 0.85,
-                                bgcolor: 'rgba(255,255,255,0.035)',
-                                borderBottom: '1px solid rgba(255,255,255,0.07)',
+                                bgcolor: alpha(surface[0], 0.035),
+                                borderBottom: `1px solid ${overlayWhite[7]}`,
                                 display: 'flex',
                                 alignItems: 'center',
                             }}
@@ -628,7 +630,7 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
                     sx={{
                         pt: 1.5,
                         mt: 0.5,
-                        borderTop: '1px solid rgba(255,255,255,0.07)',
+                        borderTop: `1px solid ${overlayWhite[7]}`,
                         display: 'flex',
                         flexDirection: 'column',
                         gap: 1.25,

@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Box, CircularProgress, LinearProgress, Paper, Stack, Typography } from '@mui/material';
 import { MetricasService } from '../../../services/MetricasService';
 import type { AdesaoSemanal } from '../../../types/Metricas';
-import { glassAzulSx, glassAzulSxHover, transitions, primary } from '../../../theme/tokens';
+import { glassAzulSx, glassAzulSxHover, transitions, primary, surface } from '../../../theme/tokens';
+import { overlayWhite } from '../../../theme/overlays';
 
 interface TaxaAdesaoWidgetProps {
   atletaId: string;
@@ -42,7 +43,7 @@ export default function TaxaAdesaoWidget({ atletaId, atletaNome }: TaxaAdesaoWid
         variant="h6"
         sx={{
           fontWeight: 700,
-          color: '#ffffff',
+          color: surface[0],
           mb: 2,
           fontSize: '1rem',
         }}
@@ -53,7 +54,7 @@ export default function TaxaAdesaoWidget({ atletaId, atletaNome }: TaxaAdesaoWid
       <Stack spacing={2}>
         <Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-            <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+            <Typography variant="caption" sx={{ color: overlayWhite[70] }}>
               Semana Atual
             </Typography>
             <Typography variant="caption" sx={{ color: primary[500], fontWeight: 700 }}>
@@ -75,7 +76,7 @@ export default function TaxaAdesaoWidget({ atletaId, atletaNome }: TaxaAdesaoWid
           <Typography
             variant="caption"
             sx={{
-              color: 'rgba(255, 255, 255, 0.5)',
+              color: overlayWhite[50],
               fontSize: '0.7rem',
               mt: 0.5,
             }}
@@ -86,7 +87,7 @@ export default function TaxaAdesaoWidget({ atletaId, atletaNome }: TaxaAdesaoWid
 
         <Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-            <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+            <Typography variant="caption" sx={{ color: overlayWhite[70] }}>
               Média Últimas 4 Semanas
             </Typography>
             <Typography variant="caption" sx={{ color: primary[500], fontWeight: 700 }}>
@@ -112,7 +113,7 @@ export default function TaxaAdesaoWidget({ atletaId, atletaNome }: TaxaAdesaoWid
             <Typography
               variant="caption"
               sx={{
-                color: 'rgba(255, 255, 255, 0.7)',
+                color: overlayWhite[70],
                 fontSize: '0.75rem',
                 mt: 1,
               }}
@@ -124,7 +125,7 @@ export default function TaxaAdesaoWidget({ atletaId, atletaNome }: TaxaAdesaoWid
                 <Typography
                   variant="caption"
                   sx={{
-                    color: 'rgba(255, 255, 255, 0.6)',
+                    color: overlayWhite[60],
                     minWidth: 50,
                     fontSize: '0.7rem',
                   }}
