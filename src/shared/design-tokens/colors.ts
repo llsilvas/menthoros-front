@@ -1,13 +1,13 @@
 export const primary = {
-  50:  '#F7FFE0',
-  100: '#EEFFCC',
-  200: '#E1FF9E',
-  300: '#D4FF6B',
-  400: '#CFFF4D',
-  500: '#D4FF3A', // canonical brand lime
-  600: '#A8CC2E',
-  700: '#7C9923',
-  800: '#506617',
+  50:  '#F6FAE8',
+  100: '#EDF6D1',
+  200: '#DFEFB0',
+  300: '#D2E98F',
+  400: '#C7E373',
+  500: '#BDDE5A', // brand canônico — lime suavizado (premium consolidado)
+  600: '#94B144',
+  700: '#748E32',
+  800: '#536A20',
   900: '#2A3D0A',
 } as const;
 
@@ -43,6 +43,12 @@ export const categorical = {
   cat6: '#14B8A6', // teal     — race_simulation
   cat7: '#8B5CF6', // violet   — long_run, recovery suggestion
   cat8: '#6B7280', // gray     — combined_session, deload, strength
+} as const;
+
+// Marcas externas — cor oficial de terceiros (não faz parte da paleta da marca;
+// usada só ao representar a integração correspondente, ex.: botão "conectar Strava").
+export const external = {
+  strava: '#FC4C02', // laranja oficial Strava
 } as const;
 
 export const colors = { primary, surface, semantic, categorical } as const;

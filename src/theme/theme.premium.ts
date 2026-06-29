@@ -59,7 +59,10 @@ export const text = {
 } as const;
 
 // ── Semantic (âncoras estáveis — inalteradas) ────────────────────────────────
-export const semantic = {
+// Interno ao arquivo: ancora `categorical`/`readiness`/`zone`. NÃO exportado —
+// o `semantic` canônico (escalonado) vive em `tokens.ts`; expor este (flat)
+// criaria colisão de nome com forma incompatível (`semantic.warning[500]`).
+const semantic = {
   danger:  '#EF4444',
   warning: '#F59E0B',
   success: '#10B981',
@@ -118,13 +121,8 @@ export const zone = {
   Z5: semantic.danger,  // #EF4444
 } as const;
 
-// ── TrainingStatus — estado (ancora em semantic, sem colisão) ────────────────
-export const trainingStatus = {
-  REALIZADO: semantic.success,
-  PENDENTE:  text.secondary,
-  PERDIDO:   semantic.danger,
-  PARCIAL:   semantic.warning,
-} as const;
+// TrainingStatus premium é montado em `activeTheme.ts` (premiumTrainingStatus,
+// derivado de WORKOUT_STATUS_COLORS com delta em PARCIAL) — não duplicar aqui.
 
 // ── Sidebar — lime tint de seleção (uso de lime permitido = ação) ─────────────
 export const sidebar = {
@@ -159,7 +157,6 @@ export const premiumTokens = {
   trainingType,
   trainingStage,
   zone,
-  trainingStatus,
   sidebar,
   glass,
 } as const;
