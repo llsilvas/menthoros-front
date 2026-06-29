@@ -69,8 +69,10 @@ describe('FAIXA_APRESENTACAO', () => {
     expect(FAIXA_APRESENTACAO.FADIGA_EXCESSIVA.tone).toBe('danger');
     expect(FAIXA_APRESENTACAO.FADIGA_ALTA.tone).toBe('danger');
     expect(FAIXA_APRESENTACAO.FADIGA_MODERADA.tone).toBe('warning');
+    expect(FAIXA_APRESENTACAO.ACUMULANDO_FADIGA.tone).toBe('warning');
     expect(FAIXA_APRESENTACAO.MUITO_DESCANSADO.tone).toBe('warning');
     expect(FAIXA_APRESENTACAO.FATIGADO.tone).toBe('neutral');
+    expect(FAIXA_APRESENTACAO.RECUPERANDO.tone).toBe('neutral');
     expect(FAIXA_APRESENTACAO.FORMA_IDEAL.tone).toBe('success');
     expect(FAIXA_APRESENTACAO.DESCANSADO.tone).toBe('success');
   });

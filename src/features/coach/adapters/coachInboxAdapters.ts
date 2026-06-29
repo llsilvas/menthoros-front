@@ -197,6 +197,7 @@ export function buildSelectedAthleteFromDashboard(
       acuteLoad: latestPmc?.atl ?? roster.weeklyVolume,
       monotony: calcularMonotonia(pmcPoints),
       tsb: latestPmc?.tsb ?? null,
+      // precedência: PMC mais recente (mais granular/atual) > roster (pode estar stale)
       statusForma: latestPmc?.statusForma ?? roster.statusForma ?? null,
       acwr: calcularAcwr(latestPmc?.atl ?? null, latestPmc?.ctl ?? null),
       strain: calcularStrain(pmcPoints),

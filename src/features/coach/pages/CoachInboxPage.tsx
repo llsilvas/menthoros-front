@@ -124,7 +124,9 @@ function CoachInboxPage() {
   const isTargetRace = nextRace?.tag === 'ALVO';
 
   // Forma atual: consome a faixa resolvida pelo backend (sem recomputar limiar).
-  const formaApres = selected?.quickStats.statusForma ? FAIXA_APRESENTACAO[selected.quickStats.statusForma] : null;
+  // FAIXA_APRESENTACAO cobre as 9 faixas do contrato; faixa fora do mapa cai em
+  // null e a UI exibe '—' (degrada sem quebrar).
+  const currentFormDisplay = selected?.quickStats.statusForma ? FAIXA_APRESENTACAO[selected.quickStats.statusForma] : null;
   const acwrZone = getAcwrZone(selected?.quickStats.acwr ?? null);
 
   useEffect(() => {
@@ -577,9 +579,9 @@ function CoachInboxPage() {
                 <MetricTile
                   compact
                   label="Forma"
-                  value={formaApres?.label ?? '—'}
+                  value={currentFormDisplay?.label ?? '—'}
                   delta={selected.quickStats.tsb != null ? `TSB ${selected.quickStats.tsb}` : 'TSB não disponível'}
-                  tone={formaApres?.tone ?? 'neutral'}
+                  tone={currentFormDisplay?.tone ?? 'neutral'}
                 />
                 <MetricTile
                   compact

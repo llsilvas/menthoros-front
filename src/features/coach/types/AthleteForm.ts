@@ -52,6 +52,9 @@ export function getTsbFormaTone(forma: FormVariant): MetricTone {
 // ── Apresentação das faixas resolvidas pelo backend (FaixaTsb) ──────────────────
 // O backend resolve a faixa a partir do TSB; aqui só mapeamos faixa → label/tom
 // (presentation, sem limiares numéricos). 9 rótulos distintos, 4 tons.
+// Tom por severidade: fadiga alta/crítica → danger; fadiga moderada/acumulando e
+// MUITO_DESCANSADO → warning (este por risco de detraining/overtaper, não por
+// estar "ruim"); fatigado/recuperando → neutral; forma ideal/descansado → success.
 
 export interface FaixaApresentacao {
   label: string;
