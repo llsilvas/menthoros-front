@@ -1,5 +1,6 @@
 import type { EtapaTreinoDto, PlanoReviewStatusDto } from './PlanoReview';
 import type { Prova } from './Prova';
+import type { FaixaTsbStatus } from './FaixaTsb';
 
 /** Ponto PMC retornado pelo backend (datas como strings ISO). */
 export interface PmcPontoRaw {
@@ -8,6 +9,8 @@ export interface PmcPontoRaw {
     atl: number;
     tsb: number;
     tss: number;
+    /** Faixa de forma resolvida pelo backend a partir do TSB; ausente quando sem TSB. */
+    statusForma?: FaixaTsbStatus;
 }
 
 /** Aderência semanal ao plano de treino. */

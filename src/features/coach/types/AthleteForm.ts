@@ -1,4 +1,5 @@
 import { primary, semantic } from '../../../shared/design-tokens';
+import type { FaixaTsbStatus } from '../../../types/FaixaTsb';
 
 export type FormVariant =
   | 'form_excellent' // TSB >= 15  — primary-500 lime
@@ -47,3 +48,27 @@ export function getTsbFormaTone(forma: FormVariant): MetricTone {
       return 'danger';
   }
 }
+
+// ── Apresentação das faixas resolvidas pelo backend (FaixaTsb) ──────────────────
+// O backend resolve a faixa a partir do TSB; aqui só mapeamos faixa → label/tom
+// (presentation, sem limiares numéricos). 9 rótulos distintos, 4 tons.
+// Tom por severidade: fadiga alta/crítica → danger; fadiga moderada/acumulando e
+// MUITO_DESCANSADO → warning (este por risco de detraining/overtaper, não por
+// estar "ruim"); fatigado/recuperando → neutral; forma ideal/descansado → success.
+
+export interface FaixaApresentacao {
+  label: string;
+  tone: MetricTone;
+}
+
+export const FAIXA_APRESENTACAO: Record<FaixaTsbStatus, FaixaApresentacao> = {
+  FADIGA_EXCESSIVA:  { label: 'Fadiga excessiva',  tone: 'danger'  },
+  FADIGA_ALTA:       { label: 'Fadiga alta',       tone: 'danger'  },
+  FADIGA_MODERADA:   { label: 'Fadiga moderada',   tone: 'warning' },
+  ACUMULANDO_FADIGA: { label: 'Acumulando fadiga', tone: 'warning' },
+  FATIGADO:          { label: 'Fatigado',          tone: 'neutral' },
+  RECUPERANDO:       { label: 'Recuperando',       tone: 'neutral' },
+  FORMA_IDEAL:       { label: 'Forma ideal',       tone: 'success' },
+  DESCANSADO:        { label: 'Descansado',        tone: 'success' },
+  MUITO_DESCANSADO:  { label: 'Muito descansado',  tone: 'warning' },
+};

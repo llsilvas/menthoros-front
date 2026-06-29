@@ -2,6 +2,7 @@
  * Tipos de domínio dos dashboards do coach (contrato de `/api/v1/coach/**`).
  * Campos anuláveis no backend (`@JsonInclude(NON_NULL)`) são opcionais aqui.
  */
+import type { FaixaTsbStatus } from './FaixaTsb';
 
 /** Status de atenção do coach derivado no backend (`deriveStatus`). */
 export type CoachAtletaStatus = 'active' | 'warning' | 'danger' | 'paused';
@@ -16,6 +17,8 @@ export interface CoachAtletaResumo {
     atl?: number;
     /** TSB (forma); ausente quando sem métricas. */
     tsb?: number;
+    /** Faixa de forma resolvida pelo backend a partir do TSB; ausente quando sem TSB. */
+    statusForma?: FaixaTsbStatus;
     /** Fase de periodização; ausente quando sem plano. */
     fase?: string;
     status: CoachAtletaStatus;

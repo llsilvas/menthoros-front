@@ -48,7 +48,7 @@ import { elevation } from '../../../shared/design-tokens';
 import { content, primary, semantic, surface } from '../../../theme/tokens';
 import { buildRosterRowFromSummary, buildSelectedAthleteFromDashboard, getAcwrZone } from '../adapters/coachInboxAdapters';
 import { buildPmcDataPoints } from '../../athlete/adapters/pmcAdapter';
-import { formFromTSB, formVariantLabel, getTsbFormaTone } from '../types/AthleteForm';
+import { FAIXA_APRESENTACAO } from '../types/AthleteForm';
 import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
 
 type TabKey = 'diagnosis' | 'plan' | 'races';
@@ -123,7 +123,10 @@ function CoachInboxPage() {
   const nextRace = selected?.raceCalendar[0] ?? null;
   const isTargetRace = nextRace?.tag === 'ALVO';
 
-  const tsbForma = selected?.quickStats.tsb != null ? formFromTSB(selected.quickStats.tsb) : null;
+  // Forma atual: consome a faixa resolvida pelo backend (sem recomputar limiar).
+  // FAIXA_APRESENTACAO cobre as 9 faixas do contrato; faixa fora do mapa cai em
+  // null e a UI exibe '—' (degrada sem quebrar).
+  const currentFormDisplay = selected?.quickStats.statusForma ? FAIXA_APRESENTACAO[selected.quickStats.statusForma] : null;
   const acwrZone = getAcwrZone(selected?.quickStats.acwr ?? null);
 
   useEffect(() => {
@@ -576,9 +579,9 @@ function CoachInboxPage() {
                 <MetricTile
                   compact
                   label="Forma"
-                  value={tsbForma != null ? formVariantLabel[tsbForma] : '—'}
+                  value={currentFormDisplay?.label ?? '—'}
                   delta={selected.quickStats.tsb != null ? `TSB ${selected.quickStats.tsb}` : 'TSB não disponível'}
-                  tone={tsbForma != null ? getTsbFormaTone(tsbForma) : 'neutral'}
+                  tone={currentFormDisplay?.tone ?? 'neutral'}
                 />
                 <MetricTile
                   compact

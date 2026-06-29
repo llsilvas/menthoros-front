@@ -125,6 +125,9 @@ export function calcularPrevisaoForma(
   const ctlPrevisto = ctl * Math.exp(-diasAteProva / 42);
   const atlPrevisto = atl * Math.exp(-diasAteProva / 7);
   const tsbPrevisto = parseFloat((ctlPrevisto - atlPrevisto).toFixed(1));
+  // DÍVIDA: `formFromTSB` (limiar local) sobrevive só aqui — classifica um TSB
+  // PROJETADO (futuro), que o backend não resolve. Migrar para as fronteiras
+  // expostas pelo backend na change de follow-up (cond. add-taper-guidance).
   return { tsbPrevisto, formaPrevista: formFromTSB(tsbPrevisto) };
 }
 
@@ -194,6 +197,8 @@ export function buildSelectedAthleteFromDashboard(
       acuteLoad: latestPmc?.atl ?? roster.weeklyVolume,
       monotony: calcularMonotonia(pmcPoints),
       tsb: latestPmc?.tsb ?? null,
+      // precedência: PMC mais recente (mais granular/atual) > roster (pode estar stale)
+      statusForma: latestPmc?.statusForma ?? roster.statusForma ?? null,
       acwr: calcularAcwr(latestPmc?.atl ?? null, latestPmc?.ctl ?? null),
       strain: calcularStrain(pmcPoints),
       recovery: latestAdherence?.percentual ?? 0,
@@ -237,6 +242,7 @@ export function buildRosterRowFromSummary(roster: CoachAtletaResumo): CoachAthle
       acuteLoad: roster.weeklyVolume,
       monotony: 1,
       tsb: null,
+      statusForma: roster.statusForma ?? null,
       acwr: calcularAcwr(roster.atl ?? null, roster.ctl ?? null),
       strain: null, // resumo do roster não traz histórico PMC; strain só no perfil completo
       recovery: 0,
