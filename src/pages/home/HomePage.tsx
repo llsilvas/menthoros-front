@@ -14,7 +14,9 @@ import {
 } from '@mui/icons-material';
 import { useAtletas } from '../../hooks/useAtletas';
 import type { Atleta } from '../../types/Atleta';
-import { primary, surface } from '../../theme/tokens';
+import { alpha } from '@mui/material/styles';
+import { primary, surface, semantic } from '../../theme/tokens';
+import { overlayWhite } from '../../theme/overlays';
 import { elevation } from '../../shared/design-tokens';
 import StatCard from './components/StatCard';
 import AtletaStatusRow from './components/AtletaStatusRow';
@@ -130,7 +132,7 @@ export default function HomePage() {
           borderRadius: 1,
           background: elevation.panel,
           color: surface[50],
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          borderBottom: `1px solid ${overlayWhite[8]}`,
         }}
       >
         <Typography
@@ -148,7 +150,7 @@ export default function HomePage() {
         <Typography
           variant="body2"
           sx={{
-            color: 'rgba(232, 234, 237, 0.72)',
+            color: alpha(surface[200], 0.72),
             fontSize: '0.9rem',
           }}
         >
@@ -237,7 +239,7 @@ export default function HomePage() {
                 variant="h6"
                 sx={{
                   fontWeight: 700,
-                  color: '#ffffff',
+                  color: surface[0],
                   mb: 1.5,
                   fontSize: '1rem',
                   display: 'flex',
@@ -245,7 +247,7 @@ export default function HomePage() {
                   gap: 1,
                 }}
               >
-                <WarningIcon sx={{ fontSize: 20, color: '#F59E0B' }} />
+                <WarningIcon sx={{ fontSize: 20, color: semantic.warning[500] }} />
                 Precisam de Atenção ({atletasAtencao.length})
               </Typography>
               <Stack spacing={1} sx={{ maxWidth: 1000 }}>
@@ -259,7 +261,7 @@ export default function HomePage() {
           <Box sx={{ px: 3 }}>
             <Typography
               variant="h6"
-              sx={{ fontWeight: 700, color: '#ffffff', mb: 1.5, fontSize: '1rem' }}
+              sx={{ fontWeight: 700, color: surface[0], mb: 1.5, fontSize: '1rem' }}
             >
               {filtroAtivo
                 ? `Busca de Atletas (${atletasFiltrados.length})`
@@ -277,7 +279,7 @@ export default function HomePage() {
                 totalGeral={atletasLista.length}
               />
               {!filtroAtivo ? (
-                <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.9rem', pt: 2, textAlign: 'center' }}>
+                <Typography sx={{ color: overlayWhite[45], fontSize: '0.9rem', pt: 2, textAlign: 'center' }}>
                   Use o filtro acima para buscar atletas
                 </Typography>
               ) : listaLoading ? (
@@ -285,7 +287,7 @@ export default function HomePage() {
                   <CircularProgress size={28} />
                 </Box>
               ) : atletasFiltrados.length === 0 ? (
-                <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.9rem', pt: 2, textAlign: 'center' }}>
+                <Typography sx={{ color: overlayWhite[45], fontSize: '0.9rem', pt: 2, textAlign: 'center' }}>
                   Nenhum atleta encontrado para este filtro
                 </Typography>
               ) : (
@@ -313,7 +315,7 @@ export default function HomePage() {
           <Typography
             variant="body1"
             sx={{
-              color: 'rgba(255,255,255,0.6)',
+              color: overlayWhite[60],
               textAlign: 'center',
             }}
           >

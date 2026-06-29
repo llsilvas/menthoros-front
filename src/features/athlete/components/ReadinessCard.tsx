@@ -3,7 +3,8 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingFlatIcon from '@mui/icons-material/TrendingFlat';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
-import { primary, surface, semantic } from '../../../theme/tokens';
+import { surface } from '../../../theme/tokens';
+import { activeTheme } from '../../../theme/activeTheme';
 import { elevation } from '../../../shared/design-tokens';
 
 export interface ReadinessCardProps {
@@ -24,10 +25,10 @@ interface ReadinessLevel {
 }
 
 function getReadinessLevel(score: number): ReadinessLevel {
-  if (score >= 90) return { label: 'Ótima',    color: semantic.success[500] };
-  if (score >= 70) return { label: 'Alta',     color: primary[500]           };
-  if (score >= 40) return { label: 'Moderada', color: semantic.warning[500]  };
-  return               { label: 'Baixa',    color: semantic.danger[500]   };
+  if (score >= 90) return { label: 'Ótima',    color: activeTheme.readiness.optimal  };
+  if (score >= 70) return { label: 'Alta',     color: activeTheme.readiness.good      };
+  if (score >= 40) return { label: 'Moderada', color: activeTheme.readiness.caution   };
+  return               { label: 'Baixa',    color: activeTheme.readiness.critical  };
 }
 
 interface TrendConfig {

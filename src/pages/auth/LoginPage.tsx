@@ -4,8 +4,9 @@ import { Navigate, useNavigate } from 'react-router';
 import { ROUTES } from '../../constants/routes';
 import { useAuth } from '../../context/auth/useAuth';
 import { AuthService } from '../../services/auth/AuthService';
-import { gradients, glassAzulSx, glassAzulSxHover, transitions, primary } from '../../theme/tokens';
-import logoMenthoros from '../../assets/icons/menthoros_navbar.png';
+import { gradients, glassAzulSx, glassAzulSxHover, transitions, primary, surface } from '../../theme/tokens';
+import { overlayWhite } from '../../theme/overlays';
+import logoMenthoros from '../../assets/icons/menthoros_mark.png';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -75,7 +76,7 @@ export default function LoginPage() {
               variant="h5"
               sx={{
                 fontWeight: 700,
-                color: '#ffffff',
+                color: surface[0],
                 mb: 0.5,
               }}
             >
@@ -84,7 +85,7 @@ export default function LoginPage() {
             <Typography
               variant="body2"
               sx={{
-                color: 'rgba(255, 255, 255, 0.7)',
+                color: overlayWhite[70],
               }}
             >
               Acesse sua assessoria
@@ -99,11 +100,11 @@ export default function LoginPage() {
             disabled={submitting}
             fullWidth
             InputLabelProps={{
-              style: { color: 'rgba(255, 255, 255, 0.7)' },
+              style: { color: overlayWhite[70] },
             }}
             sx={{
               '& .MuiOutlinedInput-root': {
-                color: '#ffffff',
+                color: surface[0],
                 '& fieldset': {
                   borderColor: `4D`,
                 },
@@ -129,11 +130,11 @@ export default function LoginPage() {
             disabled={submitting}
             fullWidth
             InputLabelProps={{
-              style: { color: 'rgba(255, 255, 255, 0.7)' },
+              style: { color: overlayWhite[70] },
             }}
             sx={{
               '& .MuiOutlinedInput-root': {
-                color: '#ffffff',
+                color: surface[0],
                 '& fieldset': {
                   borderColor: `4D`,
                 },

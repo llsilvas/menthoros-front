@@ -21,6 +21,7 @@ import type { CoachRoute } from '../../../constants/routes';
 import { content, gradients, semantic, surface } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import { activeTheme } from '../../../theme/activeTheme';
+import menthorosMark from '../../../assets/icons/menthoros_mark.png';
 
 const { primary, sidebar, overlayBlack } = activeTheme;
 
@@ -370,17 +371,31 @@ export default function CoachSidebar({
         }}
       >
         {!collapsed && (
-          <Typography
-            sx={{
-              fontSize: '1rem',
-              fontWeight: 700,
-              color: primary[500],
-              letterSpacing: '-0.02em',
-              userSelect: 'none',
-            }}
-          >
-            Menthoros
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+            <Box
+              component="img"
+              src={menthorosMark}
+              alt="Menthoros"
+              sx={{
+                width: 32,
+                height: 32,
+                objectFit: 'contain',
+                userSelect: 'none',
+                flexShrink: 0,
+              }}
+            />
+            <Typography
+              sx={{
+                fontSize: '1rem',
+                fontWeight: 700,
+                color: primary[500],
+                letterSpacing: '-0.02em',
+                userSelect: 'none',
+              }}
+            >
+              Menthoros
+            </Typography>
+          </Box>
         )}
 
         <Tooltip title={collapsed ? 'Expandir sidebar  [ ' : 'Recolher sidebar  [ '} placement="right">

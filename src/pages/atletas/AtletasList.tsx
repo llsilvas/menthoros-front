@@ -29,6 +29,7 @@ import ProvasDialog from '../../components/features/provas/ProvasDialog';
 import SyncStravaButton from '../../components/features/strava/SyncStravaButton';
 import GerarProjecaoDialog from '../../components/features/projecao/GerarProjecaoDialog';
 import { primary, surface, semantic, categorical } from '../../theme/tokens';
+import { overlayWhite } from '../../theme/overlays';
 import { elevation } from '../../shared/design-tokens';
 
 type NivelExperienciaKey = 'INICIANTE' | 'INTERMEDIARIO' | 'AVANCADO';
@@ -235,7 +236,7 @@ const AtletasList: React.FC = () => {
           flexDirection: 'column',
           color: 'inherit',
           borderRadius: 1,
-          borderColor: 'rgba(255,255,255,0.10)',
+          borderColor: overlayWhite[10],
           overflow: 'hidden',
           background: elevation.card,
         }}
@@ -244,7 +245,7 @@ const AtletasList: React.FC = () => {
           sx={{
             px: 3,
             py: 2.25,
-            borderBottom: '1px solid rgba(255,255,255,0.08)',
+            borderBottom: `1px solid ${overlayWhite[8]}`,
             background: elevation.panel,
             color: surface[50],
           }}
@@ -295,7 +296,7 @@ const AtletasList: React.FC = () => {
             sx={{
               height: '100%',
               borderRadius: 1,
-              border: `1px solid rgba(255,255,255,0.10)`,
+              border: `1px solid ${overlayWhite[10]}`,
               background: elevation.card,
               p: { xs: 1.25, md: 1.5 },
               overflowY: 'auto',
@@ -364,7 +365,7 @@ const AtletasList: React.FC = () => {
                         display: 'flex',
                         flexDirection: 'column',
                         gap: 0.75,
-                        border: '1px solid rgba(255,255,255,0.08)',
+                        border: `1px solid ${overlayWhite[8]}`,
                         borderLeft: `4px solid ${rowTone.border}`,
                         borderRadius: 1,
                         bgcolor: rowTone.bg,
@@ -448,9 +449,9 @@ const AtletasList: React.FC = () => {
                           onClick={() => handleViewPlanos(atleta.id)}
                           sx={{
                             width: 32, height: 32,
-                            border: '1px solid rgba(255,255,255,0.12)',
+                            border: `1px solid ${overlayWhite[12]}`,
                             borderRadius: 1,
-                            bgcolor: 'rgba(255,255,255,0.05)',
+                            bgcolor: overlayWhite[5],
                           }}
                         >
                           <CalendarIcon sx={{ fontSize: 17, color: surface[400] }} />
@@ -460,9 +461,9 @@ const AtletasList: React.FC = () => {
                           onClick={() => handleViewProvas(atleta.id)}
                           sx={{
                             width: 32, height: 32,
-                            border: '1px solid rgba(255,255,255,0.12)',
+                            border: `1px solid ${overlayWhite[12]}`,
                             borderRadius: 1,
-                            bgcolor: 'rgba(255,255,255,0.05)',
+                            bgcolor: overlayWhite[5],
                           }}
                         >
                           <EmojiEventsIcon sx={{ fontSize: 17, color: surface[400] }} />
@@ -486,9 +487,9 @@ const AtletasList: React.FC = () => {
                           onClick={() => handleOpenDialog(atleta)}
                           sx={{
                             width: 32, height: 32,
-                            border: '1px solid rgba(255,255,255,0.12)',
+                            border: `1px solid ${overlayWhite[12]}`,
                             borderRadius: 1,
-                            bgcolor: 'rgba(255,255,255,0.05)',
+                            bgcolor: overlayWhite[5],
                           }}
                         >
                           <EditIcon sx={{ fontSize: 17, color: surface[400] }} />

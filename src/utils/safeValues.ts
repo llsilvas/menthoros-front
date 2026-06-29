@@ -6,6 +6,8 @@
  * normalizam o acesso independentemente do formato recebido.
  */
 
+import { surface } from '../theme/tokens';
+
 export const getSafeValue = (value: unknown): string | number => {
     if (value === null || value === undefined) return '';
     if (typeof value === 'string' || typeof value === 'number') {
@@ -46,7 +48,7 @@ export const getSafeLabel = (value: unknown): string => {
     return String(value);
 };
 
-export const getSafeColor = (value: unknown, fallback: string = '#666666'): string => {
+export const getSafeColor = (value: unknown, fallback: string = surface[500]): string => {
     if (value && typeof value === 'object') {
         const candidate = value as { color?: unknown };
         if (candidate.color) {

@@ -26,7 +26,8 @@ import { useTheme } from '@mui/material/styles';
 import { TreinoService } from '../../../api/services/TreinoService';
 import type { TreinoPlanejado, EtapaTreino } from '../../../types/TreinoPlanejado';
 import { getSafeValue, getSafeNumber, getSafeLabel, getSafeColor } from '../../../utils/safeValues';
-import { glass, text, zones, primary, surface, semantic, categorical, content } from '../../../theme/tokens';
+import { glass, text, primary, surface, semantic, categorical, content, external } from '../../../theme/tokens';
+import { zones } from '../../../theme/activeTheme';
 import { elevation } from '../../../shared/design-tokens';
 import { WorkoutTimelineChart, toWorkoutBlocks } from './WorkoutTimelineChart';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
@@ -374,11 +375,11 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                         onClick={handleEnriquecerComStrava}
                                         disabled={enriching}
                                         sx={{
-                                            borderColor: '#FC4C02',
-                                            color: '#FC4C02',
+                                            borderColor: external.strava,
+                                            color: external.strava,
                                             fontSize: '0.75rem',
                                             py: 0.25,
-                                            '&:hover': { bgcolor: 'rgba(252,76,2,0.06)', borderColor: '#FC4C02' },
+                                            '&:hover': { bgcolor: alpha(external.strava, 0.06), borderColor: external.strava },
                                         }}
                                     >
                                         {enriching ? 'Buscando…' : 'Detalhes do Strava'}

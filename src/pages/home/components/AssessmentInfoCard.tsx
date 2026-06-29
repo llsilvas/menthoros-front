@@ -10,7 +10,9 @@ import {
   Person as PersonIcon,
 } from '@mui/icons-material';
 import { useUserInfo } from '../../../hooks/useUserInfo';
-import { glassSx, glassSxHover, transitions, primary } from '../../../theme/tokens';
+import { alpha } from '@mui/material/styles';
+import { glassSx, glassSxHover, transitions, primary, surface, semantic } from '../../../theme/tokens';
+import { overlayWhite } from '../../../theme/overlays';
 
 export default function AssessmentInfoCard() {
   const userInfo = useUserInfo();
@@ -50,7 +52,7 @@ export default function AssessmentInfoCard() {
               variant="h6"
               sx={{
                 fontWeight: 700,
-                color: '#ffffff',
+                color: surface[0],
                 fontSize: '0.95rem',
               }}
             >
@@ -59,7 +61,7 @@ export default function AssessmentInfoCard() {
             <Typography
               variant="caption"
               sx={{
-                color: 'rgba(255,255,255,0.6)',
+                color: overlayWhite[60],
                 fontSize: '0.75rem',
               }}
             >
@@ -72,16 +74,16 @@ export default function AssessmentInfoCard() {
           sx={{
             p: 1.5,
             borderRadius: 1,
-            bgcolor: 'rgba(100, 150, 200, 0.1)',
-            border: '1px solid rgba(100, 150, 200, 0.2)',
+            bgcolor: alpha(semantic.info[500], 0.1),
+            border: `1px solid ${alpha(semantic.info[500], 0.2)}`,
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-            <PersonIcon sx={{ fontSize: 18, color: '#a4d9ff' }} />
+            <PersonIcon sx={{ fontSize: 18, color: semantic.info[500] }} />
             <Typography
               variant="caption"
               sx={{
-                color: 'rgba(255,255,255,0.7)',
+                color: overlayWhite[70],
                 fontWeight: 600,
                 fontSize: '0.75rem',
               }}
@@ -96,7 +98,7 @@ export default function AssessmentInfoCard() {
                 <Typography
                   variant="caption"
                   sx={{
-                    color: 'rgba(255,255,255,0.6)',
+                    color: overlayWhite[60],
                     fontSize: '0.7rem',
                     textTransform: 'uppercase',
                   }}
@@ -107,7 +109,7 @@ export default function AssessmentInfoCard() {
                   sx={{
                     fontSize: '0.95rem',
                     fontWeight: 600,
-                    color: '#ffffff',
+                    color: surface[0],
                     mt: 0.25,
                   }}
                 >
@@ -132,7 +134,7 @@ export default function AssessmentInfoCard() {
                 <Typography
                   variant="caption"
                   sx={{
-                    color: 'rgba(255,255,255,0.6)',
+                    color: overlayWhite[60],
                     fontSize: '0.7rem',
                     textTransform: 'uppercase',
                   }}
@@ -142,7 +144,7 @@ export default function AssessmentInfoCard() {
                 <Typography
                   sx={{
                     fontSize: '0.85rem',
-                    color: '#a4d9ff',
+                    color: semantic.info[500],
                     mt: 0.25,
                     wordBreak: 'break-all',
                   }}

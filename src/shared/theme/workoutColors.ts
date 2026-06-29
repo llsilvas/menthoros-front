@@ -21,10 +21,7 @@ export const WORKOUT_TYPE_COLORS: Record<string, string> = {
   CONTINUO:     semantic.warning[400],
   DEFAULT:      surface[500],
 };
-
-export function workoutTypeColor(tipo?: string): string {
-  return WORKOUT_TYPE_COLORS[(tipo ?? '').toUpperCase()] ?? WORKOUT_TYPE_COLORS.DEFAULT;
-}
+// workoutTypeColor() vive em activeTheme.ts (flag-aware) — não duplicar aqui.
 
 // ── Status de execução ──────────────────────────────────────────────────────────
 export const WORKOUT_STATUS_COLORS: Record<string, string> = {

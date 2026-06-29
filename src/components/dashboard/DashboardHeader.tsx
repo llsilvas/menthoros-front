@@ -13,6 +13,7 @@ import Stack from '@mui/material/Stack';
 import { Link } from 'react-router';
 import { useUserInfo } from '../../hooks/useUserInfo';
 import { glass, primary, surface } from '../../theme/tokens';
+import { overlayWhite, overlayBlack } from '../../theme/overlays';
 import { elevation } from '../../shared/design-tokens';
 
 const AppBar = styled(MuiAppBar)(({ theme }) => ({
@@ -34,8 +35,8 @@ const LogoContainer = styled('div')({
   alignItems: 'center',
   padding: '4px 10px',
   borderRadius: 999,
-  background: 'rgba(255,255,255,0.12)',
-  boxShadow: '0 6px 16px rgba(0,0,0,0.15)',
+  background: overlayWhite[12],
+  boxShadow: `0 6px 16px ${overlayBlack[15]}`,
   '& img': {
     maxHeight: 44,
   },
@@ -150,7 +151,7 @@ export default function DashboardHeader({
                   color: surface[900],
                   fontWeight: 700,
                   fontSize: '0.875rem',
-                  border: `1px solid rgba(255,255,255,0.20)`,
+                  border: `1px solid ${overlayWhite[20]}`,
                   flexShrink: 0,
                 }}
               >

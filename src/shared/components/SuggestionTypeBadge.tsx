@@ -1,4 +1,5 @@
 import { Box, Typography } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { categorical, semantic, surface } from '../../shared/design-tokens';
 
 export type SuggestionType =
@@ -37,23 +38,6 @@ const sizeStyles: Record<
   md: { fontSize: '0.8rem', height: 24 },
 };
 
-function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result
-    ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16),
-      }
-    : null;
-}
-
-function withOpacity(hex: string, opacity: number): string {
-  const rgb = hexToRgb(hex);
-  if (!rgb) return hex;
-  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity})`;
-}
-
 export function SuggestionTypeBadge({
   type,
   size = 'sm',
@@ -66,7 +50,7 @@ export function SuggestionTypeBadge({
     variant === 'solid'
       ? config.color
       : variant === 'soft'
-      ? withOpacity(config.color, 0.15)
+      ? alpha(config.color, 0.15)
       : 'transparent';
 
   const textColor: string =

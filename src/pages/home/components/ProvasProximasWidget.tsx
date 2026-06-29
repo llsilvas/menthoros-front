@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Box, CircularProgress, Paper, Stack, Typography } from '@mui/material';
 import { ProvaService } from '../../../api/services/ProvaService';
 import type { ProvaProxima } from '../../../types/Metricas';
-import { glassAzulSx, glassAzulSxHover, transitions, primary } from '../../../theme/tokens';
+import { glassAzulSx, glassAzulSxHover, transitions, primary, surface } from '../../../theme/tokens';
+import { overlayWhite } from '../../../theme/overlays';
 
 export default function ProvasProximasWidget() {
   const [provas, setProvas] = useState<ProvaProxima[]>([]);
@@ -32,7 +33,7 @@ export default function ProvasProximasWidget() {
           variant="h6"
           sx={{
             fontWeight: 700,
-            color: '#ffffff',
+            color: surface[0],
             mb: 2,
             fontSize: '1rem',
           }}
@@ -42,7 +43,7 @@ export default function ProvasProximasWidget() {
         <Typography
           variant="body2"
           sx={{
-            color: 'rgba(255, 255, 255, 0.6)',
+            color: overlayWhite[60],
           }}
         >
           Nenhuma prova nos próximos 15 dias
@@ -65,7 +66,7 @@ export default function ProvasProximasWidget() {
         variant="h6"
         sx={{
           fontWeight: 700,
-          color: '#ffffff',
+          color: surface[0],
           mb: 2,
           fontSize: '1rem',
         }}
@@ -90,7 +91,7 @@ export default function ProvasProximasWidget() {
                   variant="subtitle2"
                   sx={{
                     fontWeight: 700,
-                    color: '#ffffff',
+                    color: surface[0],
                     mb: 0.5,
                   }}
                 >
@@ -99,7 +100,7 @@ export default function ProvasProximasWidget() {
                 <Typography
                   variant="caption"
                   sx={{
-                    color: 'rgba(255, 255, 255, 0.7)',
+                    color: overlayWhite[70],
                     display: 'block',
                     mb: 0.5,
                   }}
@@ -110,7 +111,7 @@ export default function ProvasProximasWidget() {
                   <Typography
                     variant="caption"
                     sx={{
-                      color: 'rgba(255, 255, 255, 0.6)',
+                      color: overlayWhite[60],
                       fontSize: '0.7rem',
                     }}
                   >
@@ -132,7 +133,7 @@ export default function ProvasProximasWidget() {
                 <Typography
                   variant="caption"
                   sx={{
-                    color: 'rgba(255, 255, 255, 0.7)',
+                    color: overlayWhite[70],
                     fontSize: '0.7rem',
                   }}
                 >

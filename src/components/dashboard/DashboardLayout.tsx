@@ -8,6 +8,7 @@ import DashboardHeader from './DashboardHeader';
 import DashboardSidebar from './DashboardSidebar';
 import logoMenthoros from '../../assets/icons/menthoros_navbar.png';
 import { text } from '../../theme/tokens';
+import { overlayBlack } from '../../theme/overlays';
 import { elevation } from '../../shared/design-tokens';
 
 export default function DashboardLayout() {
@@ -65,7 +66,7 @@ export default function DashboardLayout() {
             component="img"
             src={logoMenthoros}
             alt="Logo Menthoros"
-            sx={{ height: 44, filter: 'drop-shadow(0 6px 12px rgba(0,0,0,0.25))' }}
+            sx={{ height: 44, filter: `drop-shadow(0 6px 12px ${overlayBlack[25]})` }}
           />
         }
         title="Menthoros"

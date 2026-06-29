@@ -4,18 +4,21 @@ import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
 import DirectionsRunIcon from '@mui/icons-material/DirectionsRun';
 import AcUnitIcon from '@mui/icons-material/AcUnit';
 import BoltIcon from '@mui/icons-material/Bolt';
-import { zones } from '../../../../theme/tokens';
+import { alpha } from '@mui/material/styles';
+import { zones } from '../../../../theme/activeTheme';
+import { surface, semantic, categorical } from '../../../../theme/tokens';
+import { overlayBlack } from '../../../../theme/overlays';
 import type { WorkoutBlock, BlockType } from './types';
 import type { ZoneKey } from '../../../../theme/tokens';
 
 // ── Block-type color overrides ─────────────────────────────────────
 // These take priority over zone colors when blockType is set.
 const blockTypeColors: Record<BlockType, { color: string; fill: string; border: string; label: string }> = {
-  warmup:   { color: '#3498db', fill: 'rgba(52,152,219,0.18)',  border: '#3498db', label: 'Aquecimento' },
-  main:     { color: '#b3ff00', fill: 'rgba(179,255,0,0.18)',   border: '#b3ff00', label: 'Principal' },
-  cooldown: { color: '#f39c12', fill: 'rgba(243,156,18,0.18)',  border: '#f39c12', label: 'Desaquecimento' },
-  interval: { color: '#e74c3c', fill: 'rgba(231,76,60,0.18)',   border: '#e74c3c', label: 'Intervalo' },
-  recovery: { color: '#c8cdd4', fill: 'rgba(200,205,212,0.18)', border: '#c8cdd4', label: 'Recuperação' },
+  warmup:   { color: semantic.info[500],    fill: alpha(semantic.info[500], 0.18),    border: semantic.info[500],    label: 'Aquecimento' },
+  main:     { color: categorical.cat6,      fill: alpha(categorical.cat6, 0.18),      border: categorical.cat6,      label: 'Principal' },
+  cooldown: { color: semantic.warning[500], fill: alpha(semantic.warning[500], 0.18), border: semantic.warning[500], label: 'Desaquecimento' },
+  interval: { color: semantic.danger[500],  fill: alpha(semantic.danger[500], 0.18),  border: semantic.danger[500],  label: 'Intervalo' },
+  recovery: { color: surface[300],          fill: alpha(surface[300], 0.18),          border: surface[300],          label: 'Recuperação' },
 };
 
 interface WorkoutTimelineChartProps {
@@ -33,7 +36,7 @@ const zoneHeight: Record<ZoneKey, number> = {
 };
 
 // ── Icon helper ────────────────────────────────────────────────────
-function getIcon(hint?: string, color = '#6b7a8d'): React.ReactNode {
+function getIcon(hint?: string, color: string = surface[500]): React.ReactNode {
   const sx = { fontSize: 14, color };
   if (hint === 'warmup') return <LocalFireDepartmentIcon sx={sx} />;
   if (hint === 'cooldown') return <AcUnitIcon sx={sx} />;
@@ -74,8 +77,8 @@ export const WorkoutTimelineChart: React.FC<WorkoutTimelineChartProps> = ({ bloc
     return (
       <Box
         sx={{
-          bgcolor: '#fff',
-          border: '1px solid #d1d5db',
+          bgcolor: surface[0],
+          border: `1px solid ${surface[300]}`,
           borderRadius: '10px',
           p: 2,
         }}
@@ -99,8 +102,8 @@ export const WorkoutTimelineChart: React.FC<WorkoutTimelineChartProps> = ({ bloc
   return (
     <Box
       sx={{
-        bgcolor: '#fff',
-        border: '1px solid #d1d5db',
+        bgcolor: surface[0],
+        border: `1px solid ${surface[300]}`,
         borderRadius: '10px',
         p: 2,
         position: 'relative',
@@ -121,7 +124,7 @@ export const WorkoutTimelineChart: React.FC<WorkoutTimelineChartProps> = ({ bloc
             sx={{
               bgcolor: zones[dominantZone].fill,
               border: `1px solid ${zones[dominantZone].border}`,
-              color: '#374151',
+              color: surface[700],
               fontSize: '0.75rem',
               fontWeight: 'bold',
               height: 20,
@@ -170,7 +173,7 @@ export const WorkoutTimelineChart: React.FC<WorkoutTimelineChartProps> = ({ bloc
                 overflow: 'visible',
                 boxSizing: 'border-box',
                 '&:hover': {
-                  bgcolor: zone.fill.replace('0.18', '0.30'),
+                  bgcolor: alpha(zone.border, 0.30),
                   transform: 'scaleY(1.04)',
                   transformOrigin: 'bottom',
                   zIndex: 1,
@@ -185,7 +188,7 @@ export const WorkoutTimelineChart: React.FC<WorkoutTimelineChartProps> = ({ bloc
                     sx={{
                       fontWeight: 700,
                       fontSize: '10px',
-                      color: '#374151',
+                      color: surface[700],
                       textAlign: 'center',
                       overflow: 'hidden',
                       whiteSpace: 'nowrap',
@@ -199,7 +202,7 @@ export const WorkoutTimelineChart: React.FC<WorkoutTimelineChartProps> = ({ bloc
                   </Typography>
                   <Typography
                     variant="caption"
-                    sx={{ color: '#6b7a8d', mt: 0.25 }}
+                    sx={{ color: surface[500], mt: 0.25 }}
                   >
                     {formatDuration(block.durationMin)}
                   </Typography>
@@ -215,28 +218,28 @@ export const WorkoutTimelineChart: React.FC<WorkoutTimelineChartProps> = ({ bloc
                     left: '50%',
                     transform: 'translateX(-50%)',
                     mb: 1,
-                    bgcolor: '#1e293b',
-                    color: '#f8fafc',
+                    bgcolor: surface[700],
+                    color: surface[50],
                     borderRadius: '6px',
                     px: 1.5,
                     py: 1,
                     zIndex: 10,
                     whiteSpace: 'nowrap',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+                    boxShadow: `0 4px 12px ${overlayBlack[25]}`,
                     pointerEvents: 'none',
                   }}
                 >
                   <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.25 }}>
                     {block.label}
                   </Typography>
-                  <Typography variant="caption" sx={{ color: '#94a3b8' }}>
+                  <Typography variant="caption" sx={{ color: surface[400] }}>
                     {formatDuration(block.durationMin)}
                   </Typography>
                   <Typography variant="caption" sx={{ color: zone.border, fontWeight: 600, mt: 0.25, display: 'block' }}>
                     {zoneName(block.zoneKey)}
                   </Typography>
                   {block.description && (
-                    <Typography variant="caption" sx={{ color: '#94a3b8', mt: 0.25, display: 'block' }}>
+                    <Typography variant="caption" sx={{ color: surface[400], mt: 0.25, display: 'block' }}>
                       {block.description}
                     </Typography>
                   )}
@@ -251,7 +254,7 @@ export const WorkoutTimelineChart: React.FC<WorkoutTimelineChartProps> = ({ bloc
                       height: 0,
                       borderLeft: '5px solid transparent',
                       borderRight: '5px solid transparent',
-                      borderTop: '5px solid #1e293b',
+                      borderTop: `5px solid ${surface[700]}`,
                     }}
                   />
                 </Box>
@@ -263,10 +266,10 @@ export const WorkoutTimelineChart: React.FC<WorkoutTimelineChartProps> = ({ bloc
 
       {/* Duration axis label */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5, px: 0.25 }}>
-        <Typography variant="caption" sx={{ color: '#9ca3af' }}>
+        <Typography variant="caption" sx={{ color: surface[400] }}>
           0
         </Typography>
-        <Typography variant="caption" sx={{ color: '#9ca3af' }}>
+        <Typography variant="caption" sx={{ color: surface[400] }}>
           {formatDuration(totalDurationMin)}
         </Typography>
       </Box>
@@ -302,10 +305,10 @@ export const WorkoutTimelineChart: React.FC<WorkoutTimelineChartProps> = ({ bloc
                   flexShrink: 0,
                 }}
               />
-              <Typography sx={{ fontSize: '10px', color: '#374151', fontWeight: 600, lineHeight: 1 }}>
+              <Typography sx={{ fontSize: '10px', color: surface[700], fontWeight: 600, lineHeight: 1 }}>
                 Z{zKey.replace('Z', '')} {z.label}
               </Typography>
-              <Typography variant="caption" sx={{ color: '#6b7a8d' }}>
+              <Typography variant="caption" sx={{ color: surface[500] }}>
                 {zonePct}%
               </Typography>
             </Box>

@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
 import { activeTheme } from '../../theme/activeTheme';
 
-// Lime de marca ativo (primary[500]) decomposto em [r,g,b]. Derivado do tema
-// ativo: premium-v2 troca #D4FF3A → #BDDE5A, então o audit segue a flag sem
-// hex hardcoded. getComputedStyle reporta cor opaca como "rgb(r, g, b)".
+// Lime de marca (primary[500] = #BDDE5A) decomposto em [r,g,b]. Derivado do
+// token ativo, sem hex hardcoded. getComputedStyle reporta cor opaca como
+// "rgb(r, g, b)".
 const LIME_HEX = activeTheme.primary[500];
 const LIME_RGB: [number, number, number] = [
   parseInt(LIME_HEX.slice(1, 3), 16),
@@ -65,5 +65,5 @@ export function useLimeAudit(): void {
         'Consulte a "Disciplina do Lime" em finalize-design-system-dark-first/spec.md.'
       );
     }
-  });
+  }, []);
 }

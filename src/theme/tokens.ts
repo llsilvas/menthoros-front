@@ -1,11 +1,11 @@
 import { primary, surface, semantic, categorical, elevation } from '../shared/design-tokens';
 
-export { primary, surface, semantic, categorical } from '../shared/design-tokens';
+export { primary, surface, semantic, categorical, external } from '../shared/design-tokens';
 
 // ── MUI theme palette values ──────────────────────────────────────────────────
 export const colors = {
   primary: {
-    main:         primary[500],  // #D4FF3A — brand lime
+    main:         primary[500],  // #BDDE5A — brand lime
     light:        primary[400],
     dark:         primary[600],
     contrastText: surface[900],  // navy on lime buttons

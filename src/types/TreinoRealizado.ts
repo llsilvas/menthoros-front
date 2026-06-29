@@ -1,5 +1,6 @@
 import type { EtapaTreino } from './TreinoPlanejado';
 import { getSafeValue, getSafeNumber } from '../utils/safeValues';
+import { surface, semantic } from '../theme/tokens';
 
 export type TipoEtapa =
     | 'AQUECIMENTO'
@@ -9,11 +10,11 @@ export type TipoEtapa =
     | 'DESAQUECIMENTO';
 
 export const TIPO_ETAPA_OPTIONS = [
-    { value: 'AQUECIMENTO',    label: 'Aquecimento',    color: '#4CAF50' },
-    { value: 'PRINCIPAL',      label: 'Principal',      color: '#2196F3' },
-    { value: 'INTERVALADO',    label: 'Intervalado',    color: '#FF5722' },
-    { value: 'RECUPERACAO',    label: 'Recuperação',    color: '#FF9800' },
-    { value: 'DESAQUECIMENTO', label: 'Desaquecimento', color: '#9E9E9E' },
+    { value: 'AQUECIMENTO',    label: 'Aquecimento',    color: semantic.success[500] },
+    { value: 'PRINCIPAL',      label: 'Principal',      color: semantic.info[500] },
+    { value: 'INTERVALADO',    label: 'Intervalado',    color: semantic.danger[500] },
+    { value: 'RECUPERACAO',    label: 'Recuperação',    color: semantic.warning[500] },
+    { value: 'DESAQUECIMENTO', label: 'Desaquecimento', color: surface[500] },
 ] as const;
 
 /** Dados de referência da etapa planejada (somente exibição, não enviado ao backend) */

@@ -12,7 +12,8 @@ import {
 } from 'recharts';
 import { MetricasService } from '../../../services/MetricasService';
 import type { AdesaoDiaria } from '../../../types/Metricas';
-import { glassAzulSx, glassAzulSxHover, transitions, primary } from '../../../theme/tokens';
+import { glassAzulSx, glassAzulSxHover, transitions, primary, surface } from '../../../theme/tokens';
+import { overlayWhite } from '../../../theme/overlays';
 
 interface ChartDataPoint {
   dia: string;
@@ -98,7 +99,7 @@ export default function GraficoAdesaoWidget() {
           ...glassAzulSx,
         }}
       >
-        <Typography sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+        <Typography sx={{ color: overlayWhite[70] }}>
           {error || 'Sem dados disponíveis'}
         </Typography>
       </Paper>
@@ -116,7 +117,7 @@ export default function GraficoAdesaoWidget() {
           ...glassAzulSx,
         }}
       >
-        <Typography sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+        <Typography sx={{ color: overlayWhite[70] }}>
           Sem dados de treinos para exibir
         </Typography>
       </Paper>
@@ -146,7 +147,7 @@ export default function GraficoAdesaoWidget() {
         variant="h6"
         sx={{
           fontWeight: 700,
-          color: '#ffffff',
+          color: surface[0],
           mb: 2,
           fontSize: '1rem',
         }}
@@ -156,26 +157,26 @@ export default function GraficoAdesaoWidget() {
 
       <ResponsiveContainer width="100%" height={220}>
         <LineChart data={chartData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.08)" />
+          <CartesianGrid strokeDasharray="3 3" stroke={overlayWhite[8]} />
           <XAxis
             dataKey="dia"
-            stroke="rgba(255, 255, 255, 0.6)"
+            stroke={overlayWhite[60]}
             style={{ fontSize: '0.75rem' }}
           />
           <YAxis
             domain={[0, 100]}
             ticks={[0, 25, 50, 75, 100]}
-            stroke="rgba(255, 255, 255, 0.6)"
+            stroke={overlayWhite[60]}
             style={{ fontSize: '0.75rem' }}
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: '#1e293b',
+              backgroundColor: surface[700],
               border: 'none',
               borderRadius: 4,
-              color: '#f8fafc',
+              color: surface[50],
             }}
-            labelStyle={{ color: '#f8fafc' }}
+            labelStyle={{ color: surface[50] }}
             formatter={(value) => `${typeof value === 'number' ? value.toFixed(1) : value}%`}
           />
           <Legend

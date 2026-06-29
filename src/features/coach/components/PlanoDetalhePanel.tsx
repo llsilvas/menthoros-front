@@ -13,7 +13,7 @@ import AddIcon from '@mui/icons-material/Add';
 import { resolveReviewStatus } from '../../../types/PlanoReview';
 import type { DiaSemanaDto, PlanoSemanalDto, TreinoPlanejadoDto } from '../../../types/PlanoReview';
 import { primary, surface, semantic, content } from '../../../theme/tokens';
-import { workoutTypeColor } from '../../../shared/theme/workoutColors';
+import { workoutTypeColor } from '../../../theme/activeTheme';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { DANGER_BTN_SX, GHOST_BTN_SX } from '../../../shared/components/actionButtonSx';
 

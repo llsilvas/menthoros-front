@@ -14,7 +14,9 @@ import {
 } from '@mui/icons-material';
 import type { StravaStatusGlobal } from '../../../types/Metricas';
 import { StravaService } from '../../../services/StravaService';
-import { glassAzulSx, glassAzulSxHover, transitions, primary } from '../../../theme/tokens';
+import { alpha } from '@mui/material/styles';
+import { glassAzulSx, glassAzulSxHover, transitions, primary, surface, semantic } from '../../../theme/tokens';
+import { overlayWhite } from '../../../theme/overlays';
 
 export default function StravaStatusWidget() {
   const [status, setStatus] = useState<StravaStatusGlobal | null>(null);
@@ -59,7 +61,7 @@ export default function StravaStatusWidget() {
             variant="h6"
             sx={{
               fontWeight: 700,
-              color: '#ffffff',
+              color: surface[0],
               fontSize: '1rem',
             }}
           >
@@ -79,18 +81,18 @@ export default function StravaStatusWidget() {
               sx={{
                 p: 1.5,
                 borderRadius: 1,
-                bgcolor: 'rgba(52, 192, 100, 0.1)',
-                border: '1px solid rgba(52, 192, 100, 0.3)',
+                bgcolor: alpha(semantic.success[500], 0.1),
+                border: `1px solid ${alpha(semantic.success[500], 0.3)}`,
               }}
             >
-              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+              <Typography variant="caption" sx={{ color: overlayWhite[70] }}>
                 Conectados
               </Typography>
               <Typography
                 sx={{
                   fontSize: '1.25rem',
                   fontWeight: 700,
-                  color: '#34c064',
+                  color: semantic.success[500],
                   mt: 0.5,
                 }}
               >
@@ -98,7 +100,7 @@ export default function StravaStatusWidget() {
               </Typography>
               <Typography
                 variant="caption"
-                sx={{ color: 'rgba(255,255,255,0.6)', mt: 0.5, display: 'block' }}
+                sx={{ color: overlayWhite[60], mt: 0.5, display: 'block' }}
               >
                 {connectionPercentage}% conectado
               </Typography>
@@ -108,18 +110,18 @@ export default function StravaStatusWidget() {
               sx={{
                 p: 1.5,
                 borderRadius: 1,
-                bgcolor: 'rgba(100, 150, 200, 0.1)',
-                border: '1px solid rgba(100, 150, 200, 0.3)',
+                bgcolor: alpha(semantic.info[500], 0.1),
+                border: `1px solid ${alpha(semantic.info[500], 0.3)}`,
               }}
             >
-              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+              <Typography variant="caption" sx={{ color: overlayWhite[70] }}>
                 Sincronização
               </Typography>
               <Typography
                 sx={{
                   fontSize: '0.95rem',
                   fontWeight: 700,
-                  color: '#a4d9ff',
+                  color: semantic.info[500],
                   mt: 0.5,
                 }}
               >
@@ -127,7 +129,7 @@ export default function StravaStatusWidget() {
               </Typography>
               <Typography
                 variant="caption"
-                sx={{ color: 'rgba(255,255,255,0.6)', mt: 0.25, display: 'block' }}
+                sx={{ color: overlayWhite[60], mt: 0.25, display: 'block' }}
               >
                 Por atleta
               </Typography>
@@ -140,8 +142,8 @@ export default function StravaStatusWidget() {
               label={`${status.atletasConectados} conectados`}
               size="small"
               sx={{
-                bgcolor: 'rgba(52, 192, 100, 0.2)',
-                color: '#34c064',
+                bgcolor: alpha(semantic.success[500], 0.2),
+                color: semantic.success[500],
                 fontWeight: 600,
               }}
             />
@@ -150,8 +152,8 @@ export default function StravaStatusWidget() {
               label="Sincronize na aba Atletas"
               size="small"
               sx={{
-                bgcolor: 'rgba(52, 152, 219, 0.2)',
-                color: '#3498db',
+                bgcolor: alpha(semantic.info[500], 0.2),
+                color: semantic.info[500],
                 fontWeight: 500,
               }}
             />

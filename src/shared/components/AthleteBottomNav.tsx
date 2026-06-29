@@ -94,7 +94,7 @@ export function AthleteBottomNav({
                     justifyContent: 'center',
                     fontSize: '0.6rem',
                     fontWeight: 700,
-                    color: '#FFFFFF',
+                    color: surface[0],
                     lineHeight: 1,
                     pointerEvents: 'none',
                   }}

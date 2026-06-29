@@ -15,7 +15,9 @@ import {
     formatDistanceLabel,
     formatSeconds,
 } from '../../../types/RaceProjection';
-import { glassAzulSx, glassAzulSxHover, transitions, primary } from '../../../theme/tokens';
+import { alpha } from '@mui/material/styles';
+import { glassAzulSx, glassAzulSxHover, transitions, primary, surface, semantic } from '../../../theme/tokens';
+import { overlayWhite } from '../../../theme/overlays';
 
 interface ProjecaoEvolutionChartProps {
     atletaId: string;
@@ -39,7 +41,7 @@ interface CustomTooltipProps {
     label?: string | number;
 }
 
-const LINE_COLORS = [primary[500], '#3498db', '#e74c3c', '#f39c12'];
+const LINE_COLORS = [primary[500], semantic.info[500], semantic.danger[500], semantic.warning[500]];
 
 const ProjecaoEvolutionChart: React.FC<ProjecaoEvolutionChartProps> = ({ atletaId, provaId }) => {
     const { historico, loading, fetchHistorico } = useRaceProjection();
@@ -96,10 +98,10 @@ const ProjecaoEvolutionChart: React.FC<ProjecaoEvolutionChartProps> = ({ atletaI
     if (chartData.length < 2) {
         return (
             <Paper sx={{ p: 2.5, borderRadius: 1, ...glassAzulSx }}>
-                <Typography variant="h6" sx={{ fontWeight: 700, color: '#ffffff', mb: 1, fontSize: '1rem' }}>
+                <Typography variant="h6" sx={{ fontWeight: 700, color: surface[0], mb: 1, fontSize: '1rem' }}>
                     Evolução das Projeções Oficiais
                 </Typography>
-                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.6)' }}>
+                <Typography variant="body2" sx={{ color: overlayWhite[60] }}>
                     {historico.filter(s => s.isOfficial).length === 0
                         ? 'Nenhuma projeção oficial ainda'
                         : 'Necessário ao menos 2 projeções oficiais para exibir o gráfico'}
@@ -119,8 +121,8 @@ const ProjecaoEvolutionChart: React.FC<ProjecaoEvolutionChartProps> = ({ atletaI
     const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
         if (!active || !payload?.length) return null;
         return (
-            <Box sx={{ bgcolor: 'rgba(8,33,48,0.95)', border: '1px solid rgba(177,233,45,0.3)', borderRadius: 1, p: 1.5 }}>
-                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)', display: 'block', mb: 0.5 }}>
+            <Box sx={{ bgcolor: alpha(surface[900], 0.95), border: `1px solid ${alpha(primary[500], 0.3)}`, borderRadius: 1, p: 1.5 }}>
+                <Typography variant="caption" sx={{ color: overlayWhite[70], display: 'block', mb: 0.5 }}>
                     {label}
                 </Typography>
                 {payload.map((entry) => {
@@ -133,11 +135,11 @@ const ProjecaoEvolutionChart: React.FC<ProjecaoEvolutionChartProps> = ({ atletaI
                     return (
                         <Box key={dataKey} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                             <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: entry.color, flexShrink: 0 }} />
-                            <Typography variant="caption" sx={{ color: '#ffffff', fontWeight: 700 }}>
+                            <Typography variant="caption" sx={{ color: surface[0], fontWeight: 700 }}>
                                 {formatDistanceLabel(dist)}: {formatSeconds(value)}
                             </Typography>
                             {delta != null && (
-                                <Typography variant="caption" sx={{ color: delta < 0 ? primary[500] : '#e74c3c', fontWeight: 700 }}>
+                                <Typography variant="caption" sx={{ color: delta < 0 ? primary[500] : semantic.danger[500], fontWeight: 700 }}>
                                     ({delta < 0 ? '' : '+'}{formatSeconds(Math.abs(delta))})
                                 </Typography>
                             )}
@@ -158,22 +160,22 @@ const ProjecaoEvolutionChart: React.FC<ProjecaoEvolutionChartProps> = ({ atletaI
                 transition: transitions.default,
             }}
         >
-            <Typography variant="h6" sx={{ fontWeight: 700, color: '#ffffff', mb: 2, fontSize: '1rem' }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, color: surface[0], mb: 2, fontSize: '1rem' }}>
                 Evolução das Projeções Oficiais
             </Typography>
             <ResponsiveContainer width="100%" height={220}>
                 <LineChart data={chartData} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                    <CartesianGrid strokeDasharray="3 3" stroke={overlayWhite[10]} />
                     <XAxis
                         dataKey="date"
-                        tick={{ fill: 'rgba(255,255,255,0.7)', fontSize: 11 }}
-                        axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
+                        tick={{ fill: overlayWhite[70], fontSize: 11 }}
+                        axisLine={{ stroke: overlayWhite[20] }}
                         tickLine={false}
                     />
                     <YAxis
                         tickFormatter={formatYAxis}
-                        tick={{ fill: 'rgba(255,255,255,0.7)', fontSize: 11 }}
-                        axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
+                        tick={{ fill: overlayWhite[70], fontSize: 11 }}
+                        axisLine={{ stroke: overlayWhite[20] }}
                         tickLine={false}
                         reversed
                     />
@@ -181,7 +183,7 @@ const ProjecaoEvolutionChart: React.FC<ProjecaoEvolutionChartProps> = ({ atletaI
                     <Legend
                         formatter={(value) => {
                             const dist = parseInt(value.replace('dist_', ''), 10);
-                            return <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: 11 }}>{formatDistanceLabel(dist)}</span>;
+                            return <span style={{ color: overlayWhite[80], fontSize: 11 }}>{formatDistanceLabel(dist)}</span>;
                         }}
                     />
                     {distances.map((dist, i) => (
@@ -198,7 +200,7 @@ const ProjecaoEvolutionChart: React.FC<ProjecaoEvolutionChartProps> = ({ atletaI
                     ))}
                 </LineChart>
             </ResponsiveContainer>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', mt: 1, display: 'block' }}>
+            <Typography variant="caption" sx={{ color: overlayWhite[50], mt: 1, display: 'block' }}>
                 Y invertido: menor = mais rápido. Verde = melhora.
             </Typography>
         </Paper>
