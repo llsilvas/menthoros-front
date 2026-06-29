@@ -32,42 +32,6 @@ const RAW_COLOR_ALLOWLIST = [
   '**/*.spec.{ts,tsx}',
 ]
 
-// Ratchet transitório (baseline 0.1): arquivos sujos pré-migração com a regra
-// desligada individualmente. Encolhe a cada fase da migração premium-v2 e deve
-// chegar a ZERO na task 4.1 — então este bloco inteiro é removido.
-const RAW_COLOR_RATCHET = [
-  'src/App.tsx',
-  'src/components/dashboard/DashboardHeader.tsx',
-  'src/components/dashboard/DashboardLayout.tsx',
-  'src/components/features/planos/DetalheTreinoDialog.tsx',
-  'src/components/features/planos/WorkoutTimelineChart/WorkoutTimelineChart.tsx',
-  'src/components/features/projecao/ProjecaoEvolutionChart.tsx',
-  'src/features/athlete/components/PMCChart.tsx',
-  'src/features/athlete/components/TodayHeroCard.tsx',
-  'src/features/coach/components/TreinoEditDialog.tsx',
-  'src/features/coach/pages/CoachInboxPage.tsx',
-  'src/pages/atletas/AtletasList.tsx',
-  'src/pages/auth/LoginPage.tsx',
-  'src/pages/home/HomePage.tsx',
-  'src/pages/home/components/AssessmentInfoCard.tsx',
-  'src/pages/home/components/AtletasFiltros.tsx',
-  'src/pages/home/components/GraficoAdesaoWidget.tsx',
-  'src/pages/home/components/ProvasProximasWidget.tsx',
-  'src/pages/home/components/ResumoSemanalWidget.tsx',
-  'src/pages/home/components/StravaStatusWidget.tsx',
-  'src/pages/home/components/TaxaAdesaoWidget.tsx',
-  'src/pages/landing/LandingPage.tsx',
-  'src/pages/reconciliacao/components/AtividadePendenteCard.tsx',
-  'src/pages/reconciliacao/components/CandidatoItem.tsx',
-  'src/shared/components/AthleteBottomNav.tsx',
-  'src/shared/components/PhaseIndicator.tsx',
-  'src/shared/components/StatusBadge.tsx',
-  'src/shared/components/SuggestionTypeBadge.tsx',
-  'src/types/PlanoSemanal.ts',
-  'src/types/TreinoRealizado.ts',
-  'src/utils/safeValues.ts',
-]
-
 export default tseslint.config([
   globalIgnores(['dist']),
   {
@@ -93,9 +57,11 @@ export default tseslint.config([
       'no-restricted-syntax': 'off',
     },
   },
-  // Ratchet transitório — remover na task 4.1.
+  // Exceção permanente: páginas com identidade visual própria fora do design
+  // system dark (marketing/login). Palette bespoke (navies, limes, flat-UI) é
+  // intencional e não deve ser forçada aos tokens da aplicação.
   {
-    files: RAW_COLOR_RATCHET,
+    files: ['src/pages/landing/LandingPage.tsx', 'src/pages/auth/LoginPage.tsx'],
     rules: {
       'no-restricted-syntax': 'off',
     },
