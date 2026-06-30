@@ -1,5 +1,7 @@
 import { type ReactNode, useState } from "react";
-import { Box, Container, Link as MuiLink, Typography, useTheme, type SxProps, type Theme } from "@mui/material";
+import { Box, Container, Drawer, IconButton, Link as MuiLink, Stack, Typography, useTheme, type SxProps, type Theme } from "@mui/material";
+import MenuIcon from "@mui/icons-material/Menu";
+import CloseIcon from "@mui/icons-material/Close";
 import { Link as RouterLink } from "react-router";
 import { ROUTES } from "../constants/routes";
 import * as C from "./content";
@@ -26,9 +28,15 @@ function Section({ id, children, sx }: { id?: string; children: ReactNode; sx?: 
 }
 
 export function Nav() {
+  const [open, setOpen] = useState(false);
+  const close = () => setOpen(false);
+  const goSection = (id: string) => { close(); scrollToId(id); };
+
   return (
     <Container maxWidth="lg" sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", py: 2.75 }}>
       <Box component="img" src={logo} alt="Menthoros · AI Coaching" sx={{ height: 48, width: "auto", display: "block" }} />
+
+      {/* Desktop */}
       <Box sx={{ display: { xs: "none", md: "flex" }, gap: 3.75, alignItems: "center" }}>
         {C.nav.links.map((l) => (
           <MuiLink key={l.id} component="button" type="button" onClick={() => scrollToId(l.id)} underline="none"
@@ -42,6 +50,42 @@ export function Nav() {
         </MuiLink>
         <CtaButton onClick={() => scrollToId("acesso")}>{C.nav.cta}</CtaButton>
       </Box>
+
+      {/* Mobile — hamburger + drawer */}
+      <IconButton
+        onClick={() => setOpen(true)}
+        aria-label="Abrir menu"
+        sx={{ display: { xs: "inline-flex", md: "none" }, color: "text.primary" }}
+      >
+        <MenuIcon />
+      </IconButton>
+      <Drawer
+        anchor="right"
+        open={open}
+        onClose={close}
+        slotProps={{ paper: { sx: { width: 300, maxWidth: "85vw", bgcolor: "background.paper", p: 2.5 } } }}
+      >
+        <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}>
+          <IconButton onClick={close} aria-label="Fechar menu" sx={{ color: "text.secondary" }}>
+            <CloseIcon />
+          </IconButton>
+        </Box>
+        <Stack spacing={1.5} alignItems="stretch">
+          {C.nav.links.map((l) => (
+            <MuiLink key={l.id} component="button" type="button" onClick={() => goSection(l.id)} underline="none"
+              sx={{ color: "text.primary", fontSize: 16, textAlign: "left", py: 0.5, cursor: "pointer", "&:hover": { color: "primary.main" } }}>
+              {l.label}
+            </MuiLink>
+          ))}
+          <MuiLink component={RouterLink} to={ROUTES.LOGIN} onClick={close} underline="none"
+            sx={{ color: "text.primary", fontSize: 16, py: 0.5, "&:hover": { color: "primary.main" } }}>
+            {C.nav.login}
+          </MuiLink>
+          <Box sx={{ mt: 1 }}>
+            <CtaButton fullWidth onClick={() => goSection("acesso")}>{C.nav.cta}</CtaButton>
+          </Box>
+        </Stack>
+      </Drawer>
     </Container>
   );
 }
