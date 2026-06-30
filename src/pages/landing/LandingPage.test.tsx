@@ -1,33 +1,43 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-
-const navigateMock = vi.fn();
-vi.mock('react-router', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('react-router')>();
-  return { ...actual, useNavigate: () => navigateMock };
-});
-
+import { MemoryRouter } from 'react-router';
 import LandingPage from './LandingPage';
 
-describe('LandingPage — CTAs', () => {
-  beforeEach(() => {
-    navigateMock.mockReset();
+beforeEach(() => {
+  // Reveal usa IntersectionObserver (ausente no jsdom) — stub no-op.
+  vi.stubGlobal(
+    'IntersectionObserver',
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    },
+  );
+});
+
+function renderLanding() {
+  return render(
+    <MemoryRouter>
+      <LandingPage />
+    </MemoryRouter>,
+  );
+}
+
+describe('LandingPage premium', () => {
+  it('renderiza as seções premium (hero + CTA de acesso)', () => {
+    renderLanding();
+    expect(screen.getByText('decide.')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /solicitar acesso/i }).length).toBeGreaterThan(0);
   });
 
-  it('o CTA de conversão "Começar agora" navega para /waitlist', async () => {
+  it('o CTA rola até o formulário (scrollIntoView), sem navegar de rota', async () => {
+    const scrollSpy = vi.fn();
+    Element.prototype.scrollIntoView = scrollSpy;
     const user = userEvent.setup();
-    render(<LandingPage />);
+    renderLanding();
 
-    await user.click(screen.getByRole('button', { name: /começar agora/i }));
-    expect(navigateMock).toHaveBeenCalledWith('/waitlist');
-  });
-
-  it('o botão "Entrar" navega para /auth/login', async () => {
-    const user = userEvent.setup();
-    render(<LandingPage />);
-
-    await user.click(screen.getAllByRole('button', { name: /^entrar$/i })[0]);
-    expect(navigateMock).toHaveBeenCalledWith('/auth/login');
+    await user.click(screen.getAllByRole('button', { name: /solicitar acesso/i })[0]);
+    expect(scrollSpy).toHaveBeenCalled();
   });
 });

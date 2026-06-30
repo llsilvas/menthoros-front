@@ -63,19 +63,19 @@ export function AccessForm() {
         placeholder="Seu nome" value={nome}
         onChange={(e) => setNome(e.target.value)}
         error={!!errors.nome} helperText={errors.nome}
-        fullWidth size="medium" aria-label="Nome" inputProps={{ maxLength: 120 }} sx={fieldSx(t)}
+        fullWidth size="medium" inputProps={{ maxLength: 120, "aria-label": "Nome" }} sx={fieldSx(t)}
       />
       <TextField
         type="email" placeholder="Seu melhor email" value={email}
         onChange={(e) => setEmail(e.target.value)}
         error={!!errors.email} helperText={errors.email}
-        fullWidth size="medium" aria-label="Email" inputProps={{ maxLength: 180 }} sx={{ ...fieldSx(t), mt: 1.75 }}
+        fullWidth size="medium" inputProps={{ maxLength: 180, "aria-label": "Email" }} sx={{ ...fieldSx(t), mt: 1.75 }}
       />
       <TextField
         type="number" placeholder="Quantos atletas você acompanha?" value={athletes}
         onChange={(e) => setAthletes(e.target.value)}
         error={!!errors.athletes} helperText={errors.athletes}
-        inputProps={{ min: 1 }} fullWidth size="medium" aria-label="Número de atletas"
+        inputProps={{ min: 1, "aria-label": "Número de atletas" }} fullWidth size="medium"
         sx={{ ...fieldSx(t), mt: 1.75 }}
       />
 
