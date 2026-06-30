@@ -7,6 +7,8 @@ export const ROUTES = {
     RECONCILIACAO: '/reconciliacao',
     LOGIN: '/auth/login',
     REGISTRO: '/auth/registro',
+    WAITLIST: '/waitlist',
+    PRIVACIDADE: '/privacidade',
 
     // Coach shell (standardize-coach-shell-ux)
     COACH_INBOX:    '/coach/inbox',

@@ -9,6 +9,9 @@ import AtletasList from './pages/atletas/AtletasList';
 import ReconciliacaoPage from './pages/reconciliacao/ReconciliacaoPage';
 import LoginPage from './pages/auth/LoginPage';
 import LandingPage from './pages/landing/LandingPage';
+// Sem lazy: páginas públicas de pré-lançamento, carregam imediatamente sem spinner.
+import WaitlistPage from './pages/waitlist/WaitlistPage';
+import PrivacidadePage from './pages/waitlist/PrivacidadePage';
 import CoachLayout from './features/coach/layout/CoachLayout';
 // CoachAttentionQueuePage: sem rota em v1 — aguardando add-coach-queue-route
 const CoachInboxPage = lazy(() => import('./features/coach/pages/CoachInboxPage'));
@@ -163,6 +166,14 @@ const router = createHashRouter([
   {
     path: '/auth/login',
     element: <LoginPage />,
+  },
+  {
+    path: '/waitlist',
+    element: <WaitlistPage />,
+  },
+  {
+    path: '/privacidade',
+    element: <PrivacidadePage />,
   },
   {
     element: <ProtectedRoute />,
