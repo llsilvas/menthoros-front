@@ -17,7 +17,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
 
   if (isAuthenticated) {
-    return <Navigate to={ROUTES.HOME} replace />;
+    return <Navigate to={ROUTES.INICIO} replace />;
   }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -28,7 +28,7 @@ export default function LoginPage() {
     try {
       const result = await AuthService.login({ username, password });
       login(result.accessToken);
-      navigate(ROUTES.HOME, { replace: true });
+      navigate(ROUTES.INICIO, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao autenticar.');
     } finally {

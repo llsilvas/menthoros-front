@@ -1,6 +1,7 @@
 export const ROUTES = {
-    // Shell legado (mantido durante transição)
+    // `/` é a landing pública (marketing). A home autenticada legada vive em `/inicio`.
     HOME: '/',
+    INICIO: '/inicio',
     ATLETAS: '/atletas',
     PLANOS: '/planos',
     TREINOS: '/treinos',

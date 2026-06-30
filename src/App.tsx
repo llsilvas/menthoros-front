@@ -182,7 +182,7 @@ const router = createHashRouter([
       {
         element: <DashboardLayout />,
         children: [
-          { index: true,                  element: <HomePage /> },
+          { path: 'inicio',               element: <HomePage /> },
           { path: 'atletas',              element: <AtletasList /> },
           { path: 'reconciliacao',        element: <ReconciliacaoPage /> },
           { path: 'treinos',              element: <div>Página de Treinos (em construção)</div> },
