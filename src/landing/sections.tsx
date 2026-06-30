@@ -1,5 +1,7 @@
 import { type ReactNode, useState } from "react";
 import { Box, Container, Link as MuiLink, Typography, useTheme, type SxProps, type Theme } from "@mui/material";
+import { Link as RouterLink } from "react-router";
+import { ROUTES } from "../constants/routes";
 import * as C from "./content";
 import { Reveal, Eyebrow, SectionHeading, CtaButton, monoFont } from "./primitives";
 import { AttentionQueue, InterpretationCard } from "./ProductUI";
@@ -34,6 +36,10 @@ export function Nav() {
             {l.label}
           </MuiLink>
         ))}
+        <MuiLink component={RouterLink} to={ROUTES.LOGIN} underline="none"
+          sx={{ color: "text.secondary", fontSize: 14, "&:hover": { color: "text.primary" } }}>
+          {C.nav.login}
+        </MuiLink>
         <CtaButton onClick={() => scrollToId("acesso")}>{C.nav.cta}</CtaButton>
       </Box>
     </Container>
