@@ -82,7 +82,7 @@ export default function WaitlistPage() {
               variant="h5"
               sx={{ fontWeight: 700, color: surface[0], outline: 'none' }}
             >
-              Você está na lista! 🎉
+              Você está na lista!
             </Typography>
             <Typography variant="body2" sx={{ color: overlayWhite[70] }}>
               Recebemos seu cadastro. Em breve entraremos em contato sobre o acesso ao beta do Menthoros.
@@ -215,7 +215,7 @@ export default function WaitlistPage() {
               type="submit"
               variant="contained"
               size="large"
-              disabled={submitting || !aceiteLgpd}
+              disabled={submitting || !aceiteLgpd || !perfil}
               startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : undefined}
             >
               {submitting ? 'Enviando…' : 'Entrar na lista'}

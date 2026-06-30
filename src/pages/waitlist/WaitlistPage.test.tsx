@@ -5,16 +5,9 @@ import { MemoryRouter } from 'react-router';
 import WaitlistPage from './WaitlistPage';
 import { WaitlistService } from '../../services/WaitlistService';
 
-vi.mock('../../services/WaitlistService', () => ({
+vi.mock('../../services/WaitlistService', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../services/WaitlistService')>()),
   WaitlistService: { inscrever: vi.fn() },
-  WaitlistError: class WaitlistError extends Error {
-    status: number;
-    constructor(status: number, message?: string) {
-      super(message);
-      this.status = status;
-      this.name = 'WaitlistError';
-    }
-  },
 }));
 
 const inscreverMock = WaitlistService.inscrever as unknown as Mock;
@@ -37,12 +30,15 @@ describe('WaitlistPage', () => {
     inscreverMock.mockReset();
   });
 
-  it('mantém o envio desabilitado até aceitar a LGPD', async () => {
+  it('mantém o envio desabilitado até selecionar perfil e aceitar a LGPD', async () => {
     const user = userEvent.setup();
     renderPage();
 
     const submit = screen.getByRole('button', { name: /entrar na lista/i });
     expect(submit).toBeDisabled();
+
+    await selecionarPerfil(user, /^atleta$/i);
+    expect(submit).toBeDisabled(); // ainda falta o aceite LGPD
 
     await user.click(screen.getByRole('checkbox'));
     expect(submit).toBeEnabled();
