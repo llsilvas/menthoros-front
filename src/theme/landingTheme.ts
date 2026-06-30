@@ -7,15 +7,7 @@ import { premiumTokens } from './theme.premium';
 
 const { primary, surface, surfaceShift, text, semantic } = premiumTokens;
 
-// surfaceShift não existe no Palette padrão do MUI — augmentation explícita.
-declare module '@mui/material/styles' {
-  interface Palette {
-    surfaceShift: { panel: string; card: string; raised: string };
-  }
-  interface PaletteOptions {
-    surfaceShift?: { panel: string; card: string; raised: string };
-  }
-}
+// A augmentation de Palette.surfaceShift vive em theme/mui.d.ts (global, incondicional).
 
 export const landingTheme = createTheme({
   palette: {

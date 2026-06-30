@@ -1,13 +1,11 @@
 import { useState, type FormEvent } from "react";
 import { Box, Checkbox, FormControlLabel, Link, TextField, Typography, useTheme, type Theme } from "@mui/material";
 import { Link as RouterLink } from "react-router";
-import { CtaButton } from "./primitives";
+import { CtaButton, monoFont } from "./primitives";
 import { faixaDeAtletas } from "./athleteRange";
+import { validate, type AccessFormErrors } from "./accessFormValidation";
 import { useWaitlist } from "../hooks/useWaitlist";
-import type { WaitlistInput } from "../types/Waitlist";
-
-const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-const mono = "'JetBrains Mono', monospace";
+import type { PerfilWaitlist, WaitlistInput } from "../types/Waitlist";
 
 export function AccessForm() {
   const t = useTheme();
@@ -15,30 +13,24 @@ export function AccessForm() {
 
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
-  const [athletes, setAthletes] = useState("");
+  const [qtdAtletasRaw, setQtdAtletasRaw] = useState("");
   const [aceiteLgpd, setAceiteLgpd] = useState(false);
   const [website, setWebsite] = useState(""); // honeypot
-  const [errors, setErrors] = useState<{ nome?: string; email?: string; athletes?: string }>({});
+  const [errors, setErrors] = useState<AccessFormErrors>({});
 
   const submitting = status === "submitting";
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const next: typeof errors = {};
-    if (!nome.trim()) next.nome = "Informe seu nome.";
-    if (!EMAIL_RE.test(email)) next.email = "Informe um email válido.";
-    const n = Number(athletes);
-    if (!athletes.trim() || !Number.isFinite(n) || !Number.isInteger(n) || n < 1) {
-      next.athletes = "Quantos atletas você acompanha hoje?";
-    }
+    const next = validate(nome, email, qtdAtletasRaw);
     setErrors(next);
     if (Object.keys(next).length || !aceiteLgpd) return;
 
     const payload: WaitlistInput = {
       nome: nome.trim(),
       email: email.trim(),
-      perfil: "TREINADOR",
-      qtdAtletas: faixaDeAtletas(n),
+      perfil: "TREINADOR" satisfies PerfilWaitlist,
+      qtdAtletas: faixaDeAtletas(Number(qtdAtletasRaw)),
       aceiteLgpd,
       website: website || undefined,
     };
@@ -72,19 +64,19 @@ export function AccessForm() {
         fullWidth size="medium" inputProps={{ maxLength: 180, "aria-label": "Email" }} sx={{ ...fieldSx(t), mt: 1.75 }}
       />
       <TextField
-        type="number" placeholder="Quantos atletas você acompanha?" value={athletes}
-        onChange={(e) => setAthletes(e.target.value)}
-        error={!!errors.athletes} helperText={errors.athletes}
+        type="number" placeholder="Quantos atletas você acompanha?" value={qtdAtletasRaw}
+        onChange={(e) => setQtdAtletasRaw(e.target.value)}
+        error={!!errors.qtdAtletas} helperText={errors.qtdAtletas}
         inputProps={{ min: 1, "aria-label": "Número de atletas" }} fullWidth size="medium"
         sx={{ ...fieldSx(t), mt: 1.75 }}
       />
 
       {/* Honeypot anti-spam: oculto e fora da ordem de tabulação. */}
-      <Box
-        component="input" type="text" name="website" value={website}
-        onChange={(e) => setWebsite((e.target as HTMLInputElement).value)}
+      <input
+        type="text" name="website" value={website}
+        onChange={(e) => setWebsite(e.target.value)}
         tabIndex={-1} autoComplete="off" aria-hidden="true"
-        sx={{ position: "absolute", width: 1, height: 1, p: 0, m: "-1px", overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap", border: 0 }}
+        style={{ position: "absolute", width: 1, height: 1, padding: 0, margin: "-1px", overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap", border: 0 }}
       />
 
       <FormControlLabel
@@ -99,7 +91,7 @@ export function AccessForm() {
       />
 
       {status === "error" && (
-        <Typography role="alert" sx={{ color: "error.main", fontFamily: mono, fontSize: 12.5, mt: 1.5, textAlign: "center" }}>
+        <Typography role="alert" sx={{ color: "error.main", fontFamily: monoFont, fontSize: 12.5, mt: 1.5, textAlign: "center" }}>
           {error ?? "Não foi possível enviar agora. Tente novamente."}
         </Typography>
       )}
@@ -109,7 +101,7 @@ export function AccessForm() {
           {submitting ? "Enviando…" : "Solicitar acesso →"}
         </CtaButton>
       </Box>
-      <Typography sx={{ fontFamily: mono, color: "text.disabled", fontSize: 11, mt: 1.75, textAlign: "center" }}>
+      <Typography sx={{ fontFamily: monoFont, color: "text.disabled", fontSize: 11, mt: 1.75, textAlign: "center" }}>
         Sem compromisso · vagas limitadas
       </Typography>
     </Box>

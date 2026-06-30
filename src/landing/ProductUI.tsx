@@ -1,5 +1,6 @@
 import { Box, Typography, useTheme } from "@mui/material";
-import { glass } from "../theme/theme.premium";
+import { glass } from "../theme/tokens";
+import { PriorityBadge, monoFont, type Priority } from "./primitives";
 
 /* CTL = primary · ATL = text.secondary (steel) · TSB = warning (amber) — token roles, no raw hex */
 export function LoadChart() {
@@ -25,7 +26,8 @@ export function LoadChart() {
   );
 }
 
-const QUEUE_ROWS: [string, string, string, "ALTA" | "MÉDIA" | "BAIXA"][] = [
+// Dados ilustrativos da UI de produto (não vêm do backend — são conteúdo de marketing fixo).
+const QUEUE_ROWS: [string, string, string, Priority][] = [
   ["LF", "Lucas Ferreira", "Fadiga elevada · carga alta", "ALTA"],
   ["MC", "Mariana Costa", "Variabilidade baixa", "MÉDIA"],
   ["RA", "Rafael Almeida", "Progresso consistente", "BAIXA"],
@@ -35,41 +37,38 @@ const QUEUE_ROWS: [string, string, string, "ALTA" | "MÉDIA" | "BAIXA"][] = [
 
 export function AttentionQueue() {
   const t = useTheme();
-  const mono = "'JetBrains Mono', monospace";
-  const pri = (k: "ALTA" | "MÉDIA" | "BAIXA") =>
-    ({ ALTA: t.palette.error.main, "MÉDIA": t.palette.warning.main, BAIXA: t.palette.success.main })[k];
   return (
     <Box sx={{ bgcolor: t.palette.surfaceShift.panel, border: `1px solid ${t.palette.divider}`, borderRadius: "18px", p: 2.5, boxShadow: glass.boxShadow }}>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
-        <Typography sx={{ fontFamily: mono, fontSize: 12, letterSpacing: ".12em", color: "text.secondary" }}>
+        <Typography sx={{ fontFamily: monoFont, fontSize: 12, letterSpacing: ".12em", color: "text.secondary" }}>
           FILA DE ATENÇÃO
           <Box component="span" sx={{ color: "primary.contrastText", bgcolor: "primary.main", borderRadius: "5px", px: "7px", ml: 1, fontWeight: 700 }}>12</Box>
         </Typography>
-        <Typography sx={{ fontFamily: mono, fontSize: 11, color: "text.disabled" }}>4 SEMANAS</Typography>
+        <Typography sx={{ fontFamily: monoFont, fontSize: 11, color: "text.disabled" }}>4 SEMANAS</Typography>
       </Box>
 
       {QUEUE_ROWS.map(([initials, name, note, p]) => (
         <Box key={name} sx={{ display: "flex", alignItems: "center", gap: 1.5, py: 1.25, borderTop: `1px solid ${t.palette.divider}` }}>
-          <Box sx={{ width: 30, height: 30, borderRadius: "8px", bgcolor: t.palette.surfaceShift.raised, display: "grid", placeItems: "center", fontSize: 11, color: "text.secondary", fontFamily: mono, flexShrink: 0 }}>{initials}</Box>
+          <Box sx={{ width: 30, height: 30, borderRadius: "8px", bgcolor: t.palette.surfaceShift.raised, display: "grid", placeItems: "center", fontSize: 11, color: "text.secondary", fontFamily: monoFont, flexShrink: 0 }}>{initials}</Box>
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography sx={{ fontSize: 13.5, fontWeight: 500 }}>{name}</Typography>
             <Typography sx={{ fontSize: 12, color: "text.disabled" }}>{note}</Typography>
           </Box>
-          <Box component="span" sx={{ fontFamily: mono, fontSize: 10, fontWeight: 700, letterSpacing: ".08em", px: "8px", py: "3px", borderRadius: "5px", color: pri(p), bgcolor: `${pri(p)}22` }}>{p}</Box>
+          <PriorityBadge kind={p} />
         </Box>
       ))}
 
       <Box sx={{ borderTop: `1px solid ${t.palette.divider}`, mt: 1.75, pt: 1.75, display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 1.25 }}>
         {([["ATL", "86", t.palette.text.primary], ["CTL", "78", t.palette.text.primary], ["TSB", "−8", t.palette.warning.main], ["A:C", "1.11", t.palette.success.main]] as const).map(([k, v, c]) => (
           <Box key={k}>
-            <Typography sx={{ fontFamily: mono, fontSize: 10, color: "text.secondary", letterSpacing: ".1em" }}>{k}</Typography>
-            <Typography sx={{ fontFamily: mono, fontSize: 19, fontWeight: 700, color: c }}>{v}</Typography>
+            <Typography sx={{ fontFamily: monoFont, fontSize: 10, color: "text.secondary", letterSpacing: ".1em" }}>{k}</Typography>
+            <Typography sx={{ fontFamily: monoFont, fontSize: 19, fontWeight: 700, color: c }}>{v}</Typography>
           </Box>
         ))}
       </Box>
 
       <Box sx={{ mt: 1.75 }}><LoadChart /></Box>
-      <Box sx={{ display: "flex", gap: 2, mt: 1, fontFamily: mono, fontSize: 10.5 }}>
+      <Box sx={{ display: "flex", gap: 2, mt: 1, fontFamily: monoFont, fontSize: 10.5 }}>
         <Box component="span" sx={{ color: "primary.main" }}>● CTL</Box>
         <Box component="span" sx={{ color: "text.secondary" }}>● ATL</Box>
         <Box component="span" sx={{ color: "warning.main" }}>┄ TSB</Box>
@@ -78,31 +77,30 @@ export function AttentionQueue() {
   );
 }
 
-/* Capabilities view — deliberately DIFFERENT from the hero queue */
+/* Capabilities view — deliberately DIFFERENT from the hero queue. Conteúdo ilustrativo fixo. */
 export function InterpretationCard() {
   const t = useTheme();
-  const mono = "'JetBrains Mono', monospace";
   const metrics: [string, string, string?][] = [["DISTÂNCIA", "12,4 km"], ["PACE", "4:42"], ["DECOUPLING", "6,4%"]];
   return (
     <Box sx={{ bgcolor: t.palette.surfaceShift.panel, border: `1px solid ${t.palette.divider}`, borderRadius: "18px", p: 2.75, boxShadow: glass.boxShadow }}>
-      <Typography sx={{ fontFamily: mono, fontSize: 11, letterSpacing: ".14em", color: "text.secondary" }}>INTERPRETAÇÃO DO TREINO · HUGO SILVA</Typography>
+      <Typography sx={{ fontFamily: monoFont, fontSize: 11, letterSpacing: ".14em", color: "text.secondary" }}>INTERPRETAÇÃO DO TREINO · HUGO SILVA</Typography>
       <Box sx={{ display: "flex", gap: 1.75, my: 2, flexWrap: "wrap" }}>
         {metrics.map(([k, v]) => (
           <Box key={k} sx={{ flex: "1 1 90px" }}>
-            <Typography sx={{ fontFamily: mono, fontSize: 10, color: "text.secondary", letterSpacing: ".1em" }}>{k}</Typography>
-            <Typography sx={{ fontFamily: mono, fontSize: 20, fontWeight: 700 }}>{v}</Typography>
+            <Typography sx={{ fontFamily: monoFont, fontSize: 10, color: "text.secondary", letterSpacing: ".1em" }}>{k}</Typography>
+            <Typography sx={{ fontFamily: monoFont, fontSize: 20, fontWeight: 700 }}>{v}</Typography>
           </Box>
         ))}
         <Box sx={{ flex: "1 1 90px" }}>
-          <Typography sx={{ fontFamily: mono, fontSize: 10, color: "text.secondary", letterSpacing: ".1em" }}>FORM</Typography>
-          <Typography sx={{ fontFamily: mono, fontSize: 20, fontWeight: 700, color: "warning.main" }}>Fadigado</Typography>
+          <Typography sx={{ fontFamily: monoFont, fontSize: 10, color: "text.secondary", letterSpacing: ".1em" }}>FORM</Typography>
+          <Typography sx={{ fontFamily: monoFont, fontSize: 20, fontWeight: 700, color: "warning.main" }}>Fadigado</Typography>
         </Box>
       </Box>
       <Box sx={{ bgcolor: "background.default", border: `1px solid ${t.palette.divider}`, borderRadius: "12px", px: 2, py: 1.75, fontSize: 14, lineHeight: 1.5 }}>
         “Esse treino saiu <strong>acima da intenção</strong> e elevou a fadiga mais que o esperado. Sugiro ajuste de carga no próximo estímulo-chave.”
       </Box>
       <Box sx={{ mt: 1.75 }}>
-        <Typography sx={{ fontFamily: mono, fontSize: 11, color: "text.secondary", letterSpacing: ".1em", mb: 1 }}>RECOMENDAÇÃO · EXPLICÁVEL</Typography>
+        <Typography sx={{ fontFamily: monoFont, fontSize: 11, color: "text.secondary", letterSpacing: ".1em", mb: 1 }}>RECOMENDAÇÃO · EXPLICÁVEL</Typography>
         {["Reduzir volume no próximo bloco", "Manter o estímulo aeróbico de Z2", "Preservar o treino-chave da semana"].map((r) => (
           <Box key={r} sx={{ display: "flex", gap: 1.25, fontSize: 13.5, py: 0.5 }}>
             <Box component="span" sx={{ color: "primary.main" }}>✓</Box>{r}

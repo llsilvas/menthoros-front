@@ -1,8 +1,13 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Box, Button, Typography, useTheme, type SxProps, type Theme } from "@mui/material";
 
+/** Fonte monospace usada em toda a landing (eyebrows, métricas, badges). */
+export const monoFont = "'JetBrains Mono', monospace";
+
+interface RevealProps { children: ReactNode; sx?: SxProps<Theme>; }
+
 /* ----- scroll reveal (respects prefers-reduced-motion) ----- */
-export function Reveal({ children, sx }: { children: ReactNode; sx?: SxProps<Theme> }) {
+export function Reveal({ children, sx }: RevealProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [shown, setShown] = useState(false);
   useEffect(() => {
@@ -35,14 +40,16 @@ export function Reveal({ children, sx }: { children: ReactNode; sx?: SxProps<The
   );
 }
 
+interface EyebrowProps { children: ReactNode; center?: boolean; }
+
 /* ----- mono eyebrow with a lime tick ----- */
-export function Eyebrow({ children, center }: { children: ReactNode; center?: boolean }) {
+export function Eyebrow({ children, center }: EyebrowProps) {
   const t = useTheme();
   return (
     <Typography
       component="span"
       sx={{
-        fontFamily: "'JetBrains Mono', monospace",
+        fontFamily: monoFont,
         fontSize: 11,
         letterSpacing: ".22em",
         textTransform: "uppercase",
@@ -59,7 +66,9 @@ export function Eyebrow({ children, center }: { children: ReactNode; center?: bo
   );
 }
 
-export function SectionHeading({ children, center, sx }: { children: ReactNode; center?: boolean; sx?: SxProps<Theme> }) {
+interface SectionHeadingProps { children: ReactNode; center?: boolean; sx?: SxProps<Theme>; }
+
+export function SectionHeading({ children, center, sx }: SectionHeadingProps) {
   return (
     <Typography
       variant="h2"
@@ -78,10 +87,12 @@ export function SectionHeading({ children, center, sx }: { children: ReactNode; 
   );
 }
 
-export function CtaButton({ children, fullWidth, onClick, type, disabled }: {
+interface CtaButtonProps {
   children: ReactNode; fullWidth?: boolean;
   onClick?: () => void; type?: "button" | "submit"; disabled?: boolean;
-}) {
+}
+
+export function CtaButton({ children, fullWidth, onClick, type, disabled }: CtaButtonProps) {
   return (
     <Button
       onClick={onClick}
@@ -111,14 +122,17 @@ export function CtaButton({ children, fullWidth, onClick, type, disabled }: {
 
 /* ----- priority badge: ALTA/MÉDIA/BAIXA = semantic alerts ----- */
 export type Priority = "ALTA" | "MÉDIA" | "BAIXA";
-export function PriorityBadge({ kind }: { kind: Priority }) {
+
+interface PriorityBadgeProps { kind: Priority; }
+
+export function PriorityBadge({ kind }: PriorityBadgeProps) {
   const t = useTheme();
   const color = { ALTA: t.palette.error.main, "MÉDIA": t.palette.warning.main, BAIXA: t.palette.success.main }[kind];
   return (
     <Box
       component="span"
       sx={{
-        fontFamily: "'JetBrains Mono', monospace",
+        fontFamily: monoFont,
         fontSize: 10,
         fontWeight: 700,
         letterSpacing: ".08em",
