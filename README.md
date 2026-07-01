@@ -1,69 +1,64 @@
-# React + TypeScript + Vite
+# Menthoros Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Frontend web do **Menthoros**: a interface do sistema de decisão para treinadores de
+corrida/endurance.
 
-Currently, two official plugins are available:
+O foco da aplicação é ajudar o coach a:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- ver quem precisa de atenção primeiro;
+- entender o motivo do alerta;
+- revisar e aprovar sugestões da IA;
+- acompanhar atleta, plano e contexto sem sair do fluxo de trabalho.
 
-## Expanding the ESLint configuration
+## Stack principal
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- React 19
+- TypeScript ~5.8
+- Vite 7
+- MUI 7 + Emotion
+- react-router-dom 7
+- Axios com client gerado a partir do OpenAPI
+- Recharts
+- date-fns
+- Vitest + Testing Library
+- Playwright
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+> Não usamos Tailwind nem Redux/Zustand/React Query.
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
+## Como rodar
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Pré-requisitos:
+
+- Node.js compatível com o projeto
+- dependências instaladas com `npm install`
+
+Comandos úteis:
+
+```bash
+npm run dev
+npm run build
+npm run lint
+npm run test:run
+npm run test:e2e
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Convenções de produto
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- A interface é **coach-first**.
+- A IA propõe; o treinador decide.
+- A tela precisa explicar o que está acontecendo, não apenas mostrar métricas.
+- Copy e UX seguem PT-BR.
+- O produto prioriza ação, contexto e revisão, não automação cega.
 
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Estrutura relevante
+
+- `src/features/` — novas telas por domínio/role
+- `src/pages/` — shell legada ainda em transição
+- `src/api/` — client OpenAPI gerado
+- `src/landing/` — landing page e copy de marketing
+
+## Onde olhar primeiro
+
+- `CLAUDE.md` deste repositório: regras e padrões do módulo
+- `menthoros-product/openspec/SPRINTS.md`: roadmap canônico
+- `menthoros-product/prd/`: discovery e PRDs versionados
