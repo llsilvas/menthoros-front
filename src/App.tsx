@@ -4,6 +4,7 @@ import type {} from '@mui/x-data-grid/themeAugmentation';
 import { createHashRouter, RouterProvider } from 'react-router';
 import DashboardLayout from './components/dashboard/DashboardLayout';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import RoleRoute from './components/auth/RoleRoute';
 import HomePage from './pages/home/HomePage';
 import AtletasList from './pages/atletas/AtletasList';
 import ReconciliacaoPage from './pages/reconciliacao/ReconciliacaoPage';
@@ -206,16 +207,23 @@ const router = createHashRouter([
         ],
       },
       // Athlete shell — refine-athlete-shell-ux
+      // Guard de role: só ATLETA acessa; não-atleta (coach/admin) cai no /inicio em vez
+      // de bater 403 nos endpoints /me/* que exigem hasRole('ATLETA').
       {
         path: 'athlete',
-        element: <AthleteLayout />,
+        element: <RoleRoute allow={['ATLETA']} />,
         children: [
-          { path: 'home',          element: <AthleteHomePage /> },
-          { path: 'plan',          element: <AthletePlanPage /> },
-          { path: 'progress',      element: <AthleteProgressPage /> },
-          { path: 'coach',         element: <AthleteCoachPage /> },
-          { path: 'profile',       element: <AthleteProfilePage /> },
-          { path: 'training/log',  element: <ManualTrainingFormPage /> },
+          {
+            element: <AthleteLayout />,
+            children: [
+              { path: 'home',          element: <AthleteHomePage /> },
+              { path: 'plan',          element: <AthletePlanPage /> },
+              { path: 'progress',      element: <AthleteProgressPage /> },
+              { path: 'coach',         element: <AthleteCoachPage /> },
+              { path: 'profile',       element: <AthleteProfilePage /> },
+              { path: 'training/log',  element: <ManualTrainingFormPage /> },
+            ],
+          },
         ],
       },
     ],
