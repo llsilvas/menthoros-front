@@ -9,7 +9,11 @@ import { elevation } from '../../../shared/design-tokens';
 
 export interface ReadinessCardProps {
   score: number; // 0-100
-  factors: {
+  /**
+   * Sub-fatores de readiness. Opcional: o backend hoje não expõe recovery/fatigue/sleep
+   * granulares (ver change `wire-athlete-shell-to-endpoints` D0.3) — o card usa apenas o `score`.
+   */
+  factors?: {
     recovery: number;
     fatigue: number;
     sleep?: number;

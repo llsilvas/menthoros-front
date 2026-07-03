@@ -16,7 +16,7 @@ export interface TodayHeroCardProps {
   nextWorkout: {
     title: string;
     description: string;
-    estimatedDuration: number; // minutos
+    estimatedDuration?: number; // minutos; ausente quando o resumo do dia não traz duração
   } | null;
   onPrimaryAction: () => void;
   primaryActionLabel: string;
@@ -133,7 +133,8 @@ export function TodayHeroCard({
               mt: 0.25,
             }}
           >
-            {nextWorkout.description} &middot; {nextWorkout.estimatedDuration} min
+            {nextWorkout.description}
+            {nextWorkout.estimatedDuration != null && ` · ${nextWorkout.estimatedDuration} min`}
           </Typography>
         </Box>
       )}
