@@ -4,20 +4,28 @@ import { Navigate, useNavigate } from 'react-router';
 import { ROUTES } from '../../constants/routes';
 import { useAuth } from '../../context/auth/useAuth';
 import { AuthService } from '../../services/auth/AuthService';
+import { decodeJwtPayload, extractUserRoles } from '../../context/auth/jwt';
+import { useUserInfo } from '../../hooks/useUserInfo';
 import { gradients, glassAzulSx, glassAzulSxHover, transitions, primary, surface } from '../../theme/tokens';
 import { overlayWhite } from '../../theme/overlays';
 import logoMenthoros from '../../assets/icons/menthoros_mark.png';
 
+/** Destino pós-login por role: ATLETA vai direto para o shell do atleta; demais, ao início neutro. */
+function destinoPorRoles(roles: string[]): string {
+  return roles.includes('ATLETA') ? ROUTES.ATHLETE_HOME : ROUTES.INICIO;
+}
+
 export default function LoginPage() {
   const navigate = useNavigate();
   const { isAuthenticated, login } = useAuth();
+  const { roles } = useUserInfo();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   if (isAuthenticated) {
-    return <Navigate to={ROUTES.INICIO} replace />;
+    return <Navigate to={destinoPorRoles(roles ?? [])} replace />;
   }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -28,7 +36,9 @@ export default function LoginPage() {
     try {
       const result = await AuthService.login({ username, password });
       login(result.accessToken);
-      navigate(ROUTES.INICIO, { replace: true });
+      const payload = decodeJwtPayload(result.accessToken);
+      const rolesDoToken = payload ? extractUserRoles(payload) : [];
+      navigate(destinoPorRoles(rolesDoToken), { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao autenticar.');
     } finally {
