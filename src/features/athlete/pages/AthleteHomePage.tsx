@@ -48,7 +48,7 @@ export default function AthleteHomePage() {
   const navigate = useNavigate();
   const { name } = useUserInfo();
   const { home, loading, error, fetchHome } = useAthleteHome();
-  const { readiness, fetchReadiness } = useAthleteReadiness();
+  const { readiness, error: readinessError, fetchReadiness } = useAthleteReadiness();
   const [checkInOpen, setCheckInOpen] = useState(false);
 
   useEffect(() => {
@@ -96,8 +96,18 @@ export default function AthleteHomePage() {
         onPrimaryAction={() => setCheckInOpen(true)}
       />
 
-      {readiness?.score != null && (
-        <ReadinessCard score={readiness.score} trend="stable" recommendation={readiness.nota} />
+      {readinessError ? (
+        <Alert
+          severity="warning"
+          variant="outlined"
+          action={<Button color="inherit" size="small" onClick={fetchReadiness}>Recarregar</Button>}
+        >
+          Prontidão indisponível no momento.
+        </Alert>
+      ) : (
+        readiness?.score != null && (
+          <ReadinessCard score={readiness.score} recommendation={readiness.nota} />
+        )
       )}
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>

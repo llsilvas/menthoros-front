@@ -60,6 +60,17 @@ describe('AthleteHomePage', () => {
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
+  it('mostra aviso de prontidão indisponível quando readiness falha (não engole erro)', () => {
+    mockHome();
+    vi.mocked(useAthleteReadiness).mockReturnValue({
+      readiness: null, loading: false, error: new Error('boom'), fetchReadiness: noop,
+    });
+    renderPage();
+
+    expect(screen.getByText(/prontidão indisponível/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /recarregar/i })).toBeInTheDocument();
+  });
+
   it('oculta o ReadinessCard quando score é null (não fabrica)', () => {
     mockHome();
     vi.mocked(useAthleteReadiness).mockReturnValue({
