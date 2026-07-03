@@ -17,6 +17,8 @@ export interface TodayHeroCardProps {
     title: string;
     description: string;
     estimatedDuration?: number; // minutos; ausente quando o resumo do dia não traz duração
+    /** Cor do tipo de treino (fonte única `workoutTypeColor()`); default `surface[50]` quando ausente. */
+    color?: string;
   } | null;
   onPrimaryAction: () => void;
   primaryActionLabel: string;
@@ -118,9 +120,9 @@ export function TodayHeroCard({
           </Typography>
           <Typography
             sx={{
-              color: surface[50],
+              color: nextWorkout.color ?? surface[50],
               fontSize: '0.95rem',
-              fontWeight: 600,
+              fontWeight: 700,
               lineHeight: 1.3,
             }}
           >

@@ -30,7 +30,21 @@ describe('homeAdapter', () => {
     });
     it('usa o rótulo do tipo como título e a descricao como detalhe', () => {
       const home: AthleteHome = { proximoTreino: { tipoTreino: 'LONGO', descricao: 'Longão 18km Z2' } };
-      expect(buildNextWorkout(home)).toEqual({ title: 'Longo', description: 'Longão 18km Z2' });
+      const workout = buildNextWorkout(home);
+      expect(workout?.title).toBe('Longo');
+      expect(workout?.description).toBe('Longão 18km Z2');
+    });
+
+    it('usa a cor canônica do tipo de treino (workoutTypeColor) — mesma fonte do DayCard/Plano', () => {
+      const intervalado = buildNextWorkout({ proximoTreino: { tipoTreino: 'INTERVALADO' } });
+      const longo = buildNextWorkout({ proximoTreino: { tipoTreino: 'LONGO' } });
+      const desconhecido = buildNextWorkout({ proximoTreino: { tipoTreino: 'TIPO_INEXISTENTE' } });
+
+      expect(intervalado?.color).toBeTruthy();
+      // Tipos diferentes têm cores diferentes (não fica tudo com a mesma cor neutra)
+      expect(intervalado?.color).not.toBe(longo?.color);
+      // Tipo desconhecido cai no DEFAULT, não quebra nem fica undefined
+      expect(desconhecido?.color).toBeTruthy();
     });
   });
 

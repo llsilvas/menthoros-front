@@ -1,6 +1,7 @@
 import type { AthleteHome, AthleteMetricasChave } from '../../../types/AthleteHome';
 import type { TimeOfDay } from '../../../shared/design-tokens/gradients';
 import { mapTipoTreino, type WorkoutType } from '../../coach/adapters/workoutType';
+import { workoutTypeColor } from '../../../theme/activeTheme';
 
 export interface HomeMetric {
   label: string;
@@ -12,6 +13,8 @@ export interface HomeMetric {
 export interface HomeNextWorkout {
   title: string;
   description: string;
+  /** Cor do tipo de treino — fonte única `workoutTypeColor()` (mesmo padrão do DayCard/Plano). */
+  color: string;
 }
 
 /** Período do dia a partir do relógio local do usuário (dado real, não fabricado). */
@@ -53,6 +56,7 @@ export function buildNextWorkout(home: AthleteHome | null): HomeNextWorkout | nu
   return {
     title: tipoTreinoLabel(p.tipoTreino),
     description: p.descricao ?? '',
+    color: workoutTypeColor(p.tipoTreino),
   };
 }
 
