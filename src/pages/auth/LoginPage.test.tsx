@@ -3,18 +3,46 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router';
 import LoginPage from './LoginPage';
-import { useAuth } from '../../context/auth/useAuth';
-import { useUserInfo } from '../../hooks/useUserInfo';
+import { AuthProvider } from '../../context/auth/AuthProvider';
 import { AuthService } from '../../services/auth/AuthService';
 
-vi.mock('../../context/auth/useAuth');
-vi.mock('../../hooks/useUserInfo');
 vi.mock('../../services/auth/AuthService');
 
-const loginMock = vi.fn();
+const TOKEN_STORAGE_KEY = '@Menthoros:token';
+
+/**
+ * jsdom (env `about:blank` sem `environmentOptions.jsdom.url` configurado) não expõe
+ * `window.localStorage` (origem opaca). Stub em memória só para este arquivo — necessário
+ * porque o teste usa o `AuthProvider` real (não mockado) para exercitar a corrida entre o
+ * `setIsAuthenticated(true)` do login e a leitura de `roles` no re-render do `LoginPage`.
+ */
+function stubLocalStorage() {
+  let store: Record<string, string> = {};
+  const mock: Storage = {
+    getItem: (key: string) => store[key] ?? null,
+    setItem: (key: string, value: string) => {
+      store[key] = value;
+    },
+    removeItem: (key: string) => {
+      delete store[key];
+    },
+    clear: () => {
+      store = {};
+    },
+    key: (index: number) => Object.keys(store)[index] ?? null,
+    get length() {
+      return Object.keys(store).length;
+    },
+  };
+  vi.stubGlobal('localStorage', mock);
+}
 
 function fakeToken(roles: string[]): string {
-  const payload = { realm_access: { roles } };
+  const payload = {
+    realm_access: { roles },
+    exp: Math.floor(Date.now() / 1000) + 3600,
+    tenantId: 'tenant-teste',
+  };
   const base64url = btoa(JSON.stringify(payload)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   return `header.${base64url}.signature`;
 }
@@ -22,11 +50,13 @@ function fakeToken(roles: string[]): string {
 function renderLogin() {
   return render(
     <MemoryRouter initialEntries={['/auth/login']}>
-      <Routes>
-        <Route path="/auth/login" element={<LoginPage />} />
-        <Route path="/athlete/home" element={<div>Shell do Atleta</div>} />
-        <Route path="/inicio" element={<div>Início Neutro</div>} />
-      </Routes>
+      <AuthProvider>
+        <Routes>
+          <Route path="/auth/login" element={<LoginPage />} />
+          <Route path="/athlete/home" element={<div>Shell do Atleta</div>} />
+          <Route path="/inicio" element={<div>Início Neutro</div>} />
+        </Routes>
+      </AuthProvider>
     </MemoryRouter>,
   );
 }
@@ -34,8 +64,7 @@ function renderLogin() {
 describe('LoginPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useAuth).mockReturnValue({ isAuthenticated: false, login: loginMock, logout: vi.fn() });
-    vi.mocked(useUserInfo).mockReturnValue({});
+    stubLocalStorage();
   });
 
   it('após login com role ATLETA, navega direto para /athlete/home', async () => {
@@ -63,16 +92,14 @@ describe('LoginPage', () => {
   });
 
   it('usuário já autenticado com role ATLETA é redirecionado direto ao shell do atleta', () => {
-    vi.mocked(useAuth).mockReturnValue({ isAuthenticated: true, login: loginMock, logout: vi.fn() });
-    vi.mocked(useUserInfo).mockReturnValue({ roles: ['ATLETA'] });
+    localStorage.setItem(TOKEN_STORAGE_KEY, fakeToken(['ATLETA']));
     renderLogin();
 
     expect(screen.getByText('Shell do Atleta')).toBeInTheDocument();
   });
 
   it('usuário já autenticado sem role ATLETA é redirecionado ao início neutro', () => {
-    vi.mocked(useAuth).mockReturnValue({ isAuthenticated: true, login: loginMock, logout: vi.fn() });
-    vi.mocked(useUserInfo).mockReturnValue({ roles: ['TECNICO'] });
+    localStorage.setItem(TOKEN_STORAGE_KEY, fakeToken(['TECNICO']));
     renderLogin();
 
     expect(screen.getByText('Início Neutro')).toBeInTheDocument();
