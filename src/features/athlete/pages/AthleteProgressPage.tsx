@@ -1,6 +1,8 @@
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import {
+  Alert,
   Box,
+  Button,
   CircularProgress,
   Tabs,
   Tab,
@@ -10,7 +12,15 @@ import {
 import { TrendingUp as ProgressIcon, InfoOutlined as InfoIcon } from '@mui/icons-material';
 import { primary, surface, glassSx } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
-import type { PMCDataPoint } from '../components/PMCChart';
+import { useAthletePmc } from '../../../hooks/useAthletePmc';
+import { useAthleteZones } from '../../../hooks/useAthleteZones';
+import { useAthleteRecordes } from '../../../hooks/useAthleteRecordes';
+import { useAthleteAderencia } from '../../../hooks/useAthleteAderencia';
+import { useAthleteTreinosRecentes } from '../../../hooks/useAthleteTreinosRecentes';
+import { buildPmcDataPoints } from '../adapters/pmcAdapter';
+import { buildZoneDistributionPercent } from '../adapters/zonesAdapter';
+import { buildRecordRows } from '../adapters/recordsAdapter';
+import { buildAderenciaResumo } from '../adapters/aderenciaAdapter';
 
 // Lazy load: recharts é pesado (~300KB) — carrega só quando a tab é acessada
 const PMCChart = lazy(() =>
@@ -19,6 +29,10 @@ const PMCChart = lazy(() =>
 const ZoneDistributionInsight = lazy(() =>
   import('../components/ZoneDistributionInsight').then(m => ({ default: m.ZoneDistributionInsight }))
 );
+
+const VOLUME_DIAS = 28; // 4 semanas cheias (D0.2) — GET /me/treinos permite no máx 30 dias
+const ADERENCIA_SEMANAS = 4; // D0.1
+const ZONAS_PERIOD_LABEL = 'Últimos 90 dias'; // default do backend quando from/to omitidos
 
 function ChartSkeleton() {
   return (
@@ -29,56 +43,27 @@ function ChartSkeleton() {
   );
 }
 
-// ── Mock data helpers ─────────────────────────────────────────────────────────
-
-function lastNDays(n: number): Date[] {
-  return Array.from({ length: n }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (n - 1 - i));
-    return d;
-  });
+function RetryAlert({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <Alert
+      severity="warning"
+      variant="outlined"
+      action={<Button color="inherit" size="small" onClick={onRetry}>Tentar novamente</Button>}
+    >
+      {message}
+    </Alert>
+  );
 }
 
-const MOCK_PMC: PMCDataPoint[] = lastNDays(84).map((date, i) => ({
-  date,
-  tss: Math.round(50 + Math.sin(i / 7) * 20 + Math.random() * 15),
-  ctl: Math.round(60 + i * 0.2 + Math.sin(i / 14) * 5),
-  atl: Math.round(65 + Math.sin(i / 5) * 15 + Math.random() * 10),
-  tsb: Math.round((60 + i * 0.2) - (65 + Math.sin(i / 5) * 15)),
-}));
-
-const MOCK_ZONES = {
-  distribution: { z1: 35, z2: 30, z3: 15, z4: 12, z5: 8 },
-  totalDuration: 18000,
-  periodLabel: 'Últimas 4 semanas',
-  insight: {
-    type: 'positive' as const,
-    message: 'Distribuição polarizada saudável — 65% em Z1-Z2. Ideal para fase BASE.',
-    relatedPhase: 'BASE' as const,
-  },
-};
-
-const MOCK_KPI: KpiData[] = [
-  { label: 'Condicionamento (CTL)', value: '74',  unit: 'pts',   tooltip: 'Carga crônica — sua forma física dos últimos 42 dias.' },
-  { label: 'Cansaço (ATL)',         value: '71',  unit: 'pts',   tooltip: 'Carga aguda — fadiga acumulada dos últimos 7 dias.' },
-  { label: 'Forma (TSB)',           value: '+3',  unit: 'pts',   tooltip: 'Equilíbrio entre carga e recuperação. Positivo = fresco.' },
-  { label: 'Volume total',          value: '210', unit: 'km',    tooltip: 'Total de quilômetros corridos nas últimas 4 semanas.' },
-  { label: 'Treinos concluídos',    value: '18',  unit: 'de 21', tooltip: 'Taxa de adesão ao plano no período.' },
-];
-
-interface PrData {
-  dist: string;
-  time: string;
-  date: string;
+function EmptyState({ message }: { message: string }) {
+  return (
+    <Typography sx={{ color: surface[400], fontSize: '0.85rem', textAlign: 'center', p: 3 }}>
+      {message}
+    </Typography>
+  );
 }
 
-const MOCK_PRS: PrData[] = [
-  { dist: '5 km',  time: '22:14',   date: '2026-03-15' },
-  { dist: '10 km', time: '46:30',   date: '2026-02-08' },
-  { dist: '21 km', time: '1:47:22', date: '2026-01-20' },
-];
-
-// ── Local sub-components ──────────────────────────────────────────────────────
+// ── KpiCard ───────────────────────────────────────────────────────────────────
 
 interface KpiData {
   label: string;
@@ -110,77 +95,43 @@ function KpiCard({ label, value, unit, tooltip }: KpiData) {
   );
 }
 
-// ── Tab panels ────────────────────────────────────────────────────────────────
-
-function TabOverview() {
-  return (
-    <Box
-      sx={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
-        gap: 2,
-      }}
-    >
-      {MOCK_KPI.map((kpi) => (
-        <KpiCard key={kpi.label} {...kpi} />
-      ))}
-    </Box>
-  );
+function formatSinal(n: number): string {
+  return n > 0 ? `+${Math.round(n)}` : `${Math.round(n)}`;
 }
 
-function TabForma() {
-  return (
-    <Suspense fallback={<ChartSkeleton />}>
-      <PMCChart data={MOCK_PMC} range="12w" />
-    </Suspense>
-  );
-}
-
-function TabVolume() {
-  return (
-    <Suspense fallback={<ChartSkeleton />}>
-      <ZoneDistributionInsight
-        distribution={MOCK_ZONES.distribution}
-        totalDuration={MOCK_ZONES.totalDuration}
-        periodLabel={MOCK_ZONES.periodLabel}
-        insight={MOCK_ZONES.insight}
-      />
-    </Suspense>
-  );
-}
-
-function TabProvas() {
-  return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <Typography sx={{ color: surface[50], fontWeight: 700 }}>Seus PRs</Typography>
-      {MOCK_PRS.map((pr) => (
-        <Box
-          key={pr.dist}
-          sx={{
-            ...glassSx,
-            borderRadius: 1,
-            p: 1.5,
-            display: 'flex',
-            justifyContent: 'space-between',
-          }}
-        >
-          <Typography sx={{ color: surface[50], fontWeight: 600 }}>{pr.dist}</Typography>
-          <Typography sx={{ color: primary[500], fontWeight: 800 }}>{pr.time}</Typography>
-          <Typography sx={{ color: surface[400], fontSize: '0.8rem' }}>{pr.date}</Typography>
-        </Box>
-      ))}
-      <Typography
-        sx={{
-          color: surface[400],
-          fontSize: '0.85rem',
-          textAlign: 'center',
-          pt: 1,
-        }}
-      >
-        Simulações de prova baseadas em CTL/ATL em breve
-      </Typography>
-    </Box>
-  );
+/** Monta os KPIs a partir do que já carregou; fonte sem dado → "—", nunca fabrica (CA3). */
+function buildKpis(
+  ultimoPmc: { ctl: number; atl: number; tsb: number } | undefined,
+  volumeKm: number | null,
+  aderencia: { totalRealizado: number; totalPlanejado: number } | null,
+): KpiData[] {
+  return [
+    {
+      label: 'Condicionamento (CTL)', unit: 'pts',
+      value: ultimoPmc ? String(Math.round(ultimoPmc.ctl)) : '—',
+      tooltip: 'Carga crônica — sua forma física dos últimos dias.',
+    },
+    {
+      label: 'Cansaço (ATL)', unit: 'pts',
+      value: ultimoPmc ? String(Math.round(ultimoPmc.atl)) : '—',
+      tooltip: 'Carga aguda — fadiga acumulada dos últimos dias.',
+    },
+    {
+      label: 'Forma (TSB)', unit: 'pts',
+      value: ultimoPmc ? formatSinal(ultimoPmc.tsb) : '—',
+      tooltip: 'Equilíbrio entre carga e recuperação. Positivo = fresco.',
+    },
+    {
+      label: 'Volume total', unit: 'km',
+      value: volumeKm != null ? String(Math.round(volumeKm)) : '—',
+      tooltip: `Total de quilômetros corridos nos últimos ${VOLUME_DIAS} dias.`,
+    },
+    {
+      label: 'Treinos concluídos', unit: aderencia ? `de ${aderencia.totalPlanejado}` : '',
+      value: aderencia ? String(aderencia.totalRealizado) : '—',
+      tooltip: `Taxa de adesão ao plano nas últimas ${ADERENCIA_SEMANAS} semanas.`,
+    },
+  ];
 }
 
 // ── Tab metadata ──────────────────────────────────────────────────────────────
@@ -199,19 +150,140 @@ const TABS: TabMeta[] = [
   { id: 'provas',   label: 'Provas' },
 ];
 
-function renderTabContent(tab: TabId) {
-  switch (tab) {
-    case 'overview': return <TabOverview />;
-    case 'forma':    return <TabForma />;
-    case 'volume':   return <TabVolume />;
-    case 'provas':   return <TabProvas />;
-  }
-}
-
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function AthleteProgressPage() {
   const [activeTab, setActiveTab] = useState<TabId>('overview');
+
+  const { pmc, loading: pmcLoading, error: pmcError, fetchPmc } = useAthletePmc();
+  const { zones, loading: zonesLoading, error: zonesError, fetchZones } = useAthleteZones();
+  const { recordes, loading: recordesLoading, error: recordesError, fetchRecordes } = useAthleteRecordes();
+  const { aderencia, loading: aderenciaLoading, error: aderenciaError, fetchAderencia } = useAthleteAderencia();
+  const { treinos, loading: treinosLoading, error: treinosError, fetchTreinosRecentes } = useAthleteTreinosRecentes();
+
+  useEffect(() => {
+    fetchPmc();
+    fetchZones();
+    fetchRecordes();
+    fetchAderencia(ADERENCIA_SEMANAS);
+    fetchTreinosRecentes(VOLUME_DIAS);
+  }, [fetchPmc, fetchZones, fetchRecordes, fetchAderencia, fetchTreinosRecentes]);
+
+  const initialLoading = pmcLoading && zonesLoading && recordesLoading && aderenciaLoading && treinosLoading
+    && pmc.length === 0 && !zones && recordes.length === 0 && aderencia.length === 0 && treinos.length === 0;
+
+  if (initialLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', p: 6 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  const ultimoPmc = pmc.length > 0 ? pmc[pmc.length - 1] : undefined;
+  const volumeKm = treinosError ? null : treinos.reduce((soma, t) => soma + (t.distanciaKm ?? 0), 0);
+  const aderenciaResumo = buildAderenciaResumo(aderencia);
+  const kpis = buildKpis(ultimoPmc, volumeKm, aderenciaResumo);
+
+  function renderTabContent(tab: TabId) {
+    switch (tab) {
+      case 'overview':
+        return (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {(treinosError || aderenciaError) && (
+              <RetryAlert
+                message="Alguns indicadores podem estar desatualizados."
+                onRetry={() => { fetchTreinosRecentes(VOLUME_DIAS); fetchAderencia(ADERENCIA_SEMANAS); }}
+              />
+            )}
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+                gap: 2,
+              }}
+            >
+              {kpis.map((kpi) => (
+                <KpiCard key={kpi.label} {...kpi} />
+              ))}
+            </Box>
+          </Box>
+        );
+
+      case 'forma':
+        if (pmcError) {
+          return <RetryAlert message="Não foi possível carregar seu histórico de forma." onRetry={fetchPmc} />;
+        }
+        if (pmcLoading && pmc.length === 0) {
+          return <ChartSkeleton />;
+        }
+        if (pmc.length === 0) {
+          return <EmptyState message="Ainda não há histórico de forma (PMC) suficiente." />;
+        }
+        return (
+          <Suspense fallback={<ChartSkeleton />}>
+            <PMCChart data={buildPmcDataPoints(pmc)} range="12w" />
+          </Suspense>
+        );
+
+      case 'volume': {
+        if (zonesError) {
+          return <RetryAlert message="Não foi possível carregar sua distribuição de zonas." onRetry={fetchZones} />;
+        }
+        if (zonesLoading && !zones) {
+          return <ChartSkeleton />;
+        }
+        const distribution = zones ? buildZoneDistributionPercent(zones) : null;
+        if (!distribution || !zones) {
+          return <EmptyState message="Ainda não há dados de zona de FC suficientes." />;
+        }
+        return (
+          <Suspense fallback={<ChartSkeleton />}>
+            <ZoneDistributionInsight
+              distribution={distribution}
+              totalDuration={zones.duracaoTotalSegundos}
+              periodLabel={ZONAS_PERIOD_LABEL}
+            />
+          </Suspense>
+        );
+      }
+
+      case 'provas': {
+        if (recordesError) {
+          return <RetryAlert message="Não foi possível carregar seus recordes." onRetry={fetchRecordes} />;
+        }
+        if (recordesLoading && recordes.length === 0) {
+          return <ChartSkeleton />;
+        }
+        const rows = buildRecordRows(recordes);
+        return (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Typography sx={{ color: surface[50], fontWeight: 700 }}>Seus PRs</Typography>
+            {rows.length === 0 ? (
+              <EmptyState message="Ainda sem recordes." />
+            ) : (
+              rows.map((pr) => (
+                <Box
+                  key={pr.distancia}
+                  sx={{
+                    ...glassSx,
+                    borderRadius: 1,
+                    p: 1.5,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <Typography sx={{ color: surface[50], fontWeight: 600 }}>{pr.distancia}</Typography>
+                  <Typography sx={{ color: primary[500], fontWeight: 800 }}>{pr.tempoFormatado}</Typography>
+                  <Typography sx={{ color: surface[400], fontSize: '0.8rem' }}>{pr.data}</Typography>
+                </Box>
+              ))
+            )}
+          </Box>
+        );
+      }
+    }
+  }
 
   return (
     <Box

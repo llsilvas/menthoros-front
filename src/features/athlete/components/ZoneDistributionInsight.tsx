@@ -24,7 +24,8 @@ export interface ZoneDistributionInsightProps {
   distribution: ZoneDistribution;
   totalDuration: number; // segundos
   periodLabel: string;
-  insight: ZoneInsight;
+  /** Sem fonte no `ZonaDistribuicaoDto` — omitir quando não houver análise real (sem fabricar). */
+  insight?: ZoneInsight;
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -144,7 +145,7 @@ export function ZoneDistributionInsight({
   periodLabel,
   insight,
 }: ZoneDistributionInsightProps) {
-  const insightCfg = INSIGHT_CONFIG[insight.type];
+  const insightCfg = insight ? INSIGHT_CONFIG[insight.type] : null;
 
   const chartData = ZONE_KEYS.map((zk) => ({
     name: `${zk} ${zones[zk].label}`,
@@ -226,49 +227,51 @@ export function ZoneDistributionInsight({
         </Box>
       </Box>
 
-      {/* Insight card */}
-      <Box
-        sx={{
-          mt: 2,
-          px: 1.5,
-          py: 1,
-          borderRadius: 1.5,
-          bgcolor: insightCfg.bg,
-          border: `1px solid ${insightCfg.color}26`,
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: 1,
-        }}
-      >
-        <Typography
-          component="span"
+      {/* Insight card — só quando houver análise real (sem fonte no DTO ainda) */}
+      {insight && insightCfg && (
+        <Box
           sx={{
-            fontSize: '0.9rem',
-            color: insightCfg.color,
-            lineHeight: 1.5,
-            flexShrink: 0,
+            mt: 2,
+            px: 1.5,
+            py: 1,
+            borderRadius: 1.5,
+            bgcolor: insightCfg.bg,
+            border: `1px solid ${insightCfg.color}26`,
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 1,
           }}
         >
-          {insightCfg.icon}
-        </Typography>
-        <Typography
-          sx={{
-            fontSize: '0.82rem',
-            color: surface[200],
-            lineHeight: 1.5,
-          }}
-        >
-          {insight.message}
-          {insight.relatedPhase && (
-            <Box
-              component="span"
-              sx={{ color: insightCfg.color, fontWeight: 600, ml: 0.5 }}
-            >
-              ({insight.relatedPhase})
-            </Box>
-          )}
-        </Typography>
-      </Box>
+          <Typography
+            component="span"
+            sx={{
+              fontSize: '0.9rem',
+              color: insightCfg.color,
+              lineHeight: 1.5,
+              flexShrink: 0,
+            }}
+          >
+            {insightCfg.icon}
+          </Typography>
+          <Typography
+            sx={{
+              fontSize: '0.82rem',
+              color: surface[200],
+              lineHeight: 1.5,
+            }}
+          >
+            {insight.message}
+            {insight.relatedPhase && (
+              <Box
+                component="span"
+                sx={{ color: insightCfg.color, fontWeight: 600, ml: 0.5 }}
+              >
+                ({insight.relatedPhase})
+              </Box>
+            )}
+          </Typography>
+        </Box>
+      )}
     </Box>
   );
 }
