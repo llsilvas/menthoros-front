@@ -6,24 +6,35 @@ import { useAuth } from '../../context/auth/useAuth';
 import { AuthService } from '../../services/auth/AuthService';
 import { decodeJwtPayload, extractUserRoles } from '../../context/auth/jwt';
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 import { useUserInfo } from '../../hooks/useUserInfo';
 >>>>>>> e8b63e9 (feat(athlete-shell): redireciona atleta direto para /athlete/home após login)
+=======
+>>>>>>> 4ca6f5f (fix(athlete-shell): corrige corrida no redirecionamento pós-login por role)
 import { gradients, glassAzulSx, glassAzulSxHover, transitions, primary, surface } from '../../theme/tokens';
 import { overlayWhite } from '../../theme/overlays';
 import logoMenthoros from '../../assets/icons/menthoros_mark.png';
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 const TOKEN_STORAGE_KEY = '@Menthoros:token';
 
 =======
 >>>>>>> e8b63e9 (feat(athlete-shell): redireciona atleta direto para /athlete/home após login)
+=======
+const TOKEN_STORAGE_KEY = '@Menthoros:token';
+
+>>>>>>> 4ca6f5f (fix(athlete-shell): corrige corrida no redirecionamento pós-login por role)
 /** Destino pós-login por role: ATLETA vai direto para o shell do atleta; demais, ao início neutro. */
 function destinoPorRoles(roles: string[]): string {
   return roles.includes('ATLETA') ? ROUTES.ATHLETE_HOME : ROUTES.INICIO;
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 4ca6f5f (fix(athlete-shell): corrige corrida no redirecionamento pós-login por role)
 /**
  * Lê e decodifica o token direto do localStorage a cada chamada (sem memo) — necessário porque,
  * no fluxo de login, este componente já está montado com `isAuthenticated=false` quando o token
@@ -36,12 +47,14 @@ function rolesDoTokenAtual(): string[] {
   return payload ? extractUserRoles(payload) : [];
 }
 
+<<<<<<< HEAD
 =======
 >>>>>>> e8b63e9 (feat(athlete-shell): redireciona atleta direto para /athlete/home após login)
+=======
+>>>>>>> 4ca6f5f (fix(athlete-shell): corrige corrida no redirecionamento pós-login por role)
 export default function LoginPage() {
   const navigate = useNavigate();
   const { isAuthenticated, login } = useAuth();
-  const { roles } = useUserInfo();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -49,10 +62,14 @@ export default function LoginPage() {
 
   if (isAuthenticated) {
 <<<<<<< HEAD
+<<<<<<< HEAD
     return <Navigate to={destinoPorRoles(rolesDoTokenAtual())} replace />;
 =======
     return <Navigate to={destinoPorRoles(roles ?? [])} replace />;
 >>>>>>> e8b63e9 (feat(athlete-shell): redireciona atleta direto para /athlete/home após login)
+=======
+    return <Navigate to={destinoPorRoles(rolesDoTokenAtual())} replace />;
+>>>>>>> 4ca6f5f (fix(athlete-shell): corrige corrida no redirecionamento pós-login por role)
   }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -64,12 +81,16 @@ export default function LoginPage() {
       const result = await AuthService.login({ username, password });
       login(result.accessToken);
 <<<<<<< HEAD
+<<<<<<< HEAD
       navigate(destinoPorRoles(rolesDoTokenAtual()), { replace: true });
 =======
       const payload = decodeJwtPayload(result.accessToken);
       const rolesDoToken = payload ? extractUserRoles(payload) : [];
       navigate(destinoPorRoles(rolesDoToken), { replace: true });
 >>>>>>> e8b63e9 (feat(athlete-shell): redireciona atleta direto para /athlete/home após login)
+=======
+      navigate(destinoPorRoles(rolesDoTokenAtual()), { replace: true });
+>>>>>>> 4ca6f5f (fix(athlete-shell): corrige corrida no redirecionamento pós-login por role)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao autenticar.');
     } finally {
