@@ -4,9 +4,29 @@ import { Navigate, useNavigate } from 'react-router';
 import { ROUTES } from '../../constants/routes';
 import { useAuth } from '../../context/auth/useAuth';
 import { AuthService } from '../../services/auth/AuthService';
+import { decodeJwtPayload, extractUserRoles } from '../../context/auth/jwt';
 import { gradients, glassAzulSx, glassAzulSxHover, transitions, primary, surface } from '../../theme/tokens';
 import { overlayWhite } from '../../theme/overlays';
 import logoMenthoros from '../../assets/icons/menthoros_mark.png';
+
+const TOKEN_STORAGE_KEY = '@Menthoros:token';
+
+/** Destino pós-login por role: ATLETA vai direto para o shell do atleta; demais, ao início neutro. */
+function destinoPorRoles(roles: string[]): string {
+  return roles.includes('ATLETA') ? ROUTES.ATHLETE_HOME : ROUTES.INICIO;
+}
+
+/**
+ * Lê e decodifica o token direto do localStorage a cada chamada (sem memo) — necessário porque,
+ * no fluxo de login, este componente já está montado com `isAuthenticated=false` quando o token
+ * é gravado; um hook memoizado (ex. `useUserInfo`) manteria `roles` congelado em vazio no re-render
+ * que segue o login, mandando o atleta para `/inicio` em vez do shell dele.
+ */
+function rolesDoTokenAtual(): string[] {
+  const token = localStorage.getItem(TOKEN_STORAGE_KEY) ?? '';
+  const payload = token ? decodeJwtPayload(token) : null;
+  return payload ? extractUserRoles(payload) : [];
+}
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -17,7 +37,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
 
   if (isAuthenticated) {
-    return <Navigate to={ROUTES.INICIO} replace />;
+    return <Navigate to={destinoPorRoles(rolesDoTokenAtual())} replace />;
   }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -28,7 +48,7 @@ export default function LoginPage() {
     try {
       const result = await AuthService.login({ username, password });
       login(result.accessToken);
-      navigate(ROUTES.INICIO, { replace: true });
+      navigate(destinoPorRoles(rolesDoTokenAtual()), { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao autenticar.');
     } finally {

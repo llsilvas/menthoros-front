@@ -9,13 +9,22 @@ import { elevation } from '../../../shared/design-tokens';
 
 export interface ReadinessCardProps {
   score: number; // 0-100
-  factors: {
+  /**
+   * Sub-fatores de readiness. Opcional: o backend hoje não expõe recovery/fatigue/sleep
+   * granulares (ver change `wire-athlete-shell-to-endpoints` D0.3) — o card usa apenas o `score`.
+   */
+  factors?: {
     recovery: number;
     fatigue: number;
     sleep?: number;
     hrv?: number;
   };
-  trend: 'improving' | 'stable' | 'declining';
+  /**
+   * Tendência da prontidão. Opcional: o backend não expõe série de tendência hoje
+   * (ver `wire-athlete-shell-to-endpoints` D0.3) — quando ausente, o bloco de tendência
+   * não é renderizado, em vez de fabricar "Estável".
+   */
+  trend?: 'improving' | 'stable' | 'declining';
   recommendation?: string;
 }
 
@@ -53,7 +62,7 @@ const TOOLTIP_EXPLANATION =
 
 export function ReadinessCard({ score, trend, recommendation }: ReadinessCardProps) {
   const { label, color } = getReadinessLevel(score);
-  const { icon: TrendIcon, label: trendLabel } = getTrendConfig(trend);
+  const trendConfig = trend ? getTrendConfig(trend) : null;
 
   return (
     <Box
@@ -127,23 +136,25 @@ export function ReadinessCard({ score, trend, recommendation }: ReadinessCardPro
         </Typography>
       </Box>
 
-      {/* Tendência */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 0.5,
-          color: surface[400],
-        }}
-      >
-        {TrendIcon}
-        <Typography sx={{ fontSize: '0.82rem', color: surface[400] }}>
-          Tendência:{' '}
-          <Box component="span" sx={{ color: surface[50], fontWeight: 600 }}>
-            {trendLabel}
-          </Box>
-        </Typography>
-      </Box>
+      {/* Tendência — só quando há série real (sem fabricar) */}
+      {trendConfig && (
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.5,
+            color: surface[400],
+          }}
+        >
+          {trendConfig.icon}
+          <Typography sx={{ fontSize: '0.82rem', color: surface[400] }}>
+            Tendência:{' '}
+            <Box component="span" sx={{ color: surface[50], fontWeight: 600 }}>
+              {trendConfig.label}
+            </Box>
+          </Typography>
+        </Box>
+      )}
 
       {/* Recomendação */}
       {recommendation && (

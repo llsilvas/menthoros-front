@@ -15,8 +15,12 @@ export interface WeeklyWorkout {
 
 export interface WeeklyPlanListProps {
   week: WeeklyWorkout[];
-  totalTSS: number;
-  targetTSS: number;
+  /** Carga realizada da semana (TSS ou volume, conforme `unitLabel`). */
+  total: number;
+  /** Carga planejada da semana (denominador da barra de progresso). */
+  target: number;
+  /** Unidade exibida no rodapé de carga (ex.: "TSS", "km"). Default "TSS". */
+  unitLabel?: string;
   weekLabel?: string; // ex: "Semana leve planejada"
   onDayPress: (date: Date) => void;
 }
@@ -50,8 +54,9 @@ function isSameDay(a: Date, b: Date): boolean {
 
 export function WeeklyPlanList({
   week,
-  totalTSS,
-  targetTSS,
+  total,
+  target,
+  unitLabel = 'TSS',
   weekLabel,
   onDayPress,
 }: WeeklyPlanListProps) {
@@ -72,8 +77,8 @@ export function WeeklyPlanList({
     }
   }, []);
 
-  // TSS ratio (clamped to 0-150% for progress bar, label uses raw ratio)
-  const ratio = targetTSS > 0 ? totalTSS / targetTSS : 0;
+  // Razão realizado/planejado (clamped a 0-150% na barra; label usa a razão crua)
+  const ratio = target > 0 ? total / target : 0;
   const progressValue = Math.min(ratio * 100, 150);
   const barColor = getTSSBarColor(ratio);
   const interpretation = getTSSInterpretation(ratio);
@@ -145,7 +150,7 @@ export function WeeklyPlanList({
           <Typography
             sx={{ fontSize: '0.8rem', fontWeight: 700, color: surface[50] }}
           >
-            {totalTSS} / {targetTSS} TSS
+            {total} / {target} {unitLabel}
           </Typography>
         </Box>
 
