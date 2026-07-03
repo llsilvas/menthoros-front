@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router';
 import LoginPage from './LoginPage';
+<<<<<<< HEAD
 import { AuthProvider } from '../../context/auth/AuthProvider';
 import { AuthService } from '../../services/auth/AuthService';
 
@@ -43,6 +44,20 @@ function fakeToken(roles: string[]): string {
     exp: Math.floor(Date.now() / 1000) + 3600,
     tenantId: 'tenant-teste',
   };
+=======
+import { useAuth } from '../../context/auth/useAuth';
+import { useUserInfo } from '../../hooks/useUserInfo';
+import { AuthService } from '../../services/auth/AuthService';
+
+vi.mock('../../context/auth/useAuth');
+vi.mock('../../hooks/useUserInfo');
+vi.mock('../../services/auth/AuthService');
+
+const loginMock = vi.fn();
+
+function fakeToken(roles: string[]): string {
+  const payload = { realm_access: { roles } };
+>>>>>>> e8b63e9 (feat(athlete-shell): redireciona atleta direto para /athlete/home após login)
   const base64url = btoa(JSON.stringify(payload)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   return `header.${base64url}.signature`;
 }
@@ -50,6 +65,7 @@ function fakeToken(roles: string[]): string {
 function renderLogin() {
   return render(
     <MemoryRouter initialEntries={['/auth/login']}>
+<<<<<<< HEAD
       <AuthProvider>
         <Routes>
           <Route path="/auth/login" element={<LoginPage />} />
@@ -57,6 +73,13 @@ function renderLogin() {
           <Route path="/inicio" element={<div>Início Neutro</div>} />
         </Routes>
       </AuthProvider>
+=======
+      <Routes>
+        <Route path="/auth/login" element={<LoginPage />} />
+        <Route path="/athlete/home" element={<div>Shell do Atleta</div>} />
+        <Route path="/inicio" element={<div>Início Neutro</div>} />
+      </Routes>
+>>>>>>> e8b63e9 (feat(athlete-shell): redireciona atleta direto para /athlete/home após login)
     </MemoryRouter>,
   );
 }
@@ -64,7 +87,12 @@ function renderLogin() {
 describe('LoginPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+<<<<<<< HEAD
     stubLocalStorage();
+=======
+    vi.mocked(useAuth).mockReturnValue({ isAuthenticated: false, login: loginMock, logout: vi.fn() });
+    vi.mocked(useUserInfo).mockReturnValue({});
+>>>>>>> e8b63e9 (feat(athlete-shell): redireciona atleta direto para /athlete/home após login)
   });
 
   it('após login com role ATLETA, navega direto para /athlete/home', async () => {
@@ -92,14 +120,24 @@ describe('LoginPage', () => {
   });
 
   it('usuário já autenticado com role ATLETA é redirecionado direto ao shell do atleta', () => {
+<<<<<<< HEAD
     localStorage.setItem(TOKEN_STORAGE_KEY, fakeToken(['ATLETA']));
+=======
+    vi.mocked(useAuth).mockReturnValue({ isAuthenticated: true, login: loginMock, logout: vi.fn() });
+    vi.mocked(useUserInfo).mockReturnValue({ roles: ['ATLETA'] });
+>>>>>>> e8b63e9 (feat(athlete-shell): redireciona atleta direto para /athlete/home após login)
     renderLogin();
 
     expect(screen.getByText('Shell do Atleta')).toBeInTheDocument();
   });
 
   it('usuário já autenticado sem role ATLETA é redirecionado ao início neutro', () => {
+<<<<<<< HEAD
     localStorage.setItem(TOKEN_STORAGE_KEY, fakeToken(['TECNICO']));
+=======
+    vi.mocked(useAuth).mockReturnValue({ isAuthenticated: true, login: loginMock, logout: vi.fn() });
+    vi.mocked(useUserInfo).mockReturnValue({ roles: ['TECNICO'] });
+>>>>>>> e8b63e9 (feat(athlete-shell): redireciona atleta direto para /athlete/home após login)
     renderLogin();
 
     expect(screen.getByText('Início Neutro')).toBeInTheDocument();

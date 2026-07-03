@@ -5,17 +5,25 @@ import { ROUTES } from '../../constants/routes';
 import { useAuth } from '../../context/auth/useAuth';
 import { AuthService } from '../../services/auth/AuthService';
 import { decodeJwtPayload, extractUserRoles } from '../../context/auth/jwt';
+<<<<<<< HEAD
+=======
+import { useUserInfo } from '../../hooks/useUserInfo';
+>>>>>>> e8b63e9 (feat(athlete-shell): redireciona atleta direto para /athlete/home após login)
 import { gradients, glassAzulSx, glassAzulSxHover, transitions, primary, surface } from '../../theme/tokens';
 import { overlayWhite } from '../../theme/overlays';
 import logoMenthoros from '../../assets/icons/menthoros_mark.png';
 
+<<<<<<< HEAD
 const TOKEN_STORAGE_KEY = '@Menthoros:token';
 
+=======
+>>>>>>> e8b63e9 (feat(athlete-shell): redireciona atleta direto para /athlete/home após login)
 /** Destino pós-login por role: ATLETA vai direto para o shell do atleta; demais, ao início neutro. */
 function destinoPorRoles(roles: string[]): string {
   return roles.includes('ATLETA') ? ROUTES.ATHLETE_HOME : ROUTES.INICIO;
 }
 
+<<<<<<< HEAD
 /**
  * Lê e decodifica o token direto do localStorage a cada chamada (sem memo) — necessário porque,
  * no fluxo de login, este componente já está montado com `isAuthenticated=false` quando o token
@@ -28,16 +36,23 @@ function rolesDoTokenAtual(): string[] {
   return payload ? extractUserRoles(payload) : [];
 }
 
+=======
+>>>>>>> e8b63e9 (feat(athlete-shell): redireciona atleta direto para /athlete/home após login)
 export default function LoginPage() {
   const navigate = useNavigate();
   const { isAuthenticated, login } = useAuth();
+  const { roles } = useUserInfo();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   if (isAuthenticated) {
+<<<<<<< HEAD
     return <Navigate to={destinoPorRoles(rolesDoTokenAtual())} replace />;
+=======
+    return <Navigate to={destinoPorRoles(roles ?? [])} replace />;
+>>>>>>> e8b63e9 (feat(athlete-shell): redireciona atleta direto para /athlete/home após login)
   }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -48,7 +63,13 @@ export default function LoginPage() {
     try {
       const result = await AuthService.login({ username, password });
       login(result.accessToken);
+<<<<<<< HEAD
       navigate(destinoPorRoles(rolesDoTokenAtual()), { replace: true });
+=======
+      const payload = decodeJwtPayload(result.accessToken);
+      const rolesDoToken = payload ? extractUserRoles(payload) : [];
+      navigate(destinoPorRoles(rolesDoToken), { replace: true });
+>>>>>>> e8b63e9 (feat(athlete-shell): redireciona atleta direto para /athlete/home após login)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao autenticar.');
     } finally {
