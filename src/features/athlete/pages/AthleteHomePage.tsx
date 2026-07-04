@@ -6,6 +6,7 @@ import { TodayHeroCard } from '../components/TodayHeroCard';
 import { ReadinessCard } from '../components/ReadinessCard';
 import { QuickCheckInModal } from '../components/QuickCheckInModal';
 import type { QuickCheckInData } from '../components/QuickCheckInModal';
+import { KudosCard } from '../components/KudosCard';
 import {
   buildHomeMetrics,
   buildNextWorkout,
@@ -19,6 +20,7 @@ import { useAthleteHome } from '../../../hooks/useAthleteHome';
 import { useAthleteReadiness } from '../../../hooks/useAthleteReadiness';
 import { useAthleteProvas } from '../../../hooks/useAthleteProvas';
 import { useCheckinAtual } from '../../../hooks/useCheckinAtual';
+import { useKudosRecentes } from '../../../hooks/useKudosRecentes';
 import { useManualTraining } from '../../../hooks/useManualTraining';
 import { useRegistrarCheckin } from '../../../hooks/useRegistrarCheckin';
 import { useUserInfo } from '../../../hooks/useUserInfo';
@@ -62,6 +64,7 @@ export default function AthleteHomePage() {
   const { provas, loading: provasLoading, error: provasError, fetchProvas } = useAthleteProvas();
   const { registrar, loading: registrando, error: registrarError } = useRegistrarCheckin();
   const { checkinHoje, error: checkinAtualError, fetchCheckinAtual } = useCheckinAtual();
+  const { kudos, error: kudosError, fetchKudos } = useKudosRecentes();
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [finalizandoCheckIn, setFinalizandoCheckIn] = useState(false);
 
@@ -71,7 +74,8 @@ export default function AthleteHomePage() {
     fetchTreinos();
     fetchProvas();
     fetchCheckinAtual();
-  }, [fetchHome, fetchReadiness, fetchTreinos, fetchProvas, fetchCheckinAtual]);
+    fetchKudos();
+  }, [fetchHome, fetchReadiness, fetchTreinos, fetchProvas, fetchCheckinAtual, fetchKudos]);
 
   async function handleCheckInSubmit(data: QuickCheckInData) {
     await registrar(data);
@@ -177,6 +181,17 @@ export default function AthleteHomePage() {
           </Box>
         )
       )}
+
+      {kudosError && (
+        <Alert
+          severity="warning"
+          variant="outlined"
+          action={<Button color="inherit" size="small" onClick={fetchKudos}>Recarregar</Button>}
+        >
+          Não foi possível carregar seus reconhecimentos do coach.
+        </Alert>
+      )}
+      <KudosCard kudos={kudos} />
 
       {provasError ? (
         <Alert

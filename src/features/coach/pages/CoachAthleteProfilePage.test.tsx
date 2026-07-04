@@ -1,12 +1,15 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import CoachAthleteProfilePage from './CoachAthleteProfilePage';
 import { SugestaoService } from '../../../api/services/SugestaoService';
 import * as useAthleteProfileModule from '../../../hooks/useAthleteProfile';
+import { useEnviarKudos } from '../../../hooks/useEnviarKudos';
 import type { AtletaPerfilCoachDto } from '../../../types/AtletaPerfilCoach';
 
 vi.mock('../../../hooks/useAthleteProfile');
+vi.mock('../../../hooks/useEnviarKudos');
 vi.mock('../../../api/services/SugestaoService');
 vi.mock('../../athlete/components/PMCChart', () => ({
     default: () => <div data-testid="pmc-chart" />,
@@ -73,6 +76,7 @@ function renderPage(atletaId = 'uuid-1') {
 describe('CoachAthleteProfilePage', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        vi.mocked(useEnviarKudos).mockReturnValue({ enviar: vi.fn().mockResolvedValue(undefined), loading: false, error: null });
         vi.mocked(SugestaoService.detalhe).mockResolvedValue({
             id: 'sug-1',
             atletaId: 'uuid-1',
@@ -192,5 +196,31 @@ describe('CoachAthleteProfilePage', () => {
         mockHook({ profile: { ...STUB_PROFILE, planoVigente: null } });
         renderPage();
         expect(screen.getByText(/Nenhum plano gerado/i)).toBeInTheDocument();
+    });
+
+    it('abre o KudosDialog ao clicar em "Reconhecer progresso"', async () => {
+        mockHook({ profile: STUB_PROFILE });
+        const user = userEvent.setup();
+        renderPage();
+
+        await user.click(screen.getByRole('button', { name: /reconhecer progresso/i }));
+
+        expect(screen.getByText('Escolha o motivo do reconhecimento para este atleta.')).toBeInTheDocument();
+    });
+
+    it('envia o kudo com o atletaId da rota e fecha o dialog ao confirmar', async () => {
+        mockHook({ profile: STUB_PROFILE });
+        const enviar = vi.fn().mockResolvedValue(undefined);
+        vi.mocked(useEnviarKudos).mockReturnValue({ enviar, loading: false, error: null });
+        const user = userEvent.setup();
+        renderPage('uuid-1');
+
+        await user.click(screen.getByRole('button', { name: /reconhecer progresso/i }));
+        await user.click(screen.getByRole('button', { name: /^reconhecer$/i }));
+
+        expect(enviar).toHaveBeenCalledWith('uuid-1', { motivo: 'CONSISTENCIA' });
+        await waitFor(() =>
+            expect(screen.queryByText('Escolha o motivo do reconhecimento para este atleta.')).toBeNull(),
+        );
     });
 });

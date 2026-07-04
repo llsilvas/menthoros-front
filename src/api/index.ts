@@ -15,3 +15,4 @@ export { ManualTrainingService } from './services/ManualTrainingService'; // cur
 export { CoachPlanoReviewService } from './services/CoachPlanoReviewService'; // curado à mão — não remover ao regenerar
 export { CoachAthleteProfileService } from './services/CoachAthleteProfileService'; // curado à mão — não remover ao regenerar
 export { CheckinService } from './services/CheckinService'; // curado à mão — não remover ao regenerar
+export { KudosService } from './services/KudosService'; // curado à mão — não remover ao regenerar
