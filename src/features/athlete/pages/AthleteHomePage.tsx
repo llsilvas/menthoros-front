@@ -18,6 +18,7 @@ import { buildProximaProva } from '../adapters/provasAdapter';
 import { useAthleteHome } from '../../../hooks/useAthleteHome';
 import { useAthleteReadiness } from '../../../hooks/useAthleteReadiness';
 import { useAthleteProvas } from '../../../hooks/useAthleteProvas';
+import { useCheckinAtual } from '../../../hooks/useCheckinAtual';
 import { useManualTraining } from '../../../hooks/useManualTraining';
 import { useRegistrarCheckin } from '../../../hooks/useRegistrarCheckin';
 import { useUserInfo } from '../../../hooks/useUserInfo';
@@ -60,6 +61,7 @@ export default function AthleteHomePage() {
   const { recentes: treinos, fetchError: treinosError, fetchRecentes: fetchTreinos } = useManualTraining(STREAK_DIAS);
   const { provas, loading: provasLoading, error: provasError, fetchProvas } = useAthleteProvas();
   const { registrar, loading: registrando, error: registrarError } = useRegistrarCheckin();
+  const { checkinHoje, fetchCheckinAtual } = useCheckinAtual();
   const [checkInOpen, setCheckInOpen] = useState(false);
 
   useEffect(() => {
@@ -67,13 +69,15 @@ export default function AthleteHomePage() {
     fetchReadiness();
     fetchTreinos();
     fetchProvas();
-  }, [fetchHome, fetchReadiness, fetchTreinos, fetchProvas]);
+    fetchCheckinAtual();
+  }, [fetchHome, fetchReadiness, fetchTreinos, fetchProvas, fetchCheckinAtual]);
 
   async function handleCheckInSubmit(data: QuickCheckInData) {
     await registrar(data);
     // Refetch aguardado antes de fechar — evita mostrar o score de prontidão desatualizado
     // por uma corrida entre fechar o modal e o novo dado chegar (design.md R3).
     await fetchReadiness();
+    await fetchCheckinAtual();
     setCheckInOpen(false);
   }
 
@@ -100,6 +104,16 @@ export default function AthleteHomePage() {
   const metrics = buildHomeMetrics(home?.metricasChave);
   const streak = calcularStreakSemanas(treinos);
   const proximaProva = provasLoading || provasError ? null : buildProximaProva(provas);
+  const checkInInitialData: QuickCheckInData | undefined = checkinHoje
+    ? {
+        qualidadeSono: checkinHoje.qualidadeSono,
+        humor: checkinHoje.humor,
+        doresMusculares: checkinHoje.doresMusculares,
+        nivelEnergia: checkinHoje.nivelEnergia,
+        estresse: checkinHoje.estresse,
+        observacoes: checkinHoje.observacoes,
+      }
+    : undefined;
 
   return (
     <Box sx={{ minHeight: '100%', bgcolor: elevation.base, p: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -109,7 +123,7 @@ export default function AthleteHomePage() {
         timeOfDay={timeOfDayNow()}
         motivationalMessage={MENSAGEM_HERO}
         nextWorkout={nextWorkout}
-        primaryActionLabel="Iniciar treino"
+        primaryActionLabel={checkinHoje ? 'Editado hoje' : 'Iniciar treino'}
         onPrimaryAction={() => setCheckInOpen(true)}
       />
 
@@ -193,6 +207,7 @@ export default function AthleteHomePage() {
         open={checkInOpen}
         onClose={() => setCheckInOpen(false)}
         onSubmit={handleCheckInSubmit}
+        initialData={checkInInitialData}
         submitting={registrando}
         error={registrarError ? 'Não foi possível salvar seu check-in. Tente novamente.' : undefined}
       />
