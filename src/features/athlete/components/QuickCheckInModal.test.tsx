@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QuickCheckInModal } from './QuickCheckInModal';
 
@@ -70,6 +70,26 @@ describe('QuickCheckInModal', () => {
 
     expect(screen.getByRole('slider', { name: /qualidade do sono/i })).toHaveAttribute('aria-valuenow', '8');
     expect(screen.getByDisplayValue('Tudo bem')).toBeInTheDocument();
+  });
+
+  it('sincroniza os campos quando initialData chega depois da montagem (fetch assíncrono de checkinHoje)', async () => {
+    const { rerender } = render(
+      <QuickCheckInModal open onClose={vi.fn()} onSubmit={vi.fn()} initialData={undefined} />,
+    );
+
+    rerender(
+      <QuickCheckInModal
+        open
+        onClose={vi.fn()}
+        onSubmit={vi.fn()}
+        initialData={{ qualidadeSono: 9, humor: 8, doresMusculares: 1, nivelEnergia: 7, estresse: 2, observacoes: 'Dormi bem' }}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole('slider', { name: /qualidade do sono/i })).toHaveAttribute('aria-valuenow', '9'),
+    );
+    expect(screen.getByDisplayValue('Dormi bem')).toBeInTheDocument();
   });
 
   it('chama onClose ao clicar em Pular, sem submeter', async () => {

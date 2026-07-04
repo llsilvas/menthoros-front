@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Alert,
   Box,
@@ -89,6 +89,13 @@ export function QuickCheckInModal({
   open, onClose, onSubmit, initialData, error, submitting,
 }: QuickCheckInModalProps) {
   const [data, setData] = useState<QuickCheckInData>(initialData ?? DEFAULT_DATA);
+
+  // O modal não desmonta ao fechar (fica sempre na árvore, só alterna `open`), e `initialData`
+  // costuma chegar depois da primeira renderização (fetch assíncrono de checkinHoje) — sem este
+  // efeito, os campos travam nos valores do primeiro mount e nunca refletem o check-in real.
+  useEffect(() => {
+    if (open) setData(initialData ?? DEFAULT_DATA);
+  }, [open, initialData]);
 
   const handleSubmit = async () => {
     try {
