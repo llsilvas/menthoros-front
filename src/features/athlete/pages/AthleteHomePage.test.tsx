@@ -108,4 +108,16 @@ describe('AthleteHomePage', () => {
 
     expect(screen.queryByText(/semanas? seguidas? treinando/i)).toBeNull();
   });
+
+  it('mostra aviso com retry quando o streak falha (não engole erro como "sem streak")', () => {
+    mockHome();
+    vi.mocked(useManualTraining).mockReturnValue({
+      recentes: [], isFetching: false, isSubmitting: false, fetchError: new Error('boom'),
+      registrar: noop, fetchRecentes: noop,
+    });
+    renderPage();
+
+    expect(screen.getByText(/não foi possível carregar seu streak/i)).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /recarregar/i }).length).toBeGreaterThan(0);
+  });
 });

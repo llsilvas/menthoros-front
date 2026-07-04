@@ -44,5 +44,13 @@ describe('provasAdapter', () => {
 
       expect(buildProximaProva(provas, HOJE)).toEqual({ nomeProva: 'Prova Futura', diasFaltando: 19 });
     });
+
+    it('não fabrica diasFaltando=0 quando o DTO não traz o campo (undefined, não 0)', () => {
+      const provas = [prova({ nomeProva: 'Prova Sem Contagem', dataProva: '2026-07-20', diasFaltando: undefined })];
+
+      const resultado = buildProximaProva(provas, HOJE);
+      expect(resultado?.nomeProva).toBe('Prova Sem Contagem');
+      expect(resultado?.diasFaltando).toBeUndefined();
+    });
   });
 });

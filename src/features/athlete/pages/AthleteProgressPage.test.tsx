@@ -163,4 +163,39 @@ describe('AthleteProgressPage', () => {
 
     expect(screen.getByText(/peça ao seu coach para cadastrar sua próxima prova/i)).toBeInTheDocument();
   });
+
+  it('aba Provas não mostra o CTA de "sem meta" enquanto a próxima prova ainda está carregando', async () => {
+    vi.mocked(useAthleteProvas).mockReturnValue({ provas: [], loading: true, error: null, fetchProvas: noop });
+    const user = userEvent.setup();
+    render(<AthleteProgressPage />);
+
+    await user.click(screen.getByRole('tab', { name: 'Provas' }));
+
+    expect(screen.queryByText(/peça ao seu coach/i)).toBeNull();
+    expect(screen.queryByText(/próxima meta/i)).toBeNull();
+  });
+
+  it('aba Provas mostra erro com retry quando a próxima prova falha (não conflar com "sem meta")', async () => {
+    vi.mocked(useAthleteProvas).mockReturnValue({ provas: [], loading: false, error: new Error('boom'), fetchProvas: noop });
+    const user = userEvent.setup();
+    render(<AthleteProgressPage />);
+
+    await user.click(screen.getByRole('tab', { name: 'Provas' }));
+
+    expect(screen.getByText(/não foi possível carregar sua próxima prova/i)).toBeInTheDocument();
+    expect(screen.queryByText(/peça ao seu coach/i)).toBeNull();
+  });
+
+  it('aba Provas não fabrica "0 dias" quando o DTO não traz diasFaltando', async () => {
+    vi.mocked(useAthleteProvas).mockReturnValue({
+      provas: [{ id: '1', nomeProva: 'Prova Sem Contagem', dataProva: '2099-08-18', tipoProva: 'MARATONA', distancia: 'KM_42' }],
+      loading: false, error: null, fetchProvas: noop,
+    });
+    const user = userEvent.setup();
+    render(<AthleteProgressPage />);
+
+    await user.click(screen.getByRole('tab', { name: 'Provas' }));
+
+    expect(screen.getByText(/sua próxima meta: prova sem contagem/i)).toBeInTheDocument();
+  });
 });

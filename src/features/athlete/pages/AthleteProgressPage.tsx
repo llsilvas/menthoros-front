@@ -262,8 +262,6 @@ export default function AthleteProgressPage() {
       }
 
       case 'provas': {
-        const proximaProva = provasLoading || provasError ? null : buildProximaProva(provas);
-
         if (recordesError) {
           return <RetryAlert message="Não foi possível carregar seus recordes." onRetry={fetchRecordes} />;
         }
@@ -271,23 +269,31 @@ export default function AthleteProgressPage() {
           return <ChartSkeleton />;
         }
         const rows = buildRecordRows(recordes);
+        // Enquanto ainda carrega, não renderiza nada (nunca mostra o CTA de "sem meta" antes do
+        // fetch resolver); em erro, RetryAlert — nunca conflar falha de rede com "não cadastrada".
+        const proximaProva = provasLoading || provasError ? null : buildProximaProva(provas);
         return (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Box sx={{ ...glassSx, borderRadius: 1, p: 1.5 }}>
-              {proximaProva ? (
-                <>
-                  <Typography sx={{ color: surface[400], fontSize: '0.75rem' }}>Próxima meta</Typography>
-                  <Typography sx={{ color: surface[50], fontWeight: 700, mt: 0.25 }}>
-                    Faltam {proximaProva.diasFaltando} {proximaProva.diasFaltando === 1 ? 'dia' : 'dias'} para{' '}
-                    {proximaProva.nomeProva}
+            {provasError ? (
+              <RetryAlert message="Não foi possível carregar sua próxima prova." onRetry={fetchProvas} />
+            ) : !provasLoading && (
+              <Box sx={{ ...glassSx, borderRadius: 1, p: 1.5 }}>
+                {proximaProva ? (
+                  <>
+                    <Typography sx={{ color: surface[400], fontSize: '0.75rem' }}>Próxima meta</Typography>
+                    <Typography sx={{ color: surface[50], fontWeight: 700, mt: 0.25 }}>
+                      {proximaProva.diasFaltando != null
+                        ? `Faltam ${proximaProva.diasFaltando} ${proximaProva.diasFaltando === 1 ? 'dia' : 'dias'} para ${proximaProva.nomeProva}`
+                        : `Sua próxima meta: ${proximaProva.nomeProva}`}
+                    </Typography>
+                  </>
+                ) : (
+                  <Typography sx={{ color: surface[400], fontSize: '0.85rem' }}>
+                    Sem próxima meta cadastrada — peça ao seu coach para cadastrar sua próxima prova.
                   </Typography>
-                </>
-              ) : (
-                <Typography sx={{ color: surface[400], fontSize: '0.85rem' }}>
-                  Sem próxima meta cadastrada — peça ao seu coach para cadastrar sua próxima prova.
-                </Typography>
-              )}
-            </Box>
+                )}
+              </Box>
+            )}
 
             <Typography sx={{ color: surface[50], fontWeight: 700 }}>Seus PRs</Typography>
             {rows.length === 0 ? (

@@ -54,7 +54,7 @@ export default function AthleteHomePage() {
   const { name } = useUserInfo();
   const { home, loading, error, fetchHome } = useAthleteHome();
   const { readiness, error: readinessError, fetchReadiness } = useAthleteReadiness();
-  const { recentes: treinos, fetchRecentes: fetchTreinos } = useManualTraining(STREAK_DIAS);
+  const { recentes: treinos, fetchError: treinosError, fetchRecentes: fetchTreinos } = useManualTraining(STREAK_DIAS);
   const [checkInOpen, setCheckInOpen] = useState(false);
 
   useEffect(() => {
@@ -118,13 +118,23 @@ export default function AthleteHomePage() {
         )
       )}
 
-      {streak > 0 && (
-        <Box sx={{ ...glassSx, borderRadius: 2, p: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <StreakIcon sx={{ color: primary[500], fontSize: 28 }} />
-          <Typography sx={{ color: surface[50], fontWeight: 700 }}>
-            {streak} {streak === 1 ? 'semana seguida' : 'semanas seguidas'} treinando
-          </Typography>
-        </Box>
+      {treinosError ? (
+        <Alert
+          severity="warning"
+          variant="outlined"
+          action={<Button color="inherit" size="small" onClick={fetchTreinos}>Recarregar</Button>}
+        >
+          Não foi possível carregar seu streak de treinos.
+        </Alert>
+      ) : (
+        streak > 0 && (
+          <Box sx={{ ...glassSx, borderRadius: 2, p: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <StreakIcon sx={{ color: primary[500], fontSize: 28 }} />
+            <Typography sx={{ color: surface[50], fontWeight: 700 }}>
+              {streak} {streak === 1 ? 'semana seguida' : 'semanas seguidas'} treinando
+            </Typography>
+          </Box>
+        )
       )}
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
