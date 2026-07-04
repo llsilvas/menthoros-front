@@ -1,10 +1,13 @@
 import { useCallback, useState } from 'react';
+import { format } from 'date-fns';
 import { CheckinService } from '../api/services/CheckinService';
 import { UsuarioService } from '../api/services/UsuarioService';
 import type { CheckinProntidaoOutput } from '../types/Checkin';
 
+// Data LOCAL do atleta, não UTC — `toISOString()` viraria o dia à noite (ex.: 21h-23h59 no
+// horário do Brasil, UTC-3), fabricando um falso negativo de "não fez check-in hoje".
 function hojeIso(): string {
-    return new Date().toISOString().slice(0, 10);
+    return format(new Date(), 'yyyy-MM-dd');
 }
 
 /**

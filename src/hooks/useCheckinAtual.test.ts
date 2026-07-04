@@ -1,4 +1,5 @@
 import { act, renderHook } from '@testing-library/react';
+import { format } from 'date-fns';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useCheckinAtual } from './useCheckinAtual';
 import { CheckinService } from '../api/services/CheckinService';
@@ -8,7 +9,7 @@ import type { CheckinProntidaoOutput } from '../types/Checkin';
 vi.mock('../api/services/CheckinService');
 vi.mock('../api/services/UsuarioService');
 
-const HOJE_ISO = new Date().toISOString().slice(0, 10);
+const HOJE_ISO = format(new Date(), 'yyyy-MM-dd');
 
 function checkin(data: string): CheckinProntidaoOutput {
     return {

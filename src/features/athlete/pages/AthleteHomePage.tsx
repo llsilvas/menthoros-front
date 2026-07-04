@@ -61,8 +61,9 @@ export default function AthleteHomePage() {
   const { recentes: treinos, fetchError: treinosError, fetchRecentes: fetchTreinos } = useManualTraining(STREAK_DIAS);
   const { provas, loading: provasLoading, error: provasError, fetchProvas } = useAthleteProvas();
   const { registrar, loading: registrando, error: registrarError } = useRegistrarCheckin();
-  const { checkinHoje, fetchCheckinAtual } = useCheckinAtual();
+  const { checkinHoje, error: checkinAtualError, fetchCheckinAtual } = useCheckinAtual();
   const [checkInOpen, setCheckInOpen] = useState(false);
+  const [finalizandoCheckIn, setFinalizandoCheckIn] = useState(false);
 
   useEffect(() => {
     fetchHome();
@@ -74,11 +75,18 @@ export default function AthleteHomePage() {
 
   async function handleCheckInSubmit(data: QuickCheckInData) {
     await registrar(data);
-    // Refetch aguardado antes de fechar — evita mostrar o score de prontidão desatualizado
-    // por uma corrida entre fechar o modal e o novo dado chegar (design.md R3).
-    await fetchReadiness();
-    await fetchCheckinAtual();
-    setCheckInOpen(false);
+    // `registrando` já volta a false aqui (registrar() resolveu) — mantém o botão desabilitado
+    // até o modal realmente fechar, para não permitir um segundo POST nesta janela.
+    setFinalizandoCheckIn(true);
+    try {
+      // Refetch aguardado antes de fechar — evita mostrar o score de prontidão desatualizado
+      // por uma corrida entre fechar o modal e o novo dado chegar (design.md R3).
+      await fetchReadiness();
+      await fetchCheckinAtual();
+      setCheckInOpen(false);
+    } finally {
+      setFinalizandoCheckIn(false);
+    }
   }
 
   if (error) {
@@ -126,6 +134,16 @@ export default function AthleteHomePage() {
         primaryActionLabel={checkinHoje ? 'Editado hoje' : 'Iniciar treino'}
         onPrimaryAction={() => setCheckInOpen(true)}
       />
+
+      {checkinAtualError && (
+        <Alert
+          severity="warning"
+          variant="outlined"
+          action={<Button color="inherit" size="small" onClick={fetchCheckinAtual}>Recarregar</Button>}
+        >
+          Não foi possível confirmar se você já fez o check-in de hoje.
+        </Alert>
+      )}
 
       {readinessError ? (
         <Alert
@@ -208,7 +226,7 @@ export default function AthleteHomePage() {
         onClose={() => setCheckInOpen(false)}
         onSubmit={handleCheckInSubmit}
         initialData={checkInInitialData}
-        submitting={registrando}
+        submitting={registrando || finalizandoCheckIn}
         error={registrarError ? 'Não foi possível salvar seu check-in. Tente novamente.' : undefined}
       />
     </Box>
