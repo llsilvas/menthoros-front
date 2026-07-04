@@ -3,12 +3,14 @@ import { EmojiEvents as EmojiEventsIcon } from '@mui/icons-material';
 import { glassSx, surface, primary } from '../../../theme/tokens';
 import type { KudosRecente, MotivoKudos } from '../../../types/Kudos';
 
+// Frase completa com o possessivo já concordado em gênero — "esforço" é masculino
+// ("seu esforço"), os demais são femininos ("sua ...").
 const MOTIVO_TEXTO: Record<MotivoKudos, string> = {
-  CONSISTENCIA: 'consistência',
-  MELHORA: 'melhora',
-  ESFORCO: 'esforço',
-  SUPERACAO: 'superação',
-  VOLTA: 'volta por cima',
+  CONSISTENCIA: 'sua consistência',
+  MELHORA: 'sua melhora',
+  ESFORCO: 'seu esforço',
+  SUPERACAO: 'sua superação',
+  VOLTA: 'sua volta por cima',
 };
 
 export interface KudosCardProps {
@@ -25,7 +27,7 @@ export function KudosCard({ kudos }: KudosCardProps) {
         <Box key={k.id} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <EmojiEventsIcon sx={{ color: primary[500], fontSize: 24 }} />
           <Typography sx={{ color: surface[50], fontWeight: 700 }}>
-            Seu coach reconheceu sua {MOTIVO_TEXTO[k.motivo]}!
+            Seu coach reconheceu {MOTIVO_TEXTO[k.motivo]}!
           </Typography>
         </Box>
       ))}

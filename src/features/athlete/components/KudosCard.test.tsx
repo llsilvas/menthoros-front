@@ -17,7 +17,7 @@ describe('KudosCard', () => {
     render(<KudosCard kudos={[kudo('k1', 'CONSISTENCIA'), kudo('k2', 'ESFORCO')]} />);
 
     expect(screen.getByText('Seu coach reconheceu sua consistência!')).toBeInTheDocument();
-    expect(screen.getByText('Seu coach reconheceu sua esforço!')).toBeInTheDocument();
+    expect(screen.getByText('Seu coach reconheceu seu esforço!')).toBeInTheDocument();
   });
 
   it('limita a exibição aos 3 mais recentes quando há mais', () => {
@@ -34,7 +34,7 @@ describe('KudosCard', () => {
 
     expect(screen.getByText('Seu coach reconheceu sua consistência!')).toBeInTheDocument();
     expect(screen.getByText('Seu coach reconheceu sua melhora!')).toBeInTheDocument();
-    expect(screen.getByText('Seu coach reconheceu sua esforço!')).toBeInTheDocument();
+    expect(screen.getByText('Seu coach reconheceu seu esforço!')).toBeInTheDocument();
     expect(screen.queryByText('Seu coach reconheceu sua superação!')).toBeNull();
   });
 });

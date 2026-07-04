@@ -13,12 +13,18 @@ describe('parseDuracaoMin', () => {
     expect(parseDuracaoMin('00:00:30')).toBe(1); // 0.5min → 1
   });
 
+  it('aceita formato "MM:SS" (sem hora — treino manual sem hora costuma vir assim)', () => {
+    expect(parseDuracaoMin('45:00')).toBe(45);
+    expect(parseDuracaoMin('01:02')).toBe(1); // 1min2s → 1
+  });
+
   it('retorna null para valor ausente ou malformado (fallback seguro, não NaN)', () => {
     expect(parseDuracaoMin(undefined)).toBeNull();
     expect(parseDuracaoMin(null)).toBeNull();
     expect(parseDuracaoMin('')).toBeNull();
     expect(parseDuracaoMin('abc')).toBeNull();
-    expect(parseDuracaoMin('1:2')).toBeNull(); // partes insuficientes
+    expect(parseDuracaoMin('1')).toBeNull(); // partes insuficientes (nem MM:SS nem HH:MM:SS)
     expect(parseDuracaoMin('aa:bb:cc')).toBeNull();
+    expect(parseDuracaoMin('aa:bb')).toBeNull();
   });
 });
