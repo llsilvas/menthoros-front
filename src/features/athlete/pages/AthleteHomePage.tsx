@@ -19,6 +19,7 @@ import { useAthleteHome } from '../../../hooks/useAthleteHome';
 import { useAthleteReadiness } from '../../../hooks/useAthleteReadiness';
 import { useAthleteProvas } from '../../../hooks/useAthleteProvas';
 import { useManualTraining } from '../../../hooks/useManualTraining';
+import { useRegistrarCheckin } from '../../../hooks/useRegistrarCheckin';
 import { useUserInfo } from '../../../hooks/useUserInfo';
 import { glassSx, surface, primary } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
@@ -58,6 +59,7 @@ export default function AthleteHomePage() {
   const { readiness, error: readinessError, fetchReadiness } = useAthleteReadiness();
   const { recentes: treinos, fetchError: treinosError, fetchRecentes: fetchTreinos } = useManualTraining(STREAK_DIAS);
   const { provas, loading: provasLoading, error: provasError, fetchProvas } = useAthleteProvas();
+  const { registrar, loading: registrando, error: registrarError } = useRegistrarCheckin();
   const [checkInOpen, setCheckInOpen] = useState(false);
 
   useEffect(() => {
@@ -67,9 +69,11 @@ export default function AthleteHomePage() {
     fetchProvas();
   }, [fetchHome, fetchReadiness, fetchTreinos, fetchProvas]);
 
-  function handleCheckInSubmit(data: QuickCheckInData) {
-    // Fora de escopo desta change: ligar o check-in rápido ao endpoint da 9k.
-    console.log('QuickCheckIn submitted:', data);
+  async function handleCheckInSubmit(data: QuickCheckInData) {
+    await registrar(data);
+    // Refetch aguardado antes de fechar — evita mostrar o score de prontidão desatualizado
+    // por uma corrida entre fechar o modal e o novo dado chegar (design.md R3).
+    await fetchReadiness();
     setCheckInOpen(false);
   }
 
@@ -185,7 +189,13 @@ export default function AthleteHomePage() {
         Registrar treino de hoje
       </Button>
 
-      <QuickCheckInModal open={checkInOpen} onClose={() => setCheckInOpen(false)} onSubmit={handleCheckInSubmit} />
+      <QuickCheckInModal
+        open={checkInOpen}
+        onClose={() => setCheckInOpen(false)}
+        onSubmit={handleCheckInSubmit}
+        submitting={registrando}
+        error={registrarError ? 'Não foi possível salvar seu check-in. Tente novamente.' : undefined}
+      />
     </Box>
   );
 }

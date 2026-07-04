@@ -1,17 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import AthleteHomePage from './AthleteHomePage';
 import { useAthleteHome } from '../../../hooks/useAthleteHome';
 import { useAthleteReadiness } from '../../../hooks/useAthleteReadiness';
 import { useAthleteProvas } from '../../../hooks/useAthleteProvas';
 import { useManualTraining } from '../../../hooks/useManualTraining';
+import { useRegistrarCheckin } from '../../../hooks/useRegistrarCheckin';
 import { useUserInfo } from '../../../hooks/useUserInfo';
 
 vi.mock('../../../hooks/useAthleteHome');
 vi.mock('../../../hooks/useAthleteReadiness');
 vi.mock('../../../hooks/useAthleteProvas');
 vi.mock('../../../hooks/useManualTraining');
+vi.mock('../../../hooks/useRegistrarCheckin');
 vi.mock('../../../hooks/useUserInfo');
 
 const noop = vi.fn();
@@ -41,6 +44,9 @@ describe('AthleteHomePage', () => {
     });
     vi.mocked(useAthleteProvas).mockReturnValue({
       provas: [], loading: false, error: null, fetchProvas: noop,
+    });
+    vi.mocked(useRegistrarCheckin).mockReturnValue({
+      registrar: vi.fn().mockResolvedValue(undefined), loading: false, error: null,
     });
   });
 
@@ -160,5 +166,43 @@ describe('AthleteHomePage', () => {
 
     expect(screen.getByText(/não foi possível carregar sua próxima prova/i)).toBeInTheDocument();
     expect(screen.queryByText(/peça ao seu coach/i)).toBeNull();
+  });
+
+  it('submete o check-in real: chama registrar, refetch de readiness e fecha o modal', async () => {
+    mockHome();
+    const registrar = vi.fn().mockResolvedValue(undefined);
+    const fetchReadiness = vi.fn();
+    vi.mocked(useRegistrarCheckin).mockReturnValue({ registrar, loading: false, error: null });
+    vi.mocked(useAthleteReadiness).mockReturnValue({
+      readiness: { score: 78, nota: 'Provisório.' }, loading: false, error: null, fetchReadiness,
+    });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(screen.getByRole('button', { name: /iniciar treino/i }));
+    expect(screen.getByText('Como você está hoje?')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /^registrar$/i }));
+
+    expect(registrar).toHaveBeenCalledWith(expect.objectContaining({
+      qualidadeSono: expect.any(Number), humor: expect.any(Number),
+      doresMusculares: expect.any(Number), nivelEnergia: expect.any(Number), estresse: expect.any(Number),
+    }));
+    await waitFor(() => expect(fetchReadiness).toHaveBeenCalled());
+    await waitFor(() => expect(screen.queryByText('Como você está hoje?')).toBeNull());
+  });
+
+  it('mantém o modal aberto com erro quando o check-in falha (não fecha silenciosamente)', async () => {
+    mockHome();
+    const registrar = vi.fn().mockRejectedValue(new Error('boom'));
+    vi.mocked(useRegistrarCheckin).mockReturnValue({ registrar, loading: false, error: new Error('boom') });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(screen.getByRole('button', { name: /iniciar treino/i }));
+    await user.click(screen.getByRole('button', { name: /^registrar$/i }));
+
+    expect(await screen.findByText(/não foi possível salvar seu check-in/i)).toBeInTheDocument();
+    expect(screen.getByText('Como você está hoje?')).toBeInTheDocument(); // modal continua aberto
   });
 });

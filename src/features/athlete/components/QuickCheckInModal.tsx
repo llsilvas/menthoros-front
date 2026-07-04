@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Alert,
   Box,
   Button,
   Dialog,
@@ -10,7 +11,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { primary, surface, content } from '../../../theme/tokens';
+import { primary, surface, content, semantic } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 
 /** Mapeia 1:1 para `CheckinProntidaoInputDto` do backend — evita confundir nomes na tradução. */
@@ -26,9 +27,14 @@ export interface QuickCheckInData {
 export interface QuickCheckInModalProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: QuickCheckInData) => void;
+  /** Se rejeitar, o modal permanece aberto com os dados preenchidos — não reseta nem fecha sozinho. */
+  onSubmit: (data: QuickCheckInData) => Promise<void>;
   /** Pré-preenche o modal com o check-in de hoje, quando já existe (edição, não recomeça do zero). */
   initialData?: QuickCheckInData;
+  /** Mensagem de erro da última tentativa de submit (o caller decide o texto e quando limpar). */
+  error?: string;
+  /** Desabilita o botão "Registrar" e mostra "Registrando..." enquanto a submissão está em voo. */
+  submitting?: boolean;
 }
 
 const DEFAULT_DATA: QuickCheckInData = {
@@ -79,12 +85,19 @@ function RatingSlider({ label, value, min, max, onChange }: RatingSliderProps) {
   );
 }
 
-export function QuickCheckInModal({ open, onClose, onSubmit, initialData }: QuickCheckInModalProps) {
+export function QuickCheckInModal({
+  open, onClose, onSubmit, initialData, error, submitting,
+}: QuickCheckInModalProps) {
   const [data, setData] = useState<QuickCheckInData>(initialData ?? DEFAULT_DATA);
 
-  const handleSubmit = () => {
-    onSubmit({ ...data, observacoes: data.observacoes?.trim() || undefined });
-    handleReset();
+  const handleSubmit = async () => {
+    try {
+      await onSubmit({ ...data, observacoes: data.observacoes?.trim() || undefined });
+      handleReset();
+    } catch {
+      // Falha: mantém os campos preenchidos e o modal aberto — o alerta de erro (prop `error`)
+      // e o retry ficam a cargo do caller, que já sabe por que a submissão falhou.
+    }
   };
 
   const handleSkip = () => {
@@ -130,6 +143,11 @@ export function QuickCheckInModal({ open, onClose, onSubmit, initialData }: Quic
 
       <DialogContent sx={{ pt: 2, pb: 1 }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {error && (
+            <Alert severity="error" sx={{ bgcolor: `${semantic.danger[500]}26`, color: semantic.danger[500] }}>
+              {error}
+            </Alert>
+          )}
           <RatingSlider label="Qualidade do sono" value={data.qualidadeSono} min={1} max={10}
             onChange={(v) => setField('qualidadeSono', v)} />
           <RatingSlider label="Humor" value={data.humor} min={1} max={10}
@@ -199,6 +217,7 @@ export function QuickCheckInModal({ open, onClose, onSubmit, initialData }: Quic
         <Button
           onClick={handleSubmit}
           variant="contained"
+          disabled={submitting}
           sx={{
             bgcolor: primary[500],
             color: elevation.base,
@@ -208,7 +227,7 @@ export function QuickCheckInModal({ open, onClose, onSubmit, initialData }: Quic
             },
           }}
         >
-          Registrar
+          {submitting ? 'Registrando...' : 'Registrar'}
         </Button>
       </DialogActions>
     </Dialog>

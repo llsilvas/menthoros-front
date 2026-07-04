@@ -29,7 +29,7 @@ describe('QuickCheckInModal', () => {
   });
 
   it('submete os 5 campos + observações mapeados 1:1 para o contrato do backend', async () => {
-    const onSubmit = vi.fn();
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
     const user = userEvent.setup();
     render(<QuickCheckInModal open onClose={vi.fn()} onSubmit={onSubmit} />);
 
@@ -49,7 +49,7 @@ describe('QuickCheckInModal', () => {
   });
 
   it('omite observacoes quando vazio, sem fabricar string vazia', async () => {
-    const onSubmit = vi.fn();
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
     const user = userEvent.setup();
     render(<QuickCheckInModal open onClose={vi.fn()} onSubmit={onSubmit} />);
 
@@ -73,7 +73,7 @@ describe('QuickCheckInModal', () => {
   });
 
   it('chama onClose ao clicar em Pular, sem submeter', async () => {
-    const onSubmit = vi.fn();
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
     const onClose = vi.fn();
     const user = userEvent.setup();
     render(<QuickCheckInModal open onClose={onClose} onSubmit={onSubmit} />);
@@ -82,5 +82,26 @@ describe('QuickCheckInModal', () => {
 
     expect(onClose).toHaveBeenCalled();
     expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('mostra o erro inline com "Tentar novamente" quando onSubmit falha, sem fechar/resetar', async () => {
+    const onSubmit = vi.fn().mockRejectedValue(new Error('boom'));
+    const onClose = vi.fn();
+    const user = userEvent.setup();
+    render(<QuickCheckInModal open onClose={onClose} onSubmit={onSubmit} error="Não foi possível salvar." />);
+
+    await user.type(screen.getByLabelText(/algo a registrar/i), 'Minha nota');
+    await user.click(screen.getByRole('button', { name: /registrar/i }));
+
+    expect(await screen.findByText('Não foi possível salvar.')).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+    // dado preenchido não é resetado ao falhar — usuário não perde o que digitou
+    expect(screen.getByDisplayValue('Minha nota')).toBeInTheDocument();
+  });
+
+  it('desabilita o botão Registrar e mostra estado de envio enquanto submitting=true', () => {
+    render(<QuickCheckInModal open onClose={vi.fn()} onSubmit={vi.fn()} submitting />);
+
+    expect(screen.getByRole('button', { name: /registrando/i })).toBeDisabled();
   });
 });
