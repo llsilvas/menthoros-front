@@ -32,9 +32,3 @@ export interface AthleteAderencia {
   totalRealizado: number;
   percentual: number;
 }
-
-/** Campos mínimos de um treino recente usados para o KPI de volume (soma de distanciaKm). */
-export interface AthleteTreinoRecente {
-  dataTreino: string;
-  distanciaKm?: number | null;
-}

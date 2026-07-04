@@ -2,7 +2,6 @@ import type {
   AthleteAderencia,
   AthletePmc,
   AthleteRecord,
-  AthleteTreinoRecente,
   AthleteZones,
 } from '../../types/AthleteProgress';
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -63,20 +62,6 @@ export class AthleteProgressService {
       method: 'GET',
       url: '/api/v1/atletas/me/aderencia',
       query: { semanas },
-    });
-  }
-
-  /**
-   * Treinos recentes do atleta autenticado (1–30 dias, default 7) — usado para derivar
-   * o KPI de volume client-side (soma de `distanciaKm`).
-   * @returns AthleteTreinoRecente[] treinos do período
-   * @throws ApiError
-   */
-  public static getTreinosRecentes(dias?: number): CancelablePromise<AthleteTreinoRecente[]> {
-    return __request(OpenAPI, {
-      method: 'GET',
-      url: '/api/v1/atletas/me/treinos',
-      query: { dias },
     });
   }
 }

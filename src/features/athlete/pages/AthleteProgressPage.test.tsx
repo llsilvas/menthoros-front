@@ -6,15 +6,16 @@ import { useAthletePmc } from '../../../hooks/useAthletePmc';
 import { useAthleteZones } from '../../../hooks/useAthleteZones';
 import { useAthleteRecordes } from '../../../hooks/useAthleteRecordes';
 import { useAthleteAderencia } from '../../../hooks/useAthleteAderencia';
-import { useAthleteTreinosRecentes } from '../../../hooks/useAthleteTreinosRecentes';
+import { useManualTraining } from '../../../hooks/useManualTraining';
 
 vi.mock('../../../hooks/useAthletePmc');
 vi.mock('../../../hooks/useAthleteZones');
 vi.mock('../../../hooks/useAthleteRecordes');
 vi.mock('../../../hooks/useAthleteAderencia');
-vi.mock('../../../hooks/useAthleteTreinosRecentes');
+vi.mock('../../../hooks/useManualTraining');
 
 const noop = vi.fn();
+const noopAsync = vi.fn().mockResolvedValue(undefined);
 
 const PMC_STUB = [
   { data: '2026-06-01', ctl: 74, atl: 71, tsb: 3, tss: 62, statusForma: 'FORMA_IDEAL' as const },
@@ -34,9 +35,18 @@ function mockAllReady() {
     aderencia: [{ semanaInicio: '2026-06-01', totalPlanejado: 5, totalRealizado: 4, percentual: 80 }],
     loading: false, error: null, fetchAderencia: noop,
   });
-  vi.mocked(useAthleteTreinosRecentes).mockReturnValue({
-    treinos: [{ dataTreino: '2026-06-01', distanciaKm: 10 }, { dataTreino: '2026-06-03', distanciaKm: 12 }],
-    loading: false, error: null, fetchTreinosRecentes: noop,
+  vi.mocked(useManualTraining).mockReturnValue({
+    recentes: [
+      {
+        id: '1', dataTreino: '2026-06-01', tipoTreino: 'TREINO_LONGO', duracaoMin: '01:00:00', distanciaKm: 10,
+        fonteDados: { value: 'MANUAL', label: 'Manual' }, status: { value: 'CONCLUIDO', label: 'Concluído' },
+      },
+      {
+        id: '2', dataTreino: '2026-06-03', tipoTreino: 'CONTINUO', duracaoMin: '00:40:00', distanciaKm: 12,
+        fonteDados: { value: 'MANUAL', label: 'Manual' }, status: { value: 'CONCLUIDO', label: 'Concluído' },
+      },
+    ],
+    isFetching: false, isSubmitting: false, fetchError: null, registrar: noop, fetchRecentes: noopAsync,
   });
 }
 
@@ -46,14 +56,28 @@ describe('AthleteProgressPage', () => {
     mockAllReady();
   });
 
-  it('renderiza KPIs reais na aba Visão Geral, sem mock', () => {
+  it('renderiza KPIs reais na aba Visão Geral, sem mock', async () => {
     render(<AthleteProgressPage />);
 
     expect(screen.getByText('74')).toBeInTheDocument(); // CTL real
     expect(screen.getByText('+3')).toBeInTheDocument(); // TSB com sinal
-    expect(screen.getByText('22')).toBeInTheDocument(); // Volume: 10+12=22km
+    expect(await screen.findByText('22')).toBeInTheDocument(); // Volume: 10+12=22km (após fetchRecentes resolver)
     expect(screen.getByText('4')).toBeInTheDocument(); // Treinos concluídos
     expect(screen.getByText('de 5')).toBeInTheDocument();
+  });
+
+  it('não fabrica "0 km" antes do fetchRecentes (useManualTraining) resolver', () => {
+    // useManualTraining.isFetching começa em `false` (diferente dos outros hooks desta página) —
+    // sem o guard local `treinosFetched`, o primeiro render mostraria "0" em vez de "—".
+    vi.mocked(useManualTraining).mockReturnValue({
+      recentes: [], isFetching: false, isSubmitting: false, fetchError: null,
+      registrar: noop, fetchRecentes: vi.fn(() => new Promise<void>(() => {})), // nunca resolve neste teste
+    });
+
+    render(<AthleteProgressPage />);
+
+    expect(screen.queryByText('0')).toBeNull();
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0);
   });
 
   it('mostra spinner de página inteira quando tudo ainda está carregando sem dado', () => {
@@ -61,7 +85,10 @@ describe('AthleteProgressPage', () => {
     vi.mocked(useAthleteZones).mockReturnValue({ zones: null, loading: true, error: null, fetchZones: noop });
     vi.mocked(useAthleteRecordes).mockReturnValue({ recordes: [], loading: true, error: null, fetchRecordes: noop });
     vi.mocked(useAthleteAderencia).mockReturnValue({ aderencia: [], loading: true, error: null, fetchAderencia: noop });
-    vi.mocked(useAthleteTreinosRecentes).mockReturnValue({ treinos: [], loading: true, error: null, fetchTreinosRecentes: noop });
+    vi.mocked(useManualTraining).mockReturnValue({
+      recentes: [], isFetching: true, isSubmitting: false, fetchError: null,
+      registrar: noop, fetchRecentes: vi.fn(() => new Promise<void>(() => {})),
+    });
 
     render(<AthleteProgressPage />);
 

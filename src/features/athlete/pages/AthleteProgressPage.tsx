@@ -16,7 +16,7 @@ import { useAthletePmc } from '../../../hooks/useAthletePmc';
 import { useAthleteZones } from '../../../hooks/useAthleteZones';
 import { useAthleteRecordes } from '../../../hooks/useAthleteRecordes';
 import { useAthleteAderencia } from '../../../hooks/useAthleteAderencia';
-import { useAthleteTreinosRecentes } from '../../../hooks/useAthleteTreinosRecentes';
+import { useManualTraining } from '../../../hooks/useManualTraining';
 import { buildPmcDataPoints } from '../adapters/pmcAdapter';
 import { buildZoneDistributionPercent } from '../adapters/zonesAdapter';
 import { buildRecordRows } from '../adapters/recordsAdapter';
@@ -159,17 +159,23 @@ export default function AthleteProgressPage() {
   const { zones, loading: zonesLoading, error: zonesError, fetchZones } = useAthleteZones();
   const { recordes, loading: recordesLoading, error: recordesError, fetchRecordes } = useAthleteRecordes();
   const { aderencia, loading: aderenciaLoading, error: aderenciaError, fetchAderencia } = useAthleteAderencia();
-  const { treinos, loading: treinosLoading, error: treinosError, fetchTreinosRecentes } = useAthleteTreinosRecentes();
+  const {
+    recentes: treinos, isFetching: treinosLoading, fetchError: treinosError, fetchRecentes: fetchTreinosRecentes,
+  } = useManualTraining(VOLUME_DIAS);
+  // `useManualTraining.isFetching` começa em `false` (não em `true` como os outros hooks desta
+  // página) — sem esse flag local, o primeiro render mostraria "0 km" em vez de "—" antes do
+  // fetch sequer começar (reduce sobre `recentes: []` inicial).
+  const [treinosFetched, setTreinosFetched] = useState(false);
 
   useEffect(() => {
     fetchPmc();
     fetchZones();
     fetchRecordes();
     fetchAderencia(ADERENCIA_SEMANAS);
-    fetchTreinosRecentes(VOLUME_DIAS);
+    fetchTreinosRecentes().finally(() => setTreinosFetched(true));
   }, [fetchPmc, fetchZones, fetchRecordes, fetchAderencia, fetchTreinosRecentes]);
 
-  const initialLoading = pmcLoading && zonesLoading && recordesLoading && aderenciaLoading && treinosLoading
+  const initialLoading = pmcLoading && zonesLoading && recordesLoading && aderenciaLoading && !treinosFetched
     && pmc.length === 0 && !zones && recordes.length === 0 && aderencia.length === 0 && treinos.length === 0;
 
   if (initialLoading) {
@@ -181,7 +187,10 @@ export default function AthleteProgressPage() {
   }
 
   const ultimoPmc = pmc.length > 0 ? pmc[pmc.length - 1] : undefined;
-  const volumeKm = treinosError ? null : treinos.reduce((soma, t) => soma + (t.distanciaKm ?? 0), 0);
+  // Enquanto ainda não resolveu ou falhou, "—" (nunca fabrica um "0 km" antes do fetch — CA3).
+  const volumeKm = (!treinosFetched || treinosLoading || treinosError)
+    ? null
+    : treinos.reduce((soma, t) => soma + (t.distanciaKm ?? 0), 0);
   const aderenciaResumo = buildAderenciaResumo(aderencia);
   const kpis = buildKpis(ultimoPmc, volumeKm, aderenciaResumo);
 
@@ -193,7 +202,7 @@ export default function AthleteProgressPage() {
             {(treinosError || aderenciaError) && (
               <RetryAlert
                 message="Alguns indicadores podem estar desatualizados."
-                onRetry={() => { fetchTreinosRecentes(VOLUME_DIAS); fetchAderencia(ADERENCIA_SEMANAS); }}
+                onRetry={() => { fetchTreinosRecentes(); fetchAderencia(ADERENCIA_SEMANAS); }}
               />
             )}
             <Box
