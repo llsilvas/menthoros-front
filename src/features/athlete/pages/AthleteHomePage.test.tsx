@@ -4,10 +4,14 @@ import { MemoryRouter } from 'react-router';
 import AthleteHomePage from './AthleteHomePage';
 import { useAthleteHome } from '../../../hooks/useAthleteHome';
 import { useAthleteReadiness } from '../../../hooks/useAthleteReadiness';
+import { useAthleteProvas } from '../../../hooks/useAthleteProvas';
+import { useManualTraining } from '../../../hooks/useManualTraining';
 import { useUserInfo } from '../../../hooks/useUserInfo';
 
 vi.mock('../../../hooks/useAthleteHome');
 vi.mock('../../../hooks/useAthleteReadiness');
+vi.mock('../../../hooks/useAthleteProvas');
+vi.mock('../../../hooks/useManualTraining');
 vi.mock('../../../hooks/useUserInfo');
 
 const noop = vi.fn();
@@ -30,6 +34,13 @@ describe('AthleteHomePage', () => {
     vi.mocked(useUserInfo).mockReturnValue({ name: 'Carlos Silva' });
     vi.mocked(useAthleteReadiness).mockReturnValue({
       readiness: { score: 78, nota: 'Provisório.' }, loading: false, error: null, fetchReadiness: noop,
+    });
+    vi.mocked(useManualTraining).mockReturnValue({
+      recentes: [], isFetching: false, isSubmitting: false, fetchError: null,
+      registrar: noop, fetchRecentes: noop,
+    });
+    vi.mocked(useAthleteProvas).mockReturnValue({
+      provas: [], loading: false, error: null, fetchProvas: noop,
     });
   });
 
@@ -80,5 +91,74 @@ describe('AthleteHomePage', () => {
 
     // ReadinessCard não renderiza sem score → a nota do readiness não aparece
     expect(screen.queryByText('Sem sinais.')).toBeNull();
+  });
+
+  it('mostra o card de streak quando há semanas consecutivas com treino', () => {
+    mockHome();
+    vi.mocked(useManualTraining).mockReturnValue({
+      recentes: [
+        { id: '1', dataTreino: new Date().toISOString().slice(0, 10), tipoTreino: 'CONTINUO', duracaoMin: '00:30:00', fonteDados: { value: 'MANUAL', label: 'Manual' }, status: { value: 'CONCLUIDO', label: 'Concluído' } },
+      ],
+      isFetching: false, isSubmitting: false, fetchError: null, registrar: noop, fetchRecentes: noop,
+    });
+    renderPage();
+
+    expect(screen.getByText(/semana seguida treinando|semanas seguidas treinando/i)).toBeInTheDocument();
+  });
+
+  it('oculta o card de streak quando streak é 0 (não mostra "0 semanas")', () => {
+    mockHome();
+    // useManualTraining mockado no beforeEach já retorna recentes: [] → streak 0
+    renderPage();
+
+    expect(screen.queryByText(/semanas? seguidas? treinando/i)).toBeNull();
+  });
+
+  it('mostra aviso com retry quando o streak falha (não engole erro como "sem streak")', () => {
+    mockHome();
+    vi.mocked(useManualTraining).mockReturnValue({
+      recentes: [], isFetching: false, isSubmitting: false, fetchError: new Error('boom'),
+      registrar: noop, fetchRecentes: noop,
+    });
+    renderPage();
+
+    expect(screen.getByText(/não foi possível carregar seu streak/i)).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /recarregar/i }).length).toBeGreaterThan(0);
+  });
+
+  it('mostra a próxima prova real (nome + diasFaltando do DTO)', () => {
+    mockHome();
+    vi.mocked(useAthleteProvas).mockReturnValue({
+      provas: [{ id: '1', nomeProva: 'Maratona de SP', dataProva: '2099-08-18', tipoProva: 'MARATONA', distancia: 'KM_42', diasFaltando: 45 }],
+      loading: false, error: null, fetchProvas: noop,
+    });
+    renderPage();
+
+    expect(screen.getByText(/faltam 45 dias para maratona de sp/i)).toBeInTheDocument();
+  });
+
+  it('mostra CTA honesto quando não há prova futura cadastrada, sem inventar', () => {
+    mockHome();
+    // useAthleteProvas mockado no beforeEach já retorna provas: [] → sem próxima meta
+    renderPage();
+
+    expect(screen.getByText(/peça ao seu coach para cadastrar sua próxima prova/i)).toBeInTheDocument();
+  });
+
+  it('não mostra o CTA de "sem meta" enquanto a próxima prova ainda está carregando', () => {
+    mockHome();
+    vi.mocked(useAthleteProvas).mockReturnValue({ provas: [], loading: true, error: null, fetchProvas: noop });
+    renderPage();
+
+    expect(screen.queryByText(/peça ao seu coach/i)).toBeNull();
+  });
+
+  it('mostra aviso com retry quando a próxima prova falha (não conflar com "sem meta")', () => {
+    mockHome();
+    vi.mocked(useAthleteProvas).mockReturnValue({ provas: [], loading: false, error: new Error('boom'), fetchProvas: noop });
+    renderPage();
+
+    expect(screen.getByText(/não foi possível carregar sua próxima prova/i)).toBeInTheDocument();
+    expect(screen.queryByText(/peça ao seu coach/i)).toBeNull();
   });
 });

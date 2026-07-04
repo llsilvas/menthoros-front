@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Alert, Box, Button, CircularProgress, Tooltip, Typography } from '@mui/material';
+import { LocalFireDepartment as StreakIcon, Flag as ProvaIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router';
 import { TodayHeroCard } from '../components/TodayHeroCard';
 import { ReadinessCard } from '../components/ReadinessCard';
@@ -12,12 +13,18 @@ import {
   timeOfDayNow,
   type HomeMetric,
 } from '../adapters/homeAdapter';
+import { calcularStreakSemanas } from '../adapters/streakAdapter';
+import { buildProximaProva } from '../adapters/provasAdapter';
 import { useAthleteHome } from '../../../hooks/useAthleteHome';
 import { useAthleteReadiness } from '../../../hooks/useAthleteReadiness';
+import { useAthleteProvas } from '../../../hooks/useAthleteProvas';
+import { useManualTraining } from '../../../hooks/useManualTraining';
 import { useUserInfo } from '../../../hooks/useUserInfo';
 import { glassSx, surface, primary } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import { ROUTES } from '../../../constants/routes';
+
+const STREAK_DIAS = 30; // ~4 semanas cheias, mesma janela usada pelo KPI de volume da 9.6
 
 // Copy de UI (não é dado do atleta): saudação/tom do hero. Ver D0.3 da change.
 const MENSAGEM_HERO = 'Consistência constrói sua base. Bons treinos hoje.';
@@ -49,12 +56,16 @@ export default function AthleteHomePage() {
   const { name } = useUserInfo();
   const { home, loading, error, fetchHome } = useAthleteHome();
   const { readiness, error: readinessError, fetchReadiness } = useAthleteReadiness();
+  const { recentes: treinos, fetchError: treinosError, fetchRecentes: fetchTreinos } = useManualTraining(STREAK_DIAS);
+  const { provas, loading: provasLoading, error: provasError, fetchProvas } = useAthleteProvas();
   const [checkInOpen, setCheckInOpen] = useState(false);
 
   useEffect(() => {
     fetchHome();
     fetchReadiness();
-  }, [fetchHome, fetchReadiness]);
+    fetchTreinos();
+    fetchProvas();
+  }, [fetchHome, fetchReadiness, fetchTreinos, fetchProvas]);
 
   function handleCheckInSubmit(data: QuickCheckInData) {
     // Fora de escopo desta change: ligar o check-in rápido ao endpoint da 9k.
@@ -83,6 +94,8 @@ export default function AthleteHomePage() {
   const athleteName = name?.trim().split(/\s+/)[0] ?? 'Atleta';
   const nextWorkout = buildNextWorkout(home);
   const metrics = buildHomeMetrics(home?.metricasChave);
+  const streak = calcularStreakSemanas(treinos);
+  const proximaProva = provasLoading || provasError ? null : buildProximaProva(provas);
 
   return (
     <Box sx={{ minHeight: '100%', bgcolor: elevation.base, p: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -107,6 +120,48 @@ export default function AthleteHomePage() {
       ) : (
         readiness?.score != null && (
           <ReadinessCard score={readiness.score} recommendation={readiness.nota} />
+        )
+      )}
+
+      {treinosError ? (
+        <Alert
+          severity="warning"
+          variant="outlined"
+          action={<Button color="inherit" size="small" onClick={fetchTreinos}>Recarregar</Button>}
+        >
+          Não foi possível carregar seu streak de treinos.
+        </Alert>
+      ) : (
+        streak > 0 && (
+          <Box sx={{ ...glassSx, borderRadius: 2, p: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <StreakIcon sx={{ color: primary[500], fontSize: 28 }} />
+            <Typography sx={{ color: surface[50], fontWeight: 700 }}>
+              {streak} {streak === 1 ? 'semana seguida' : 'semanas seguidas'} treinando
+            </Typography>
+          </Box>
+        )
+      )}
+
+      {provasError ? (
+        <Alert
+          severity="warning"
+          variant="outlined"
+          action={<Button color="inherit" size="small" onClick={fetchProvas}>Recarregar</Button>}
+        >
+          Não foi possível carregar sua próxima prova.
+        </Alert>
+      ) : (
+        !provasLoading && (
+          <Box sx={{ ...glassSx, borderRadius: 2, p: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <ProvaIcon sx={{ color: primary[500], fontSize: 28 }} />
+            <Typography sx={{ color: surface[50], fontWeight: 700 }}>
+              {proximaProva
+                ? (proximaProva.diasFaltando != null
+                    ? `Faltam ${proximaProva.diasFaltando} ${proximaProva.diasFaltando === 1 ? 'dia' : 'dias'} para ${proximaProva.nomeProva}`
+                    : `Sua próxima meta: ${proximaProva.nomeProva}`)
+                : 'Sem próxima meta cadastrada — peça ao seu coach para cadastrar sua próxima prova.'}
+            </Typography>
+          </Box>
         )
       )}
 

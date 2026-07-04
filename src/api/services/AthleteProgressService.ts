@@ -4,6 +4,7 @@ import type {
   AthleteRecord,
   AthleteZones,
 } from '../../types/AthleteProgress';
+import type { Prova } from '../../types/Prova';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -62,6 +63,18 @@ export class AthleteProgressService {
       method: 'GET',
       url: '/api/v1/atletas/me/aderencia',
       query: { semanas },
+    });
+  }
+
+  /**
+   * Provas cadastradas pelo coach para o atleta autenticado (passadas e futuras).
+   * @returns Prova[] provas (lista vazia quando o atleta ainda não tem provas cadastradas)
+   * @throws ApiError
+   */
+  public static getProvas(): CancelablePromise<Prova[]> {
+    return __request(OpenAPI, {
+      method: 'GET',
+      url: '/api/v1/atletas/me/provas',
     });
   }
 }
