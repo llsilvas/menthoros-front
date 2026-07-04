@@ -299,4 +299,16 @@ describe('AthleteHomePage', () => {
 
     expect(screen.getByText(/você ainda não registrou treinos esta semana/i)).toBeInTheDocument();
   });
+
+  it('não mostra o resumo semanal (nem o estado vazio) enquanto os treinos ainda carregam (achado do QA gate)', () => {
+    mockHome();
+    vi.mocked(useManualTraining).mockReturnValue({
+      recentes: [], isFetching: true, isSubmitting: false, fetchError: null,
+      registrar: noop, fetchRecentes: noop,
+    });
+    renderPage();
+
+    expect(screen.queryByText('Seu resumo da semana')).toBeNull();
+    expect(screen.queryByText(/você ainda não registrou treinos esta semana/i)).toBeNull();
+  });
 });

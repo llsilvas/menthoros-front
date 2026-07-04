@@ -1,8 +1,7 @@
 import { differenceInCalendarDays, parseISO } from 'date-fns';
 import type { TreinoRealizadoDto } from '../../../types/TreinoManual';
 import type { AthleteMetricasChave, AthleteProximoTreino } from '../../../types/AthleteHome';
-import { FAIXA_APRESENTACAO } from '../../coach/types/AthleteForm';
-import type { FaixaTsbStatus } from '../../../types/FaixaTsb';
+import { FAIXA_APRESENTACAO } from '../../../types/FaixaTsb';
 
 export interface WeeklySummary {
   totalTreinos: number;
@@ -34,7 +33,7 @@ export function buildWeeklySummary(
 
   const volumeTotalKm = treinosDaSemana.reduce((soma, t) => soma + (t.distanciaKm ?? 0), 0);
 
-  const faixa = metricasChave?.statusForma as FaixaTsbStatus | undefined;
+  const faixa = metricasChave?.statusForma;
   const formaAtual = faixa && FAIXA_APRESENTACAO[faixa] ? FAIXA_APRESENTACAO[faixa].label : FORMA_INDISPONIVEL;
 
   return {

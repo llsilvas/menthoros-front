@@ -3,6 +3,8 @@
 // Todos os campos são opcionais: o backend usa @JsonInclude(NON_NULL) e os records
 // aninhados podem vir ausentes (atleta sem próximo treino / sem métricas / sem sinais).
 
+import type { FaixaTsbStatus } from './FaixaTsb';
+
 export interface AthleteProximoTreino {
   data?: string; // ISO date, ex.: "2026-06-18"
   tipoTreino?: string; // enum name do backend, ex.: "INTERVALADO"
@@ -15,7 +17,7 @@ export interface AthleteMetricasChave {
   tsb?: number;
   tss?: number;
   volumeKm?: number; // BigDecimal no backend → number no JSON
-  statusForma?: string; // FaixaTsb resolvida pelo backend
+  statusForma?: FaixaTsbStatus; // FaixaTsb resolvida pelo backend
 }
 
 export interface AthleteHome {

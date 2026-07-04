@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Button, CircularProgress, FormControl, MenuItem, Select, Typography } from '@mui/material';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { GHOST_BTN_SX, PRIMARY_BTN_SX } from '../../../shared/components/actionButtonSx';
@@ -25,6 +25,13 @@ export interface KudosDialogProps {
 
 export function KudosDialog({ open, onClose, onSubmit, error, submitting }: KudosDialogProps) {
   const [motivo, setMotivo] = useState<MotivoKudos>('CONSISTENCIA');
+
+  // O dialog não desmonta ao fechar (fica sempre na árvore, só alterna `open`) — sem este efeito,
+  // o motivo escolhido numa sessão anterior (cancelada ou enviada) permaneceria selecionado na
+  // próxima abertura, arriscando enviar o motivo errado por engano (achado do Codex review).
+  useEffect(() => {
+    if (open) setMotivo('CONSISTENCIA');
+  }, [open]);
 
   async function handleConfirmar() {
     try {

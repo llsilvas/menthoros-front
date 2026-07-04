@@ -62,7 +62,7 @@ export default function AthleteHomePage() {
   const { name } = useUserInfo();
   const { home, loading, error, fetchHome } = useAthleteHome();
   const { readiness, error: readinessError, fetchReadiness } = useAthleteReadiness();
-  const { recentes: treinos, fetchError: treinosError, fetchRecentes: fetchTreinos } = useManualTraining(STREAK_DIAS);
+  const { recentes: treinos, isFetching: treinosLoading, fetchError: treinosError, fetchRecentes: fetchTreinos } = useManualTraining(STREAK_DIAS);
   const { provas, loading: provasLoading, error: provasError, fetchProvas } = useAthleteProvas();
   const { registrar, loading: registrando, error: registrarError } = useRegistrarCheckin();
   const { checkinHoje, error: checkinAtualError, fetchCheckinAtual } = useCheckinAtual();
@@ -219,7 +219,7 @@ export default function AthleteHomePage() {
         )
       )}
 
-      <WeeklySummaryCard resumo={resumoSemanal} />
+      {!treinosLoading && !treinosError && <WeeklySummaryCard resumo={resumoSemanal} />}
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
         <Typography sx={{ color: surface[50], fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>

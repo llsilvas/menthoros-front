@@ -31,6 +31,18 @@ import { useEnviarKudos } from '../../../hooks/useEnviarKudos';
 import { surface } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import type { MotivoKudos } from '../../../types/Kudos';
+import { ApiError } from '../../../api';
+
+// Curados em KudosService.ts (mensagens PT-BR estáticas, seguras para exibir). Qualquer outro
+// status (500, rede, etc.) cai no fallback genérico — request.ts pode incluir o corpo bruto da
+// resposta na mensagem desses casos, que não deve ser exibido diretamente ao coach.
+const KUDO_STATUS_CURADOS = new Set([400, 403, 404, 409]);
+
+function mensagemErroKudo(error: Error | null): string | undefined {
+    if (!error) return undefined;
+    if (error instanceof ApiError && KUDO_STATUS_CURADOS.has(error.status)) return error.message;
+    return 'Não foi possível registrar o reconhecimento. Tente novamente.';
+}
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
@@ -240,7 +252,7 @@ export default function CoachAthleteProfilePage() {
                 onClose={() => setKudosOpen(false)}
                 onSubmit={handleEnviarKudo}
                 submitting={enviandoKudo}
-                error={kudoError ? kudoError.message : undefined}
+                error={mensagemErroKudo(kudoError)}
             />
         </Box>
     );

@@ -48,7 +48,7 @@ import { elevation } from '../../../shared/design-tokens';
 import { content, primary, semantic, surface } from '../../../theme/tokens';
 import { buildRosterRowFromSummary, buildSelectedAthleteFromDashboard, getAcwrZone } from '../adapters/coachInboxAdapters';
 import { buildPmcDataPoints } from '../../athlete/adapters/pmcAdapter';
-import { FAIXA_APRESENTACAO } from '../types/AthleteForm';
+import { FAIXA_APRESENTACAO } from '../../../types/FaixaTsb';
 import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
 
 type TabKey = 'diagnosis' | 'plan' | 'races';

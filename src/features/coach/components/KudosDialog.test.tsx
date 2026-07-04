@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { KudosDialog } from './KudosDialog';
 
@@ -54,5 +54,22 @@ describe('KudosDialog', () => {
     render(<KudosDialog open onClose={vi.fn()} onSubmit={vi.fn()} submitting />);
 
     expect(screen.getByRole('button', { name: /cancelar/i })).toBeDisabled();
+  });
+
+  it('reseta o motivo para o default ao reabrir (achado do Codex review: dialog não desmonta)', async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    const { rerender } = render(<KudosDialog open onClose={vi.fn()} onSubmit={onSubmit} />);
+
+    await user.click(screen.getByRole('combobox'));
+    await user.click(await screen.findByRole('option', { name: 'Esforço' }));
+
+    // fecha (mesmo componente permanece montado) e reabre
+    rerender(<KudosDialog open={false} onClose={vi.fn()} onSubmit={onSubmit} />);
+    rerender(<KudosDialog open onClose={vi.fn()} onSubmit={onSubmit} />);
+
+    await user.click(screen.getByRole('button', { name: /reconhecer$/i }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith('CONSISTENCIA'));
   });
 });
