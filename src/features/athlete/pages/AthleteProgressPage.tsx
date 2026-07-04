@@ -16,11 +16,13 @@ import { useAthletePmc } from '../../../hooks/useAthletePmc';
 import { useAthleteZones } from '../../../hooks/useAthleteZones';
 import { useAthleteRecordes } from '../../../hooks/useAthleteRecordes';
 import { useAthleteAderencia } from '../../../hooks/useAthleteAderencia';
+import { useAthleteProvas } from '../../../hooks/useAthleteProvas';
 import { useManualTraining } from '../../../hooks/useManualTraining';
 import { buildPmcDataPoints } from '../adapters/pmcAdapter';
 import { buildZoneDistributionPercent } from '../adapters/zonesAdapter';
 import { buildRecordRows } from '../adapters/recordsAdapter';
 import { buildAderenciaResumo } from '../adapters/aderenciaAdapter';
+import { buildProximaProva } from '../adapters/provasAdapter';
 
 // Lazy load: recharts é pesado (~300KB) — carrega só quando a tab é acessada
 const PMCChart = lazy(() =>
@@ -159,6 +161,7 @@ export default function AthleteProgressPage() {
   const { zones, loading: zonesLoading, error: zonesError, fetchZones } = useAthleteZones();
   const { recordes, loading: recordesLoading, error: recordesError, fetchRecordes } = useAthleteRecordes();
   const { aderencia, loading: aderenciaLoading, error: aderenciaError, fetchAderencia } = useAthleteAderencia();
+  const { provas, loading: provasLoading, error: provasError, fetchProvas } = useAthleteProvas();
   const {
     recentes: treinos, isFetching: treinosLoading, fetchError: treinosError, fetchRecentes: fetchTreinosRecentes,
   } = useManualTraining(VOLUME_DIAS);
@@ -172,8 +175,9 @@ export default function AthleteProgressPage() {
     fetchZones();
     fetchRecordes();
     fetchAderencia(ADERENCIA_SEMANAS);
+    fetchProvas();
     fetchTreinosRecentes().finally(() => setTreinosFetched(true));
-  }, [fetchPmc, fetchZones, fetchRecordes, fetchAderencia, fetchTreinosRecentes]);
+  }, [fetchPmc, fetchZones, fetchRecordes, fetchAderencia, fetchProvas, fetchTreinosRecentes]);
 
   const initialLoading = pmcLoading && zonesLoading && recordesLoading && aderenciaLoading && !treinosFetched
     && pmc.length === 0 && !zones && recordes.length === 0 && aderencia.length === 0 && treinos.length === 0;
@@ -258,6 +262,8 @@ export default function AthleteProgressPage() {
       }
 
       case 'provas': {
+        const proximaProva = provasLoading || provasError ? null : buildProximaProva(provas);
+
         if (recordesError) {
           return <RetryAlert message="Não foi possível carregar seus recordes." onRetry={fetchRecordes} />;
         }
@@ -267,6 +273,22 @@ export default function AthleteProgressPage() {
         const rows = buildRecordRows(recordes);
         return (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box sx={{ ...glassSx, borderRadius: 1, p: 1.5 }}>
+              {proximaProva ? (
+                <>
+                  <Typography sx={{ color: surface[400], fontSize: '0.75rem' }}>Próxima meta</Typography>
+                  <Typography sx={{ color: surface[50], fontWeight: 700, mt: 0.25 }}>
+                    Faltam {proximaProva.diasFaltando} {proximaProva.diasFaltando === 1 ? 'dia' : 'dias'} para{' '}
+                    {proximaProva.nomeProva}
+                  </Typography>
+                </>
+              ) : (
+                <Typography sx={{ color: surface[400], fontSize: '0.85rem' }}>
+                  Sem próxima meta cadastrada — peça ao seu coach para cadastrar sua próxima prova.
+                </Typography>
+              )}
+            </Box>
+
             <Typography sx={{ color: surface[50], fontWeight: 700 }}>Seus PRs</Typography>
             {rows.length === 0 ? (
               <EmptyState message="Ainda sem recordes." />

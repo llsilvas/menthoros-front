@@ -6,12 +6,14 @@ import { useAthletePmc } from '../../../hooks/useAthletePmc';
 import { useAthleteZones } from '../../../hooks/useAthleteZones';
 import { useAthleteRecordes } from '../../../hooks/useAthleteRecordes';
 import { useAthleteAderencia } from '../../../hooks/useAthleteAderencia';
+import { useAthleteProvas } from '../../../hooks/useAthleteProvas';
 import { useManualTraining } from '../../../hooks/useManualTraining';
 
 vi.mock('../../../hooks/useAthletePmc');
 vi.mock('../../../hooks/useAthleteZones');
 vi.mock('../../../hooks/useAthleteRecordes');
 vi.mock('../../../hooks/useAthleteAderencia');
+vi.mock('../../../hooks/useAthleteProvas');
 vi.mock('../../../hooks/useManualTraining');
 
 const noop = vi.fn();
@@ -34,6 +36,10 @@ function mockAllReady() {
   vi.mocked(useAthleteAderencia).mockReturnValue({
     aderencia: [{ semanaInicio: '2026-06-01', totalPlanejado: 5, totalRealizado: 4, percentual: 80 }],
     loading: false, error: null, fetchAderencia: noop,
+  });
+  vi.mocked(useAthleteProvas).mockReturnValue({
+    provas: [{ id: '1', nomeProva: 'Maratona de SP', dataProva: '2099-08-18', tipoProva: 'MARATONA', distancia: 'KM_42', diasFaltando: 45 }],
+    loading: false, error: null, fetchProvas: noop,
   });
   vi.mocked(useManualTraining).mockReturnValue({
     recentes: [
@@ -137,5 +143,24 @@ describe('AthleteProgressPage', () => {
 
     expect(screen.getByText('10k')).toBeInTheDocument();
     expect(screen.getByText('00:45:30')).toBeInTheDocument();
+  });
+
+  it('aba Provas mostra a próxima prova real (nome + diasFaltando do DTO)', async () => {
+    const user = userEvent.setup();
+    render(<AthleteProgressPage />);
+
+    await user.click(screen.getByRole('tab', { name: 'Provas' }));
+
+    expect(screen.getByText(/faltam 45 dias para maratona de sp/i)).toBeInTheDocument();
+  });
+
+  it('aba Provas mostra CTA honesto quando não há prova futura cadastrada, sem inventar', async () => {
+    vi.mocked(useAthleteProvas).mockReturnValue({ provas: [], loading: false, error: null, fetchProvas: noop });
+    const user = userEvent.setup();
+    render(<AthleteProgressPage />);
+
+    await user.click(screen.getByRole('tab', { name: 'Provas' }));
+
+    expect(screen.getByText(/peça ao seu coach para cadastrar sua próxima prova/i)).toBeInTheDocument();
   });
 });
