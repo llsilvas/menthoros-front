@@ -4,10 +4,12 @@ import { MemoryRouter } from 'react-router';
 import AthleteHomePage from './AthleteHomePage';
 import { useAthleteHome } from '../../../hooks/useAthleteHome';
 import { useAthleteReadiness } from '../../../hooks/useAthleteReadiness';
+import { useManualTraining } from '../../../hooks/useManualTraining';
 import { useUserInfo } from '../../../hooks/useUserInfo';
 
 vi.mock('../../../hooks/useAthleteHome');
 vi.mock('../../../hooks/useAthleteReadiness');
+vi.mock('../../../hooks/useManualTraining');
 vi.mock('../../../hooks/useUserInfo');
 
 const noop = vi.fn();
@@ -30,6 +32,10 @@ describe('AthleteHomePage', () => {
     vi.mocked(useUserInfo).mockReturnValue({ name: 'Carlos Silva' });
     vi.mocked(useAthleteReadiness).mockReturnValue({
       readiness: { score: 78, nota: 'Provisório.' }, loading: false, error: null, fetchReadiness: noop,
+    });
+    vi.mocked(useManualTraining).mockReturnValue({
+      recentes: [], isFetching: false, isSubmitting: false, fetchError: null,
+      registrar: noop, fetchRecentes: noop,
     });
   });
 
@@ -80,5 +86,26 @@ describe('AthleteHomePage', () => {
 
     // ReadinessCard não renderiza sem score → a nota do readiness não aparece
     expect(screen.queryByText('Sem sinais.')).toBeNull();
+  });
+
+  it('mostra o card de streak quando há semanas consecutivas com treino', () => {
+    mockHome();
+    vi.mocked(useManualTraining).mockReturnValue({
+      recentes: [
+        { id: '1', dataTreino: new Date().toISOString().slice(0, 10), tipoTreino: 'CONTINUO', duracaoMin: '00:30:00', fonteDados: { value: 'MANUAL', label: 'Manual' }, status: { value: 'CONCLUIDO', label: 'Concluído' } },
+      ],
+      isFetching: false, isSubmitting: false, fetchError: null, registrar: noop, fetchRecentes: noop,
+    });
+    renderPage();
+
+    expect(screen.getByText(/semana seguida treinando|semanas seguidas treinando/i)).toBeInTheDocument();
+  });
+
+  it('oculta o card de streak quando streak é 0 (não mostra "0 semanas")', () => {
+    mockHome();
+    // useManualTraining mockado no beforeEach já retorna recentes: [] → streak 0
+    renderPage();
+
+    expect(screen.queryByText(/semanas? seguidas? treinando/i)).toBeNull();
   });
 });
