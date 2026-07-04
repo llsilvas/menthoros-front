@@ -7,6 +7,7 @@ import { ReadinessCard } from '../components/ReadinessCard';
 import { QuickCheckInModal } from '../components/QuickCheckInModal';
 import type { QuickCheckInData } from '../components/QuickCheckInModal';
 import { KudosCard } from '../components/KudosCard';
+import { WeeklySummaryCard } from '../components/WeeklySummaryCard';
 import {
   buildHomeMetrics,
   buildNextWorkout,
@@ -16,6 +17,7 @@ import {
 } from '../adapters/homeAdapter';
 import { calcularStreakSemanas } from '../adapters/streakAdapter';
 import { buildProximaProva } from '../adapters/provasAdapter';
+import { buildWeeklySummary } from '../adapters/buildWeeklySummary';
 import { useAthleteHome } from '../../../hooks/useAthleteHome';
 import { useAthleteReadiness } from '../../../hooks/useAthleteReadiness';
 import { useAthleteProvas } from '../../../hooks/useAthleteProvas';
@@ -116,6 +118,7 @@ export default function AthleteHomePage() {
   const metrics = buildHomeMetrics(home?.metricasChave);
   const streak = calcularStreakSemanas(treinos);
   const proximaProva = provasLoading || provasError ? null : buildProximaProva(provas);
+  const resumoSemanal = buildWeeklySummary(treinos, home?.metricasChave, home?.proximoTreino, streak);
   const checkInInitialData: QuickCheckInData | undefined = checkinHoje
     ? {
         qualidadeSono: checkinHoje.qualidadeSono,
@@ -215,6 +218,8 @@ export default function AthleteHomePage() {
           </Box>
         )
       )}
+
+      <WeeklySummaryCard resumo={resumoSemanal} />
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
         <Typography sx={{ color: surface[50], fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>

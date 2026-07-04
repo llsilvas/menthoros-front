@@ -270,4 +270,33 @@ describe('AthleteHomePage', () => {
 
     expect(screen.getByText(/não foi possível carregar seus reconhecimentos/i)).toBeInTheDocument();
   });
+
+  it('mostra o resumo semanal com treinos, volume, streak, forma e próximo treino', () => {
+    mockHome({
+      home: {
+        proximoTreino: { tipoTreino: 'INTERVALADO', descricao: 'Tiros de 400m' },
+        metricasChave: { ctl: 74, atl: 71, tsb: 3, tss: 62, statusForma: 'FORMA_IDEAL' },
+      },
+    });
+    const hoje = new Date().toISOString().slice(0, 10);
+    vi.mocked(useManualTraining).mockReturnValue({
+      recentes: [
+        { id: '1', dataTreino: hoje, tipoTreino: 'CONTINUO', duracaoMin: '00:30:00', distanciaKm: 5,
+          fonteDados: { value: 'MANUAL', label: 'Manual' }, status: { value: 'CONCLUIDO', label: 'Concluído' } },
+      ],
+      isFetching: false, isSubmitting: false, fetchError: null, registrar: noop, fetchRecentes: noop,
+    });
+    renderPage();
+
+    expect(screen.getByText('Seu resumo da semana')).toBeInTheDocument();
+    expect(screen.getByText('5.0 km')).toBeInTheDocument();
+    expect(screen.getByText('Forma ideal')).toBeInTheDocument();
+  });
+
+  it('resumo semanal mostra estado vazio honesto quando não há treinos na semana', () => {
+    mockHome();
+    renderPage();
+
+    expect(screen.getByText(/você ainda não registrou treinos esta semana/i)).toBeInTheDocument();
+  });
 });
