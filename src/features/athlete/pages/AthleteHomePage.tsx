@@ -18,7 +18,9 @@ import { buildProximaProva } from '../adapters/provasAdapter';
 import { useAthleteHome } from '../../../hooks/useAthleteHome';
 import { useAthleteReadiness } from '../../../hooks/useAthleteReadiness';
 import { useAthleteProvas } from '../../../hooks/useAthleteProvas';
+import { useCheckinAtual } from '../../../hooks/useCheckinAtual';
 import { useManualTraining } from '../../../hooks/useManualTraining';
+import { useRegistrarCheckin } from '../../../hooks/useRegistrarCheckin';
 import { useUserInfo } from '../../../hooks/useUserInfo';
 import { glassSx, surface, primary } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
@@ -58,19 +60,33 @@ export default function AthleteHomePage() {
   const { readiness, error: readinessError, fetchReadiness } = useAthleteReadiness();
   const { recentes: treinos, fetchError: treinosError, fetchRecentes: fetchTreinos } = useManualTraining(STREAK_DIAS);
   const { provas, loading: provasLoading, error: provasError, fetchProvas } = useAthleteProvas();
+  const { registrar, loading: registrando, error: registrarError } = useRegistrarCheckin();
+  const { checkinHoje, error: checkinAtualError, fetchCheckinAtual } = useCheckinAtual();
   const [checkInOpen, setCheckInOpen] = useState(false);
+  const [finalizandoCheckIn, setFinalizandoCheckIn] = useState(false);
 
   useEffect(() => {
     fetchHome();
     fetchReadiness();
     fetchTreinos();
     fetchProvas();
-  }, [fetchHome, fetchReadiness, fetchTreinos, fetchProvas]);
+    fetchCheckinAtual();
+  }, [fetchHome, fetchReadiness, fetchTreinos, fetchProvas, fetchCheckinAtual]);
 
-  function handleCheckInSubmit(data: QuickCheckInData) {
-    // Fora de escopo desta change: ligar o check-in rápido ao endpoint da 9k.
-    console.log('QuickCheckIn submitted:', data);
-    setCheckInOpen(false);
+  async function handleCheckInSubmit(data: QuickCheckInData) {
+    await registrar(data);
+    // `registrando` já volta a false aqui (registrar() resolveu) — mantém o botão desabilitado
+    // até o modal realmente fechar, para não permitir um segundo POST nesta janela.
+    setFinalizandoCheckIn(true);
+    try {
+      // Refetch aguardado antes de fechar — evita mostrar o score de prontidão desatualizado
+      // por uma corrida entre fechar o modal e o novo dado chegar (design.md R3).
+      await fetchReadiness();
+      await fetchCheckinAtual();
+      setCheckInOpen(false);
+    } finally {
+      setFinalizandoCheckIn(false);
+    }
   }
 
   if (error) {
@@ -96,6 +112,16 @@ export default function AthleteHomePage() {
   const metrics = buildHomeMetrics(home?.metricasChave);
   const streak = calcularStreakSemanas(treinos);
   const proximaProva = provasLoading || provasError ? null : buildProximaProva(provas);
+  const checkInInitialData: QuickCheckInData | undefined = checkinHoje
+    ? {
+        qualidadeSono: checkinHoje.qualidadeSono,
+        humor: checkinHoje.humor,
+        doresMusculares: checkinHoje.doresMusculares,
+        nivelEnergia: checkinHoje.nivelEnergia,
+        estresse: checkinHoje.estresse,
+        observacoes: checkinHoje.observacoes,
+      }
+    : undefined;
 
   return (
     <Box sx={{ minHeight: '100%', bgcolor: elevation.base, p: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -105,9 +131,19 @@ export default function AthleteHomePage() {
         timeOfDay={timeOfDayNow()}
         motivationalMessage={MENSAGEM_HERO}
         nextWorkout={nextWorkout}
-        primaryActionLabel="Iniciar treino"
+        primaryActionLabel={checkinHoje ? 'Editado hoje' : 'Iniciar treino'}
         onPrimaryAction={() => setCheckInOpen(true)}
       />
+
+      {checkinAtualError && (
+        <Alert
+          severity="warning"
+          variant="outlined"
+          action={<Button color="inherit" size="small" onClick={fetchCheckinAtual}>Recarregar</Button>}
+        >
+          Não foi possível confirmar se você já fez o check-in de hoje.
+        </Alert>
+      )}
 
       {readinessError ? (
         <Alert
@@ -185,7 +221,14 @@ export default function AthleteHomePage() {
         Registrar treino de hoje
       </Button>
 
-      <QuickCheckInModal open={checkInOpen} onClose={() => setCheckInOpen(false)} onSubmit={handleCheckInSubmit} />
+      <QuickCheckInModal
+        open={checkInOpen}
+        onClose={() => setCheckInOpen(false)}
+        onSubmit={handleCheckInSubmit}
+        initialData={checkInInitialData}
+        submitting={registrando || finalizandoCheckIn}
+        error={registrarError ? 'Não foi possível salvar seu check-in. Tente novamente.' : undefined}
+      />
     </Box>
   );
 }
