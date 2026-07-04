@@ -13,45 +13,77 @@ import {
 import { primary, surface, content } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 
+/** Mapeia 1:1 para `CheckinProntidaoInputDto` do backend — evita confundir nomes na tradução. */
 export interface QuickCheckInData {
-  mood: number;
-  energyLevel: number;
-  notes?: string;
+  qualidadeSono: number; // 1–10
+  humor: number; // 1–10
+  doresMusculares: number; // 0–10
+  nivelEnergia: number; // 1–10
+  estresse: number; // 0–10
+  observacoes?: string;
 }
 
 export interface QuickCheckInModalProps {
   open: boolean;
   onClose: () => void;
   onSubmit: (data: QuickCheckInData) => void;
+  /** Pré-preenche o modal com o check-in de hoje, quando já existe (edição, não recomeça do zero). */
+  initialData?: QuickCheckInData;
 }
 
-const MOOD_EMOJIS: Record<number, string> = {
-  1: '😞',
-  2: '😐',
-  3: '🙂',
-  4: '😊',
-  5: '🚀',
+const DEFAULT_DATA: QuickCheckInData = {
+  qualidadeSono: 5,
+  humor: 5,
+  doresMusculares: 5,
+  nivelEnergia: 5,
+  estresse: 5,
+  observacoes: '',
 };
 
-const MOOD_LABELS: Record<number, string> = {
-  1: 'Ruim',
-  2: 'Regular',
-  3: 'Bom',
-  4: 'Muito bom',
-  5: 'Excelente',
+const sliderSx = {
+  color: primary[500],
+  '& .MuiSlider-mark': { bgcolor: surface[600] },
+  '& .MuiSlider-markActive': { bgcolor: primary[500] },
 };
 
-export function QuickCheckInModal({ open, onClose, onSubmit }: QuickCheckInModalProps) {
-  const [mood, setMood] = useState<number>(3);
-  const [energyLevel, setEnergyLevel] = useState<number>(5);
-  const [notes, setNotes] = useState<string>('');
+interface RatingSliderProps {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  onChange: (value: number) => void;
+}
+
+function RatingSlider({ label, value, min, max, onChange }: RatingSliderProps) {
+  return (
+    <Box>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+        <Typography sx={{ color: surface[50], fontSize: '0.9rem', fontWeight: 600 }}>
+          {label}
+        </Typography>
+        <Typography sx={{ color: primary[500], fontSize: '0.85rem', fontWeight: 700 }}>
+          {value}/{max}
+        </Typography>
+      </Box>
+      <Slider
+        aria-label={label}
+        value={value}
+        min={min}
+        max={max}
+        step={1}
+        marks
+        onChange={(_event, v) => onChange(v as number)}
+        sx={sliderSx}
+      />
+    </Box>
+  );
+}
+
+export function QuickCheckInModal({ open, onClose, onSubmit, initialData }: QuickCheckInModalProps) {
+  const [data, setData] = useState<QuickCheckInData>(initialData ?? DEFAULT_DATA);
 
   const handleSubmit = () => {
-    onSubmit({
-      mood,
-      energyLevel,
-      notes: notes.trim() || undefined,
-    });
+    onSubmit({ ...data, observacoes: data.observacoes?.trim() || undefined });
     handleReset();
   };
 
@@ -61,9 +93,11 @@ export function QuickCheckInModal({ open, onClose, onSubmit }: QuickCheckInModal
   };
 
   function handleReset() {
-    setMood(3);
-    setEnergyLevel(5);
-    setNotes('');
+    setData(initialData ?? DEFAULT_DATA);
+  }
+
+  function setField<K extends keyof QuickCheckInData>(field: K, value: QuickCheckInData[K]) {
+    setData((prev) => ({ ...prev, [field]: value }));
   }
 
   return (
@@ -96,112 +130,23 @@ export function QuickCheckInModal({ open, onClose, onSubmit }: QuickCheckInModal
 
       <DialogContent sx={{ pt: 2, pb: 1 }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <RatingSlider label="Qualidade do sono" value={data.qualidadeSono} min={1} max={10}
+            onChange={(v) => setField('qualidadeSono', v)} />
+          <RatingSlider label="Humor" value={data.humor} min={1} max={10}
+            onChange={(v) => setField('humor', v)} />
+          <RatingSlider label="Dores musculares" value={data.doresMusculares} min={0} max={10}
+            onChange={(v) => setField('doresMusculares', v)} />
+          <RatingSlider label="Nível de energia" value={data.nivelEnergia} min={1} max={10}
+            onChange={(v) => setField('nivelEnergia', v)} />
+          <RatingSlider label="Estresse" value={data.estresse} min={0} max={10}
+            onChange={(v) => setField('estresse', v)} />
 
-          {/* Humor */}
-          <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-              <Typography
-                sx={{ color: surface[50], fontSize: '0.9rem', fontWeight: 600 }}
-              >
-                Humor
-              </Typography>
-              <Typography
-                sx={{ color: primary[500], fontSize: '0.85rem', fontWeight: 700 }}
-              >
-                {MOOD_LABELS[mood]}
-              </Typography>
-            </Box>
-
-            <Slider
-              value={mood}
-              min={1}
-              max={5}
-              step={1}
-              marks
-              onChange={(_event, value) => setMood(value as number)}
-              sx={{
-                color: primary[500],
-                '& .MuiSlider-mark': {
-                  bgcolor: surface[600],
-                },
-                '& .MuiSlider-markActive': {
-                  bgcolor: primary[500],
-                },
-              }}
-            />
-
-            {/* Emojis abaixo do slider */}
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                mt: 0.5,
-                px: 0.5,
-              }}
-            >
-              {[1, 2, 3, 4, 5].map((value) => (
-                <Typography
-                  key={value}
-                  sx={{
-                    fontSize: mood === value ? '1.4rem' : '1.1rem',
-                    cursor: 'pointer',
-                    transition: 'font-size 0.15s ease',
-                    userSelect: 'none',
-                  }}
-                  onClick={() => setMood(value)}
-                >
-                  {MOOD_EMOJIS[value]}
-                </Typography>
-              ))}
-            </Box>
-          </Box>
-
-          {/* Nível de energia */}
-          <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-              <Typography
-                sx={{ color: surface[50], fontSize: '0.9rem', fontWeight: 600 }}
-              >
-                Nível de energia
-              </Typography>
-              <Typography
-                sx={{ color: primary[500], fontSize: '0.85rem', fontWeight: 700 }}
-              >
-                {energyLevel}/10
-              </Typography>
-            </Box>
-
-            <Slider
-              value={energyLevel}
-              min={1}
-              max={10}
-              step={1}
-              marks
-              onChange={(_event, value) => setEnergyLevel(value as number)}
-              sx={{
-                color: primary[500],
-                '& .MuiSlider-mark': {
-                  bgcolor: surface[600],
-                },
-                '& .MuiSlider-markActive': {
-                  bgcolor: primary[500],
-                },
-              }}
-            />
-
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
-              <Typography sx={{ color: surface[400], fontSize: '0.75rem' }}>Sem energia</Typography>
-              <Typography sx={{ color: surface[400], fontSize: '0.75rem' }}>Máxima</Typography>
-            </Box>
-          </Box>
-
-          {/* Notas opcionais */}
           <TextField
             label="Algo a registrar? (opcional)"
             multiline
             rows={2}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+            value={data.observacoes ?? ''}
+            onChange={(e) => setField('observacoes', e.target.value)}
             fullWidth
             variant="outlined"
             sx={{
