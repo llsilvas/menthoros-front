@@ -41,4 +41,7 @@ export interface TreinoRealizadoDto {
     fonteDados: { value: string; label: string };
     status: { value: string; label: string };
     observacao?: string;
+    fcMedia?: number;
+    /** Presente apenas em treinos com etapas detalhadas (ex.: importados de .fit) */
+    etapasRealizadas?: unknown[];
 }

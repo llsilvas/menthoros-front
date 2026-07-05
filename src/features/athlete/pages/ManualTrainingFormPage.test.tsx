@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import ManualTrainingFormPage from './ManualTrainingFormPage';
 import { useManualTraining } from '../../../hooks/useManualTraining';
+import { useFitUpload } from '../../../hooks/useFitUpload';
 import type { TreinoRealizadoDto } from '../../../types/TreinoManual';
 
 const navigateMock = vi.fn();
@@ -14,6 +15,7 @@ vi.mock('react-router', async () => {
 });
 
 vi.mock('../../../hooks/useManualTraining');
+vi.mock('../../../hooks/useFitUpload');
 
 const TREINO_SALVO: TreinoRealizadoDto = {
   id: 't1',
@@ -27,6 +29,34 @@ const TREINO_SALVO: TreinoRealizadoDto = {
   status: { value: 'CONCLUIDO', label: 'Concluído' },
 };
 
+const TREINO_FIT: TreinoRealizadoDto = {
+  id: 't-fit-1',
+  dataTreino: '2026-07-01',
+  tipoTreino: 'CONTINUO',
+  duracaoMin: '00:30:00',
+  distanciaKm: 5,
+  fcMedia: 150,
+  tssCalculado: 62,
+  fonteDados: { value: 'MANUAL', label: 'Manual' },
+  status: { value: 'REALIZADO', label: 'Realizado' },
+  etapasRealizadas: [{}, {}],
+};
+
+function fitFile() {
+  return new File(['dados'], 'treino.fit', { type: 'application/octet-stream' });
+}
+
+function mockUseFitUpload(overrides: Partial<ReturnType<typeof useFitUpload>> = {}) {
+  vi.mocked(useFitUpload).mockReturnValue({
+    upload: vi.fn().mockResolvedValue(TREINO_FIT),
+    uploading: false,
+    error: null,
+    result: null,
+    reset: vi.fn(),
+    ...overrides,
+  });
+}
+
 function renderPage() {
   return render(<MemoryRouter><ManualTrainingFormPage /></MemoryRouter>);
 }
@@ -34,6 +64,7 @@ function renderPage() {
 describe('ManualTrainingFormPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseFitUpload();
   });
 
   it('mostra o PostWorkoutFeedbackCard após registrar com sucesso, em vez do toast', async () => {
@@ -80,5 +111,56 @@ describe('ManualTrainingFormPage', () => {
 
     expect(await screen.findByText(/erro ao registrar treino/i)).toBeInTheDocument();
     expect(screen.queryByText('🏃 Corrida contínua')).toBeNull();
+  });
+
+  it('mostra a zona de upload de .fit acima do formulário manual', () => {
+    renderPage();
+
+    expect(screen.getByLabelText(/selecionar arquivo \.fit/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /registrar treino/i })).toBeInTheDocument();
+  });
+
+  it('ao importar um .fit com sucesso, mostra o FitUploadResultCard sem esconder o formulário manual', async () => {
+    const upload = vi.fn().mockResolvedValue(TREINO_FIT);
+    mockUseFitUpload({ upload });
+    const user = userEvent.setup();
+    renderPage();
+
+    const input = screen.getByLabelText(/selecionar arquivo \.fit/i).querySelector('input')!;
+    await user.upload(input, fitFile());
+
+    await waitFor(() => expect(screen.getByText('Treino importado com sucesso')).toBeInTheDocument());
+    expect(upload).toHaveBeenCalledOnce();
+    expect(screen.getByRole('button', { name: /registrar treino/i })).toBeInTheDocument();
+  });
+
+  it('"Importar outro" volta a mostrar a zona de upload', async () => {
+    const upload = vi.fn().mockResolvedValue(TREINO_FIT);
+    const reset = vi.fn();
+    mockUseFitUpload({ upload, reset });
+    const user = userEvent.setup();
+    renderPage();
+
+    const input = screen.getByLabelText(/selecionar arquivo \.fit/i).querySelector('input')!;
+    await user.upload(input, fitFile());
+    await screen.findByText('Treino importado com sucesso');
+
+    await user.click(screen.getByRole('button', { name: /importar outro/i }));
+
+    expect(reset).toHaveBeenCalledOnce();
+    expect(screen.getByLabelText(/selecionar arquivo \.fit/i)).toBeInTheDocument();
+  });
+
+  it('mostra erro ao importar um .fit inválido, sem afetar o formulário manual', async () => {
+    const upload = vi.fn().mockRejectedValue(new Error('422'));
+    mockUseFitUpload({ upload });
+    const user = userEvent.setup();
+    renderPage();
+
+    const input = screen.getByLabelText(/selecionar arquivo \.fit/i).querySelector('input')!;
+    await user.upload(input, fitFile());
+
+    expect(await screen.findByText(/erro ao importar/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /registrar treino/i })).toBeInTheDocument();
   });
 });
