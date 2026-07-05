@@ -5,16 +5,21 @@ import { isSameDay, parseISO } from 'date-fns';
 import { surface, glassSx, primary } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import { useManualTraining } from '../../../hooks/useManualTraining';
+import { useFitUpload } from '../../../hooks/useFitUpload';
 import { ManualTrainingForm } from '../components/ManualTrainingForm';
 import { RecentTrainingsList } from '../components/RecentTrainingsList';
 import { PostWorkoutFeedbackCard } from '../components/PostWorkoutFeedbackCard';
+import { FileUploadZone } from '../components/FileUploadZone';
+import { FitUploadResultCard } from '../components/FitUploadResultCard';
 import type { TreinoManualInput, TreinoRealizadoDto } from '../../../types/TreinoManual';
 import { ROUTES } from '../../../constants/routes';
 
 export default function ManualTrainingFormPage() {
     const navigate = useNavigate();
     const { recentes, isFetching, isSubmitting, fetchError, registrar, fetchRecentes } = useManualTraining(7);
+    const { upload, uploading, reset: resetFitUpload } = useFitUpload();
     const [treinoRegistrado, setTreinoRegistrado] = useState<TreinoRealizadoDto | null>(null);
+    const [treinoImportado, setTreinoImportado] = useState<TreinoRealizadoDto | null>(null);
     const [toast, setToast] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
         open: false,
         message: '',
@@ -38,6 +43,25 @@ export default function ManualTrainingFormPage() {
             setToast({ open: true, message: 'Erro ao registrar treino. Tente novamente.', severity: 'error' });
         }
     }, [registrar]);
+
+    const handleFitUpload = useCallback(async (arquivo: File) => {
+        try {
+            const treino = await upload(arquivo);
+            setTreinoImportado(treino);
+            await fetchRecentes();
+        } catch (err) {
+            setToast({
+                open: true,
+                message: err instanceof Error ? err.message : 'Erro ao importar arquivo .fit.',
+                severity: 'error',
+            });
+        }
+    }, [upload, fetchRecentes]);
+
+    const handleImportarOutro = useCallback(() => {
+        setTreinoImportado(null);
+        resetFitUpload();
+    }, [resetFitUpload]);
 
     return (
         <Box
@@ -64,6 +88,26 @@ export default function ManualTrainingFormPage() {
                 <Typography sx={{ color: surface[400], fontSize: '0.85rem', mt: 0.5 }}>
                     Registre um treino realizado nos últimos 7 dias.
                 </Typography>
+            </Box>
+
+            <Box sx={{ ...glassSx, borderRadius: 2, p: 2.5 }}>
+                <Typography sx={{ color: surface[50], fontSize: '0.95rem', fontWeight: 700, mb: 1.5 }}>
+                    Importar de dispositivo (.fit)
+                </Typography>
+                {treinoImportado ? (
+                    <FitUploadResultCard
+                        treino={treinoImportado}
+                        onImportarOutro={handleImportarOutro}
+                        onVoltar={() => navigate(ROUTES.ATHLETE_HOME)}
+                    />
+                ) : (
+                    <FileUploadZone onFileSelected={handleFitUpload} disabled={uploading} />
+                )}
+                {uploading && (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 1.5 }}>
+                        <CircularProgress size={20} sx={{ color: primary[500] }} />
+                    </Box>
+                )}
             </Box>
 
             <Box sx={{ ...glassSx, borderRadius: 2, p: 2.5 }}>
