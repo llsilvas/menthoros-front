@@ -49,8 +49,12 @@ export default function ManualTrainingFormPage() {
             const treino = await upload(arquivo);
             setTreinoImportado(treino);
             await fetchRecentes();
-        } catch {
-            setToast({ open: true, message: 'Erro ao importar arquivo .fit. Verifique se é um arquivo válido.', severity: 'error' });
+        } catch (err) {
+            setToast({
+                open: true,
+                message: err instanceof Error ? err.message : 'Erro ao importar arquivo .fit.',
+                severity: 'error',
+            });
         }
     }, [upload, fetchRecentes]);
 

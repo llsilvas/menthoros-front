@@ -151,8 +151,8 @@ describe('ManualTrainingFormPage', () => {
     expect(screen.getByLabelText(/selecionar arquivo \.fit/i)).toBeInTheDocument();
   });
 
-  it('mostra erro ao importar um .fit inválido, sem afetar o formulário manual', async () => {
-    const upload = vi.fn().mockRejectedValue(new Error('422'));
+  it('mostra a mensagem de erro curada do backend (ex.: 422) ao importar um .fit inválido, sem afetar o formulário manual', async () => {
+    const upload = vi.fn().mockRejectedValue(new Error('Arquivo .fit inválido ou corrompido'));
     mockUseFitUpload({ upload });
     const user = userEvent.setup();
     renderPage();
@@ -160,7 +160,19 @@ describe('ManualTrainingFormPage', () => {
     const input = screen.getByLabelText(/selecionar arquivo \.fit/i).querySelector('input')!;
     await user.upload(input, fitFile());
 
-    expect(await screen.findByText(/erro ao importar/i)).toBeInTheDocument();
+    expect(await screen.findByText('Arquivo .fit inválido ou corrompido')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /registrar treino/i })).toBeInTheDocument();
+  });
+
+  it('usa uma mensagem genérica quando o erro não é uma instância de Error', async () => {
+    const upload = vi.fn().mockRejectedValue('falha não padronizada');
+    mockUseFitUpload({ upload });
+    const user = userEvent.setup();
+    renderPage();
+
+    const input = screen.getByLabelText(/selecionar arquivo \.fit/i).querySelector('input')!;
+    await user.upload(input, fitFile());
+
+    expect(await screen.findByText('Erro ao importar arquivo .fit.')).toBeInTheDocument();
   });
 });
