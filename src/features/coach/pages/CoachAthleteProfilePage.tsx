@@ -14,6 +14,7 @@ import {
 import {
     ArrowBack as ArrowBackIcon,
     Refresh as RefreshIcon,
+    EmojiEvents as EmojiEventsIcon,
 } from '@mui/icons-material';
 import type { PMCRange } from '../../athlete/components/PMCChart';
 import { buildPmcDataPoints } from '../../athlete/adapters/pmcAdapter';
@@ -24,9 +25,24 @@ import { AdherenceChart } from '../components/AdherenceChart';
 import { CurrentWeekPlan } from '../components/CurrentWeekPlan';
 import { RecentSignalsPanel } from '../components/RecentSignalsPanel';
 import { RecentSuggestionsPanel } from '../components/RecentSuggestionsPanel';
+import { KudosDialog } from '../components/KudosDialog';
 import { useAthleteProfile } from '../../../hooks/useAthleteProfile';
+import { useEnviarKudos } from '../../../hooks/useEnviarKudos';
 import { surface } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
+import type { MotivoKudos } from '../../../types/Kudos';
+import { ApiError } from '../../../api';
+
+// Curados em KudosService.ts (mensagens PT-BR estáticas, seguras para exibir). Qualquer outro
+// status (500, rede, etc.) cai no fallback genérico — request.ts pode incluir o corpo bruto da
+// resposta na mensagem desses casos, que não deve ser exibido diretamente ao coach.
+const KUDO_STATUS_CURADOS = new Set([400, 403, 404, 409]);
+
+function mensagemErroKudo(error: Error | null): string | undefined {
+    if (!error) return undefined;
+    if (error instanceof ApiError && KUDO_STATUS_CURADOS.has(error.status)) return error.message;
+    return 'Não foi possível registrar o reconhecimento. Tente novamente.';
+}
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
@@ -59,8 +75,15 @@ export default function CoachAthleteProfilePage() {
     const { atletaId } = useParams<{ atletaId: string }>();
     const navigate = useNavigate();
     const [pmcRange, setPmcRange] = useState<PMCRange>('12w');
+    const [kudosOpen, setKudosOpen] = useState(false);
 
     const { profile, isLoading, error, errorKind, fetchProfile } = useAthleteProfile(atletaId);
+    const { enviar: enviarKudo, loading: enviandoKudo, error: kudoError } = useEnviarKudos();
+
+    async function handleEnviarKudo(motivo: MotivoKudos) {
+        await enviarKudo(atletaId!, { motivo });
+        setKudosOpen(false);
+    }
 
     const pmcData = useMemo(() => buildPmcDataPoints(profile?.pmc ?? []), [profile?.pmc]);
 
@@ -122,7 +145,15 @@ export default function CoachAthleteProfilePage() {
                             {profile.objetivo ? ` · ${profile.objetivo}` : ''}
                         </Typography>
                     </Box>
-                    <Box sx={{ ml: 'auto' }}>
+                    <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
+                        <Button
+                            size="small"
+                            startIcon={<EmojiEventsIcon />}
+                            onClick={() => setKudosOpen(true)}
+                            sx={{ color: surface[400] }}
+                        >
+                            Reconhecer progresso
+                        </Button>
                         <Button
                             size="small"
                             startIcon={<RefreshIcon />}
@@ -215,6 +246,14 @@ export default function CoachAthleteProfilePage() {
                     </Grid>
                 </Grid>
             ) : null}
+
+            <KudosDialog
+                open={kudosOpen}
+                onClose={() => setKudosOpen(false)}
+                onSubmit={handleEnviarKudo}
+                submitting={enviandoKudo}
+                error={mensagemErroKudo(kudoError)}
+            />
         </Box>
     );
 }

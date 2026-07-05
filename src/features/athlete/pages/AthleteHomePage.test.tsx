@@ -7,6 +7,7 @@ import { useAthleteHome } from '../../../hooks/useAthleteHome';
 import { useAthleteReadiness } from '../../../hooks/useAthleteReadiness';
 import { useAthleteProvas } from '../../../hooks/useAthleteProvas';
 import { useCheckinAtual } from '../../../hooks/useCheckinAtual';
+import { useKudosRecentes } from '../../../hooks/useKudosRecentes';
 import { useManualTraining } from '../../../hooks/useManualTraining';
 import { useRegistrarCheckin } from '../../../hooks/useRegistrarCheckin';
 import { useUserInfo } from '../../../hooks/useUserInfo';
@@ -15,6 +16,7 @@ vi.mock('../../../hooks/useAthleteHome');
 vi.mock('../../../hooks/useAthleteReadiness');
 vi.mock('../../../hooks/useAthleteProvas');
 vi.mock('../../../hooks/useCheckinAtual');
+vi.mock('../../../hooks/useKudosRecentes');
 vi.mock('../../../hooks/useManualTraining');
 vi.mock('../../../hooks/useRegistrarCheckin');
 vi.mock('../../../hooks/useUserInfo');
@@ -52,6 +54,9 @@ describe('AthleteHomePage', () => {
     });
     vi.mocked(useCheckinAtual).mockReturnValue({
       checkinHoje: null, loading: false, error: null, fetchCheckinAtual: vi.fn().mockResolvedValue(undefined),
+    });
+    vi.mocked(useKudosRecentes).mockReturnValue({
+      kudos: [], loading: false, error: null, fetchKudos: vi.fn().mockResolvedValue(undefined),
     });
   });
 
@@ -243,5 +248,67 @@ describe('AthleteHomePage', () => {
 
     expect(screen.getByRole('slider', { name: /qualidade do sono/i })).toHaveAttribute('aria-valuenow', '9');
     expect(screen.getByDisplayValue('Dormi bem')).toBeInTheDocument();
+  });
+
+  it('mostra o card de kudos quando há reconhecimentos recentes', () => {
+    mockHome();
+    vi.mocked(useKudosRecentes).mockReturnValue({
+      kudos: [{ id: 'k1', motivo: 'CONSISTENCIA', createdAt: '2026-07-04T12:00:00Z' }],
+      loading: false, error: null, fetchKudos: vi.fn().mockResolvedValue(undefined),
+    });
+    renderPage();
+
+    expect(screen.getByText('Seu coach reconheceu sua consistência!')).toBeInTheDocument();
+  });
+
+  it('mostra aviso com retry quando os kudos falham (não conflar com "sem kudos")', () => {
+    mockHome();
+    vi.mocked(useKudosRecentes).mockReturnValue({
+      kudos: [], loading: false, error: new Error('boom'), fetchKudos: vi.fn().mockResolvedValue(undefined),
+    });
+    renderPage();
+
+    expect(screen.getByText(/não foi possível carregar seus reconhecimentos/i)).toBeInTheDocument();
+  });
+
+  it('mostra o resumo semanal com treinos, volume, streak, forma e próximo treino', () => {
+    mockHome({
+      home: {
+        proximoTreino: { tipoTreino: 'INTERVALADO', descricao: 'Tiros de 400m' },
+        metricasChave: { ctl: 74, atl: 71, tsb: 3, tss: 62, statusForma: 'FORMA_IDEAL' },
+      },
+    });
+    const hoje = new Date().toISOString().slice(0, 10);
+    vi.mocked(useManualTraining).mockReturnValue({
+      recentes: [
+        { id: '1', dataTreino: hoje, tipoTreino: 'CONTINUO', duracaoMin: '00:30:00', distanciaKm: 5,
+          fonteDados: { value: 'MANUAL', label: 'Manual' }, status: { value: 'CONCLUIDO', label: 'Concluído' } },
+      ],
+      isFetching: false, isSubmitting: false, fetchError: null, registrar: noop, fetchRecentes: noop,
+    });
+    renderPage();
+
+    expect(screen.getByText('Seu resumo da semana')).toBeInTheDocument();
+    expect(screen.getByText('5.0 km')).toBeInTheDocument();
+    expect(screen.getByText('Forma ideal')).toBeInTheDocument();
+  });
+
+  it('resumo semanal mostra estado vazio honesto quando não há treinos na semana', () => {
+    mockHome();
+    renderPage();
+
+    expect(screen.getByText(/você ainda não registrou treinos esta semana/i)).toBeInTheDocument();
+  });
+
+  it('não mostra o resumo semanal (nem o estado vazio) enquanto os treinos ainda carregam (achado do QA gate)', () => {
+    mockHome();
+    vi.mocked(useManualTraining).mockReturnValue({
+      recentes: [], isFetching: true, isSubmitting: false, fetchError: null,
+      registrar: noop, fetchRecentes: noop,
+    });
+    renderPage();
+
+    expect(screen.queryByText('Seu resumo da semana')).toBeNull();
+    expect(screen.queryByText(/você ainda não registrou treinos esta semana/i)).toBeNull();
   });
 });

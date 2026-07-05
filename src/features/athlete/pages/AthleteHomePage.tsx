@@ -6,6 +6,8 @@ import { TodayHeroCard } from '../components/TodayHeroCard';
 import { ReadinessCard } from '../components/ReadinessCard';
 import { QuickCheckInModal } from '../components/QuickCheckInModal';
 import type { QuickCheckInData } from '../components/QuickCheckInModal';
+import { KudosCard } from '../components/KudosCard';
+import { WeeklySummaryCard } from '../components/WeeklySummaryCard';
 import {
   buildHomeMetrics,
   buildNextWorkout,
@@ -15,10 +17,12 @@ import {
 } from '../adapters/homeAdapter';
 import { calcularStreakSemanas } from '../adapters/streakAdapter';
 import { buildProximaProva } from '../adapters/provasAdapter';
+import { buildWeeklySummary } from '../adapters/buildWeeklySummary';
 import { useAthleteHome } from '../../../hooks/useAthleteHome';
 import { useAthleteReadiness } from '../../../hooks/useAthleteReadiness';
 import { useAthleteProvas } from '../../../hooks/useAthleteProvas';
 import { useCheckinAtual } from '../../../hooks/useCheckinAtual';
+import { useKudosRecentes } from '../../../hooks/useKudosRecentes';
 import { useManualTraining } from '../../../hooks/useManualTraining';
 import { useRegistrarCheckin } from '../../../hooks/useRegistrarCheckin';
 import { useUserInfo } from '../../../hooks/useUserInfo';
@@ -58,10 +62,11 @@ export default function AthleteHomePage() {
   const { name } = useUserInfo();
   const { home, loading, error, fetchHome } = useAthleteHome();
   const { readiness, error: readinessError, fetchReadiness } = useAthleteReadiness();
-  const { recentes: treinos, fetchError: treinosError, fetchRecentes: fetchTreinos } = useManualTraining(STREAK_DIAS);
+  const { recentes: treinos, isFetching: treinosLoading, fetchError: treinosError, fetchRecentes: fetchTreinos } = useManualTraining(STREAK_DIAS);
   const { provas, loading: provasLoading, error: provasError, fetchProvas } = useAthleteProvas();
   const { registrar, loading: registrando, error: registrarError } = useRegistrarCheckin();
   const { checkinHoje, error: checkinAtualError, fetchCheckinAtual } = useCheckinAtual();
+  const { kudos, error: kudosError, fetchKudos } = useKudosRecentes();
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [finalizandoCheckIn, setFinalizandoCheckIn] = useState(false);
 
@@ -71,7 +76,8 @@ export default function AthleteHomePage() {
     fetchTreinos();
     fetchProvas();
     fetchCheckinAtual();
-  }, [fetchHome, fetchReadiness, fetchTreinos, fetchProvas, fetchCheckinAtual]);
+    fetchKudos();
+  }, [fetchHome, fetchReadiness, fetchTreinos, fetchProvas, fetchCheckinAtual, fetchKudos]);
 
   async function handleCheckInSubmit(data: QuickCheckInData) {
     await registrar(data);
@@ -112,6 +118,7 @@ export default function AthleteHomePage() {
   const metrics = buildHomeMetrics(home?.metricasChave);
   const streak = calcularStreakSemanas(treinos);
   const proximaProva = provasLoading || provasError ? null : buildProximaProva(provas);
+  const resumoSemanal = buildWeeklySummary(treinos, home?.metricasChave, home?.proximoTreino, streak);
   const checkInInitialData: QuickCheckInData | undefined = checkinHoje
     ? {
         qualidadeSono: checkinHoje.qualidadeSono,
@@ -178,6 +185,17 @@ export default function AthleteHomePage() {
         )
       )}
 
+      {kudosError && (
+        <Alert
+          severity="warning"
+          variant="outlined"
+          action={<Button color="inherit" size="small" onClick={fetchKudos}>Recarregar</Button>}
+        >
+          Não foi possível carregar seus reconhecimentos do coach.
+        </Alert>
+      )}
+      <KudosCard kudos={kudos} />
+
       {provasError ? (
         <Alert
           severity="warning"
@@ -200,6 +218,8 @@ export default function AthleteHomePage() {
           </Box>
         )
       )}
+
+      {!treinosLoading && !treinosError && <WeeklySummaryCard resumo={resumoSemanal} />}
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
         <Typography sx={{ color: surface[50], fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>

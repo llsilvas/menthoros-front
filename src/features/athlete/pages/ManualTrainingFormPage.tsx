@@ -1,15 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Box, CircularProgress, Snackbar, Typography } from '@mui/material';
+import { useNavigate } from 'react-router';
 import { isSameDay, parseISO } from 'date-fns';
 import { surface, glassSx, primary } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import { useManualTraining } from '../../../hooks/useManualTraining';
 import { ManualTrainingForm } from '../components/ManualTrainingForm';
 import { RecentTrainingsList } from '../components/RecentTrainingsList';
-import type { TreinoManualInput } from '../../../types/TreinoManual';
+import { PostWorkoutFeedbackCard } from '../components/PostWorkoutFeedbackCard';
+import type { TreinoManualInput, TreinoRealizadoDto } from '../../../types/TreinoManual';
+import { ROUTES } from '../../../constants/routes';
 
 export default function ManualTrainingFormPage() {
+    const navigate = useNavigate();
     const { recentes, isFetching, isSubmitting, fetchError, registrar, fetchRecentes } = useManualTraining(7);
+    const [treinoRegistrado, setTreinoRegistrado] = useState<TreinoRealizadoDto | null>(null);
     const [toast, setToast] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
         open: false,
         message: '',
@@ -27,8 +32,8 @@ export default function ManualTrainingFormPage() {
 
     const handleSubmit = useCallback(async (input: TreinoManualInput) => {
         try {
-            await registrar(input);
-            setToast({ open: true, message: 'Treino registrado com sucesso!', severity: 'success' });
+            const salvo = await registrar(input);
+            setTreinoRegistrado(salvo);
         } catch {
             setToast({ open: true, message: 'Erro ao registrar treino. Tente novamente.', severity: 'error' });
         }
@@ -62,11 +67,18 @@ export default function ManualTrainingFormPage() {
             </Box>
 
             <Box sx={{ ...glassSx, borderRadius: 2, p: 2.5 }}>
-                <ManualTrainingForm
-                    loading={isSubmitting}
-                    hasTreinoHoje={hasTreinoHoje}
-                    onSubmit={handleSubmit}
-                />
+                {treinoRegistrado ? (
+                    <PostWorkoutFeedbackCard
+                        treino={treinoRegistrado}
+                        onVoltar={() => navigate(ROUTES.ATHLETE_HOME)}
+                    />
+                ) : (
+                    <ManualTrainingForm
+                        loading={isSubmitting}
+                        hasTreinoHoje={hasTreinoHoje}
+                        onSubmit={handleSubmit}
+                    />
+                )}
             </Box>
 
             <Box>
