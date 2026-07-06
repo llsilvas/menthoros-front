@@ -27,6 +27,7 @@ import {
   EditOutlined as EditIcon,
   DeleteOutline as DeleteIcon,
   EventBusy as EventBusyIcon,
+  AutoAwesome as AutoAwesomeIcon,
 } from '@mui/icons-material';
 import {
   DataGrid,
@@ -54,6 +55,7 @@ import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { MetricCell } from '../../../shared/components/MetricCell';
 import { useCoachRoster } from '../../../hooks/useCoachRoster';
 import { EncerrarLoteDialog } from '../../../components/features/planos/EncerrarLoteDialog';
+import { BatchPlanDialog } from '../../../components/features/planos/BatchPlanDialog';
 import { deriveRosterKpis, daysSinceLastActivity, INACTIVITY_THRESHOLD_DAYS } from '../adapters/rosterKpis';
 import { calcularAcwr, getAcwrZone } from '../adapters/coachInboxAdapters';
 import type { MetricTone } from '../types/AthleteForm';
@@ -233,6 +235,7 @@ export default function CoachAthletesPage() {
   }, [fetchRoster]);
 
   const [loteDialogOpen, setLoteDialogOpen] = useState(false);
+  const [batchDialogOpen, setBatchDialogOpen] = useState(false);
 
   // CRUD de atleta (reusa AtletaDialog/AtletasService legados; recarrega o roster ao salvar/excluir)
   const abrirNovoAtleta = () => { setAtletaParaEditar(null); setActionTarget(null); setAction('atleta-new'); };
@@ -588,6 +591,19 @@ export default function CoachAthletesPage() {
           >
             {selectedCount > 0 ? `Encerrar semana (${selectedCount})` : 'Encerrar semana de todos'}
           </Button>
+
+          {/* Gerar planos em lote (atletas selecionados) */}
+          <Button
+            variant="outlined"
+            color="primary"
+            size="small"
+            startIcon={<AutoAwesomeIcon />}
+            disabled={selectedCount === 0}
+            sx={{ fontWeight: 600, fontSize: '0.8rem', whiteSpace: 'nowrap' }}
+            onClick={() => setBatchDialogOpen(true)}
+          >
+            Gerar planos{selectedCount > 0 ? ` (${selectedCount})` : ''}
+          </Button>
         </Box>
       </Box>
 
@@ -775,6 +791,17 @@ export default function CoachAthletesPage() {
         onClose={() => setLoteDialogOpen(false)}
         atletaIds={selectedAtletaIds}
         onEncerrado={() => { void fetchRoster(); }}
+        resolveNomeAtleta={(id) => roster.find((a) => a.atletaId === id)?.nome ?? id}
+      />
+
+      <BatchPlanDialog
+        open={batchDialogOpen}
+        onClose={() => setBatchDialogOpen(false)}
+        atletaIds={selectedAtletaIds}
+        onConcluido={() => {
+          setSelection({ type: 'include', ids: new Set() });
+          void fetchRoster();
+        }}
         resolveNomeAtleta={(id) => roster.find((a) => a.atletaId === id)?.nome ?? id}
       />
 

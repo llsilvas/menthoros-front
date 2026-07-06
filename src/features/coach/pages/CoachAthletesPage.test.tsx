@@ -50,6 +50,9 @@ vi.mock('../../../shared/components/ConfirmDialog', () => ({
   ConfirmDialog: ({ open, onConfirm }: { open: boolean; onConfirm: () => void }) =>
     open ? <button onClick={onConfirm}>stub-confirm</button> : null,
 }));
+vi.mock('../../../components/features/planos/BatchPlanDialog', () => ({
+  BatchPlanDialog: ({ open }: { open: boolean }) => (open ? <div>stub-batch</div> : null),
+}));
 
 const ROSTER: CoachAtletaResumo[] = [
   { atletaId: 'a1', nome: 'Ana Silva', status: 'active', weeklyVolume: 32, ctl: 50, atl: 48, tsb: 2, fase: 'BASE', lastActivity: '2026-06-24' },
@@ -136,5 +139,13 @@ describe('CoachAthletesPage — ações por atleta', () => {
     fireEvent.click(screen.getByText('Excluir'));
     fireEvent.click(screen.getByText('stub-confirm'));
     expect(await screen.findByText(/Não foi possível excluir o atleta/i)).toBeInTheDocument();
+  });
+
+  it('"Gerar planos" está desabilitado sem seleção e não abre o dialog de lote', () => {
+    renderPage();
+    const btn = screen.getByRole('button', { name: /Gerar planos/i });
+    expect(btn).toBeDisabled();
+    fireEvent.click(btn);
+    expect(screen.queryByText('stub-batch')).not.toBeInTheDocument();
   });
 });
