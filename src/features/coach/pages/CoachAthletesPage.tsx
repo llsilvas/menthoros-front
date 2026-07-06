@@ -26,6 +26,7 @@ import {
   Sync as SyncIcon,
   EditOutlined as EditIcon,
   DeleteOutline as DeleteIcon,
+  EventBusy as EventBusyIcon,
 } from '@mui/icons-material';
 import {
   DataGrid,
@@ -52,6 +53,7 @@ import type { TrainingPhase } from '../../../shared/components/PhaseIndicator';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { MetricCell } from '../../../shared/components/MetricCell';
 import { useCoachRoster } from '../../../hooks/useCoachRoster';
+import { EncerrarLoteDialog } from '../../../components/features/planos/EncerrarLoteDialog';
 import { deriveRosterKpis, daysSinceLastActivity, INACTIVITY_THRESHOLD_DAYS } from '../adapters/rosterKpis';
 import { calcularAcwr, getAcwrZone } from '../adapters/coachInboxAdapters';
 import type { MetricTone } from '../types/AthleteForm';
@@ -229,6 +231,8 @@ export default function CoachAthletesPage() {
   useEffect(() => {
     fetchRoster();
   }, [fetchRoster]);
+
+  const [loteDialogOpen, setLoteDialogOpen] = useState(false);
 
   // CRUD de atleta (reusa AtletaDialog/AtletasService legados; recarrega o roster ao salvar/excluir)
   const abrirNovoAtleta = () => { setAtletaParaEditar(null); setActionTarget(null); setAction('atleta-new'); };
@@ -568,6 +572,18 @@ export default function CoachAthletesPage() {
           >
             Adicionar
           </Button>
+
+          {/* Encerrar semana de todos (lote da assessoria) */}
+          <Button
+            variant="outlined"
+            color="warning"
+            size="small"
+            startIcon={<EventBusyIcon />}
+            sx={{ fontWeight: 600, fontSize: '0.8rem', whiteSpace: 'nowrap' }}
+            onClick={() => setLoteDialogOpen(true)}
+          >
+            Encerrar semana de todos
+          </Button>
         </Box>
       </Box>
 
@@ -748,6 +764,12 @@ export default function CoachAthletesPage() {
         onClose={closeAction}
         onSave={salvarAtleta}
         atleta={atletaParaEditar ?? undefined}
+      />
+
+      <EncerrarLoteDialog
+        open={loteDialogOpen}
+        onClose={() => setLoteDialogOpen(false)}
+        onEncerrado={() => { void fetchRoster(); }}
       />
 
       <Snackbar
