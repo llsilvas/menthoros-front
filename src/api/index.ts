@@ -16,3 +16,4 @@ export { CoachPlanoReviewService } from './services/CoachPlanoReviewService'; //
 export { CoachAthleteProfileService } from './services/CoachAthleteProfileService'; // curado à mão — não remover ao regenerar
 export { CheckinService } from './services/CheckinService'; // curado à mão — não remover ao regenerar
 export { KudosService } from './services/KudosService'; // curado à mão — não remover ao regenerar
+export { CoachSemanaService } from './services/CoachSemanaService'; // curado à mão — não remover ao regenerar
