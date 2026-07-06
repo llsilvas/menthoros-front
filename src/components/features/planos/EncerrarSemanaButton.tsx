@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Alert, Button } from '@mui/material';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
 import { useEncerrarSemana } from '../../../hooks/useEncerrarSemana';
@@ -25,15 +25,15 @@ export const EncerrarSemanaButton: React.FC<EncerrarSemanaButtonProps> = ({
     const { encerrarSemana, loading, error } = useEncerrarSemana();
     const [resultado, setResultado] = useState<EncerramentoSemanaResult | null>(null);
 
-    const handleClick = async () => {
+    const handleClick = useCallback(async () => {
         try {
             const r = await encerrarSemana(planoId);
             setResultado(r);
             onEncerrado?.();
         } catch {
-            // erro tratado via `error` abaixo
+            // erro é o canal observável — ver {error && <Alert>} neste componente
         }
-    };
+    }, [encerrarSemana, planoId, onEncerrado]);
 
     return (
         <>

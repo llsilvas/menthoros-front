@@ -52,6 +52,17 @@ describe('useEncerrarSemana', () => {
         expect(r.resultados).toHaveLength(1);
     });
 
+    it('encerrarLote retorna o resultado consolidado', async () => {
+        vi.mocked(CoachSemanaService.encerrarLote).mockResolvedValue(LOTE);
+
+        const { result } = renderHook(() => useEncerrarSemana());
+        let r!: EncerramentoLoteResult;
+        await act(async () => { r = await result.current.encerrarLote(); });
+
+        expect(r.planosConcluidos).toBe(3);
+        expect(CoachSemanaService.encerrarLote).toHaveBeenCalledOnce();
+    });
+
     it('popula error e propaga quando a ação falha', async () => {
         vi.mocked(CoachSemanaService.encerrarSemana).mockRejectedValue(new Error('409'));
 

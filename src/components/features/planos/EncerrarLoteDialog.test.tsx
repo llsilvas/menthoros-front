@@ -2,10 +2,10 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EncerrarLoteDialog } from './EncerrarLoteDialog';
-import { useEncerrarSemana } from '../../../hooks/useEncerrarSemana';
+import { CoachSemanaService } from '../../../api/services/CoachSemanaService';
 import type { EncerramentoLoteResult } from '../../../types/Encerramento';
 
-vi.mock('../../../hooks/useEncerrarSemana');
+vi.mock('../../../api/services/CoachSemanaService');
 
 const PREVIEW: EncerramentoLoteResult = {
     atletasProcessados: 8,
@@ -22,47 +22,58 @@ const RESULT: EncerramentoLoteResult = {
 };
 
 describe('EncerrarLoteDialog', () => {
-    let previewLote: ReturnType<typeof vi.fn>;
-    let encerrarLote: ReturnType<typeof vi.fn>;
-
-    beforeEach(() => {
-        previewLote = vi.fn().mockResolvedValue(PREVIEW);
-        encerrarLote = vi.fn().mockResolvedValue(RESULT);
-        vi.mocked(useEncerrarSemana).mockReturnValue({
-            encerrarSemana: vi.fn(),
-            previewLote,
-            encerrarLote,
-            loading: false,
-            error: null,
-        });
-    });
+    beforeEach(() => vi.clearAllMocks());
 
     it('carrega o preview e exibe o impacto sem encerrar (preview obrigatório)', async () => {
+        vi.mocked(CoachSemanaService.previewEncerrarLote).mockResolvedValue(PREVIEW);
+
         render(<EncerrarLoteDialog open onClose={vi.fn()} />);
 
-        await waitFor(() => expect(previewLote).toHaveBeenCalled());
         expect(await screen.findByText(/23/)).toBeInTheDocument();
-        expect(encerrarLote).not.toHaveBeenCalled();
+        expect(CoachSemanaService.encerrarLote).not.toHaveBeenCalled();
     });
 
     it('cancelar fecha sem encerrar (no-op)', async () => {
+        vi.mocked(CoachSemanaService.previewEncerrarLote).mockResolvedValue(PREVIEW);
         const onClose = vi.fn();
-        render(<EncerrarLoteDialog open onClose={onClose} />);
-        await waitFor(() => expect(previewLote).toHaveBeenCalled());
 
+        render(<EncerrarLoteDialog open onClose={onClose} />);
+        await screen.findByText(/23/);
         await userEvent.click(screen.getByRole('button', { name: /Cancelar/ }));
 
         expect(onClose).toHaveBeenCalled();
-        expect(encerrarLote).not.toHaveBeenCalled();
+        expect(CoachSemanaService.encerrarLote).not.toHaveBeenCalled();
     });
 
-    it('confirmar encerra e mostra o resumo com as falhas', async () => {
-        render(<EncerrarLoteDialog open onClose={vi.fn()} onEncerrado={vi.fn()} />);
-        await waitFor(() => expect(previewLote).toHaveBeenCalled());
+    it('confirmar encerra e mostra o resumo com as falhas (nome resolvido)', async () => {
+        vi.mocked(CoachSemanaService.previewEncerrarLote).mockResolvedValue(PREVIEW);
+        vi.mocked(CoachSemanaService.encerrarLote).mockResolvedValue(RESULT);
 
+        render(<EncerrarLoteDialog open onClose={vi.fn()} resolveNomeAtleta={() => 'Ana Silva'} />);
+        await screen.findByText(/23/);
         await userEvent.click(screen.getByRole('button', { name: /Confirmar encerramento/ }));
 
-        await waitFor(() => expect(encerrarLote).toHaveBeenCalled());
+        await waitFor(() => expect(CoachSemanaService.encerrarLote).toHaveBeenCalled());
         expect(await screen.findByText(/Falhas \(1\)/)).toBeInTheDocument();
+        expect(screen.getByText('Ana Silva')).toBeInTheDocument();
+    });
+
+    it('erro ao carregar o preview exibe a mensagem de projeção', async () => {
+        vi.mocked(CoachSemanaService.previewEncerrarLote).mockRejectedValue(new Error('403'));
+
+        render(<EncerrarLoteDialog open onClose={vi.fn()} />);
+
+        expect(await screen.findByText(/Não foi possível carregar a projeção/)).toBeInTheDocument();
+    });
+
+    it('erro ao encerrar (após preview ok) exibe a mensagem de lote', async () => {
+        vi.mocked(CoachSemanaService.previewEncerrarLote).mockResolvedValue(PREVIEW);
+        vi.mocked(CoachSemanaService.encerrarLote).mockRejectedValue(new Error('500'));
+
+        render(<EncerrarLoteDialog open onClose={vi.fn()} />);
+        await screen.findByText(/23/);
+        await userEvent.click(screen.getByRole('button', { name: /Confirmar encerramento/ }));
+
+        expect(await screen.findByText(/Não foi possível encerrar em lote/)).toBeInTheDocument();
     });
 });

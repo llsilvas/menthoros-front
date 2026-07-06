@@ -26,6 +26,12 @@ describe('EncerramentoSemanaResumo', () => {
         expect(onGerar).toHaveBeenCalledOnce();
     });
 
+    it('estado concluído sem treinos perdidos mostra "Semana concluída."', () => {
+        render(<EncerramentoSemanaResumo resultado={{ ...BASE, treinosFinalizados: 0 }} onGerarProximaSemana={vi.fn()} />);
+
+        expect(screen.getByText(/Semana concluída\./)).toBeInTheDocument();
+    });
+
     it('estado parcial (amarelo) exibe o aviso em destaque e não exibe CTA', () => {
         const resultado: EncerramentoSemanaResult = {
             ...BASE,

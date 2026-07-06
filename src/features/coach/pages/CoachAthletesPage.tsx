@@ -770,6 +770,7 @@ export default function CoachAthletesPage() {
         open={loteDialogOpen}
         onClose={() => setLoteDialogOpen(false)}
         onEncerrado={() => { void fetchRoster(); }}
+        resolveNomeAtleta={(id) => roster.find((a) => a.atletaId === id)?.nome ?? id}
       />
 
       <Snackbar

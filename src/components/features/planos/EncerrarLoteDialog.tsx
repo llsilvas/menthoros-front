@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Box, Button, CircularProgress, List, ListItem, ListItemText, Typography } from '@mui/material';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { useEncerrarSemana } from '../../../hooks/useEncerrarSemana';
@@ -9,6 +9,8 @@ interface EncerrarLoteDialogProps {
     onClose: () => void;
     /** Chamado após o encerramento em lote (ex.: recarregar o roster). */
     onEncerrado?: () => void;
+    /** Resolve o nome do atleta a partir do id (ex.: via roster) para exibir nas falhas. */
+    resolveNomeAtleta?: (atletaId: string) => string;
 }
 
 /**
@@ -16,28 +18,36 @@ interface EncerrarLoteDialogProps {
  * obrigatoriamente antes de qualquer mutação; só encerra de fato após o aceite explícito.
  * Cancelar é no-op. Exibe o resumo consolidado (totais + falhas por atleta) ao final.
  */
-export const EncerrarLoteDialog: React.FC<EncerrarLoteDialogProps> = ({ open, onClose, onEncerrado }) => {
+export const EncerrarLoteDialog: React.FC<EncerrarLoteDialogProps> = ({
+    open,
+    onClose,
+    onEncerrado,
+    resolveNomeAtleta,
+}) => {
     const { previewLote, encerrarLote, loading, error } = useEncerrarSemana();
     const [preview, setPreview] = useState<EncerramentoLoteResult | null>(null);
     const [resultado, setResultado] = useState<EncerramentoLoteResult | null>(null);
 
     useEffect(() => {
-        if (open) {
-            setPreview(null);
-            setResultado(null);
-            previewLote().then(setPreview).catch(() => { /* erro via `error` */ });
-        }
+        if (!open) return;
+        let ativo = true;
+        setPreview(null);
+        setResultado(null);
+        previewLote()
+            .then((p) => { if (ativo) setPreview(p); })
+            .catch(() => { /* erro via `error` */ });
+        return () => { ativo = false; };
     }, [open, previewLote]);
 
-    const handleConfirmar = async () => {
+    const handleConfirmar = useCallback(async () => {
         try {
             const r = await encerrarLote();
             setResultado(r);
             onEncerrado?.();
         } catch {
-            // erro tratado via `error`
+            // erro é o canal observável — ver {error && <Alert>} neste componente
         }
-    };
+    }, [encerrarLote, onEncerrado]);
 
     const emResultado = resultado !== null;
 
@@ -109,7 +119,10 @@ export const EncerrarLoteDialog: React.FC<EncerrarLoteDialogProps> = ({ open, on
                             <List dense>
                                 {resultado.falhas.map((f) => (
                                     <ListItem key={f.atletaId} disableGutters>
-                                        <ListItemText primary={f.atletaId} secondary={f.motivo} />
+                                        <ListItemText
+                                            primary={resolveNomeAtleta?.(f.atletaId) ?? f.atletaId}
+                                            secondary={f.motivo}
+                                        />
                                     </ListItem>
                                 ))}
                             </List>

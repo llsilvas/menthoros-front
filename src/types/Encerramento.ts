@@ -4,6 +4,12 @@ import type { PlanoStatus } from './PlanoSemanal';
 export type OrigemEncerramento = 'ON_DEMAND' | 'AUTOMATICO';
 
 /**
+ * `PlanoStatus` chega como objeto ({value,label,...}) por causa do @JsonFormat(OBJECT) no backend.
+ * Ler sempre via `getSafeValue`. O union aceita a forma string (usada nos mocks/fixtures).
+ */
+export type PlanoStatusValue = PlanoStatus | { value: PlanoStatus; label?: string; [key: string]: unknown };
+
+/**
  * Resumo do encerramento da semana de um plano.
  * Espelha EncerramentoSemanaOutputDto (POST /api/v1/coach/planos/{planoId}/encerrar-semana).
  * Obs.: `novoStatus` chega como objeto ({value,label,...}) por causa do @JsonFormat(OBJECT) no
@@ -11,7 +17,7 @@ export type OrigemEncerramento = 'ON_DEMAND' | 'AUTOMATICO';
  */
 export interface EncerramentoSemanaResult {
     planoId: string;
-    novoStatus: PlanoStatus;
+    novoStatus: PlanoStatusValue;
     treinosFinalizados: number;
     treinosPerdidos: string[];
     prontoParaProximaSemana: boolean;

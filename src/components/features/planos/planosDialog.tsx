@@ -500,8 +500,8 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                                             </Box>
                                         </Box>
 
-                                        {/* Encerrar semana (ação on-demand do treinador) */}
-                                        {plano.id && (
+                                        {/* Encerrar semana (ação on-demand do treinador) — não em planos já concluídos */}
+                                        {plano.id && status !== 'CONCLUIDO' && (
                                             <Box sx={{ mb: 2 }}>
                                                 <EncerrarSemanaButton
                                                     planoId={plano.id}
