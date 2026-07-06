@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     Alert,
     Box,
@@ -47,24 +47,35 @@ export const BatchPlanDialog: React.FC<BatchPlanDialogProps> = ({
     const { jobId, status, loading, error, gerarLote, reset } = useBatchPlanGeneration();
     const [modo, setModo] = useState<ModoGeracaoPlano>('PROXIMA_SEMANA');
     const [mostrarErros, setMostrarErros] = useState(false);
+    // Guarda a referência mais recente de onConcluido sem re-disparar o efeito de conclusão.
+    const onConcluidoRef = useRef(onConcluido);
+    onConcluidoRef.current = onConcluido;
+    // Garante que onConcluido dispara uma única vez por job (não em loop de re-render).
+    const notificadoJobRef = useRef<string | null>(null);
 
     const total = status?.totalAtletas ?? atletaIds.length;
     const terminal = status ? isBatchJobTerminal(status.status) : false;
     const emConfirmacao = jobId === null;
 
-    // Reinicia o estado ao (re)abrir.
+    // Reinicia o estado ao abrir; para o polling ao fechar (o dialog não desmonta).
     useEffect(() => {
         if (open) {
             reset();
             setModo('PROXIMA_SEMANA');
             setMostrarErros(false);
+            notificadoJobRef.current = null;
+        } else {
+            reset();
         }
     }, [open, reset]);
 
-    // Notifica a conclusão uma única vez.
+    // Notifica a conclusão uma única vez por job.
     useEffect(() => {
-        if (terminal) onConcluido?.();
-    }, [terminal, onConcluido]);
+        if (terminal && status && notificadoJobRef.current !== status.jobId) {
+            notificadoJobRef.current = status.jobId;
+            onConcluidoRef.current?.();
+        }
+    }, [terminal, status]);
 
     const handleConfirmar = useCallback(async () => {
         try {
@@ -134,7 +145,7 @@ export const BatchPlanDialog: React.FC<BatchPlanDialogProps> = ({
                 </Box>
             )}
 
-            {!emConfirmacao && !terminal && (
+            {!emConfirmacao && !terminal && !error && (
                 <Box>
                     <LinearProgress variant="determinate" value={progresso} sx={{ mb: 1, borderRadius: 1 }} />
                     <Typography variant="body2" color="text.secondary">

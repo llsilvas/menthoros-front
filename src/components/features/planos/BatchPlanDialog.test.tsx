@@ -78,4 +78,12 @@ describe('BatchPlanDialog', () => {
         await userEvent.click(screen.getByRole('button', { name: /Ver detalhes dos erros/ }));
         expect(screen.getByText('Atleta não encontrado')).toBeInTheDocument();
     });
+
+    it('exibe o alerta de erro quando o hook reporta falha', () => {
+        mockHook({ error: 'Falha ao iniciar a geração em lote.' });
+
+        render(<BatchPlanDialog open onClose={vi.fn()} atletaIds={['a1']} />);
+
+        expect(screen.getByText('Falha ao iniciar a geração em lote.')).toBeInTheDocument();
+    });
 });

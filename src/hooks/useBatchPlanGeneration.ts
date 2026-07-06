@@ -24,37 +24,45 @@ export const useBatchPlanGeneration = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const safetyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // Identifica a geração corrente: respostas de uma geração antiga (após reset/novo
+    // disparo) são descartadas, evitando sobrescrever o estado com dados obsoletos.
+    const geracaoRef = useRef(0);
 
     const pararPolling = useCallback(() => {
-        if (intervalRef.current !== null) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-        }
+        geracaoRef.current += 1;
         if (timeoutRef.current !== null) {
             clearTimeout(timeoutRef.current);
             timeoutRef.current = null;
         }
+        if (safetyTimeoutRef.current !== null) {
+            clearTimeout(safetyTimeoutRef.current);
+            safetyTimeoutRef.current = null;
+        }
     }, []);
 
-    const consultar = useCallback(
-        async (id: string) => {
-            try {
-                const atual = await BatchPlanService.consultarStatus(id);
-                setStatus(atual);
-                if (isBatchJobTerminal(atual.status)) {
-                    pararPolling();
-                    setLoading(false);
-                }
-            } catch {
+    // Busca o status agora e, se ainda não terminal, agenda a próxima consulta APÓS a
+    // resposta (setTimeout encadeado — nunca há duas requisições em voo). O `geracao`
+    // descarta respostas obsoletas (de uma geração anterior a um reset/novo disparo).
+    const consultar = useCallback(async (id: string, geracao: number) => {
+        try {
+            const atual = await BatchPlanService.consultarStatus(id);
+            if (geracao !== geracaoRef.current) return;
+            setStatus(atual);
+            if (isBatchJobTerminal(atual.status)) {
                 pararPolling();
-                setError('Falha ao consultar o progresso da geração.');
                 setLoading(false);
+                return;
             }
-        },
-        [pararPolling],
-    );
+            timeoutRef.current = setTimeout(() => void consultar(id, geracao), POLL_INTERVALO_MS);
+        } catch {
+            if (geracao !== geracaoRef.current) return;
+            pararPolling();
+            setError('Falha ao consultar o progresso da geração.');
+            setLoading(false);
+        }
+    }, [pararPolling]);
 
     const gerarLote = useCallback(
         async (atletaIds: string[], modo: ModoGeracaoPlano = 'PROXIMA_SEMANA'): Promise<BatchLoteAceito> => {
@@ -64,10 +72,11 @@ export const useBatchPlanGeneration = () => {
             setLoading(true);
             try {
                 const aceito = await BatchPlanService.gerarEmLote(atletaIds, modo);
+                const geracao = geracaoRef.current;
                 setJobId(aceito.jobId);
-                void consultar(aceito.jobId); // primeira leitura imediata
-                intervalRef.current = setInterval(() => void consultar(aceito.jobId), POLL_INTERVALO_MS);
-                timeoutRef.current = setTimeout(() => {
+                void consultar(aceito.jobId, geracao); // leitura imediata; auto-agenda as próximas
+                safetyTimeoutRef.current = setTimeout(() => {
+                    if (geracao !== geracaoRef.current) return;
                     pararPolling();
                     setError(TIMEOUT_MSG);
                     setLoading(false);

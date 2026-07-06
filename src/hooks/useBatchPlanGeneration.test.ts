@@ -95,4 +95,38 @@ describe('useBatchPlanGeneration', () => {
         expect(result.current.status).toBeNull();
         expect(result.current.error).toBeNull();
     });
+
+    it('seta error de timeout e para o polling quando o job não termina a tempo', async () => {
+        vi.mocked(BatchPlanService.gerarEmLote).mockResolvedValue({ jobId: 'job-1', totalAtletas: 1 });
+        vi.mocked(BatchPlanService.consultarStatus).mockResolvedValue(statusBase({ status: 'EM_PROGRESSO', totalAtletas: 1 }));
+
+        const { result } = renderHook(() => useBatchPlanGeneration());
+        await act(async () => {
+            await result.current.gerarLote(['a1']);
+        });
+
+        // timeout adaptativo p/ 1 atleta = 5 min; avança além disso.
+        await act(async () => { await vi.advanceTimersByTimeAsync(5 * 60_000 + 1000); });
+
+        expect(result.current.error).toMatch(/demorando mais que o esperado/);
+        expect(result.current.loading).toBe(false);
+
+        const chamadasAteAqui = vi.mocked(BatchPlanService.consultarStatus).mock.calls.length;
+        await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
+        expect(vi.mocked(BatchPlanService.consultarStatus).mock.calls.length).toBe(chamadasAteAqui);
+    });
+
+    it('seta error quando o polling (consultarStatus) falha após o disparo', async () => {
+        vi.mocked(BatchPlanService.gerarEmLote).mockResolvedValue({ jobId: 'job-1', totalAtletas: 1 });
+        vi.mocked(BatchPlanService.consultarStatus).mockRejectedValue(new Error('rede'));
+
+        const { result } = renderHook(() => useBatchPlanGeneration());
+        await act(async () => {
+            await result.current.gerarLote(['a1']);
+        });
+        await flush();
+
+        expect(result.current.error).toBe('Falha ao consultar o progresso da geração.');
+        expect(result.current.loading).toBe(false);
+    });
 });
