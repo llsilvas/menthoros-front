@@ -7,6 +7,8 @@ import type { EncerramentoLoteResult } from '../../../types/Encerramento';
 interface EncerrarLoteDialogProps {
     open: boolean;
     onClose: () => void;
+    /** Atletas selecionados no grid; vazio encerra todos os atletas da assessoria. */
+    atletaIds?: string[];
     /** Chamado após o encerramento em lote (ex.: recarregar o roster). */
     onEncerrado?: () => void;
     /** Resolve o nome do atleta a partir do id (ex.: via roster) para exibir nas falhas. */
@@ -21,6 +23,7 @@ interface EncerrarLoteDialogProps {
 export const EncerrarLoteDialog: React.FC<EncerrarLoteDialogProps> = ({
     open,
     onClose,
+    atletaIds = [],
     onEncerrado,
     resolveNomeAtleta,
 }) => {
@@ -28,26 +31,29 @@ export const EncerrarLoteDialog: React.FC<EncerrarLoteDialogProps> = ({
     const [preview, setPreview] = useState<EncerramentoLoteResult | null>(null);
     const [resultado, setResultado] = useState<EncerramentoLoteResult | null>(null);
 
+    // Chave estável para o efeito não recarregar o preview a cada render (array muda de referência).
+    const atletaIdsKey = atletaIds.join(',');
+
     useEffect(() => {
         if (!open) return;
         let ativo = true;
         setPreview(null);
         setResultado(null);
-        previewLote()
+        previewLote(atletaIdsKey ? atletaIdsKey.split(',') : [])
             .then((p) => { if (ativo) setPreview(p); })
             .catch(() => { /* erro via `error` */ });
         return () => { ativo = false; };
-    }, [open, previewLote]);
+    }, [open, previewLote, atletaIdsKey]);
 
     const handleConfirmar = useCallback(async () => {
         try {
-            const r = await encerrarLote();
+            const r = await encerrarLote(atletaIdsKey ? atletaIdsKey.split(',') : []);
             setResultado(r);
             onEncerrado?.();
         } catch {
             // erro é o canal observável — ver {error && <Alert>} neste componente
         }
-    }, [encerrarLote, onEncerrado]);
+    }, [encerrarLote, onEncerrado, atletaIdsKey]);
 
     const emResultado = resultado !== null;
 

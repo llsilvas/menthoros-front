@@ -58,6 +58,17 @@ describe('EncerrarLoteDialog', () => {
         expect(screen.getByText('Ana Silva')).toBeInTheDocument();
     });
 
+    it('encaminha os atletaIds selecionados ao preview e ao encerrar', async () => {
+        vi.mocked(CoachSemanaService.previewEncerrarLote).mockResolvedValue(PREVIEW);
+        vi.mocked(CoachSemanaService.encerrarLote).mockResolvedValue(RESULT);
+
+        render(<EncerrarLoteDialog open onClose={vi.fn()} atletaIds={['a1', 'a2']} />);
+
+        await waitFor(() => expect(CoachSemanaService.previewEncerrarLote).toHaveBeenCalledWith(['a1', 'a2']));
+        await userEvent.click(screen.getByRole('button', { name: /Confirmar encerramento/ }));
+        await waitFor(() => expect(CoachSemanaService.encerrarLote).toHaveBeenCalledWith(['a1', 'a2']));
+    });
+
     it('erro ao carregar o preview exibe a mensagem de projeção', async () => {
         vi.mocked(CoachSemanaService.previewEncerrarLote).mockRejectedValue(new Error('403'));
 

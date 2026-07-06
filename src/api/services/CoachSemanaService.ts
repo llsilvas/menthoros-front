@@ -28,14 +28,17 @@ export class CoachSemanaService {
     }
 
     /**
-     * Projeta o encerramento em lote da assessoria (dry-run) — não persiste nada.
+     * Projeta o encerramento em lote (dry-run) — não persiste nada.
+     * @param atletaIds filtro opcional; vazio projeta todos os atletas da assessoria
      * @returns impacto projetado (por atleta + totais)
      * @throws ApiError 403 (não treinador)
      */
-    public static previewEncerrarLote(): CancelablePromise<EncerramentoLoteResult> {
+    public static previewEncerrarLote(atletaIds: string[] = []): CancelablePromise<EncerramentoLoteResult> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v1/coach/semanas/encerrar-lote/preview',
+            body: { atletaIds },
+            mediaType: 'application/json',
             errors: {
                 403: 'Acesso negado (requer treinador)',
             },
@@ -43,14 +46,17 @@ export class CoachSemanaService {
     }
 
     /**
-     * Encerra a semana corrente de todos os atletas da assessoria (uma transação por atleta).
+     * Encerra a semana corrente dos atletas da assessoria (uma transação por atleta).
+     * @param atletaIds filtro opcional; vazio encerra todos os atletas da assessoria
      * @returns resumo consolidado (processados, concluídos, perdidos, falhas)
      * @throws ApiError 403 (não treinador)
      */
-    public static encerrarLote(): CancelablePromise<EncerramentoLoteResult> {
+    public static encerrarLote(atletaIds: string[] = []): CancelablePromise<EncerramentoLoteResult> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v1/coach/semanas/encerrar-lote',
+            body: { atletaIds },
+            mediaType: 'application/json',
             errors: {
                 403: 'Acesso negado (requer treinador)',
             },

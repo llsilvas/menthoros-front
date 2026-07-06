@@ -308,6 +308,10 @@ export default function CoachAthletesPage() {
   const kpis = useMemo(() => deriveRosterKpis(roster, hoje), [roster, hoje]);
 
   const selectedCount = selection.type === 'include' ? selection.ids.size : 0;
+  const selectedAtletaIds = useMemo(
+    () => (selection.type === 'include' ? Array.from(selection.ids).map(String) : []),
+    [selection],
+  );
 
   // Column definitions
   const columns: GridColDef<AthleteRow>[] = useMemo(() => [
@@ -582,7 +586,7 @@ export default function CoachAthletesPage() {
             sx={{ fontWeight: 600, fontSize: '0.8rem', whiteSpace: 'nowrap' }}
             onClick={() => setLoteDialogOpen(true)}
           >
-            Encerrar semana de todos
+            {selectedCount > 0 ? `Encerrar semana (${selectedCount})` : 'Encerrar semana de todos'}
           </Button>
         </Box>
       </Box>
@@ -769,6 +773,7 @@ export default function CoachAthletesPage() {
       <EncerrarLoteDialog
         open={loteDialogOpen}
         onClose={() => setLoteDialogOpen(false)}
+        atletaIds={selectedAtletaIds}
         onEncerrado={() => { void fetchRoster(); }}
         resolveNomeAtleta={(id) => roster.find((a) => a.atletaId === id)?.nome ?? id}
       />

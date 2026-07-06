@@ -31,12 +31,14 @@ export const useEncerrarSemana = () => {
     );
 
     const previewLote = useCallback(
-        (): Promise<EncerramentoLoteResult> => run(() => CoachSemanaService.previewEncerrarLote()),
+        (atletaIds: string[] = []): Promise<EncerramentoLoteResult> =>
+            run(() => CoachSemanaService.previewEncerrarLote(atletaIds)),
         [run],
     );
 
     const encerrarLote = useCallback(
-        (): Promise<EncerramentoLoteResult> => run(() => CoachSemanaService.encerrarLote()),
+        (atletaIds: string[] = []): Promise<EncerramentoLoteResult> =>
+            run(() => CoachSemanaService.encerrarLote(atletaIds)),
         [run],
     );
 
