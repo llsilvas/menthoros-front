@@ -39,6 +39,7 @@ import type { TreinoPlanejado } from '../../../types/TreinoPlanejado';
 import TreinoRealizadoDialog from './TreinoRealizadoDialog';
 import DetalheTreinoDialog from './DetalheTreinoDialog';
 import TreinoCard from './TreinoCard';
+import { EncerrarSemanaButton } from './EncerrarSemanaButton';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { PRIMARY_BTN_SX } from '../../../shared/components/actionButtonSx';
 import { getSafeValue, getSafeNumber } from '../../../utils/safeValues';
@@ -498,6 +499,17 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                                                 />
                                             </Box>
                                         </Box>
+
+                                        {/* Encerrar semana (ação on-demand do treinador) */}
+                                        {plano.id && (
+                                            <Box sx={{ mb: 2 }}>
+                                                <EncerrarSemanaButton
+                                                    planoId={plano.id}
+                                                    onEncerrado={() => { if (atletaId) fetchPlanosPorAtleta(atletaId); }}
+                                                    onGerarProximaSemana={() => { if (atletaId) gerarPlanoSemanal(atletaId, 'PROXIMA_SEMANA'); }}
+                                                />
+                                            </Box>
+                                        )}
 
                                         {/* Volumes */}
                                         <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
