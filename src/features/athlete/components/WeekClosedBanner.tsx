@@ -13,13 +13,13 @@ export interface WeekClosedBannerProps {
  * é uma nova chance. Dispensável.
  */
 export function WeekClosedBanner({ treinosPerdidos, onDismiss }: WeekClosedBannerProps) {
+    // Auto-defensivo: sem treinos perdidos não há o que anunciar.
+    if (treinosPerdidos <= 0) {
+        return null;
+    }
     const plural = treinosPerdidos === 1 ? 'treino ficou' : 'treinos ficaram';
     return (
-        <Alert
-            severity="info"
-            onClose={onDismiss}
-            sx={{ fontSize: '0.9rem' }}
-        >
+        <Alert severity="info" onClose={onDismiss}>
             <AlertTitle>Sua semana foi encerrada</AlertTitle>
             {treinosPerdidos} {plural} para trás — a próxima semana é uma nova chance. Bora recomeçar forte.
         </Alert>

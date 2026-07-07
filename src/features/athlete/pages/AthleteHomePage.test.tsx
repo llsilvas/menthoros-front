@@ -370,5 +370,26 @@ describe('AthleteHomePage', () => {
       await userEvent.click(screen.getByRole('button', { name: /close/i }));
       expect(screen.queryByText(/Sua semana foi encerrada/)).toBeNull();
     });
+
+    it('não exibe o banner enquanto o plano carrega', () => {
+      mockHome();
+      vi.mocked(useAthletePlan).mockReturnValue({
+        plano: null, loading: true, error: null, fetchPlano: vi.fn().mockResolvedValue(undefined),
+      });
+      renderPage();
+
+      expect(screen.queryByText(/Sua semana foi encerrada/)).toBeNull();
+    });
+
+    it('mostra alerta de erro (com retry) e não exibe o banner quando o plano falha', () => {
+      mockHome();
+      vi.mocked(useAthletePlan).mockReturnValue({
+        plano: null, loading: false, error: new Error('boom'), fetchPlano: vi.fn().mockResolvedValue(undefined),
+      });
+      renderPage();
+
+      expect(screen.queryByText(/Sua semana foi encerrada/)).toBeNull();
+      expect(screen.getByText(/Não foi possível verificar o status da sua semana/)).toBeInTheDocument();
+    });
   });
 });

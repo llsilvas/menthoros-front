@@ -73,6 +73,8 @@ export default function AthleteHomePage() {
   const { plano, loading: planoLoading, error: planoError, fetchPlano } = useAthletePlan();
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [finalizandoCheckIn, setFinalizandoCheckIn] = useState(false);
+  // Dispensa apenas na montagem corrente (reaparece ao voltar à Home) — intencional no XS;
+  // persistir entre sessões (sessionStorage por semanaFim) é follow-up documentado na proposal.
   const [bannerDispensado, setBannerDispensado] = useState(false);
 
   useEffect(() => {
@@ -147,6 +149,17 @@ export default function AthleteHomePage() {
           onDismiss={() => setBannerDispensado(true)}
         />
       )}
+
+      {planoError && (
+        <Alert
+          severity="warning"
+          variant="outlined"
+          action={<Button color="inherit" size="small" onClick={fetchPlano}>Recarregar</Button>}
+        >
+          Não foi possível verificar o status da sua semana.
+        </Alert>
+      )}
+
       <TodayHeroCard
         athleteName={athleteName}
         workoutType={homeWorkoutType(home)}
