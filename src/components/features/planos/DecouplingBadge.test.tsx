@@ -66,6 +66,12 @@ describe('DecouplingBadge', () => {
         expect(screen.getByText(/n\/d/i)).toBeInTheDocument();
     });
 
+    it('tooltip "n/d" indica dados insuficientes', async () => {
+        render(<DecouplingBadge value={null} />);
+        await userEvent.hover(screen.getByText(/n\/d/i));
+        expect(await screen.findByRole('tooltip')).toHaveTextContent(/dados suficientes/i);
+    });
+
     it('tooltip marca que é estimativa', async () => {
         render(<DecouplingBadge value={4.2} />);
         await userEvent.hover(screen.getByText(/4\.2%/));
