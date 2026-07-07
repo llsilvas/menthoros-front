@@ -30,6 +30,7 @@ import { glass, text, primary, surface, semantic, categorical, content, external
 import { zones } from '../../../theme/activeTheme';
 import { elevation } from '../../../shared/design-tokens';
 import { WorkoutTimelineChart, toWorkoutBlocks } from './WorkoutTimelineChart';
+import DecouplingBadge from './DecouplingBadge';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { PRIMARY_BTN_SX } from '../../../shared/components/actionButtonSx';
 import { effortColor } from '../../../shared/theme/workoutColors';
@@ -151,6 +152,16 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
     const [enriching, setEnriching] = useState(false);
     const [enrichResult, setEnrichResult] = useState<{ rpePreenchido: boolean; rpe?: number } | null>(null);
     const [enrichError, setEnrichError] = useState<string | null>(null);
+    const [decoupling, setDecoupling] = useState<number | null>(null);
+
+    useEffect(() => {
+        // Detalhe do realizado (decoupling) — busca best-effort; falha não quebra a tela.
+        if (open && treino?.treinoRealizadoId) {
+            TreinoService.obterRealizado(treino.treinoRealizadoId)
+                .then((data) => setDecoupling(data.decouplingPercentual ?? null))
+                .catch((err) => console.error('Erro ao carregar decoupling do treino:', err));
+        }
+    }, [open, treino]);
 
     useEffect(() => {
         if (open && treino?.id && (!treino.etapas || treino.etapas.length === 0)) {
@@ -169,6 +180,7 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
             setTreinoCompleto(null);
             setEnrichResult(null);
             setEnrichError(null);
+            setDecoupling(null);
         }
     }, [open]);
 
@@ -402,6 +414,12 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                 <Alert severity="error" sx={{ mb: 1.5 }} onClose={() => setEnrichError(null)}>
                                     {enrichError}
                                 </Alert>
+                            )}
+
+                            {dados.treinoRealizadoId && (
+                                <Box sx={{ mb: 1.5 }}>
+                                    <DecouplingBadge value={decoupling} />
+                                </Box>
                             )}
 
                             <Grid container spacing={1.5}>
