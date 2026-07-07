@@ -1,15 +1,17 @@
 export type DecouplingTone = 'success' | 'warning' | 'danger';
 
-// Faixas (fonte única): < 5 (inclui negativos) verde · [5, 10] âmbar · > 10 vermelho.
+const DECOUPLING_WARNING_THRESHOLD = 5;   // % — início da queda perceptível
+const DECOUPLING_DANGER_THRESHOLD  = 10;  // % — queda acentuada
+
 export function decouplingTone(value: number): DecouplingTone {
-    if (value < 5) return 'success';
-    if (value <= 10) return 'warning';
+    if (value < DECOUPLING_WARNING_THRESHOLD) return 'success';
+    if (value <= DECOUPLING_DANGER_THRESHOLD) return 'warning';
     return 'danger';
 }
 
-// Leitura descritiva, NÃO causal (a Opção 1 não separa fadiga de terreno/vento).
-export function decouplingLeitura(value: number): string {
-    if (value < 5) return 'Eficiência bem sustentada';
-    if (value <= 10) return 'Eficiência caindo na 2ª metade';
+// Descritivo, NÃO causal — Opção 1 não separa fadiga de terreno/vento.
+export function decouplingLabel(value: number): string {
+    if (value < DECOUPLING_WARNING_THRESHOLD) return 'Eficiência bem sustentada';
+    if (value <= DECOUPLING_DANGER_THRESHOLD) return 'Eficiência caindo na 2ª metade';
     return 'Queda de eficiência acentuada';
 }

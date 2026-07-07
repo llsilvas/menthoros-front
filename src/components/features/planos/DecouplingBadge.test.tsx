@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect } from 'vitest';
 import DecouplingBadge from './DecouplingBadge';
-import { decouplingTone, decouplingLeitura } from './decouplingReading';
+import { decouplingTone, decouplingLabel } from './decouplingReading';
 
 describe('decouplingTone', () => {
     it('< 5 (inclui negativos) → success', () => {
@@ -23,13 +23,13 @@ describe('decouplingTone', () => {
     });
 });
 
-describe('decouplingLeitura', () => {
+describe('decouplingLabel', () => {
     it('faixa por fronteira → frase descritiva (não-causal)', () => {
-        expect(decouplingLeitura(-7.8)).toMatch(/bem sustentada/i);
-        expect(decouplingLeitura(4.9)).toMatch(/bem sustentada/i);
-        expect(decouplingLeitura(5)).toMatch(/caindo na 2ª metade/i);
-        expect(decouplingLeitura(10)).toMatch(/caindo na 2ª metade/i);
-        expect(decouplingLeitura(10.1)).toMatch(/acentuada/i);
+        expect(decouplingLabel(-7.8)).toMatch(/bem sustentada/i);
+        expect(decouplingLabel(4.9)).toMatch(/bem sustentada/i);
+        expect(decouplingLabel(5)).toMatch(/caindo na 2ª metade/i);
+        expect(decouplingLabel(10)).toMatch(/caindo na 2ª metade/i);
+        expect(decouplingLabel(10.1)).toMatch(/acentuada/i);
     });
 });
 

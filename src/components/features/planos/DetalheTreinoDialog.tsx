@@ -159,7 +159,7 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
         if (open && treino?.treinoRealizadoId) {
             TreinoService.obterRealizado(treino.treinoRealizadoId)
                 .then((data) => setDecoupling(data.decouplingPercentual ?? null))
-                .catch((err) => console.error('Erro ao carregar decoupling do treino:', err));
+                .catch(() => console.error('Falha ao carregar decoupling do treino'));
         }
     }, [open, treino]);
 

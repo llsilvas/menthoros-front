@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Chip, Tooltip, Typography } from '@mui/material';
 import { semantic, surface } from '../../../theme/tokens';
-import { decouplingLeitura, decouplingTone, type DecouplingTone } from './decouplingReading';
+import { decouplingLabel, decouplingTone, type DecouplingTone } from './decouplingReading';
 
 const TONE_TOKEN: Record<DecouplingTone, string> = {
     success: semantic.success[500],
@@ -57,7 +57,7 @@ const DecouplingBadge: React.FC<DecouplingBadgeProps> = ({ value }) => {
                 />
             </Tooltip>
             <Typography variant="caption" sx={{ color: surface[400], fontSize: '0.68rem' }}>
-                {decouplingLeitura(value)}
+                {decouplingLabel(value)}
             </Typography>
         </Box>
     );
