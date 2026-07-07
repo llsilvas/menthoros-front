@@ -8,6 +8,7 @@ import { QuickCheckInModal } from '../components/QuickCheckInModal';
 import type { QuickCheckInData } from '../components/QuickCheckInModal';
 import { KudosCard } from '../components/KudosCard';
 import { WeeklySummaryCard } from '../components/WeeklySummaryCard';
+import { WeekClosedBanner } from '../components/WeekClosedBanner';
 import {
   buildHomeMetrics,
   buildNextWorkout,
@@ -18,7 +19,9 @@ import {
 import { calcularStreakSemanas } from '../adapters/streakAdapter';
 import { buildProximaProva } from '../adapters/provasAdapter';
 import { buildWeeklySummary } from '../adapters/buildWeeklySummary';
+import { selectWeekClosedInfo } from '../adapters/selectWeekClosedInfo';
 import { useAthleteHome } from '../../../hooks/useAthleteHome';
+import { useAthletePlan } from '../../../hooks/useAthletePlan';
 import { useAthleteReadiness } from '../../../hooks/useAthleteReadiness';
 import { useAthleteProvas } from '../../../hooks/useAthleteProvas';
 import { useCheckinAtual } from '../../../hooks/useCheckinAtual';
@@ -67,8 +70,10 @@ export default function AthleteHomePage() {
   const { registrar, loading: registrando, error: registrarError } = useRegistrarCheckin();
   const { checkinHoje, error: checkinAtualError, fetchCheckinAtual } = useCheckinAtual();
   const { kudos, error: kudosError, fetchKudos } = useKudosRecentes();
+  const { plano, loading: planoLoading, error: planoError, fetchPlano } = useAthletePlan();
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [finalizandoCheckIn, setFinalizandoCheckIn] = useState(false);
+  const [bannerDispensado, setBannerDispensado] = useState(false);
 
   useEffect(() => {
     fetchHome();
@@ -77,7 +82,8 @@ export default function AthleteHomePage() {
     fetchProvas();
     fetchCheckinAtual();
     fetchKudos();
-  }, [fetchHome, fetchReadiness, fetchTreinos, fetchProvas, fetchCheckinAtual, fetchKudos]);
+    fetchPlano();
+  }, [fetchHome, fetchReadiness, fetchTreinos, fetchProvas, fetchCheckinAtual, fetchKudos, fetchPlano]);
 
   async function handleCheckInSubmit(data: QuickCheckInData) {
     await registrar(data);
@@ -119,6 +125,9 @@ export default function AthleteHomePage() {
   const streak = calcularStreakSemanas(treinos);
   const proximaProva = provasLoading || provasError ? null : buildProximaProva(provas);
   const resumoSemanal = buildWeeklySummary(treinos, home?.metricasChave, home?.proximoTreino, streak);
+  const { semanaEncerrada, treinosPerdidos } = selectWeekClosedInfo(plano);
+  const mostrarBannerSemana =
+    !planoLoading && !planoError && semanaEncerrada && treinosPerdidos > 0 && !bannerDispensado;
   const checkInInitialData: QuickCheckInData | undefined = checkinHoje
     ? {
         qualidadeSono: checkinHoje.qualidadeSono,
@@ -132,6 +141,12 @@ export default function AthleteHomePage() {
 
   return (
     <Box sx={{ minHeight: '100%', bgcolor: elevation.base, p: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {mostrarBannerSemana && (
+        <WeekClosedBanner
+          treinosPerdidos={treinosPerdidos}
+          onDismiss={() => setBannerDispensado(true)}
+        />
+      )}
       <TodayHeroCard
         athleteName={athleteName}
         workoutType={homeWorkoutType(home)}

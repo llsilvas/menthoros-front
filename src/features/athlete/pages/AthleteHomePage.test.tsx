@@ -11,6 +11,8 @@ import { useKudosRecentes } from '../../../hooks/useKudosRecentes';
 import { useManualTraining } from '../../../hooks/useManualTraining';
 import { useRegistrarCheckin } from '../../../hooks/useRegistrarCheckin';
 import { useUserInfo } from '../../../hooks/useUserInfo';
+import { useAthletePlan } from '../../../hooks/useAthletePlan';
+import type { PlanoSemanal } from '../../../types/PlanoSemanal';
 
 vi.mock('../../../hooks/useAthleteHome');
 vi.mock('../../../hooks/useAthleteReadiness');
@@ -20,6 +22,7 @@ vi.mock('../../../hooks/useKudosRecentes');
 vi.mock('../../../hooks/useManualTraining');
 vi.mock('../../../hooks/useRegistrarCheckin');
 vi.mock('../../../hooks/useUserInfo');
+vi.mock('../../../hooks/useAthletePlan');
 
 const noop = vi.fn();
 
@@ -58,6 +61,25 @@ describe('AthleteHomePage', () => {
     vi.mocked(useKudosRecentes).mockReturnValue({
       kudos: [], loading: false, error: null, fetchKudos: vi.fn().mockResolvedValue(undefined),
     });
+    // Default: sem plano → banner de semana encerrada não aparece.
+    vi.mocked(useAthletePlan).mockReturnValue({
+      plano: null, loading: false, error: null, fetchPlano: vi.fn().mockResolvedValue(undefined),
+    });
+  });
+
+  function mockPlano(plano: PlanoSemanal | null) {
+    vi.mocked(useAthletePlan).mockReturnValue({
+      plano, loading: false, error: null, fetchPlano: vi.fn().mockResolvedValue(undefined),
+    });
+  }
+
+  const planoEncerrado = (statusTreinos: string[]): PlanoSemanal => ({
+    atletaId: 'a1', semanaInicio: '2026-06-29', semanaFim: '2026-07-05',
+    volumePlanejadoKm: 40, volumeRealizadoKm: 20, volumeAlvoKm: 40,
+    status: 'CONCLUIDO',
+    treinosPlanejados: statusTreinos.map((s) => ({
+      tipoTreino: 'CORRIDA', distanciaKm: 10, diaSemana: 'SEGUNDA', statusTreino: s,
+    })),
   });
 
   it('renderiza métricas reais e o primeiro nome do atleta (JWT), sem mock', () => {
@@ -310,5 +332,42 @@ describe('AthleteHomePage', () => {
 
     expect(screen.queryByText('Seu resumo da semana')).toBeNull();
     expect(screen.queryByText(/você ainda não registrou treinos esta semana/i)).toBeNull();
+  });
+
+  describe('banner de semana encerrada', () => {
+    it('exibe o banner quando a semana está CONCLUIDO com treinos PERDIDO', () => {
+      mockHome();
+      mockPlano(planoEncerrado(['PERDIDO', 'PERDIDO', 'REALIZADO']));
+      renderPage();
+
+      expect(screen.getByText(/Sua semana foi encerrada/)).toBeInTheDocument();
+      expect(screen.getByText(/2 treinos ficaram para trás/)).toBeInTheDocument();
+    });
+
+    it('não exibe o banner sem treinos PERDIDO', () => {
+      mockHome();
+      mockPlano(planoEncerrado(['REALIZADO', 'PENDENTE']));
+      renderPage();
+
+      expect(screen.queryByText(/Sua semana foi encerrada/)).toBeNull();
+    });
+
+    it('não exibe o banner sem plano (null)', () => {
+      mockHome();
+      mockPlano(null);
+      renderPage();
+
+      expect(screen.queryByText(/Sua semana foi encerrada/)).toBeNull();
+    });
+
+    it('some ao dispensar (X)', async () => {
+      mockHome();
+      mockPlano(planoEncerrado(['PERDIDO']));
+      renderPage();
+
+      expect(screen.getByText(/Sua semana foi encerrada/)).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: /close/i }));
+      expect(screen.queryByText(/Sua semana foi encerrada/)).toBeNull();
+    });
   });
 });
