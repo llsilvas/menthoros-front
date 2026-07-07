@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { format } from 'date-fns';
 import { MemoryRouter } from 'react-router';
 import AthleteHomePage from './AthleteHomePage';
 import { useAthleteHome } from '../../../hooks/useAthleteHome';
@@ -11,6 +12,8 @@ import { useKudosRecentes } from '../../../hooks/useKudosRecentes';
 import { useManualTraining } from '../../../hooks/useManualTraining';
 import { useRegistrarCheckin } from '../../../hooks/useRegistrarCheckin';
 import { useUserInfo } from '../../../hooks/useUserInfo';
+import { useAthletePlan } from '../../../hooks/useAthletePlan';
+import type { PlanoSemanal } from '../../../types/PlanoSemanal';
 
 vi.mock('../../../hooks/useAthleteHome');
 vi.mock('../../../hooks/useAthleteReadiness');
@@ -20,6 +23,7 @@ vi.mock('../../../hooks/useKudosRecentes');
 vi.mock('../../../hooks/useManualTraining');
 vi.mock('../../../hooks/useRegistrarCheckin');
 vi.mock('../../../hooks/useUserInfo');
+vi.mock('../../../hooks/useAthletePlan');
 
 const noop = vi.fn();
 
@@ -58,6 +62,25 @@ describe('AthleteHomePage', () => {
     vi.mocked(useKudosRecentes).mockReturnValue({
       kudos: [], loading: false, error: null, fetchKudos: vi.fn().mockResolvedValue(undefined),
     });
+    // Default: sem plano → banner de semana encerrada não aparece.
+    vi.mocked(useAthletePlan).mockReturnValue({
+      plano: null, loading: false, error: null, fetchPlano: vi.fn().mockResolvedValue(undefined),
+    });
+  });
+
+  function mockPlano(plano: PlanoSemanal | null) {
+    vi.mocked(useAthletePlan).mockReturnValue({
+      plano, loading: false, error: null, fetchPlano: vi.fn().mockResolvedValue(undefined),
+    });
+  }
+
+  const planoEncerrado = (statusTreinos: string[]): PlanoSemanal => ({
+    atletaId: 'a1', semanaInicio: '2026-06-29', semanaFim: '2026-07-05',
+    volumePlanejadoKm: 40, volumeRealizadoKm: 20, volumeAlvoKm: 40,
+    status: 'CONCLUIDO',
+    treinosPlanejados: statusTreinos.map((s) => ({
+      tipoTreino: 'CORRIDA', distanciaKm: 10, diaSemana: 'SEGUNDA', statusTreino: s,
+    })),
   });
 
   it('renderiza métricas reais e o primeiro nome do atleta (JWT), sem mock', () => {
@@ -113,7 +136,7 @@ describe('AthleteHomePage', () => {
     mockHome();
     vi.mocked(useManualTraining).mockReturnValue({
       recentes: [
-        { id: '1', dataTreino: new Date().toISOString().slice(0, 10), tipoTreino: 'CONTINUO', duracaoMin: '00:30:00', fonteDados: { value: 'MANUAL', label: 'Manual' }, status: { value: 'CONCLUIDO', label: 'Concluído' } },
+        { id: '1', dataTreino: format(new Date(), 'yyyy-MM-dd'), tipoTreino: 'CONTINUO', duracaoMin: '00:30:00', fonteDados: { value: 'MANUAL', label: 'Manual' }, status: { value: 'CONCLUIDO', label: 'Concluído' } },
       ],
       isFetching: false, isSubmitting: false, fetchError: null, registrar: noop, fetchRecentes: noop,
     });
@@ -278,7 +301,7 @@ describe('AthleteHomePage', () => {
         metricasChave: { ctl: 74, atl: 71, tsb: 3, tss: 62, statusForma: 'FORMA_IDEAL' },
       },
     });
-    const hoje = new Date().toISOString().slice(0, 10);
+    const hoje = format(new Date(), 'yyyy-MM-dd');
     vi.mocked(useManualTraining).mockReturnValue({
       recentes: [
         { id: '1', dataTreino: hoje, tipoTreino: 'CONTINUO', duracaoMin: '00:30:00', distanciaKm: 5,
@@ -310,5 +333,63 @@ describe('AthleteHomePage', () => {
 
     expect(screen.queryByText('Seu resumo da semana')).toBeNull();
     expect(screen.queryByText(/você ainda não registrou treinos esta semana/i)).toBeNull();
+  });
+
+  describe('banner de semana encerrada', () => {
+    it('exibe o banner quando a semana está CONCLUIDO com treinos PERDIDO', () => {
+      mockHome();
+      mockPlano(planoEncerrado(['PERDIDO', 'PERDIDO', 'REALIZADO']));
+      renderPage();
+
+      expect(screen.getByText(/Sua semana foi encerrada/)).toBeInTheDocument();
+      expect(screen.getByText(/2 treinos ficaram para trás/)).toBeInTheDocument();
+    });
+
+    it('não exibe o banner sem treinos PERDIDO', () => {
+      mockHome();
+      mockPlano(planoEncerrado(['REALIZADO', 'PENDENTE']));
+      renderPage();
+
+      expect(screen.queryByText(/Sua semana foi encerrada/)).toBeNull();
+    });
+
+    it('não exibe o banner sem plano (null)', () => {
+      mockHome();
+      mockPlano(null);
+      renderPage();
+
+      expect(screen.queryByText(/Sua semana foi encerrada/)).toBeNull();
+    });
+
+    it('some ao dispensar (X)', async () => {
+      mockHome();
+      mockPlano(planoEncerrado(['PERDIDO']));
+      renderPage();
+
+      expect(screen.getByText(/Sua semana foi encerrada/)).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: /close/i }));
+      expect(screen.queryByText(/Sua semana foi encerrada/)).toBeNull();
+    });
+
+    it('não exibe o banner enquanto o plano carrega', () => {
+      mockHome();
+      vi.mocked(useAthletePlan).mockReturnValue({
+        plano: null, loading: true, error: null, fetchPlano: vi.fn().mockResolvedValue(undefined),
+      });
+      renderPage();
+
+      expect(screen.queryByText(/Sua semana foi encerrada/)).toBeNull();
+    });
+
+    it('mostra alerta de erro (com retry) e não exibe o banner quando o plano falha', () => {
+      mockHome();
+      vi.mocked(useAthletePlan).mockReturnValue({
+        plano: null, loading: false, error: new Error('boom'), fetchPlano: vi.fn().mockResolvedValue(undefined),
+      });
+      renderPage();
+
+      expect(screen.queryByText(/Sua semana foi encerrada/)).toBeNull();
+      expect(screen.getByText(/Não foi possível verificar o status da sua semana/)).toBeInTheDocument();
+    });
   });
 });
