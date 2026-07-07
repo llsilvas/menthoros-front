@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { format } from 'date-fns';
 import { MemoryRouter } from 'react-router';
 import AthleteHomePage from './AthleteHomePage';
 import { useAthleteHome } from '../../../hooks/useAthleteHome';
@@ -135,7 +136,7 @@ describe('AthleteHomePage', () => {
     mockHome();
     vi.mocked(useManualTraining).mockReturnValue({
       recentes: [
-        { id: '1', dataTreino: new Date().toISOString().slice(0, 10), tipoTreino: 'CONTINUO', duracaoMin: '00:30:00', fonteDados: { value: 'MANUAL', label: 'Manual' }, status: { value: 'CONCLUIDO', label: 'Concluído' } },
+        { id: '1', dataTreino: format(new Date(), 'yyyy-MM-dd'), tipoTreino: 'CONTINUO', duracaoMin: '00:30:00', fonteDados: { value: 'MANUAL', label: 'Manual' }, status: { value: 'CONCLUIDO', label: 'Concluído' } },
       ],
       isFetching: false, isSubmitting: false, fetchError: null, registrar: noop, fetchRecentes: noop,
     });
@@ -300,7 +301,7 @@ describe('AthleteHomePage', () => {
         metricasChave: { ctl: 74, atl: 71, tsb: 3, tss: 62, statusForma: 'FORMA_IDEAL' },
       },
     });
-    const hoje = new Date().toISOString().slice(0, 10);
+    const hoje = format(new Date(), 'yyyy-MM-dd');
     vi.mocked(useManualTraining).mockReturnValue({
       recentes: [
         { id: '1', dataTreino: hoje, tipoTreino: 'CONTINUO', duracaoMin: '00:30:00', distanciaKm: 5,
