@@ -11,9 +11,11 @@ import logoMenthoros from '../../assets/icons/menthoros_mark.png';
 
 const TOKEN_STORAGE_KEY = '@Menthoros:token';
 
-/** Destino pós-login por role: ATLETA vai direto para o shell do atleta; demais, ao início neutro. */
+/** Destino pós-login por role. */
 function destinoPorRoles(roles: string[]): string {
-  return roles.includes('ATLETA') ? ROUTES.ATHLETE_HOME : ROUTES.INICIO;
+  if (roles.includes('ATLETA'))  return ROUTES.ATHLETE_HOME;
+  if (roles.includes('TECNICO')) return ROUTES.COACH_INBOX;
+  return ROUTES.INICIO;
 }
 
 /**

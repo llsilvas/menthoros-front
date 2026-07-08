@@ -30,6 +30,7 @@ import AthleteProfilePage from './features/athlete/pages/AthleteProfilePage';
 import ManualTrainingFormPage from './features/athlete/pages/ManualTrainingFormPage';
 import { activeTheme } from './theme/activeTheme';
 import { overlayWhite } from './theme/overlays';
+import { ROUTES } from './constants/routes';
 
 const { colors, text, content, backgrounds, semantic } = activeTheme;
 
@@ -179,18 +180,23 @@ const router = createHashRouter([
   {
     element: <ProtectedRoute />,
     children: [
-      // Shell legado — mantido durante transição para coach shell
+      // Shell legado — apenas ADMIN; TECNICO e outros vão para coach/inbox
       {
-        element: <DashboardLayout />,
+        element: <RoleRoute allow={['ADMIN']} redirectTo={ROUTES.COACH_INBOX} />,
         children: [
-          { path: 'inicio',               element: <HomePage /> },
-          { path: 'atletas',              element: <AtletasList /> },
-          { path: 'reconciliacao',        element: <ReconciliacaoPage /> },
-          { path: 'treinos',              element: <div>Página de Treinos (em construção)</div> },
-          { path: 'planos',               element: <div>Página de Planos (em construção)</div> },
-          { path: 'calendario',           element: <div>Calendário (em construção)</div> },
-          { path: 'relatorios',           element: <div>Relatórios (em construção)</div> },
-          { path: 'configuracoes',        element: <div>Configurações (em construção)</div> },
+          {
+            element: <DashboardLayout />,
+            children: [
+              { path: 'inicio',               element: <HomePage /> },
+              { path: 'atletas',              element: <AtletasList /> },
+              { path: 'reconciliacao',        element: <ReconciliacaoPage /> },
+              { path: 'treinos',              element: <div>Página de Treinos (em construção)</div> },
+              { path: 'planos',               element: <div>Página de Planos (em construção)</div> },
+              { path: 'calendario',           element: <div>Calendário (em construção)</div> },
+              { path: 'relatorios',           element: <div>Relatórios (em construção)</div> },
+              { path: 'configuracoes',        element: <div>Configurações (em construção)</div> },
+            ],
+          },
         ],
       },
       // Coach shell — standardize-coach-shell-ux

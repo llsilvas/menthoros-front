@@ -54,6 +54,7 @@ function renderLogin() {
         <Routes>
           <Route path="/auth/login" element={<LoginPage />} />
           <Route path="/athlete/home" element={<div>Shell do Atleta</div>} />
+          <Route path="/coach/inbox" element={<div>Coach Inbox</div>} />
           <Route path="/inicio" element={<div>Início Neutro</div>} />
         </Routes>
       </AuthProvider>
@@ -79,12 +80,24 @@ describe('LoginPage', () => {
     expect(await screen.findByText('Shell do Atleta')).toBeInTheDocument();
   });
 
-  it('após login sem role ATLETA (coach/admin), navega para /inicio', async () => {
+  it('após login com role TECNICO, navega para /coach/inbox', async () => {
     vi.mocked(AuthService.login).mockResolvedValue({ accessToken: fakeToken(['TECNICO']) });
     const user = userEvent.setup();
     renderLogin();
 
     await user.type(screen.getByLabelText(/email ou usuário/i), 'coach@x.com');
+    await user.type(screen.getByLabelText(/senha/i), 'senha123');
+    await user.click(screen.getByRole('button', { name: /entrar/i }));
+
+    expect(await screen.findByText('Coach Inbox')).toBeInTheDocument();
+  });
+
+  it('após login com role ADMIN, navega para /inicio', async () => {
+    vi.mocked(AuthService.login).mockResolvedValue({ accessToken: fakeToken(['ADMIN']) });
+    const user = userEvent.setup();
+    renderLogin();
+
+    await user.type(screen.getByLabelText(/email ou usuário/i), 'admin@x.com');
     await user.type(screen.getByLabelText(/senha/i), 'senha123');
     await user.click(screen.getByRole('button', { name: /entrar/i }));
 
@@ -98,8 +111,15 @@ describe('LoginPage', () => {
     expect(screen.getByText('Shell do Atleta')).toBeInTheDocument();
   });
 
-  it('usuário já autenticado sem role ATLETA é redirecionado ao início neutro', () => {
+  it('usuário já autenticado com role TECNICO é redirecionado ao coach/inbox', () => {
     localStorage.setItem(TOKEN_STORAGE_KEY, fakeToken(['TECNICO']));
+    renderLogin();
+
+    expect(screen.getByText('Coach Inbox')).toBeInTheDocument();
+  });
+
+  it('usuário já autenticado com role ADMIN é redirecionado ao início neutro', () => {
+    localStorage.setItem(TOKEN_STORAGE_KEY, fakeToken(['ADMIN']));
     renderLogin();
 
     expect(screen.getByText('Início Neutro')).toBeInTheDocument();
