@@ -56,8 +56,9 @@ function getLabel(etapa: EtapaTreino): string {
 
 function getBlockType(tipoLabel: string): BlockType {
   const lower = tipoLabel.toLowerCase();
-  if (lower.includes('aquecimento') || lower.includes('warmup') || lower.includes('warm_up')) return 'warmup';
+  // desaquecimento antes de aquecimento — "desaquecimento" contém "aquecimento" como substring
   if (lower.includes('desaquecimento') || lower.includes('cooldown') || lower.includes('cool_down')) return 'cooldown';
+  if (lower.includes('aquecimento') || lower.includes('warmup') || lower.includes('warm_up')) return 'warmup';
   if (lower.includes('intervalo') || lower.includes('interval') || lower.includes('repeat')) return 'interval';
   if (lower.includes('recuperacao') || lower.includes('recuperação') || lower.includes('recovery')) return 'recovery';
   return 'main';
@@ -82,7 +83,9 @@ export function toWorkoutBlocks(etapas: EtapaTreino[]): WorkoutBlock[] {
       console.warn(`[WorkoutTimelineChart] Etapa "${label}" has no duration, defaulting to 0`);
     }
 
-    const blockType = getBlockType(label || tipoLabel);
+    // tipoLabel (tipoEtapa) tem precedência — define o tipo estrutural da etapa.
+    // label (descricaoEtapa) é fallback caso tipoEtapa esteja vazio.
+    const blockType = getBlockType(tipoLabel || label);
 
     return {
       id: etapa.id ?? `etapa-${index}`,

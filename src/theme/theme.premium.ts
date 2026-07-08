@@ -109,7 +109,7 @@ export const trainingStage = {
   principal:      categorical.teal, // tira lime da etapa
   esforco:        categorical.coral,
   recuperacao:    categorical.sage,
-  desaquecimento: categorical.slate,
+  desaquecimento: categorical.cyan,  // frescor pós-esforço — contraponto térmico ao gold do aquecimento
 } as const;
 
 // ── Zone — heat ramp preservado; só Z2 muda (lime → green) ───────────────────

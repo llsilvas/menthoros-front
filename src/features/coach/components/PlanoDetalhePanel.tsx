@@ -412,6 +412,12 @@ export function PlanoDetalhePanel({
 
     const sessoes = plano.treinosPlanejados ?? [];
     const periodo = `${formatarData(plano.semanaInicio)} – ${formatarData(plano.semanaFim)}`;
+
+    // Derivado dos treinos individuais — reflete edições sem depender do campo estático do backend
+    const volumeCalculadoKm = sessoes.reduce((sum, t) => sum + (t.distanciaKm ?? 0), 0);
+    const volumeLabel = volumeCalculadoKm > 0
+        ? `${parseFloat(volumeCalculadoKm.toFixed(1))} km`
+        : `${plano.volumePlanejadoKm} km`;
     const reviewStatusValue = resolveReviewStatus(plano.reviewStatus);
     const isAguardando = reviewStatusValue === 'AGUARDANDO_REVISAO';
     const statusColor = STATUS_COLOR[reviewStatusValue] ?? STATUS_COLOR.AGUARDANDO_REVISAO;
@@ -501,7 +507,7 @@ export function PlanoDetalhePanel({
                     flexShrink: 0,
                 }}
             >
-                <Metrica label="Volume" value={`${plano.volumePlanejadoKm} km`} accent />
+                <Metrica label="Volume" value={volumeLabel} accent />
                 {plano.volumeAlvoKm > 0 && (
                     <Metrica label="Alvo" value={`${plano.volumeAlvoKm} km`} />
                 )}
