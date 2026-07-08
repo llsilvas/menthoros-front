@@ -124,6 +124,29 @@ export class TreinoService {
     }
 
     /**
+     * Obter o detalhe de um treino realizado por id (coach), incluindo métricas derivadas
+     * como o decoupling aeróbico. GET /api/v1/treinos/realizados/{id}.
+     * @param id ID do treino realizado
+     * @returns TreinoRealizado detalhe do treino realizado
+     * @throws ApiError
+     */
+    public static obterRealizado(
+        id: string,
+    ): CancelablePromise<TreinoRealizado> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/treinos/realizados/{id}',
+            path: {
+                'id': id,
+            },
+            errors: {
+                403: `Sem permissão`,
+                404: `Treino não encontrado`,
+            },
+        });
+    }
+
+    /**
      * Marcar treino como perdido (não realizado)
      * @param treinoId ID do treino planejado
      * @returns void

@@ -93,6 +93,8 @@ export interface TreinoRealizado {
     status: string;
     externalId?: string;
     etapasRealizadas?: EtapaRealizadaInput[];
+    /** Decoupling aeróbico Pa:HR (% de queda de eficiência da 1ª p/ 2ª metade); ausente quando não aplicável. */
+    decouplingPercentual?: number;
 }
 
 export interface CreateTreinoRealizado {

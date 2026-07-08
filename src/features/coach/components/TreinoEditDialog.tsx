@@ -19,6 +19,9 @@ import { GHOST_BTN_SX, PRIMARY_BTN_SX } from '../../../shared/components/actionB
 import { activeTheme } from '../../../theme/activeTheme';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
 import type { TreinoPlanejadoDto, TreinoPlanejadoPatch, EtapaTreinoDto } from '../../../types/PlanoReview';
+import { WorkoutTimelineChart } from '../../../components/features/planos/WorkoutTimelineChart/WorkoutTimelineChart';
+import type { WorkoutBlock, BlockType } from '../../../components/features/planos/WorkoutTimelineChart/types';
+import type { ZoneKey } from '../../../theme/tokens';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -62,6 +65,17 @@ const TIPOS_TREINO = [
 const TIPOS_INTERVALADOS = new Set(['INTERVALADO', 'FARTLEK']);
 
 const ACCENT = activeTheme.trainingStage;
+
+// ── Zone inference ────────────────────────────────────────────────────────────
+
+function zoneFromString(s: string): 1 | 2 | 3 | 4 | 5 {
+    const match = s.toUpperCase().match(/Z(\d)/);
+    if (match) {
+        const z = parseInt(match[1], 10);
+        if (z >= 1 && z <= 5) return z as 1 | 2 | 3 | 4 | 5;
+    }
+    return 1;
+}
 
 // ── Estado de bloco ───────────────────────────────────────────────────────────
 
@@ -297,6 +311,73 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
         };
     }, [isIntervalado, principal, recuperacao, repeticoes, aquecimento, desaquecimento]);
 
+    // Blocos derivados do estado ao vivo — gráfico atualiza a cada edição
+    const liveBlocks = useMemo((): WorkoutBlock[] => {
+        const blocks: WorkoutBlock[] = [];
+
+        const iconHint = (bt: BlockType) =>
+            bt === 'warmup' ? 'warmup' : bt === 'cooldown' ? 'cooldown' : 'main';
+
+        const pushBloco = (bloco: BlocoState, blockType: BlockType, label: string, shortLabel: string) => {
+            const durationMin = parseInt(bloco.duracaoMin, 10) || 0;
+            if (durationMin <= 0) return;
+            const zone = zoneFromString(bloco.zonaAlvo);
+            blocks.push({
+                id: blockType,
+                label,
+                shortLabel,
+                durationMin,
+                zone,
+                zoneKey: `Z${zone}` as ZoneKey,
+                blockType,
+                description: bloco.zonaAlvo || undefined,
+                icon: iconHint(blockType),
+            });
+        };
+
+        pushBloco(aquecimento, 'warmup', 'Aquecimento', 'AQ');
+
+        if (isIntervalado) {
+            const rep = Math.max(1, repeticoes);
+            const durEsforco = (parseInt(principal.duracaoMin, 10) || 0) * rep;
+            const durRec     = (parseInt(recuperacao.duracaoMin, 10) || 0) * rep;
+            if (durEsforco > 0) {
+                const zone = zoneFromString(principal.zonaAlvo);
+                blocks.push({
+                    id:          'interval',
+                    label:       `Esforço ×${rep}`,
+                    shortLabel:  `${rep}×`,
+                    durationMin: durEsforco,
+                    zone,
+                    zoneKey:     `Z${zone}` as ZoneKey,
+                    blockType:   'interval',
+                    description: principal.zonaAlvo || undefined,
+                    icon:        'main',
+                });
+            }
+            if (durRec > 0) {
+                const zone = zoneFromString(recuperacao.zonaAlvo);
+                blocks.push({
+                    id:          'recovery',
+                    label:       `Rec ×${rep}`,
+                    shortLabel:  'REC',
+                    durationMin: durRec,
+                    zone,
+                    zoneKey:     `Z${zone}` as ZoneKey,
+                    blockType:   'recovery',
+                    description: recuperacao.zonaAlvo || undefined,
+                    icon:        'main',
+                });
+            }
+        } else {
+            pushBloco(principal, 'main', 'Treino', 'TR');
+        }
+
+        pushBloco(desaquecimento, 'cooldown', 'Desaquecimento', 'DQ');
+
+        return blocks;
+    }, [aquecimento, principal, recuperacao, desaquecimento, isIntervalado, repeticoes]);
+
     const handleSalvar = () => {
         const patch: TreinoPlanejadoPatch = {};
 
@@ -518,6 +599,8 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
             }
         >
 
+                <WorkoutTimelineChart blocks={liveBlocks} />
+
                 {/* ── Aquecimento — presente em todos os tipos ── */}
                 <BlocoCard
                     label="Aquecimento"
@@ -564,6 +647,7 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
                                     <RemoveIcon sx={{ fontSize: 13 }} />
                                 </IconButton>
                                 <Box
+                                    data-testid="repeticoes-display"
                                     sx={{
                                         minWidth: 44,
                                         textAlign: 'center',

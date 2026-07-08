@@ -206,10 +206,10 @@ describe('TreinoEditDialog — modo intervalado', () => {
 
         fireEvent.click(btnMais);
         fireEvent.click(btnMais);
-        expect(screen.getByText('3×')).toBeInTheDocument();
+        expect(screen.getByTestId('repeticoes-display')).toHaveTextContent('3×');
 
         fireEvent.click(btnMenos);
-        expect(screen.getByText('2×')).toBeInTheDocument();
+        expect(screen.getByTestId('repeticoes-display')).toHaveTextContent('2×');
     });
 
     it('exibe blocos Aquecimento e Desaquecimento sempre presentes', () => {
