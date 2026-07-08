@@ -21,6 +21,10 @@ function formatarSemana(inicio: string, fim: string): { mes: string; periodo: st
 export function PlanoPendenteItem({ plano, selecionado, onSelect }: PlanoPendenteItemProps) {
     const sessoes = plano.treinosPlanejados?.length ?? 0;
     const { mes, periodo } = formatarSemana(plano.semanaInicio, plano.semanaFim);
+    const volumeKm = (() => {
+        const soma = (plano.treinosPlanejados ?? []).reduce((s, t) => s + (t.distanciaKm ?? 0), 0);
+        return soma > 0 ? parseFloat(soma.toFixed(1)) : plano.volumePlanejadoKm;
+    })();
     const accentColor = selecionado ? primary[500] : semantic.warning[400];
 
     return (
@@ -115,7 +119,7 @@ export function PlanoPendenteItem({ plano, selecionado, onSelect }: PlanoPendent
                                 lineHeight: 1,
                             }}
                         >
-                            {plano.volumePlanejadoKm}
+                            {volumeKm}
                         </Typography>
                         <Typography sx={{ fontSize: '0.6rem', color: surface[500], fontWeight: 500 }}>
                             km
