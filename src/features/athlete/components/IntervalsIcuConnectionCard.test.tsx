@@ -92,6 +92,22 @@ describe('IntervalsIcuConnectionCard', () => {
     expect(screen.getByText(/gere uma nova key.*reconecte/i)).toBeInTheDocument();
   });
 
+  it('exibe o erro do hook no ramo conectado (falha no disconnect não é silenciosa)', () => {
+    stubHook({
+      status: {
+        conectado: true,
+        externalAthleteId: 'i123456',
+        conectadoEm: '2026-07-01T10:00:00Z',
+      },
+      error: 'Erro ao desconectar intervals.icu',
+    });
+
+    render(<IntervalsIcuConnectionCard />);
+
+    expect(screen.getByText('Erro ao desconectar intervals.icu')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /desconectar/i })).toBeInTheDocument();
+  });
+
   it('pede confirmação antes de desconectar e só chama disconnect após confirmar', async () => {
     mockDisconnect.mockResolvedValue(undefined);
     stubHook({

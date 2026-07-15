@@ -56,6 +56,12 @@ export function IntervalsIcuConnectionCard() {
         </Typography>
       </Box>
 
+      {error && (
+        <Alert severity="error" sx={{ bgcolor: `${semantic.danger[500]}1A`, color: surface[100] }}>
+          {error}
+        </Alert>
+      )}
+
       {conectado ? (
         <>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
@@ -116,12 +122,6 @@ export function IntervalsIcuConnectionCard() {
               intervals.icu/settings
             </Link>
           </Typography>
-
-          {error && (
-            <Alert severity="error" sx={{ bgcolor: `${semantic.danger[500]}1A`, color: surface[100] }}>
-              {error}
-            </Alert>
-          )}
 
           <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
             <TextField
