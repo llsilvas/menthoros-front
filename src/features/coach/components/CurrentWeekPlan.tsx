@@ -9,6 +9,7 @@ import { TreinoEditDialog } from './TreinoEditDialog';
 import { useTreinoPlanejado } from '../../../hooks/useTreinoPlanejado';
 import { surface, semantic } from '../../../theme/tokens';
 import { activeTheme } from '../../../theme/activeTheme';
+import { SyncStatusChip } from './SyncStatusChip';
 
 const { primary, trainingStatus: STATUS_COLORS } = activeTheme;
 
@@ -79,6 +80,13 @@ function TreinoCard({
                 <Typography variant="caption" color="text.secondary" noWrap sx={{ flex: 1 }}>
                     {treino.diaSemana.slice(0, 3)}
                 </Typography>
+                {!isAguardando &&
+                    (treino.statusSincronizacao !== undefined || treino.atletaConectadoIntervalsIcu !== undefined) && (
+                        <SyncStatusChip
+                            statusSincronizacao={treino.statusSincronizacao}
+                            atletaConectado={treino.atletaConectadoIntervalsIcu}
+                        />
+                    )}
                 {isAguardando && treino.id && onEditar && (
                     <IconButton
                         size="small"
