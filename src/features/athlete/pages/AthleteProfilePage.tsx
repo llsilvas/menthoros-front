@@ -2,6 +2,7 @@ import { Box, Typography } from '@mui/material';
 import { Person as ProfileIcon } from '@mui/icons-material';
 import { primary, surface } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
+import { IntervalsIcuConnectionCard } from '../components/IntervalsIcuConnectionCard';
 
 // Layout previsto: dados do perfil do atleta, metas, configurações de notificação
 // Nota na tela de Configurações: "Tema claro chegará em breve" (spec dark-first)
@@ -19,6 +20,8 @@ export default function AthleteProfilePage() {
           </Typography>
         </Box>
       </Box>
+
+      <IntervalsIcuConnectionCard />
 
       <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px dashed ${surface[700]}`, borderRadius: 1 }}>
         <Typography sx={{ color: surface[500], fontSize: '0.9rem' }}>
