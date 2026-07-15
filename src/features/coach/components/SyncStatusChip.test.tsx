@@ -17,6 +17,10 @@ describe('SyncStatusChip', () => {
         ['PENDENTE', true, 'Envio pendente'],
         ['SINCRONIZANDO', true, 'Envio pendente'],
         ['AGUARDANDO_RETRY', true, 'Envio pendente'],
+        // Estados não produzidos pelo fluxo intervals.icu caem no fallback pendente deliberadamente.
+        ['DESABILITADO', true, 'Envio pendente'],
+        ['CONFLITO', true, 'Envio pendente'],
+        ['CANCELADO', true, 'Envio pendente'],
     ] as const)('status=%s atletaConectado=%s', (status, conectado, textoEsperado) => {
         it(`exibe "${textoEsperado}"`, () => {
             render(<SyncStatusChip statusSincronizacao={status} atletaConectado={conectado} />);
