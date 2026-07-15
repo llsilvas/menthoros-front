@@ -32,6 +32,10 @@ export interface TreinoPlanejadoResumoDto {
     zonaAlvo?: string;
     percepcaoEsforcoEsperada?: number;
     etapas?: EtapaTreinoDto[];
+    /** Status de sincronização com o intervals.icu/Garmin (nome do enum StatusSincronizacao). */
+    statusSincronizacao?: string;
+    /** Indica se o atleta conectou a conta ao intervals.icu. */
+    atletaConectadoIntervalsIcu?: boolean;
 }
 
 /** Plano semanal vigente do atleta. */
