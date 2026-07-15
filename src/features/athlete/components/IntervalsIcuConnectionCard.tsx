@@ -116,7 +116,7 @@ export function IntervalsIcuConnectionCard() {
             <Link
               href={INTERVALS_ICU_SETTINGS_URL}
               target="_blank"
-              rel="noopener"
+              rel="noopener noreferrer"
               sx={{ color: primary[500] }}
             >
               intervals.icu/settings
