@@ -75,8 +75,8 @@ export const categorical = {
   slate:          '#8694A8',
   teal:           '#2BB6A3',
   cyan:           '#22D3EE', // reservado — distinto de teal e de info(blue)
-  violet:         '#A855F7',
-  magenta:        '#E0529C',
+  violet:         '#B670F8', // clareado de #A855F7 (task 2.8): contraste texto <4.5:1 contra elevation.raised
+  magenta:        '#E364A6', // clareado de #E0529C (task 2.8): idem — mesma matiz, só luminosidade
   coral:          '#F2845C',
   gold:           '#E8C547',
   sage:           '#7FB894',
