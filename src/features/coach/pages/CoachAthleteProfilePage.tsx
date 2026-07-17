@@ -27,20 +27,13 @@ import { RecentSignalsPanel } from '../components/RecentSignalsPanel';
 import { RecentSuggestionsPanel } from '../components/RecentSuggestionsPanel';
 import { KudosDialog } from '../components/KudosDialog';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
-import { resolveStatusVencimentoPlanoBadge } from '../adapters/billingPlanAdapters';
+import { resolveStatusVencimentoPlanoBadge, formatDataVencimentoPlano } from '../adapters/billingPlanAdapters';
 import { useAthleteProfile } from '../../../hooks/useAthleteProfile';
 import { useEnviarKudos } from '../../../hooks/useEnviarKudos';
 import { surface } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import type { MotivoKudos } from '../../../types/Kudos';
 import { ApiError } from '../../../api';
-
-/** Formata `yyyy-MM-dd` para `dd/MM/yyyy` (pt-BR); string vazia se ausente. */
-function formatDataVencimento(iso?: string): string {
-    if (!iso) return '';
-    const [ano, mes, dia] = iso.split('-');
-    return `${dia}/${mes}/${ano}`;
-}
 
 // Curados em KudosService.ts (mensagens PT-BR estáticas, seguras para exibir). Qualquer outro
 // status (500, rede, etc.) cai no fallback genérico — request.ts pode incluir o corpo bruto da
@@ -159,7 +152,7 @@ export default function CoachAthleteProfilePage() {
                                     {profile.tipoPlanoAtleta
                                         ? `Plano ${profile.tipoPlanoAtleta.charAt(0)}${profile.tipoPlanoAtleta.slice(1).toLowerCase()} · `
                                         : ''}
-                                    Vencimento: {formatDataVencimento(profile.dataVencimentoPlano)}
+                                    Vencimento: {formatDataVencimentoPlano(profile.dataVencimentoPlano)}
                                 </Typography>
                                 {(() => {
                                     const badge = resolveStatusVencimentoPlanoBadge(profile.statusVencimentoPlano);

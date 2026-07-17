@@ -58,7 +58,7 @@ import { EncerrarLoteDialog } from '../../../components/features/planos/Encerrar
 import { BatchPlanDialog } from '../../../components/features/planos/BatchPlanDialog';
 import { deriveRosterKpis, daysSinceLastActivity, INACTIVITY_THRESHOLD_DAYS } from '../adapters/rosterKpis';
 import { calcularAcwr, getAcwrZone } from '../adapters/coachInboxAdapters';
-import { resolveStatusVencimentoPlanoBadge } from '../adapters/billingPlanAdapters';
+import { resolveStatusVencimentoPlanoBadge, formatDataVencimentoPlano } from '../adapters/billingPlanAdapters';
 import type { MetricTone } from '../types/AthleteForm';
 import type { CoachAtletaStatus } from '../../../types/Coach';
 import type { StatusVencimentoPlano } from '../../../types/Atleta';
@@ -487,7 +487,7 @@ export default function CoachAthletesPage() {
         return (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, height: '100%' }}>
             <Typography sx={{ fontSize: '0.8rem', color: surface[50] }}>
-              {formatDate(row.dataVencimentoPlano)}
+              {formatDataVencimentoPlano(row.dataVencimentoPlano)}
             </Typography>
             {badge && <StatusBadge variant={badge.variant} label={badge.label} size="sm" />}
           </Box>

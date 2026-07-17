@@ -26,3 +26,14 @@ export function resolveStatusVencimentoPlanoBadge(status?: StatusVencimentoPlano
     if (!status) return null;
     return { variant: VARIANTS[status], label: LABELS[status] };
 }
+
+/**
+ * Formata `dataVencimentoPlano` (`yyyy-MM-dd`) para `dd/MM/yyyy` (pt-BR).
+ * O ano é obrigatório aqui — diferente de outras datas exibidas no roster (ex. última
+ * atividade), uma data de vencimento sem ano é ambígua. String vazia se ausente.
+ */
+export function formatDataVencimentoPlano(iso?: string): string {
+    if (!iso) return '';
+    const [ano, mes, dia] = iso.split('-');
+    return `${dia}/${mes}/${ano}`;
+}
