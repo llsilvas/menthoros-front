@@ -137,12 +137,17 @@ export const sidebar = {
 } as const;
 
 // ── Glass — material translúcido / hairline ──────────────────────────────────
+// backgroundActive/borderHover: affordances já em produção (feedback de hover/
+// active), fora da tabela de 5 campos do design.md — mantidas aqui como
+// extensão consistente (mesmo padrão rgba(255,255,255,X), task 3.1).
 export const glass = {
-  background:      'rgba(255,255,255,0.08)',
-  backgroundHover: 'rgba(255,255,255,0.12)',
-  border:          'rgba(255,255,255,0.15)',
-  backdropFilter:  'blur(10px)',
-  boxShadow:       '0 8px 32px rgba(0,0,0,0.40)',
+  background:       'rgba(255,255,255,0.08)',
+  backgroundHover:  'rgba(255,255,255,0.12)',
+  backgroundActive: 'rgba(255,255,255,0.15)',
+  border:           'rgba(255,255,255,0.15)',
+  borderHover:      'rgba(255,255,255,0.25)',
+  backdropFilter:   'blur(10px)',
+  boxShadow:        '0 8px 32px rgba(0,0,0,0.40)',
 } as const;
 
 // ── Agregado canônico ────────────────────────────────────────────────────────
