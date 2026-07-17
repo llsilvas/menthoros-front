@@ -25,6 +25,10 @@ vi.mock('@mui/x-data-grid', () => ({
         <div key={row.id} data-testid={`row-${row.id}`}>
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           {columns.filter((c: any) => c.type === 'actions').flatMap((c: any) => c.getActions({ row }))}
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          {columns.filter((c: any) => c.renderCell && c.type !== 'actions').map((c: any) => (
+            <div key={c.field} data-testid={`cell-${c.field}-${row.id}`}>{c.renderCell({ row })}</div>
+          ))}
         </div>
       ))}
     </div>
@@ -147,5 +151,51 @@ describe('CoachAthletesPage — ações por atleta', () => {
     expect(btn).toBeDisabled();
     fireEvent.click(btn);
     expect(screen.queryByText('stub-batch')).not.toBeInTheDocument();
+  });
+});
+
+describe('CoachAthletesPage — coluna de vencimento do plano', () => {
+  function renderComRoster(roster: CoachAtletaResumo[]) {
+    vi.clearAllMocks();
+    vi.mocked(useCoachRoster).mockReturnValue({
+      roster,
+      loading: false,
+      error: null,
+      fetchRoster: vi.fn().mockResolvedValue(undefined),
+    });
+    return render(
+      <MemoryRouter initialEntries={['/coach/athletes']}>
+        <CoachAthletesPage />
+      </MemoryRouter>,
+    );
+  }
+
+  it('exibe "—" sem badge quando dataVencimentoPlano ausente', () => {
+    renderComRoster([{ atletaId: 'a1', nome: 'Ana Silva', status: 'active', weeklyVolume: 32 }]);
+    expect(screen.getByTestId('cell-vencimentoPlano-a1')).toHaveTextContent('—');
+  });
+
+  it('exibe badge Vencido quando statusVencimentoPlano é VENCIDO', () => {
+    renderComRoster([{
+      atletaId: 'a1', nome: 'Ana Silva', status: 'active', weeklyVolume: 32,
+      dataVencimentoPlano: '2026-06-01', statusVencimentoPlano: 'VENCIDO',
+    }]);
+    expect(screen.getByTestId('cell-vencimentoPlano-a1')).toHaveTextContent('Vencido');
+  });
+
+  it('exibe badge Vence em breve quando statusVencimentoPlano é PROXIMO_VENCIMENTO', () => {
+    renderComRoster([{
+      atletaId: 'a1', nome: 'Ana Silva', status: 'active', weeklyVolume: 32,
+      dataVencimentoPlano: '2026-07-20', statusVencimentoPlano: 'PROXIMO_VENCIMENTO',
+    }]);
+    expect(screen.getByTestId('cell-vencimentoPlano-a1')).toHaveTextContent('Vence em breve');
+  });
+
+  it('exibe badge Em dia quando statusVencimentoPlano é EM_DIA', () => {
+    renderComRoster([{
+      atletaId: 'a1', nome: 'Ana Silva', status: 'active', weeklyVolume: 32,
+      dataVencimentoPlano: '2026-12-31', statusVencimentoPlano: 'EM_DIA',
+    }]);
+    expect(screen.getByTestId('cell-vencimentoPlano-a1')).toHaveTextContent('Em dia');
   });
 });
