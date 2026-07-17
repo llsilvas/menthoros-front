@@ -1,27 +1,14 @@
-import { primary, surface, semantic, categorical } from '../../theme/tokens';
+import { surface, semantic } from '../../theme/tokens';
 
 /**
- * Fonte única de cor do domínio de treino. Três taxonomias distintas:
- * - tipo de treino (FACIL, LONGO, TEMPO, ...)
+ * Fonte única de cor do domínio de treino. Duas taxonomias:
  * - status de execução (REALIZADO, PENDENTE, ...)
- * - etapa/bloco dentro do treino (aquecimento, principal, ...)
+ * - percepção de esforço (RPE 1-10)
  *
- * Centralizar evita os mapas paralelos que existiam por componente e mantém a
- * mesma cor para o mesmo conceito em todo o fluxo de plano.
+ * `trainingType` e `trainingStage` (categóricos dedicados, sem colisão com
+ * semantic) vivem em `theme.premium.ts`, consumidos via `activeTheme` —
+ * não duplicar mapas paralelos aqui.
  */
-
-// ── Tipo de treino ────────────────────────────────────────────────────────────
-export const WORKOUT_TYPE_COLORS: Record<string, string> = {
-  FACIL:        surface[400],
-  LONGO:        categorical.cat1,
-  TEMPO:        semantic.warning[500],
-  INTERVALADO:  semantic.danger[500],
-  REGENERATIVO: semantic.success[500],
-  FARTLEK:      categorical.cat4,
-  CONTINUO:     semantic.warning[400],
-  DEFAULT:      surface[500],
-};
-// workoutTypeColor() vive em activeTheme.ts (flag-aware) — não duplicar aqui.
 
 // ── Status de execução ──────────────────────────────────────────────────────────
 export const WORKOUT_STATUS_COLORS: Record<string, string> = {
@@ -36,15 +23,6 @@ export const WORKOUT_STATUS_COLORS: Record<string, string> = {
 export function workoutStatusColor(status?: string): string {
   return WORKOUT_STATUS_COLORS[(status ?? '').toUpperCase()] ?? surface[400];
 }
-
-// ── Etapa/bloco do treino ───────────────────────────────────────────────────────
-export const WORKOUT_STAGE_COLORS = {
-  aquecimento:    semantic.warning[500],
-  esforco:        semantic.danger[500],
-  recuperacao:    semantic.success[500],
-  desaquecimento: semantic.info[500],
-  principal:      primary[500],
-} as const;
 
 // ── Percepção de esforço (RPE 1-10) ─────────────────────────────────────────────
 /** Cor por nível de esforço: leve → sucesso, moderado → atenção, intenso → perigo. */

@@ -1,4 +1,4 @@
-import { primary, surface, semantic, categorical, elevation } from '../shared/design-tokens';
+import { primary, surface, elevation } from '../shared/design-tokens';
 
 export { primary, surface, semantic, categorical, external } from '../shared/design-tokens';
 
@@ -83,16 +83,9 @@ export const radius = {
   xl: 16,
 } as const;
 
-// ── Zone palette (Z1–Z5) — unchanged ─────────────────────────────────────────
-export const zones = {
-  Z1: { color: '#c8cdd4', fill: 'rgba(200, 205, 212, 0.18)', border: '#c8cdd4', label: 'Recuperação' },
-  Z2: { color: primary[500], fill: `${primary[500]}2E`, border: primary[500], label: 'Base' },
-  Z3: { color: categorical.cat1, fill: `${categorical.cat1}2E`, border: categorical.cat1, label: 'Tempo' },
-  Z4: { color: semantic.warning[500], fill: `${semantic.warning[500]}2E`, border: semantic.warning[500], label: 'Limiar' },
-  Z5: { color: semantic.danger[500], fill: `${semantic.danger[500]}2E`, border: semantic.danger[500], label: 'VO₂ Máx' },
-} as const;
-
-export type ZoneKey = keyof typeof zones;
+// ── Zone key — chaves Z1–Z5. Valores de cor vivem em `theme.premium.ts`,
+// consumidos via `activeTheme.zones` — não duplicar mapa de cor aqui.
+export type ZoneKey = 'Z1' | 'Z2' | 'Z3' | 'Z4' | 'Z5';
 
 // ── Glass helpers — dark glass only (not white glass) ────────────────────────
 export const glass = {
