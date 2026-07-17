@@ -26,6 +26,8 @@ import { CurrentWeekPlan } from '../components/CurrentWeekPlan';
 import { RecentSignalsPanel } from '../components/RecentSignalsPanel';
 import { RecentSuggestionsPanel } from '../components/RecentSuggestionsPanel';
 import { KudosDialog } from '../components/KudosDialog';
+import { StatusBadge } from '../../../shared/components/StatusBadge';
+import { resolveStatusVencimentoPlanoBadge, formatDataVencimentoPlano } from '../adapters/billingPlanAdapters';
 import { useAthleteProfile } from '../../../hooks/useAthleteProfile';
 import { useEnviarKudos } from '../../../hooks/useEnviarKudos';
 import { surface } from '../../../theme/tokens';
@@ -144,6 +146,20 @@ export default function CoachAthleteProfilePage() {
                                 : 'Nível não informado'}
                             {profile.objetivo ? ` · ${profile.objetivo}` : ''}
                         </Typography>
+                        {profile.dataVencimentoPlano && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                                <Typography variant="caption" sx={{ color: surface[400] }}>
+                                    {profile.tipoPlanoAtleta
+                                        ? `Plano ${profile.tipoPlanoAtleta.charAt(0)}${profile.tipoPlanoAtleta.slice(1).toLowerCase()} · `
+                                        : ''}
+                                    Vencimento: {formatDataVencimentoPlano(profile.dataVencimentoPlano)}
+                                </Typography>
+                                {(() => {
+                                    const badge = resolveStatusVencimentoPlanoBadge(profile.statusVencimentoPlano);
+                                    return badge ? <StatusBadge variant={badge.variant} label={badge.label} size="sm" /> : null;
+                                })()}
+                            </Box>
+                        )}
                     </Box>
                     <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
                         <Button

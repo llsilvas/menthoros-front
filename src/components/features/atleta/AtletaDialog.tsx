@@ -7,7 +7,7 @@ import { elevation } from '../../../shared/design-tokens';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { GHOST_BTN_SX, PRIMARY_BTN_SX } from '../../../shared/components/actionButtonSx';
 
-import type { Atleta, CreateAtleta, UpdateAtleta, AtletaDialogProps, diaSemana, Sexo } from "../../../types/Atleta";
+import type { Atleta, CreateAtleta, UpdateAtleta, AtletaDialogProps, diaSemana, Sexo, TipoPlanoAtleta } from "../../../types/Atleta";
 
 interface FormErrors {
     nome?: string;
@@ -85,6 +85,8 @@ const getInitialFormData = (atleta?: Atleta): CreateAtleta | UpdateAtleta => {
         diaPreferidoLongo: validarDiaSemana(atleta?.diaPreferidoLongo),
         temLesao: typeof atleta?.temLesao === 'boolean' ? atleta.temLesao : false,
         descricaoLesao: typeof atleta?.descricaoLesao === 'string' ? atleta.descricaoLesao : "",
+        tipoPlanoAtleta: atleta?.tipoPlanoAtleta,
+        dataVencimentoPlano: typeof atleta?.dataVencimentoPlano === 'string' ? atleta.dataVencimentoPlano : "",
     };
 
     if (atleta?.id && typeof atleta.id === 'string') {
@@ -171,7 +173,13 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
         setSubmitError(null);
 
         try {
-            await onSave(formData);
+            // tipoPlanoAtleta/dataVencimentoPlano são opcionais — string vazia vira undefined
+            // para não enviar um enum/LocalDate inválido ao backend (campo "não definido").
+            await onSave({
+                ...formData,
+                tipoPlanoAtleta: formData.tipoPlanoAtleta || undefined,
+                dataVencimentoPlano: formData.dataVencimentoPlano || undefined,
+            });
             handleClose();
         } catch (error) {
             setSubmitError(error instanceof Error ? error.message : 'Erro ao salvar usuário');
@@ -376,6 +384,36 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                                 </MenuItem>
                             ))}
                         </TextField>
+                            </Grid>
+                            <Grid size={6}>
+                        <TextField
+                            select
+                            label="Tipo de Plano (com a assessoria)"
+                            name="tipoPlanoAtleta"
+                            value={formData.tipoPlanoAtleta ?? ''}
+                            onChange={handleChange}
+                            fullWidth
+                            size="small"
+                        >
+                            <MenuItem value="">Não definido</MenuItem>
+                            {(['MENSAL', 'TRIMESTRAL', 'SEMESTRAL', 'ANUAL'] as TipoPlanoAtleta[]).map(option => (
+                                <MenuItem key={option} value={option}>
+                                    {option.charAt(0) + option.slice(1).toLowerCase()}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+                            </Grid>
+                            <Grid size={6}>
+                        <TextField
+                            label="Vencimento do Plano"
+                            name="dataVencimentoPlano"
+                            type="date"
+                            value={formData.dataVencimentoPlano ?? ''}
+                            onChange={handleChange}
+                            fullWidth
+                            size="small"
+                            slotProps={{ inputLabel: { shrink: true } }}
+                        />
                             </Grid>
                             <Grid size={12}>
                         <Box sx={{ mb: 2 }}>

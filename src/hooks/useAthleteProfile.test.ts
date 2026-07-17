@@ -45,6 +45,22 @@ describe('useAthleteProfile', () => {
         expect(result.current.isLoading).toBe(false);
     });
 
+    it('reflete dados de cobrança do perfil sem invalidação extra (fetch-on-mount, critério de aceite 5)', async () => {
+        vi.mocked(CoachAthleteProfileService.getProfile).mockResolvedValue({
+            ...STUB,
+            tipoPlanoAtleta: 'MENSAL',
+            dataVencimentoPlano: '2026-08-15',
+            statusVencimentoPlano: 'PROXIMO_VENCIMENTO',
+        });
+
+        const { result } = renderHook(() => useAthleteProfile('uuid-1'));
+        await act(async () => {});
+
+        expect(result.current.profile?.tipoPlanoAtleta).toBe('MENSAL');
+        expect(result.current.profile?.dataVencimentoPlano).toBe('2026-08-15');
+        expect(result.current.profile?.statusVencimentoPlano).toBe('PROXIMO_VENCIMENTO');
+    });
+
     it('não dispara fetch quando atletaId é undefined', () => {
         const { result } = renderHook(() => useAthleteProfile(undefined));
 

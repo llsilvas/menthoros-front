@@ -115,6 +115,39 @@ describe('CoachAthleteProfilePage', () => {
         expect(screen.getByText(/Maratona/i)).toBeInTheDocument();
     });
 
+    it('não exibe dados de cobrança quando dataVencimentoPlano ausente', () => {
+        mockHook({ profile: STUB_PROFILE });
+        renderPage();
+        expect(screen.queryByText(/Vencimento:/i)).not.toBeInTheDocument();
+    });
+
+    it('exibe tipo de plano, data formatada e badge Vencido quando dataVencimentoPlano no passado', () => {
+        mockHook({
+            profile: {
+                ...STUB_PROFILE,
+                tipoPlanoAtleta: 'ANUAL',
+                dataVencimentoPlano: '2026-06-01',
+                statusVencimentoPlano: 'VENCIDO',
+            },
+        });
+        renderPage();
+        expect(screen.getByText(/Plano Anual/i)).toBeInTheDocument();
+        expect(screen.getByText(/Vencimento: 01\/06\/2026/i)).toBeInTheDocument();
+        expect(screen.getByText('Vencido')).toBeInTheDocument();
+    });
+
+    it('exibe badge Vence em breve quando statusVencimentoPlano é PROXIMO_VENCIMENTO', () => {
+        mockHook({
+            profile: {
+                ...STUB_PROFILE,
+                dataVencimentoPlano: '2026-07-20',
+                statusVencimentoPlano: 'PROXIMO_VENCIMENTO',
+            },
+        });
+        renderPage();
+        expect(screen.getByText('Vence em breve')).toBeInTheDocument();
+    });
+
     it('exibe seção PMC Chart', () => {
         mockHook({ profile: STUB_PROFILE });
         renderPage();

@@ -58,8 +58,10 @@ import { EncerrarLoteDialog } from '../../../components/features/planos/Encerrar
 import { BatchPlanDialog } from '../../../components/features/planos/BatchPlanDialog';
 import { deriveRosterKpis, daysSinceLastActivity, INACTIVITY_THRESHOLD_DAYS } from '../adapters/rosterKpis';
 import { calcularAcwr, getAcwrZone } from '../adapters/coachInboxAdapters';
+import { resolveStatusVencimentoPlanoBadge, formatDataVencimentoPlano } from '../adapters/billingPlanAdapters';
 import type { MetricTone } from '../types/AthleteForm';
 import type { CoachAtletaStatus } from '../../../types/Coach';
+import type { StatusVencimentoPlano } from '../../../types/Atleta';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -75,6 +77,8 @@ interface AthleteRow {
   acwr?: number;
   weeklyVolume: number;
   lastActivity?: string;
+  dataVencimentoPlano?: string;
+  statusVencimentoPlano?: StatusVencimentoPlano;
 }
 
 type ViewKey = 'all' | 'at-risk' | 'taper';
@@ -292,6 +296,8 @@ export default function CoachAthletesPage() {
         acwr: calcularAcwr(a.atl ?? null, a.ctl ?? null) ?? undefined,
         weeklyVolume: a.weeklyVolume,
         lastActivity: a.lastActivity,
+        dataVencimentoPlano: a.dataVencimentoPlano,
+        statusVencimentoPlano: a.statusVencimentoPlano,
       })),
     [roster],
   );
@@ -461,6 +467,29 @@ export default function CoachAthletesPage() {
             <Typography sx={{ fontSize: '0.68rem', color }}>
               {days === 0 ? 'hoje' : `há ${days}d`}
             </Typography>
+          </Box>
+        );
+      },
+    },
+    {
+      field: 'vencimentoPlano',
+      headerName: 'Vencimento',
+      width: 140,
+      renderCell: ({ row }) => {
+        if (!row.dataVencimentoPlano) {
+          return (
+            <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+              <Typography sx={{ fontSize: '0.78rem', color: surface[500] }}>—</Typography>
+            </Box>
+          );
+        }
+        const badge = resolveStatusVencimentoPlanoBadge(row.statusVencimentoPlano);
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, height: '100%' }}>
+            <Typography sx={{ fontSize: '0.8rem', color: surface[50] }}>
+              {formatDataVencimentoPlano(row.dataVencimentoPlano)}
+            </Typography>
+            {badge && <StatusBadge variant={badge.variant} label={badge.label} size="sm" />}
           </Box>
         );
       },

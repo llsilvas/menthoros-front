@@ -11,6 +11,10 @@ export interface Atleta {
     diaPreferidoLongo: diaSemana;
     temLesao:boolean;
     descricaoLesao?:string;
+    tipoPlanoAtleta?: TipoPlanoAtleta;
+    dataVencimentoPlano?: string;
+    /** Derivado pelo backend a partir de dataVencimentoPlano; ausente quando não cadastrada. */
+    statusVencimentoPlano?: StatusVencimentoPlano;
 }
 
 export interface CreateAtleta {
@@ -25,6 +29,8 @@ export interface CreateAtleta {
     diaPreferidoLongo: diaSemana;
     temLesao:boolean;
     descricaoLesao?:string;
+    tipoPlanoAtleta?: TipoPlanoAtleta;
+    dataVencimentoPlano?: string;
 }
 
 export interface UpdateAtleta  extends Partial<CreateAtleta> {
@@ -79,3 +85,9 @@ export const generateId = (): string => {
 export type nivelExperiencia = "INICIANTE" | "INTERMEDIARIO" | "AVANCADO";
 export type diaSemana = 'DOMINGO' | 'SEGUNDA' | 'TERCA' | 'QUARTA' | 'QUINTA' | 'SEXTA' | 'SABADO';
 export type Sexo = 'MASCULINO' | 'FEMININO' | 'OUTRO';
+
+/** Periodicidade do plano do atleta com a assessoria — distinto do plano SaaS da assessoria com a Menthoros. */
+export type TipoPlanoAtleta = 'MENSAL' | 'TRIMESTRAL' | 'SEMESTRAL' | 'ANUAL';
+
+/** Status de vencimento derivado pelo backend a partir de dataVencimentoPlano vs. a data atual. */
+export type StatusVencimentoPlano = 'EM_DIA' | 'PROXIMO_VENCIMENTO' | 'VENCIDO';
