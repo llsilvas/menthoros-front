@@ -3,6 +3,7 @@
  * Campos anuláveis no backend (`@JsonInclude(NON_NULL)`) são opcionais aqui.
  */
 import type { FaixaTsbStatus } from './FaixaTsb';
+import type { StatusVencimentoPlano, TipoPlanoAtleta } from './Atleta';
 
 /** Status de atenção do coach derivado no backend (`deriveStatus`). */
 export type CoachAtletaStatus = 'active' | 'warning' | 'danger' | 'paused';
@@ -28,6 +29,12 @@ export interface CoachAtletaResumo {
     weeklyVolume: number;
     /** Percentual de aderência das últimas 4 semanas (0–100); ausente quando sem plano. */
     aderenciaPercentual?: number;
+    /** Tipo de plano do atleta com a assessoria; ausente quando não cadastrado. */
+    tipoPlanoAtleta?: TipoPlanoAtleta;
+    /** Data de vencimento do plano do atleta com a assessoria; ausente quando não cadastrado. */
+    dataVencimentoPlano?: string;
+    /** Status de vencimento derivado; ausente quando dataVencimentoPlano não cadastrada. */
+    statusVencimentoPlano?: StatusVencimentoPlano;
 }
 
 /** Filtros do dashboard agregado do coach. */
