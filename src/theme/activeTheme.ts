@@ -44,12 +44,7 @@ const premiumColors = {
   },
 } as const;
 
-// trainingStatus: PARCIAL usa warning[500]; demais (REALIZADO/CONCLUIDO/PENDENTE/
-// PERDIDO/LIVRE) vêm de WORKOUT_STATUS_COLORS.
-const premiumTrainingStatus: Record<string, string> = {
-  ...WORKOUT_STATUS_COLORS,
-  PARCIAL: semantic.warning[500],
-};
+const premiumTrainingStatus: Record<string, string> = { ...WORKOUT_STATUS_COLORS };
 
 // trainingType ancora em `categorical` (hues dedicados, sem colisão com semantic).
 // premiumTrainingType não tem DEFAULT — adiciona-se um neutro de superfície.

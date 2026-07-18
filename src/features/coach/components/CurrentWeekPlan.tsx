@@ -99,7 +99,19 @@ function TreinoCard({
                 )}
             </Box>
 
-            <Typography variant="body2" fontWeight={600} sx={{ mt: 0.25, lineHeight: 1.15 }}>
+            <Typography
+                variant="body2"
+                fontWeight={600}
+                sx={{
+                    mt: 0.25,
+                    lineHeight: 1.15,
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    overflowWrap: 'break-word',
+                }}
+            >
                 {treino.tipoTreino.replace(/_/g, ' ')}
             </Typography>
 
@@ -138,6 +150,8 @@ function TreinosGrid({
         );
     }
     return (
+        // Sem breakpoint `lg` dedicado (herda 4 colunas do `md`) — um `lg: 12/7` anterior
+        // forçava 7 cards/linha (1 por dia da semana) e truncava "CONTÍNUO"/"No relógio".
         <Grid container spacing={1}>
             {treinos.map((t) => (
                 <Grid key={t.id ?? t.diaSemana} size={{ xs: 6, sm: 4, md: 3 }}>

@@ -16,13 +16,9 @@ export const WORKOUT_STATUS_COLORS: Record<string, string> = {
   CONCLUIDO: semantic.success[500],
   PENDENTE:  surface[400],
   PERDIDO:   semantic.danger[500],
-  PARCIAL:   semantic.warning[400],
+  PARCIAL:   semantic.warning[500],
   LIVRE:     surface[400],
 };
-
-export function workoutStatusColor(status?: string): string {
-  return WORKOUT_STATUS_COLORS[(status ?? '').toUpperCase()] ?? surface[400];
-}
 
 // ── Percepção de esforço (RPE 1-10) ─────────────────────────────────────────────
 /** Cor por nível de esforço: leve → sucesso, moderado → atenção, intenso → perigo. */

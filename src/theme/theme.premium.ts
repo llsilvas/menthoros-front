@@ -122,7 +122,7 @@ export const zone = {
 } as const;
 
 // TrainingStatus premium é montado em `activeTheme.ts` (premiumTrainingStatus,
-// derivado de WORKOUT_STATUS_COLORS com delta em PARCIAL) — não duplicar aqui.
+// derivado de WORKOUT_STATUS_COLORS) — não duplicar aqui.
 
 // ── Sidebar — lime tint de seleção (uso de lime permitido = ação) ─────────────
 export const sidebar = {

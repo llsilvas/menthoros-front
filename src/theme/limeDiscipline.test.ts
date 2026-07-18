@@ -12,6 +12,9 @@ import { premiumTokens, primary } from './theme.premium';
 // resolve para lime hoje, então a allowlist continua estrita nesses 3 extras.
 const LIME_SET = new Set<string>([primary[400], primary[500], primary[600]]);
 
+// `sidebar.selectedBg` é `rgba(...)`, não hex — nunca bate com LIME_SET (só hex
+// sólido) no filtro de `value.startsWith('#')` abaixo. Fica na allowlist como
+// proteção prospectiva, caso vire hex sólido no futuro.
 const ALLOWLISTED_ROLES = new Set([
   'sidebar.selectedBg',
   'sidebar.selectedBorder',
@@ -35,8 +38,8 @@ describe('theme.premium — CA2: Lime Discipline', () => {
       const role = `${groupName}.${key}`;
 
       it(`${role} não resolve para lime fora da allowlist`, () => {
-        const isLime = LIME_SET.has(value);
-        expect(!isLime || isAllowlisted(groupName, role), `${role} = ${value} (lime) não está na allowlist`).toBe(true);
+        if (!LIME_SET.has(value)) return;
+        expect(isAllowlisted(groupName, role), `${role} = ${value} (lime) não está na allowlist`).toBe(true);
       });
     }
   }
