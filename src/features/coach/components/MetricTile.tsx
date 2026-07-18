@@ -30,7 +30,20 @@ export function MetricTile({ label, value, delta, tone = 'neutral', compact = fa
       <Typography noWrap sx={{ fontSize: compact ? { xs: '0.45rem', xl: '0.64rem' } : '0.68rem', color: surface[400], textTransform: 'uppercase', letterSpacing: '0.06em' }}>
         {label}
       </Typography>
-      <Typography noWrap sx={{ mt: compact ? 0.25 : 0.35, fontSize: compact ? { xs: '1rem', xl: '1.24rem' } : '1.45rem', lineHeight: 1, fontWeight: 700, color }}>
+      <Typography
+        sx={{
+          mt: compact ? 0.25 : 0.35,
+          fontSize: compact ? { xs: '1rem', xl: '1.24rem' } : '1.45rem',
+          lineHeight: 1.15,
+          fontWeight: 700,
+          color,
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+          overflowWrap: 'break-word',
+        }}
+      >
         {value}
       </Typography>
       {delta ? (

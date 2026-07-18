@@ -53,10 +53,5 @@ export const external = {
 
 export const colors = { primary, surface, semantic, categorical } as const;
 
-// Readiness score tokens (prontidão do atleta para treino)
-export const readiness = {
-  low:    semantic.danger[500],    // 0-39
-  medium: semantic.warning[500],   // 40-69
-  high:   primary[500],            // 70-89
-  peak:   semantic.success[500],   // 90-100
-} as const;
+// Readiness (prontidão do atleta) vive em `theme.premium.ts`, consumido via
+// `activeTheme.readiness` — não duplicar mapa aqui.

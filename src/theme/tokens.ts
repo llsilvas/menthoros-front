@@ -1,4 +1,5 @@
-import { primary, surface, semantic, categorical, elevation } from '../shared/design-tokens';
+import { primary, surface, elevation } from '../shared/design-tokens';
+import { glass as premiumGlass } from './theme.premium';
 
 export { primary, surface, semantic, categorical, external } from '../shared/design-tokens';
 
@@ -83,27 +84,14 @@ export const radius = {
   xl: 16,
 } as const;
 
-// ── Zone palette (Z1–Z5) — unchanged ─────────────────────────────────────────
-export const zones = {
-  Z1: { color: '#c8cdd4', fill: 'rgba(200, 205, 212, 0.18)', border: '#c8cdd4', label: 'Recuperação' },
-  Z2: { color: primary[500], fill: `${primary[500]}2E`, border: primary[500], label: 'Base' },
-  Z3: { color: categorical.cat1, fill: `${categorical.cat1}2E`, border: categorical.cat1, label: 'Tempo' },
-  Z4: { color: semantic.warning[500], fill: `${semantic.warning[500]}2E`, border: semantic.warning[500], label: 'Limiar' },
-  Z5: { color: semantic.danger[500], fill: `${semantic.danger[500]}2E`, border: semantic.danger[500], label: 'VO₂ Máx' },
-} as const;
-
-export type ZoneKey = keyof typeof zones;
+// ── Zone key — chaves Z1–Z5. Valores de cor vivem em `theme.premium.ts`,
+// consumidos via `activeTheme.zones` — não duplicar mapa de cor aqui.
+export type ZoneKey = 'Z1' | 'Z2' | 'Z3' | 'Z4' | 'Z5';
 
 // ── Glass helpers — dark glass only (not white glass) ────────────────────────
-export const glass = {
-  background:      `${surface[0]}14`,    // white 8%
-  backgroundHover: `${surface[0]}1F`,    // white 12%
-  backgroundActive:`${surface[0]}26`,    // white 15%
-  border:          `${surface[0]}26`,    // white 15%
-  borderHover:     `${surface[0]}40`,    // white 25%
-  backdropFilter:  'blur(10px)',
-  boxShadow:       '0 8px 32px 0 rgba(0, 0, 0, 0.4)',
-} as const;
+// Token canônico vive em `theme.premium.ts` (task 3.1) — reexportado aqui pra
+// não quebrar os consumidores que importam `glass` de `theme/tokens`.
+export const glass = premiumGlass;
 
 export const glassSx = {
   backgroundColor:       glass.background,

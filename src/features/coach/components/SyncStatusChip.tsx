@@ -77,6 +77,7 @@ export function SyncStatusChip({ statusSincronizacao, atletaConectado }: SyncSta
                     color,
                     bgcolor: `${color}1F`,
                     border: `1px solid ${color}4D`,
+                    flexShrink: 0,
                     '& .MuiChip-label': { px: 0.6 },
                 }}
             />

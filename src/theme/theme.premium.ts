@@ -75,8 +75,8 @@ export const categorical = {
   slate:          '#8694A8',
   teal:           '#2BB6A3',
   cyan:           '#22D3EE', // reservado — distinto de teal e de info(blue)
-  violet:         '#A855F7',
-  magenta:        '#E0529C',
+  violet:         '#B670F8', // clareado de #A855F7 (task 2.8): contraste texto <4.5:1 contra elevation.raised
+  magenta:        '#E364A6', // clareado de #E0529C (task 2.8): idem — mesma matiz, só luminosidade
   coral:          '#F2845C',
   gold:           '#E8C547',
   sage:           '#7FB894',
@@ -122,7 +122,7 @@ export const zone = {
 } as const;
 
 // TrainingStatus premium é montado em `activeTheme.ts` (premiumTrainingStatus,
-// derivado de WORKOUT_STATUS_COLORS com delta em PARCIAL) — não duplicar aqui.
+// derivado de WORKOUT_STATUS_COLORS) — não duplicar aqui.
 
 // ── Sidebar — lime tint de seleção (uso de lime permitido = ação) ─────────────
 export const sidebar = {
@@ -137,12 +137,17 @@ export const sidebar = {
 } as const;
 
 // ── Glass — material translúcido / hairline ──────────────────────────────────
+// backgroundActive/borderHover: affordances já em produção (feedback de hover/
+// active), fora da tabela de 5 campos do design.md — mantidas aqui como
+// extensão consistente (mesmo padrão rgba(255,255,255,X), task 3.1).
 export const glass = {
-  background:      'rgba(255,255,255,0.08)',
-  backgroundHover: 'rgba(255,255,255,0.12)',
-  border:          'rgba(255,255,255,0.15)',
-  backdropFilter:  'blur(10px)',
-  boxShadow:       '0 8px 32px rgba(0,0,0,0.40)',
+  background:       'rgba(255,255,255,0.08)',
+  backgroundHover:  'rgba(255,255,255,0.12)',
+  backgroundActive: 'rgba(255,255,255,0.15)',
+  border:           'rgba(255,255,255,0.15)',
+  borderHover:      'rgba(255,255,255,0.25)',
+  backdropFilter:   'blur(10px)',
+  boxShadow:        '0 8px 32px rgba(0,0,0,0.40)',
 } as const;
 
 // ── Agregado canônico ────────────────────────────────────────────────────────
