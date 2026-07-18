@@ -76,8 +76,8 @@ function TreinoCard({
                 minWidth: 0,
             }}
         >
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <Typography variant="caption" color="text.secondary" noWrap sx={{ flex: 1 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 0.5 }}>
+                <Typography variant="caption" color="text.secondary" noWrap sx={{ flexShrink: 0 }}>
                     {treino.diaSemana.slice(0, 3)}
                 </Typography>
                 {!isAguardando &&
@@ -99,7 +99,7 @@ function TreinoCard({
                 )}
             </Box>
 
-            <Typography variant="body2" fontWeight={600} noWrap sx={{ mt: 0.25 }}>
+            <Typography variant="body2" fontWeight={600} sx={{ mt: 0.25, lineHeight: 1.15 }}>
                 {treino.tipoTreino.replace(/_/g, ' ')}
             </Typography>
 
@@ -140,7 +140,7 @@ function TreinosGrid({
     return (
         <Grid container spacing={1}>
             {treinos.map((t) => (
-                <Grid key={t.id ?? t.diaSemana} size={{ xs: 6, sm: 4, md: 3, lg: 12 / 7 }}>
+                <Grid key={t.id ?? t.diaSemana} size={{ xs: 6, sm: 4, md: 3 }}>
                     <TreinoCard
                         treino={t}
                         isAguardando={isAguardando}
