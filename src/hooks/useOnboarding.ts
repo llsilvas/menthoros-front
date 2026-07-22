@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { OnboardingService } from '../api/services/OnboardingService';
-import { UsuarioService } from '../api/services/UsuarioService';
+import { resolverAtletaIdAtual } from './resolverAtletaId';
 import type { AthleteOnboardingProfile, OnboardingConclusaoInput, OnboardingConclusaoResult, OnboardingDraftInput } from '../types/Onboarding';
 
 /**
@@ -22,13 +22,13 @@ export const useOnboarding = () => {
         setLoading(true);
         setFetchError(null);
         try {
-            const me = await UsuarioService.getMe();
-            if (!me.atletaId) {
+            const idAtual = await resolverAtletaIdAtual();
+            if (!idAtual) {
                 setFetchError(new Error('Usuário sem atleta vinculado'));
                 return;
             }
-            setAtletaId(me.atletaId);
-            const existente = await OnboardingService.buscarRascunho(me.atletaId);
+            setAtletaId(idAtual);
+            const existente = await OnboardingService.buscarRascunho(idAtual);
             if (existente) {
                 setProfile(existente);
                 setDraft(existente);

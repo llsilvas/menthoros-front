@@ -106,4 +106,21 @@ describe('useCalibracao', () => {
         expect(result.current.error).toBeNull();
         expect(OnboardingService.obterStatusCalibracao).not.toHaveBeenCalled();
     });
+
+    it('mantém o status já obtido da API mesmo quando localStorage lança (correção QA 2026-07-22)', async () => {
+        vi.stubGlobal('localStorage', {
+            getItem: () => { throw new Error('storage bloqueado'); },
+            setItem: () => { throw new Error('storage bloqueado'); },
+            removeItem: () => { throw new Error('storage bloqueado'); },
+        });
+        vi.mocked(OnboardingService.obterStatusCalibracao).mockResolvedValue(STATUS);
+
+        const { result } = renderHook(() => useCalibracao());
+        await act(async () => { await result.current.fetchStatus(); });
+
+        // Antes da correção, a exceção de localStorage era capturada pelo try/catch externo e
+        // mascarava um status já obtido com sucesso como erro genérico de rede.
+        expect(result.current.status).toEqual(STATUS);
+        expect(result.current.error).toBeNull();
+    });
 });

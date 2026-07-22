@@ -1,9 +1,36 @@
 import { useCallback, useState } from 'react';
 import { OnboardingService } from '../api/services/OnboardingService';
-import { UsuarioService } from '../api/services/UsuarioService';
+import { resolverAtletaIdAtual } from './resolverAtletaId';
 import type { CalibrationStatus } from '../types/Calibracao';
 
 const CALIBRACAO_STORAGE_KEY = 'menthoros:onboarding:emCalibracao';
+
+/**
+ * `localStorage` pode lançar em ambientes que o bloqueiam (iframes sandboxed, alguns modos
+ * privados) — isolado do try/catch principal de `fetchStatus` (achado QA 2026-07-22, frontend-
+ * reviewer) para que uma falha de storage degrade para "sem transição detectada" em vez de
+ * mascarar o status de calibração já obtido com sucesso como um erro genérico de rede.
+ */
+function lerFlagCalibracaoAnterior(): boolean {
+    try {
+        return localStorage.getItem(CALIBRACAO_STORAGE_KEY) === 'true';
+    } catch {
+        return false;
+    }
+}
+
+function gravarFlagCalibracao(emCalibracao: boolean): void {
+    try {
+        if (emCalibracao) {
+            localStorage.setItem(CALIBRACAO_STORAGE_KEY, 'true');
+        } else {
+            localStorage.removeItem(CALIBRACAO_STORAGE_KEY);
+        }
+    } catch {
+        // Sem persistência disponível — a detecção de "acabou de sair" fica indisponível nesta
+        // sessão, mas o status de calibração em si (já obtido da API) continua funcionando.
+    }
+}
 
 /**
  * Status de calibração do atleta autenticado, para o `CalibrationBanner` (task 8.2/8.5). Resolve
@@ -24,24 +51,24 @@ export const useCalibracao = () => {
         setLoading(true);
         setError(null);
         try {
-            const me = await UsuarioService.getMe();
-            if (!me.atletaId) {
+            const idAtual = await resolverAtletaIdAtual();
+            if (!idAtual) {
                 setStatus(null);
                 return;
             }
-            const atual = await OnboardingService.obterStatusCalibracao(me.atletaId);
-            const estavaEmCalibracao = localStorage.getItem(CALIBRACAO_STORAGE_KEY) === 'true';
+            const atual = await OnboardingService.obterStatusCalibracao(idAtual);
+            const estavaEmCalibracao = lerFlagCalibracaoAnterior();
 
             if (atual) {
-                localStorage.setItem(CALIBRACAO_STORAGE_KEY, 'true');
+                gravarFlagCalibracao(true);
                 setJustExited(false);
             } else if (estavaEmCalibracao) {
-                localStorage.removeItem(CALIBRACAO_STORAGE_KEY);
+                gravarFlagCalibracao(false);
                 setJustExited(true);
             }
             setStatus(atual ?? null);
         } catch (err) {
-            setError(err instanceof Error ? err : new Error('Erro ao buscar status de calibração'));
+            setError(err instanceof Error ? err : new Error('Erro ao buscar status de calibração', { cause: err }));
         } finally {
             setLoading(false);
         }

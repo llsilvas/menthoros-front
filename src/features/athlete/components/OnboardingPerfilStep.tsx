@@ -1,10 +1,11 @@
-import { Box, Chip, TextField } from '@mui/material';
+import { Box, TextField } from '@mui/material';
 import type { OnboardingDraftInput, CanalIntegracao, DispositivoMarca } from '../../../types/Onboarding';
 import { CANAL_INTEGRACAO_LABELS, DISPOSITIVO_MARCA_LABELS } from '../../../types/Onboarding';
 import { NIVEL_EXPERIENCIA_LABELS } from '../../../types/Atleta';
 import type { nivelExperiencia } from '../../../types/Atleta';
-import { onboardingChipSx, onboardingInputSx } from './onboardingFormStyles';
+import { onboardingInputSx } from './onboardingFormStyles';
 import { OnboardingSectionLabel } from './OnboardingSectionLabel';
+import { OnboardingChipGroup } from './OnboardingChipGroup';
 
 const NIVEIS = Object.keys(NIVEL_EXPERIENCIA_LABELS) as nivelExperiencia[];
 const CANAIS = Object.keys(CANAL_INTEGRACAO_LABELS) as CanalIntegracao[];
@@ -23,37 +24,21 @@ export interface OnboardingPerfilStepProps {
 export function OnboardingPerfilStep({ draft, onChange }: OnboardingPerfilStepProps) {
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <Box>
-                <OnboardingSectionLabel>Nível de experiência</OnboardingSectionLabel>
-                <Box role="radiogroup" aria-label="Nível de experiência" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
-                    {NIVEIS.map((n) => (
-                        <Chip
-                            key={n}
-                            label={NIVEL_EXPERIENCIA_LABELS[n]}
-                            onClick={() => onChange({ nivelExperiencia: n })}
-                            role="radio"
-                            aria-checked={draft.nivelExperiencia === n}
-                            sx={onboardingChipSx(draft.nivelExperiencia === n)}
-                        />
-                    ))}
-                </Box>
-            </Box>
+            <OnboardingChipGroup
+                label="Nível de experiência"
+                options={NIVEIS}
+                labels={NIVEL_EXPERIENCIA_LABELS}
+                selected={draft.nivelExperiencia}
+                onSelect={(v) => onChange({ nivelExperiencia: v })}
+            />
 
-            <Box>
-                <OnboardingSectionLabel>Marca do dispositivo/relógio</OnboardingSectionLabel>
-                <Box role="radiogroup" aria-label="Marca do dispositivo" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
-                    {DISPOSITIVOS.map((d) => (
-                        <Chip
-                            key={d}
-                            label={DISPOSITIVO_MARCA_LABELS[d]}
-                            onClick={() => onChange({ dispositivoMarca: d })}
-                            role="radio"
-                            aria-checked={draft.dispositivoMarca === d}
-                            sx={onboardingChipSx(draft.dispositivoMarca === d)}
-                        />
-                    ))}
-                </Box>
-            </Box>
+            <OnboardingChipGroup
+                label="Marca do dispositivo/relógio"
+                options={DISPOSITIVOS}
+                labels={DISPOSITIVO_MARCA_LABELS}
+                selected={draft.dispositivoMarca}
+                onSelect={(v) => onChange({ dispositivoMarca: v })}
+            />
 
             <Box>
                 <OnboardingSectionLabel>Modelo do dispositivo (opcional)</OnboardingSectionLabel>
@@ -67,21 +52,13 @@ export function OnboardingPerfilStep({ draft, onChange }: OnboardingPerfilStepPr
                 />
             </Box>
 
-            <Box>
-                <OnboardingSectionLabel>Canal de integração de treinos</OnboardingSectionLabel>
-                <Box role="radiogroup" aria-label="Canal de integração" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
-                    {CANAIS.map((c) => (
-                        <Chip
-                            key={c}
-                            label={CANAL_INTEGRACAO_LABELS[c]}
-                            onClick={() => onChange({ canalIntegracao: c })}
-                            role="radio"
-                            aria-checked={draft.canalIntegracao === c}
-                            sx={onboardingChipSx(draft.canalIntegracao === c)}
-                        />
-                    ))}
-                </Box>
-            </Box>
+            <OnboardingChipGroup
+                label="Canal de integração de treinos"
+                options={CANAIS}
+                labels={CANAL_INTEGRACAO_LABELS}
+                selected={draft.canalIntegracao}
+                onSelect={(v) => onChange({ canalIntegracao: v })}
+            />
         </Box>
     );
 }

@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Alert, Box, Button, CircularProgress, Snackbar, Step, StepLabel, Stepper, Typography } from '@mui/material';
 import { useNavigate } from 'react-router';
 import { useOnboarding } from '../../../hooks/useOnboarding';
@@ -7,12 +8,59 @@ import { OnboardingObjetivoStep } from '../components/OnboardingObjetivoStep';
 import { OnboardingDisponibilidadeStep } from '../components/OnboardingDisponibilidadeStep';
 import { OnboardingSaudeStep } from '../components/OnboardingSaudeStep';
 import { OnboardingProvaAlvoStep } from '../components/OnboardingProvaAlvoStep';
-import type { OnboardingConclusaoInput } from '../../../types/Onboarding';
+import type { OnboardingConclusaoInput, OnboardingDraftInput } from '../../../types/Onboarding';
 import { surface, glassSx, primary, backgrounds } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import { ROUTES } from '../../../constants/routes';
 
-const STEP_LABELS = ['Perfil', 'Objetivo', 'Disponibilidade', 'Saúde', 'Prova alvo'] as const;
+interface StepContext {
+    draft: OnboardingDraftInput;
+    onDraftChange: (patch: Partial<OnboardingDraftInput>) => void;
+    prova: Partial<OnboardingConclusaoInput>;
+    onProvaChange: (patch: Partial<OnboardingConclusaoInput>) => void;
+}
+
+interface OnboardingStepDef {
+    label: string;
+    isValid: (ctx: StepContext) => boolean;
+    render: (ctx: StepContext) => ReactNode;
+}
+
+/**
+ * Fonte única para rótulo/validação/conteúdo de cada etapa (correção QA 2026-07-22, achado do
+ * clean-code-reviewer) — antes `STEP_LABELS` e o `switch` de validação eram mantidos em sincronia
+ * manual pelo índice, um risco real de bug ao reordenar/adicionar etapa.
+ */
+const STEPS: OnboardingStepDef[] = [
+    {
+        label: 'Perfil',
+        isValid: ({ draft }) => Boolean(draft.nivelExperiencia && draft.dispositivoMarca && draft.canalIntegracao),
+        render: ({ draft, onDraftChange }) => <OnboardingPerfilStep draft={draft} onChange={onDraftChange} />,
+    },
+    {
+        label: 'Objetivo',
+        isValid: ({ draft }) => Boolean(draft.objetivo && draft.objetivo.trim().length > 0),
+        render: ({ draft, onDraftChange }) => <OnboardingObjetivoStep draft={draft} onChange={onDraftChange} />,
+    },
+    {
+        label: 'Disponibilidade',
+        isValid: ({ draft }) => Boolean(
+            draft.diasDisponiveis && draft.diasDisponiveis.length > 0
+            && draft.duracaoDisponivelMin != null && draft.volumeSemanalMax != null
+        ),
+        render: ({ draft, onDraftChange }) => <OnboardingDisponibilidadeStep draft={draft} onChange={onDraftChange} />,
+    },
+    {
+        label: 'Saúde',
+        isValid: ({ draft }) => draft.temLesao !== undefined && (!draft.temLesao || Boolean(draft.descricaoLesao)),
+        render: ({ draft, onDraftChange }) => <OnboardingSaudeStep draft={draft} onChange={onDraftChange} />,
+    },
+    {
+        label: 'Prova alvo',
+        isValid: ({ prova }) => Boolean(prova.dataProva && prova.tipoProva && prova.distancia),
+        render: ({ prova, onProvaChange }) => <OnboardingProvaAlvoStep value={prova} onChange={onProvaChange} />,
+    },
+];
 
 export default function AthleteOnboardingPage() {
     const navigate = useNavigate();
@@ -26,31 +74,19 @@ export default function AthleteOnboardingPage() {
         fetchDraft();
     }, [fetchDraft]);
 
-    const isStepValid = useMemo(() => {
-        switch (activeStep) {
-            case 0:
-                return Boolean(draft.nivelExperiencia && draft.dispositivoMarca && draft.canalIntegracao);
-            case 1:
-                return Boolean(draft.objetivo && draft.objetivo.trim().length > 0);
-            case 2:
-                return Boolean(
-                    draft.diasDisponiveis && draft.diasDisponiveis.length > 0
-                    && draft.duracaoDisponivelMin && draft.volumeSemanalMax
-                );
-            case 3:
-                return draft.temLesao !== undefined && (!draft.temLesao || Boolean(draft.descricaoLesao));
-            case 4:
-                return Boolean(prova.dataProva && prova.tipoProva && prova.distancia);
-            default:
-                return false;
-        }
-    }, [activeStep, draft, prova]);
+    const onProvaChange = useCallback((patch: Partial<OnboardingConclusaoInput>) => {
+        setProva((prev) => ({ ...prev, ...patch }));
+    }, []);
+
+    const stepContext: StepContext = { draft, onDraftChange: updateDraft, prova, onProvaChange };
+    const isLastStep = activeStep === STEPS.length - 1;
+    const isStepValid = STEPS[activeStep].isValid(stepContext);
 
     const handleNext = useCallback(async () => {
         if (!isStepValid) return;
         try {
             await saveDraft();
-            setActiveStep((s) => Math.min(s + 1, STEP_LABELS.length - 1));
+            setActiveStep((s) => Math.min(s + 1, STEPS.length - 1));
         } catch {
             setToast({ open: true, message: 'Erro ao salvar seu progresso. Tente novamente.' });
         }
@@ -133,21 +169,15 @@ export default function AthleteOnboardingPage() {
                 '& .MuiStepIcon-root.Mui-active': { color: primary[500] },
                 '& .MuiStepIcon-root.Mui-completed': { color: primary[600] },
             }}>
-                {STEP_LABELS.map((label) => (
-                    <Step key={label}>
-                        <StepLabel>{label}</StepLabel>
+                {STEPS.map((step) => (
+                    <Step key={step.label}>
+                        <StepLabel>{step.label}</StepLabel>
                     </Step>
                 ))}
             </Stepper>
 
             <Box sx={{ ...glassSx, borderRadius: 2, p: 2.5 }}>
-                {activeStep === 0 && <OnboardingPerfilStep draft={draft} onChange={updateDraft} />}
-                {activeStep === 1 && <OnboardingObjetivoStep draft={draft} onChange={updateDraft} />}
-                {activeStep === 2 && <OnboardingDisponibilidadeStep draft={draft} onChange={updateDraft} />}
-                {activeStep === 3 && <OnboardingSaudeStep draft={draft} onChange={updateDraft} />}
-                {activeStep === 4 && (
-                    <OnboardingProvaAlvoStep value={prova} onChange={(patch) => setProva((prev) => ({ ...prev, ...patch }))} />
-                )}
+                {STEPS[activeStep].render(stepContext)}
             </Box>
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
@@ -158,7 +188,7 @@ export default function AthleteOnboardingPage() {
                 >
                     Voltar
                 </Button>
-                {activeStep < STEP_LABELS.length - 1 ? (
+                {!isLastStep ? (
                     <Button
                         onClick={handleNext}
                         variant="contained"

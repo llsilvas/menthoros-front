@@ -37,6 +37,21 @@ export interface TreinoManualInput {
     nivelRecuperacao?: number;
 }
 
+/** Subconjunto de `TreinoManualInput` só com os 4 sinais extras de calibração (task 8.3/8.4). */
+export interface CalibracaoExtras {
+    nivelDor: number;
+    nivelFadiga: number;
+    qualidadeSonoNoiteAnterior: number;
+    nivelRecuperacao: number;
+}
+
+export const CALIBRACAO_EXTRAS_DEFAULT: CalibracaoExtras = {
+    nivelDor: 1,
+    nivelFadiga: 5,
+    qualidadeSonoNoiteAnterior: 5,
+    nivelRecuperacao: 5,
+};
+
 /** Resposta retornada pelo backend (campos relevantes para o atleta) */
 export interface TreinoRealizadoDto {
     id: string;

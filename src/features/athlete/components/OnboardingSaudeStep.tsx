@@ -1,7 +1,11 @@
-import { Box, Chip, TextField } from '@mui/material';
+import { Box, TextField } from '@mui/material';
 import type { OnboardingDraftInput } from '../../../types/Onboarding';
-import { onboardingChipSx, onboardingInputSx } from './onboardingFormStyles';
+import { onboardingInputSx } from './onboardingFormStyles';
 import { OnboardingSectionLabel } from './OnboardingSectionLabel';
+import { OnboardingChipGroup } from './OnboardingChipGroup';
+
+const SIM_NAO_OPTIONS = ['sim', 'nao'] as const;
+const SIM_NAO_LABELS: Record<(typeof SIM_NAO_OPTIONS)[number], string> = { sim: 'Sim', nao: 'Não' };
 
 export interface OnboardingSaudeStepProps {
     draft: OnboardingDraftInput;
@@ -13,27 +17,21 @@ export interface OnboardingSaudeStepProps {
  * dado sensível, visível ao próprio atleta e a TECNICO/ADMIN do mesmo tenant).
  */
 export function OnboardingSaudeStep({ draft, onChange }: OnboardingSaudeStepProps) {
+    const temLesaoSelecionado = draft.temLesao === undefined ? undefined : (draft.temLesao ? 'sim' : 'nao');
+
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <Box>
-                <OnboardingSectionLabel>Você possui alguma lesão?</OnboardingSectionLabel>
-                <Box role="radiogroup" aria-label="Possui lesão" sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                    <Chip
-                        label="Sim"
-                        onClick={() => onChange({ temLesao: true })}
-                        role="radio"
-                        aria-checked={draft.temLesao === true}
-                        sx={onboardingChipSx(draft.temLesao === true)}
-                    />
-                    <Chip
-                        label="Não"
-                        onClick={() => onChange({ temLesao: false, descricaoLesao: undefined, dataUltimaLesao: undefined })}
-                        role="radio"
-                        aria-checked={draft.temLesao === false}
-                        sx={onboardingChipSx(draft.temLesao === false)}
-                    />
-                </Box>
-            </Box>
+            <OnboardingChipGroup
+                label="Você possui alguma lesão?"
+                options={SIM_NAO_OPTIONS}
+                labels={SIM_NAO_LABELS}
+                selected={temLesaoSelecionado}
+                onSelect={(v) => onChange(
+                    v === 'sim'
+                        ? { temLesao: true }
+                        : { temLesao: false, descricaoLesao: undefined, dataUltimaLesao: undefined }
+                )}
+            />
 
             {draft.temLesao && (
                 <>

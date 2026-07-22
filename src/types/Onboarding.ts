@@ -8,6 +8,12 @@ import type { TipoProva, DistanciaProva, Prova } from './Prova';
 export type CanalIntegracao = 'INTERVALS_ICU' | 'MANUAL';
 export type DispositivoMarca = 'GARMIN' | 'COROS' | 'POLAR' | 'SUUNTO' | 'APPLE' | 'OUTRO';
 export type ConfidenceTier = 'A' | 'B' | 'C';
+/** Backend guarda como String livre (sem enum) — union aqui reflete as únicas opções que a UI oferece. */
+export type PercepcaoCondicionamento = 'RUIM' | 'REGULAR' | 'BOA' | 'OTIMA';
+
+export const PERCEPCAO_CONDICIONAMENTO_LABELS: Record<PercepcaoCondicionamento, string> = {
+    RUIM: 'Ruim', REGULAR: 'Regular', BOA: 'Boa', OTIMA: 'Ótima',
+};
 
 export const CANAL_INTEGRACAO_LABELS: Record<CanalIntegracao, string> = {
     INTERVALS_ICU: 'intervals.icu',
@@ -37,7 +43,7 @@ export interface OnboardingDraftInput {
     duracaoDisponivelMin?: number;
     restricoes?: string;
     modalidade?: string;
-    percepcaoCondicionamento?: string;
+    percepcaoCondicionamento?: PercepcaoCondicionamento;
     canalIntegracao?: CanalIntegracao;
     dispositivoMarca?: DispositivoMarca;
     dispositivoModelo?: string;

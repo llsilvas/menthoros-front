@@ -1,15 +1,14 @@
-import { Box, Chip, TextField } from '@mui/material';
-import type { OnboardingDraftInput } from '../../../types/Onboarding';
+import { Box, TextField } from '@mui/material';
+import type { OnboardingDraftInput, PercepcaoCondicionamento } from '../../../types/Onboarding';
+import { PERCEPCAO_CONDICIONAMENTO_LABELS } from '../../../types/Onboarding';
 import { DIA_SEMANA_LABELS } from '../../../types/Atleta';
 import type { diaSemana } from '../../../types/Atleta';
-import { onboardingChipSx, onboardingInputSx } from './onboardingFormStyles';
+import { onboardingInputSx } from './onboardingFormStyles';
 import { OnboardingSectionLabel } from './OnboardingSectionLabel';
+import { OnboardingChipGroup } from './OnboardingChipGroup';
 
 const DIAS = Object.keys(DIA_SEMANA_LABELS) as diaSemana[];
-const PERCEPCOES = ['RUIM', 'REGULAR', 'BOA', 'OTIMA'] as const;
-const PERCEPCAO_LABELS: Record<(typeof PERCEPCOES)[number], string> = {
-    RUIM: 'Ruim', REGULAR: 'Regular', BOA: 'Boa', OTIMA: 'Ótima',
-};
+const PERCEPCOES = Object.keys(PERCEPCAO_CONDICIONAMENTO_LABELS) as PercepcaoCondicionamento[];
 
 export interface OnboardingDisponibilidadeStepProps {
     draft: OnboardingDraftInput;
@@ -31,21 +30,14 @@ export function OnboardingDisponibilidadeStep({ draft, onChange }: OnboardingDis
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <Box>
-                <OnboardingSectionLabel>Dias disponíveis para treino</OnboardingSectionLabel>
-                <Box role="group" aria-label="Dias disponíveis" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
-                    {DIAS.map((d) => (
-                        <Chip
-                            key={d}
-                            label={DIA_SEMANA_LABELS[d]}
-                            onClick={() => toggleDia(d)}
-                            role="checkbox"
-                            aria-checked={diasSelecionados.includes(d)}
-                            sx={onboardingChipSx(diasSelecionados.includes(d))}
-                        />
-                    ))}
-                </Box>
-            </Box>
+            <OnboardingChipGroup
+                label="Dias disponíveis para treino"
+                options={DIAS}
+                labels={DIA_SEMANA_LABELS}
+                selected={diasSelecionados}
+                onSelect={toggleDia}
+                multi
+            />
 
             <Box>
                 <OnboardingSectionLabel>Duração disponível por sessão (minutos)</OnboardingSectionLabel>
@@ -86,21 +78,13 @@ export function OnboardingDisponibilidadeStep({ draft, onChange }: OnboardingDis
                 />
             </Box>
 
-            <Box>
-                <OnboardingSectionLabel>Como você percebe seu condicionamento atual?</OnboardingSectionLabel>
-                <Box role="radiogroup" aria-label="Percepção de condicionamento" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
-                    {PERCEPCOES.map((p) => (
-                        <Chip
-                            key={p}
-                            label={PERCEPCAO_LABELS[p]}
-                            onClick={() => onChange({ percepcaoCondicionamento: p })}
-                            role="radio"
-                            aria-checked={draft.percepcaoCondicionamento === p}
-                            sx={onboardingChipSx(draft.percepcaoCondicionamento === p)}
-                        />
-                    ))}
-                </Box>
-            </Box>
+            <OnboardingChipGroup
+                label="Como você percebe seu condicionamento atual?"
+                options={PERCEPCOES}
+                labels={PERCEPCAO_CONDICIONAMENTO_LABELS}
+                selected={draft.percepcaoCondicionamento}
+                onSelect={(v) => onChange({ percepcaoCondicionamento: v })}
+            />
         </Box>
     );
 }
