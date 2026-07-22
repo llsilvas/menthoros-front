@@ -27,6 +27,14 @@ export interface TreinoManualInput {
     distanciaKm?: number;
     percepcaoEsforco: number;     // 1–10
     observacoes?: string;
+    /**
+     * Sinais extras coletados durante TrainingPhase.CALIBRATION (task 8.3/8.4,
+     * athlete-onboarding-baseline) — omitidos fora da calibração. Escala 1–10, mesmo padrão do RPE.
+     */
+    nivelDor?: number;
+    nivelFadiga?: number;
+    qualidadeSonoNoiteAnterior?: number;
+    nivelRecuperacao?: number;
 }
 
 /** Resposta retornada pelo backend (campos relevantes para o atleta) */

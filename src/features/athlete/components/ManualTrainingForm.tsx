@@ -28,13 +28,27 @@ function estimarTss(duracaoMinutos: number, rpe: number): number {
     return Math.round((duracaoMinutos / 60) * Math.pow(rpe / 10, 2) * 100);
 }
 
+const CALIBRACAO_LABELS: Record<number, string> = {
+    1: 'Muito baixo', 2: 'Muito baixo',
+    3: 'Baixo', 4: 'Baixo',
+    5: 'Moderado', 6: 'Moderado',
+    7: 'Alto', 8: 'Alto',
+    9: 'Muito alto', 10: 'Muito alto',
+};
+
 export interface ManualTrainingFormProps {
     loading: boolean;
     hasTreinoHoje: boolean;
+    /**
+     * `true` durante `TrainingPhase.CALIBRATION` (task 8.3/8.4, athlete-onboarding-baseline) —
+     * mostra 4 campos extras (dor, fadiga, sono, recuperação) além do RPE. Fora da calibração,
+     * só RPE é perguntado.
+     */
+    emCalibracao?: boolean;
     onSubmit: (input: TreinoManualInput) => Promise<void>;
 }
 
-export function ManualTrainingForm({ loading, hasTreinoHoje, onSubmit }: ManualTrainingFormProps) {
+export function ManualTrainingForm({ loading, hasTreinoHoje, emCalibracao = false, onSubmit }: ManualTrainingFormProps) {
     const [hoje, minData] = useMemo(() => {
         const today = format(new Date(), 'yyyy-MM-dd');
         const min = format(subDays(new Date(), 7), 'yyyy-MM-dd');
@@ -47,6 +61,10 @@ export function ManualTrainingForm({ loading, hasTreinoHoje, onSubmit }: ManualT
     const [distanciaKm, setDistanciaKm] = useState<number | ''>('');
     const [rpe, setRpe] = useState<number>(6);
     const [observacoes, setObservacoes] = useState('');
+    const [nivelDor, setNivelDor] = useState<number>(1);
+    const [nivelFadiga, setNivelFadiga] = useState<number>(5);
+    const [qualidadeSono, setQualidadeSono] = useState<number>(5);
+    const [nivelRecuperacao, setNivelRecuperacao] = useState<number>(5);
 
     const tssEstimado = duracaoMinutos !== '' && duracaoMinutos > 0
         ? estimarTss(duracaoMinutos, rpe)
@@ -71,6 +89,12 @@ export function ManualTrainingForm({ loading, hasTreinoHoje, onSubmit }: ManualT
             distanciaKm: distancia,
             percepcaoEsforco: rpe,
             observacoes: observacoes.trim() || undefined,
+            ...(emCalibracao && {
+                nivelDor,
+                nivelFadiga,
+                qualidadeSonoNoiteAnterior: qualidadeSono,
+                nivelRecuperacao,
+            }),
         });
         setTipo('CONTINUO');
         setDuracaoMinutos(45);
@@ -78,7 +102,12 @@ export function ManualTrainingForm({ loading, hasTreinoHoje, onSubmit }: ManualT
         setRpe(6);
         setObservacoes('');
         setData(hoje);
-    }, [isValid, duracaoMinutos, distanciaKm, tipo, data, rpe, observacoes, hoje, onSubmit]);
+        setNivelDor(1);
+        setNivelFadiga(5);
+        setQualidadeSono(5);
+        setNivelRecuperacao(5);
+    }, [isValid, duracaoMinutos, distanciaKm, tipo, data, rpe, observacoes, hoje, onSubmit,
+        emCalibracao, nivelDor, nivelFadiga, qualidadeSono, nivelRecuperacao]);
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -199,6 +228,19 @@ export function ManualTrainingForm({ loading, hasTreinoHoje, onSubmit }: ManualT
                 )}
             </Box>
 
+            {emCalibracao && (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }} data-testid="calibracao-extras">
+                    <Typography sx={{ color: surface[400], fontSize: '0.8rem' }}>
+                        Você está na fase de calibração — esses sinais extras nos ajudam a ajustar seu plano mais rápido.
+                    </Typography>
+
+                    <CalibracaoSlider label="Nível de dor" value={nivelDor} onChange={setNivelDor} />
+                    <CalibracaoSlider label="Nível de fadiga" value={nivelFadiga} onChange={setNivelFadiga} />
+                    <CalibracaoSlider label="Qualidade do sono (noite anterior)" value={qualidadeSono} onChange={setQualidadeSono} />
+                    <CalibracaoSlider label="Nível de recuperação" value={nivelRecuperacao} onChange={setNivelRecuperacao} />
+                </Box>
+            )}
+
             <Box>
                 <SectionLabel>Observações (opcional)</SectionLabel>
                 <TextField
@@ -240,6 +282,36 @@ function SectionLabel({ children }: { children: ReactNode }) {
         <Typography sx={{ color: surface[50], fontSize: '0.875rem', fontWeight: 600 }}>
             {children}
         </Typography>
+    );
+}
+
+interface CalibracaoSliderProps {
+    label: string;
+    value: number;
+    onChange: (value: number) => void;
+}
+
+/** Slider 1–10 compartilhado pelos 4 sinais extras de calibração (dor/fadiga/sono/recuperação). */
+function CalibracaoSlider({ label, value, onChange }: CalibracaoSliderProps) {
+    return (
+        <Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+                <SectionLabel>{label}</SectionLabel>
+                <Typography sx={{ color: primary[500], fontSize: '0.8rem', fontWeight: 700 }}>
+                    {value}/10 — {CALIBRACAO_LABELS[value]}
+                </Typography>
+            </Box>
+            <Slider
+                value={value}
+                min={1}
+                max={10}
+                step={1}
+                aria-label={label}
+                getAriaValueText={(v) => `${v}/10 — ${CALIBRACAO_LABELS[v]}`}
+                onChange={(_e, v) => { if (typeof v === 'number') onChange(v); }}
+                sx={{ color: primary[500] }}
+            />
+        </Box>
     );
 }
 
