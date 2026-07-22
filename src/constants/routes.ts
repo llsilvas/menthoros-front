@@ -25,6 +25,7 @@ export const ROUTES = {
     ATHLETE_COACH:        '/athlete/coach',
     ATHLETE_PROFILE:      '/athlete/profile',
     ATHLETE_TRAINING_LOG: '/athlete/training/log',
+    ATHLETE_ONBOARDING:   '/athlete/onboarding',
 } as const;
 
 export type CoachRoute =
@@ -40,4 +41,5 @@ export type AthleteRoute =
     | '/athlete/progress'
     | '/athlete/coach'
     | '/athlete/profile'
-    | '/athlete/training/log';
+    | '/athlete/training/log'
+    | '/athlete/onboarding';
