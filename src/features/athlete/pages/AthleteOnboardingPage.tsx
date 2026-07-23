@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Alert, Box, Button, CircularProgress, Snackbar, Step, StepLabel, Stepper, Typography } from '@mui/material';
-import { useNavigate } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { useOnboarding } from '../../../hooks/useOnboarding';
 import { OnboardingPerfilStep } from '../components/OnboardingPerfilStep';
 import { OnboardingObjetivoStep } from '../components/OnboardingObjetivoStep';
@@ -64,7 +64,11 @@ const STEPS: OnboardingStepDef[] = [
 
 export default function AthleteOnboardingPage() {
     const navigate = useNavigate();
-    const { draft, loading, saving, fetchError, fetchDraft, updateDraft, saveDraft, concluir } = useOnboarding();
+    // Presente só na rota do coach (`/coach/athletes/:atletaId/onboarding`, coach-como-proxy,
+    // athlete-onboarding-baseline CA7) — ausente na rota do próprio atleta (`/athlete/onboarding`).
+    const { atletaId: atletaIdDaUrl } = useParams<{ atletaId?: string }>();
+    const emContextoDeCoach = Boolean(atletaIdDaUrl);
+    const { draft, loading, saving, fetchError, fetchDraft, updateDraft, saveDraft, concluir } = useOnboarding(atletaIdDaUrl);
     const [activeStep, setActiveStep] = useState(0);
     const [prova, setProva] = useState<Partial<OnboardingConclusaoInput>>({});
     const [concluido, setConcluido] = useState(false);
@@ -140,10 +144,10 @@ export default function AthleteOnboardingPage() {
                     </Typography>
                     <Button
                         variant="contained"
-                        onClick={() => navigate(ROUTES.ATHLETE_HOME)}
+                        onClick={() => navigate(emContextoDeCoach ? `/coach/athletes/${atletaIdDaUrl}` : ROUTES.ATHLETE_HOME)}
                         sx={{ bgcolor: primary[500], color: backgrounds.canvas, fontWeight: 700 }}
                     >
-                        Ir para Home
+                        {emContextoDeCoach ? 'Voltar ao perfil do atleta' : 'Ir para Home'}
                     </Button>
                 </Box>
             </Box>

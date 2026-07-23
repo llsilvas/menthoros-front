@@ -209,6 +209,7 @@ const router = createHashRouter([
           { path: 'planos/revisao',      element: <CoachPlanReviewPage /> },
           { path: 'athletes', element: <CoachAthletesPage /> },
           { path: 'athletes/:atletaId', element: <CoachAthleteProfilePage /> },
+          { path: 'athletes/:atletaId/onboarding', element: <AthleteOnboardingPage /> },
           { path: 'calendar', element: <CoachCalendarPage /> },
           { path: 'insights', element: <CoachInsightsPage /> },
         ],

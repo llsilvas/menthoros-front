@@ -63,6 +63,7 @@ function renderPage(atletaId = 'uuid-1') {
         <MemoryRouter initialEntries={[`/coach/athletes/${atletaId}`]}>
             <Routes>
                 <Route path="/coach/athletes/:atletaId" element={<CoachAthleteProfilePage />} />
+                <Route path="/coach/athletes/:atletaId/onboarding" element={<div>Onboarding</div>} />
                 <Route path="/coach/athletes" element={<div>Roster</div>} />
                 <Route path="/coach/inbox" element={<div>Inbox</div>} />
                 <Route path="/coach/planos/revisao" element={<div>Revisão</div>} />
@@ -229,6 +230,16 @@ describe('CoachAthleteProfilePage', () => {
         mockHook({ profile: { ...STUB_PROFILE, planoVigente: null } });
         renderPage();
         expect(screen.getByText(/Nenhum plano gerado/i)).toBeInTheDocument();
+    });
+
+    it('navega para o onboarding do atleta ao clicar em "Preencher onboarding" (coach-como-proxy)', async () => {
+        mockHook({ profile: STUB_PROFILE });
+        const user = userEvent.setup();
+        renderPage('uuid-1');
+
+        await user.click(screen.getByRole('button', { name: /preencher onboarding/i }));
+
+        expect(await screen.findByText('Onboarding')).toBeInTheDocument();
     });
 
     it('abre o KudosDialog ao clicar em "Reconhecer progresso"', async () => {
