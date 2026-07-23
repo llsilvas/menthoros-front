@@ -15,6 +15,7 @@ import {
     ArrowBack as ArrowBackIcon,
     Refresh as RefreshIcon,
     EmojiEvents as EmojiEventsIcon,
+    AssignmentInd as AssignmentIndIcon,
 } from '@mui/icons-material';
 import type { PMCRange } from '../../athlete/components/PMCChart';
 import { buildPmcDataPoints } from '../../athlete/adapters/pmcAdapter';
@@ -162,6 +163,14 @@ export default function CoachAthleteProfilePage() {
                         )}
                     </Box>
                     <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
+                        <Button
+                            size="small"
+                            startIcon={<AssignmentIndIcon />}
+                            onClick={() => navigate(`/coach/athletes/${atletaId}/onboarding`)}
+                            sx={{ color: surface[400] }}
+                        >
+                            Preencher onboarding
+                        </Button>
                         <Button
                             size="small"
                             startIcon={<EmojiEventsIcon />}

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router';
+import { MemoryRouter, Route, Routes } from 'react-router';
 import AthleteOnboardingPage from './AthleteOnboardingPage';
 import { useOnboarding } from '../../../hooks/useOnboarding';
 import type { OnboardingDraftInput, OnboardingConclusaoResult } from '../../../types/Onboarding';
@@ -33,6 +33,16 @@ function mockUseOnboarding(overrides: Partial<ReturnType<typeof useOnboarding>> 
 
 function renderPage() {
     return render(<MemoryRouter><AthleteOnboardingPage /></MemoryRouter>);
+}
+
+function renderPageComoCoach(atletaId = 'atleta-1') {
+    return render(
+        <MemoryRouter initialEntries={[`/coach/athletes/${atletaId}/onboarding`]}>
+            <Routes>
+                <Route path="/coach/athletes/:atletaId/onboarding" element={<AthleteOnboardingPage />} />
+            </Routes>
+        </MemoryRouter>,
+    );
 }
 
 describe('AthleteOnboardingPage', () => {
@@ -145,5 +155,49 @@ describe('AthleteOnboardingPage', () => {
             dataProva: '2026-10-12', tipoProva: 'CORRIDA_RUA', distancia: 'KM_21',
         })));
         expect(await screen.findByText(/onboarding concluído/i)).toBeInTheDocument();
+    });
+
+    describe('contexto do coach (rota /coach/athletes/:atletaId/onboarding, coach-como-proxy)', () => {
+        it('repassa o atletaId da URL para useOnboarding em vez de resolver via getMe()', () => {
+            mockUseOnboarding();
+            renderPageComoCoach('atleta-77');
+
+            expect(useOnboarding).toHaveBeenCalledWith('atleta-77');
+        });
+
+        it('não recebe nenhum atletaId quando renderizada na rota do próprio atleta', () => {
+            mockUseOnboarding();
+            renderPage();
+
+            expect(useOnboarding).toHaveBeenCalledWith(undefined);
+        });
+
+        it('ao concluir, navega de volta para o perfil do atleta no coach (não ATHLETE_HOME)', async () => {
+            const concluir = vi.fn().mockResolvedValue({ status: 'COMPLETO' } as OnboardingConclusaoResult);
+            mockUseOnboarding({
+                draft: {
+                    nivelExperiencia: 'INTERMEDIARIO', dispositivoMarca: 'GARMIN', canalIntegracao: 'INTERVALS_ICU',
+                    objetivo: 'Correr uma maratona',
+                    diasDisponiveis: ['SEGUNDA'], duracaoDisponivelMin: 60, volumeSemanalMax: 40,
+                    temLesao: false,
+                },
+                concluir,
+            });
+            const user = userEvent.setup();
+            renderPageComoCoach('atleta-77');
+
+            for (let i = 0; i < 4; i++) {
+                await user.click(screen.getByRole('button', { name: /avançar/i }));
+            }
+            await user.type(screen.getByLabelText('Data da prova'), '2026-10-12');
+            await user.click(screen.getByRole('radio', { name: 'Corrida de Rua' }));
+            await user.click(screen.getByRole('radio', { name: '21 km (Meia Maratona)' }));
+            await user.click(screen.getByRole('button', { name: /concluir/i }));
+
+            const botaoVoltar = await screen.findByRole('button', { name: /voltar ao perfil do atleta/i });
+            await user.click(botaoVoltar);
+
+            expect(navigateMock).toHaveBeenCalledWith('/coach/athletes/atleta-77');
+        });
     });
 });

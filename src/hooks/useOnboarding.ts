@@ -4,12 +4,15 @@ import { resolverAtletaIdAtual } from './resolverAtletaId';
 import type { AthleteOnboardingProfile, OnboardingConclusaoInput, OnboardingConclusaoResult, OnboardingDraftInput } from '../types/Onboarding';
 
 /**
- * Onboarding do atleta autenticado. Resolve o `atletaId` via `GET /users/me` (os endpoints de
- * onboarding recebem o id no path, não são rotas `/me`), busca o rascunho existente para retomar
- * (CA8) e expõe `updateDraft`/`saveDraft`/`concluir` para o formulário multi-etapa.
+ * Onboarding de um atleta. Por padrão resolve o `atletaId` via `GET /users/me` (fluxo do próprio
+ * atleta autenticado). Quando `atletaIdParam` é informado (coach-como-proxy, rota
+ * `/coach/athletes/:atletaId/onboarding`), usa esse id diretamente e pula a resolução via
+ * `getMe()` — o backend já deriva `preenchidoPorCoach` do papel do chamador via JWT, sem precisar
+ * de nenhum flag extra no client (athlete-onboarding-baseline, CA7). Busca o rascunho existente
+ * para retomar (CA8) e expõe `updateDraft`/`saveDraft`/`concluir` para o formulário multi-etapa.
  */
-export const useOnboarding = () => {
-    const [atletaId, setAtletaId] = useState<string | null>(null);
+export const useOnboarding = (atletaIdParam?: string) => {
+    const [atletaId, setAtletaId] = useState<string | null>(atletaIdParam ?? null);
     const [draft, setDraft] = useState<OnboardingDraftInput>({});
     const [profile, setProfile] = useState<AthleteOnboardingProfile | null>(null);
     const [loading, setLoading] = useState(true);
@@ -22,7 +25,7 @@ export const useOnboarding = () => {
         setLoading(true);
         setFetchError(null);
         try {
-            const idAtual = await resolverAtletaIdAtual();
+            const idAtual = atletaIdParam ?? await resolverAtletaIdAtual();
             if (!idAtual) {
                 setFetchError(new Error('Usuário sem atleta vinculado'));
                 return;
@@ -38,7 +41,7 @@ export const useOnboarding = () => {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [atletaIdParam]);
 
     const updateDraft = useCallback((patch: Partial<OnboardingDraftInput>) => {
         setDraft((prev) => ({ ...prev, ...patch }));

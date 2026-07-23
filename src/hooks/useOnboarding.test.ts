@@ -79,6 +79,33 @@ describe('useOnboarding', () => {
         });
     });
 
+    describe('fetchDraft com atletaIdParam (coach-como-proxy)', () => {
+        it('usa o atletaId injetado direto, sem chamar getMe()', async () => {
+            vi.mocked(OnboardingService.buscarRascunho).mockResolvedValue(perfil());
+
+            const { result } = renderHook(() => useOnboarding('atleta-injetado'));
+            await act(async () => {
+                await result.current.fetchDraft();
+            });
+
+            expect(result.current.atletaId).toBe('atleta-injetado');
+            expect(UsuarioService.getMe).not.toHaveBeenCalled();
+            expect(OnboardingService.buscarRascunho).toHaveBeenCalledWith('atleta-injetado');
+        });
+
+        it('saveDraft usa o atletaId injetado', async () => {
+            vi.mocked(OnboardingService.buscarRascunho).mockResolvedValue(undefined);
+            vi.mocked(OnboardingService.salvarRascunho).mockResolvedValue(perfil());
+
+            const { result } = renderHook(() => useOnboarding('atleta-injetado'));
+            await act(async () => { await result.current.fetchDraft(); });
+            act(() => { result.current.updateDraft({ objetivo: 'Objetivo preenchido pelo coach' }); });
+            await act(async () => { await result.current.saveDraft(); });
+
+            expect(OnboardingService.salvarRascunho).toHaveBeenCalledWith('atleta-injetado', { objetivo: 'Objetivo preenchido pelo coach' });
+        });
+    });
+
     describe('updateDraft', () => {
         it('faz merge do patch no draft existente', async () => {
             const { result } = renderHook(() => useOnboarding());
