@@ -6,6 +6,27 @@ import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
 /**
+ * `NivelExperiencia` e `DiaSemana` usam `@JsonFormat(shape = OBJECT)` no backend — a resposta
+ * traz `{value, label, ...}` em vez de string simples, embora o contrato do rascunho declare
+ * string. Sem desembrulhar aqui, o valor bruto do GET seria reenviado como objeto no próximo
+ * `salvarRascunho` (CA8, retomar onboarding interrompido) e o backend rejeitaria com 400
+ * ("Failed to read request" — Jackson não desserializa o enum a partir do objeto sem
+ * `@JsonCreator`). Achado ao testar manualmente o fluxo de retomada (task 9.3).
+ */
+export function unwrapEnumValue<T extends string>(raw: T | { value: T } | null | undefined): T | undefined {
+    if (raw == null) return undefined;
+    return typeof raw === 'object' ? raw.value : raw;
+}
+
+export function normalizeProfile(perfil: AthleteOnboardingProfile): AthleteOnboardingProfile {
+    return {
+        ...perfil,
+        nivelExperiencia: unwrapEnumValue(perfil.nivelExperiencia),
+        diasDisponiveis: perfil.diasDisponiveis?.map((dia) => unwrapEnumValue(dia)!),
+    };
+}
+
+/**
  * Onboarding do atleta e status de calibração (athlete-onboarding-baseline). Acesso: o próprio
  * atleta (dono) ou qualquer TECNICO/ADMIN do tenant (coach-como-proxy) — enforçado pelo backend,
  * não pelo client.
@@ -15,11 +36,11 @@ export class OnboardingService {
      * Salva (cria ou atualiza) o rascunho de onboarding — parcial ou completo.
      * @throws ApiError 400 (validação), 403 (atleta tentando editar onboarding de outro), 404 (atleta não encontrado)
      */
-    public static salvarRascunho(
+    public static async salvarRascunho(
         atletaId: string,
         requestBody: OnboardingDraftInput,
-    ): CancelablePromise<AthleteOnboardingProfile> {
-        return __request(OpenAPI, {
+    ): Promise<AthleteOnboardingProfile> {
+        const salvo = await __request<AthleteOnboardingProfile>(OpenAPI, {
             method: 'POST',
             url: '/api/v1/atletas/{atletaId}/onboarding',
             path: { atletaId },
@@ -31,6 +52,7 @@ export class OnboardingService {
                 404: 'Atleta não encontrado',
             },
         });
+        return normalizeProfile(salvo);
     }
 
     /**
@@ -38,8 +60,8 @@ export class OnboardingService {
      * quando o atleta ainda não iniciou o onboarding (204 No Content).
      * @throws ApiError 403 (atleta tentando ler onboarding de outro)
      */
-    public static buscarRascunho(atletaId: string): CancelablePromise<AthleteOnboardingProfile | undefined> {
-        return __request(OpenAPI, {
+    public static async buscarRascunho(atletaId: string): Promise<AthleteOnboardingProfile | undefined> {
+        const perfil = await __request<AthleteOnboardingProfile | undefined>(OpenAPI, {
             method: 'GET',
             url: '/api/v1/atletas/{atletaId}/onboarding',
             path: { atletaId },
@@ -47,6 +69,7 @@ export class OnboardingService {
                 403: 'Acesso negado',
             },
         });
+        return perfil ? normalizeProfile(perfil) : undefined;
     }
 
     /**
