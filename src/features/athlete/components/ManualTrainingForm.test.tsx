@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ManualTrainingForm } from './ManualTrainingForm';
@@ -10,11 +10,12 @@ describe('ManualTrainingForm', () => {
         vi.clearAllMocks();
     });
 
-    function renderForm(overrides?: Partial<{ loading: boolean; hasTreinoHoje: boolean }>) {
+    function renderForm(overrides?: Partial<{ loading: boolean; hasTreinoHoje: boolean; emCalibracao: boolean }>) {
         return render(
             <ManualTrainingForm
                 loading={overrides?.loading ?? false}
                 hasTreinoHoje={overrides?.hasTreinoHoje ?? false}
+                emCalibracao={overrides?.emCalibracao ?? false}
                 onSubmit={onSubmit}
             />
         );
@@ -202,6 +203,69 @@ describe('ManualTrainingForm', () => {
             // fireEvent.change simula mutação programática sem passar pelas camadas de userEvent
             fireEvent.change(textarea, { target: { value: long } });
             expect(screen.getByText('500/500')).toBeInTheDocument();
+        });
+    });
+
+    describe('sinais extras de calibração (task 8.3/8.4, athlete-onboarding-baseline)', () => {
+        it('fora de CALIBRATION, mostra apenas RPE — sem os 4 campos extras', () => {
+            renderForm({ emCalibracao: false });
+
+            expect(screen.getByText(/Percepção de esforço/)).toBeInTheDocument();
+            expect(screen.queryByText('Nível de dor')).not.toBeInTheDocument();
+            expect(screen.queryByText('Nível de fadiga')).not.toBeInTheDocument();
+            expect(screen.queryByText('Qualidade do sono (noite anterior)')).not.toBeInTheDocument();
+            expect(screen.queryByText('Nível de recuperação')).not.toBeInTheDocument();
+        });
+
+        it('durante CALIBRATION, mostra os 4 campos extras além do RPE', () => {
+            renderForm({ emCalibracao: true });
+
+            expect(screen.getByText(/Percepção de esforço/)).toBeInTheDocument();
+            expect(screen.getByText('Nível de dor')).toBeInTheDocument();
+            expect(screen.getByText('Nível de fadiga')).toBeInTheDocument();
+            expect(screen.getByText('Qualidade do sono (noite anterior)')).toBeInTheDocument();
+            expect(screen.getByText('Nível de recuperação')).toBeInTheDocument();
+        });
+
+        it('omite os 4 campos extras do payload fora de CALIBRATION', async () => {
+            const user = userEvent.setup();
+            renderForm({ emCalibracao: false });
+
+            await user.click(screen.getByRole('button', { name: /Registrar treino/ }));
+
+            const arg = onSubmit.mock.calls[0][0];
+            expect(arg.nivelDor).toBeUndefined();
+            expect(arg.nivelFadiga).toBeUndefined();
+            expect(arg.qualidadeSonoNoiteAnterior).toBeUndefined();
+            expect(arg.nivelRecuperacao).toBeUndefined();
+        });
+
+        it('inclui os 4 campos extras (com seus valores default) no payload durante CALIBRATION', async () => {
+            const user = userEvent.setup();
+            renderForm({ emCalibracao: true });
+
+            await user.click(screen.getByRole('button', { name: /Registrar treino/ }));
+
+            const arg = onSubmit.mock.calls[0][0];
+            expect(arg.nivelDor).toBe(1);
+            expect(arg.nivelFadiga).toBe(5);
+            expect(arg.qualidadeSonoNoiteAnterior).toBe(5);
+            expect(arg.nivelRecuperacao).toBe(5);
+        });
+
+        it('envia o valor ajustado do slider de dor', async () => {
+            const user = userEvent.setup();
+            renderForm({ emCalibracao: true });
+
+            const slider = screen.getByRole('slider', { name: 'Nível de dor' });
+            act(() => { slider.focus(); });
+            fireEvent.keyDown(slider, { key: 'ArrowRight' });
+            fireEvent.keyDown(slider, { key: 'ArrowRight' });
+            fireEvent.keyDown(slider, { key: 'ArrowRight' });
+            await user.click(screen.getByRole('button', { name: /Registrar treino/ }));
+
+            const arg = onSubmit.mock.calls[0][0];
+            expect(arg.nivelDor).toBe(4);
         });
     });
 });

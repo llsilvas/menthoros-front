@@ -28,6 +28,7 @@ import AthleteProgressPage from './features/athlete/pages/AthleteProgressPage';
 import AthleteCoachPage from './features/athlete/pages/AthleteCoachPage';
 import AthleteProfilePage from './features/athlete/pages/AthleteProfilePage';
 import ManualTrainingFormPage from './features/athlete/pages/ManualTrainingFormPage';
+import AthleteOnboardingPage from './features/athlete/pages/AthleteOnboardingPage';
 import { activeTheme } from './theme/activeTheme';
 import { overlayWhite } from './theme/overlays';
 import { ROUTES } from './constants/routes';
@@ -228,6 +229,7 @@ const router = createHashRouter([
               { path: 'coach',         element: <AthleteCoachPage /> },
               { path: 'profile',       element: <AthleteProfilePage /> },
               { path: 'training/log',  element: <ManualTrainingFormPage /> },
+              { path: 'onboarding',    element: <AthleteOnboardingPage /> },
             ],
           },
         ],

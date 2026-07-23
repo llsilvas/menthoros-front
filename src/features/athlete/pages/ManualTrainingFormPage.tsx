@@ -6,6 +6,7 @@ import { surface, glassSx, primary } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import { useManualTraining } from '../../../hooks/useManualTraining';
 import { useFitUpload } from '../../../hooks/useFitUpload';
+import { useCalibracao } from '../../../hooks/useCalibracao';
 import { ManualTrainingForm } from '../components/ManualTrainingForm';
 import { RecentTrainingsList } from '../components/RecentTrainingsList';
 import { PostWorkoutFeedbackCard } from '../components/PostWorkoutFeedbackCard';
@@ -18,6 +19,7 @@ export default function ManualTrainingFormPage() {
     const navigate = useNavigate();
     const { recentes, isFetching, isSubmitting, fetchError, registrar, fetchRecentes } = useManualTraining(7);
     const { upload, uploading, reset: resetFitUpload } = useFitUpload();
+    const { status: calibracaoStatus, fetchStatus: fetchCalibracao } = useCalibracao();
     const [treinoRegistrado, setTreinoRegistrado] = useState<TreinoRealizadoDto | null>(null);
     const [treinoImportado, setTreinoImportado] = useState<TreinoRealizadoDto | null>(null);
     const [toast, setToast] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
@@ -28,7 +30,8 @@ export default function ManualTrainingFormPage() {
 
     useEffect(() => {
         fetchRecentes();
-    }, [fetchRecentes]);
+        fetchCalibracao();
+    }, [fetchRecentes, fetchCalibracao]);
 
     const hasTreinoHoje = useMemo(
         () => recentes.some((t) => isSameDay(parseISO(t.dataTreino), new Date())),
@@ -120,6 +123,7 @@ export default function ManualTrainingFormPage() {
                     <ManualTrainingForm
                         loading={isSubmitting}
                         hasTreinoHoje={hasTreinoHoje}
+                        emCalibracao={Boolean(calibracaoStatus)}
                         onSubmit={handleSubmit}
                     />
                 )}

@@ -82,9 +82,26 @@ export const generateId = (): string => {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 };
 
-export type nivelExperiencia = "INICIANTE" | "INTERMEDIARIO" | "AVANCADO";
+export type nivelExperiencia = "INICIANTE" | "INTERMEDIARIO" | "AVANCADO" | "ELITE";
 export type diaSemana = 'DOMINGO' | 'SEGUNDA' | 'TERCA' | 'QUARTA' | 'QUINTA' | 'SEXTA' | 'SABADO';
 export type Sexo = 'MASCULINO' | 'FEMININO' | 'OUTRO';
+
+export const NIVEL_EXPERIENCIA_LABELS: Record<nivelExperiencia, string> = {
+    INICIANTE: 'Iniciante',
+    INTERMEDIARIO: 'Intermediário',
+    AVANCADO: 'Avançado',
+    ELITE: 'Elite',
+};
+
+export const DIA_SEMANA_LABELS: Record<diaSemana, string> = {
+    DOMINGO: 'Domingo',
+    SEGUNDA: 'Segunda',
+    TERCA: 'Terça',
+    QUARTA: 'Quarta',
+    QUINTA: 'Quinta',
+    SEXTA: 'Sexta',
+    SABADO: 'Sábado',
+};
 
 /** Periodicidade do plano do atleta com a assessoria — distinto do plano SaaS da assessoria com a Menthoros. */
 export type TipoPlanoAtleta = 'MENSAL' | 'TRIMESTRAL' | 'SEMESTRAL' | 'ANUAL';

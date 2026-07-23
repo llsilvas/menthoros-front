@@ -9,6 +9,7 @@ import type { QuickCheckInData } from '../components/QuickCheckInModal';
 import { KudosCard } from '../components/KudosCard';
 import { WeeklySummaryCard } from '../components/WeeklySummaryCard';
 import { WeekClosedBanner } from '../components/WeekClosedBanner';
+import { CalibrationBanner } from '../components/CalibrationBanner';
 import {
   buildHomeMetrics,
   buildNextWorkout,
@@ -22,6 +23,7 @@ import { buildWeeklySummary } from '../adapters/buildWeeklySummary';
 import { selectWeekClosedInfo } from '../adapters/selectWeekClosedInfo';
 import { useAthleteHome } from '../../../hooks/useAthleteHome';
 import { useAthletePlan } from '../../../hooks/useAthletePlan';
+import { useCalibracao } from '../../../hooks/useCalibracao';
 import { useAthleteReadiness } from '../../../hooks/useAthleteReadiness';
 import { useAthleteProvas } from '../../../hooks/useAthleteProvas';
 import { useCheckinAtual } from '../../../hooks/useCheckinAtual';
@@ -71,11 +73,13 @@ export default function AthleteHomePage() {
   const { checkinHoje, error: checkinAtualError, fetchCheckinAtual } = useCheckinAtual();
   const { kudos, error: kudosError, fetchKudos } = useKudosRecentes();
   const { plano, loading: planoLoading, error: planoError, fetchPlano } = useAthletePlan();
+  const { status: calibracaoStatus, justExited: calibracaoJustExited, fetchStatus: fetchCalibracao, dismissJustExited } = useCalibracao();
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [finalizandoCheckIn, setFinalizandoCheckIn] = useState(false);
   // Dispensa apenas na montagem corrente (reaparece ao voltar à Home) — intencional no XS;
   // persistir entre sessões (sessionStorage por semanaFim) é follow-up documentado na proposal.
   const [bannerDispensado, setBannerDispensado] = useState(false);
+  const [calibracaoBannerDispensado, setCalibracaoBannerDispensado] = useState(false);
 
   useEffect(() => {
     fetchHome();
@@ -85,7 +89,8 @@ export default function AthleteHomePage() {
     fetchCheckinAtual();
     fetchKudos();
     fetchPlano();
-  }, [fetchHome, fetchReadiness, fetchTreinos, fetchProvas, fetchCheckinAtual, fetchKudos, fetchPlano]);
+    fetchCalibracao();
+  }, [fetchHome, fetchReadiness, fetchTreinos, fetchProvas, fetchCheckinAtual, fetchKudos, fetchPlano, fetchCalibracao]);
 
   async function handleCheckInSubmit(data: QuickCheckInData) {
     await registrar(data);
@@ -143,6 +148,17 @@ export default function AthleteHomePage() {
 
   return (
     <Box sx={{ minHeight: '100%', bgcolor: elevation.base, p: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {!calibracaoBannerDispensado && (calibracaoStatus || calibracaoJustExited) && (
+        <CalibrationBanner
+          status={calibracaoStatus}
+          justExited={calibracaoJustExited}
+          onDismiss={() => {
+            setCalibracaoBannerDispensado(true);
+            dismissJustExited();
+          }}
+        />
+      )}
+
       {mostrarBannerSemana && (
         <WeekClosedBanner
           treinosPerdidos={treinosPerdidos}

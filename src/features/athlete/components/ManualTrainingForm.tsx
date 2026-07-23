@@ -1,5 +1,4 @@
 import { useCallback, useMemo, useState } from 'react';
-import type { ReactNode } from 'react';
 import {
     Alert,
     Box,
@@ -10,9 +9,12 @@ import {
     Typography,
 } from '@mui/material';
 import { format, subDays } from 'date-fns';
-import type { TipoTreino, TreinoManualInput } from '../../../types/TreinoManual';
-import { TIPO_TREINO_LABELS } from '../../../types/TreinoManual';
+import type { TipoTreino, TreinoManualInput, CalibracaoExtras } from '../../../types/TreinoManual';
+import { TIPO_TREINO_LABELS, CALIBRACAO_EXTRAS_DEFAULT } from '../../../types/TreinoManual';
 import { primary, surface, content, backgrounds } from '../../../theme/tokens';
+import { onboardingInputSx } from './onboardingFormStyles';
+import { OnboardingSectionLabel } from './OnboardingSectionLabel';
+import { CalibrationExtrasFields } from './CalibrationExtrasFields';
 
 const TIPOS = Object.keys(TIPO_TREINO_LABELS) as Array<keyof typeof TIPO_TREINO_LABELS>;
 
@@ -31,10 +33,16 @@ function estimarTss(duracaoMinutos: number, rpe: number): number {
 export interface ManualTrainingFormProps {
     loading: boolean;
     hasTreinoHoje: boolean;
+    /**
+     * `true` durante `TrainingPhase.CALIBRATION` (task 8.3/8.4, athlete-onboarding-baseline) —
+     * mostra 4 campos extras (dor, fadiga, sono, recuperação) além do RPE. Fora da calibração,
+     * só RPE é perguntado.
+     */
+    emCalibracao?: boolean;
     onSubmit: (input: TreinoManualInput) => Promise<void>;
 }
 
-export function ManualTrainingForm({ loading, hasTreinoHoje, onSubmit }: ManualTrainingFormProps) {
+export function ManualTrainingForm({ loading, hasTreinoHoje, emCalibracao = false, onSubmit }: ManualTrainingFormProps) {
     const [hoje, minData] = useMemo(() => {
         const today = format(new Date(), 'yyyy-MM-dd');
         const min = format(subDays(new Date(), 7), 'yyyy-MM-dd');
@@ -47,6 +55,7 @@ export function ManualTrainingForm({ loading, hasTreinoHoje, onSubmit }: ManualT
     const [distanciaKm, setDistanciaKm] = useState<number | ''>('');
     const [rpe, setRpe] = useState<number>(6);
     const [observacoes, setObservacoes] = useState('');
+    const [calibracaoExtras, setCalibracaoExtras] = useState<CalibracaoExtras>(CALIBRACAO_EXTRAS_DEFAULT);
 
     const tssEstimado = duracaoMinutos !== '' && duracaoMinutos > 0
         ? estimarTss(duracaoMinutos, rpe)
@@ -71,6 +80,7 @@ export function ManualTrainingForm({ loading, hasTreinoHoje, onSubmit }: ManualT
             distanciaKm: distancia,
             percepcaoEsforco: rpe,
             observacoes: observacoes.trim() || undefined,
+            ...(emCalibracao && calibracaoExtras),
         });
         setTipo('CONTINUO');
         setDuracaoMinutos(45);
@@ -78,7 +88,8 @@ export function ManualTrainingForm({ loading, hasTreinoHoje, onSubmit }: ManualT
         setRpe(6);
         setObservacoes('');
         setData(hoje);
-    }, [isValid, duracaoMinutos, distanciaKm, tipo, data, rpe, observacoes, hoje, onSubmit]);
+        setCalibracaoExtras(CALIBRACAO_EXTRAS_DEFAULT);
+    }, [isValid, duracaoMinutos, distanciaKm, tipo, data, rpe, observacoes, hoje, onSubmit, emCalibracao, calibracaoExtras]);
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -90,7 +101,7 @@ export function ManualTrainingForm({ loading, hasTreinoHoje, onSubmit }: ManualT
             )}
 
             <Box>
-                <SectionLabel>Tipo de treino</SectionLabel>
+                <OnboardingSectionLabel>Tipo de treino</OnboardingSectionLabel>
                 <Box
                     role="radiogroup"
                     aria-label="Tipo de treino"
@@ -119,7 +130,7 @@ export function ManualTrainingForm({ loading, hasTreinoHoje, onSubmit }: ManualT
             </Box>
 
             <Box>
-                <SectionLabel>Data do treino</SectionLabel>
+                <OnboardingSectionLabel>Data do treino</OnboardingSectionLabel>
                 <TextField
                     type="date"
                     label="Data do treino"
@@ -127,12 +138,12 @@ export function ManualTrainingForm({ loading, hasTreinoHoje, onSubmit }: ManualT
                     onChange={(e) => setData(e.target.value)}
                     fullWidth
                     inputProps={{ min: minData, max: hoje }}
-                    sx={inputSx}
+                    sx={onboardingInputSx}
                 />
             </Box>
 
             <Box>
-                <SectionLabel>Duração (minutos)</SectionLabel>
+                <OnboardingSectionLabel>Duração (minutos)</OnboardingSectionLabel>
                 <TextField
                     type="number"
                     label="Duração (minutos)"
@@ -143,13 +154,13 @@ export function ManualTrainingForm({ loading, hasTreinoHoje, onSubmit }: ManualT
                     }}
                     fullWidth
                     inputProps={{ min: 1, max: 600 }}
-                    sx={inputSx}
+                    sx={onboardingInputSx}
                 />
             </Box>
 
             {tipo !== 'REGENERATIVO' && (
                 <Box>
-                    <SectionLabel>Distância (km) — opcional</SectionLabel>
+                    <OnboardingSectionLabel>Distância (km) — opcional</OnboardingSectionLabel>
                     <TextField
                         type="number"
                         label="Distância (km)"
@@ -160,14 +171,14 @@ export function ManualTrainingForm({ loading, hasTreinoHoje, onSubmit }: ManualT
                         }}
                         fullWidth
                         inputProps={{ min: 0.1, max: 200, step: 0.1 }}
-                        sx={inputSx}
+                        sx={onboardingInputSx}
                     />
                 </Box>
             )}
 
             <Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                    <SectionLabel>Percepção de esforço (RPE)</SectionLabel>
+                    <OnboardingSectionLabel>Percepção de esforço (RPE)</OnboardingSectionLabel>
                     <Typography sx={{ color: primary[500], fontSize: '0.85rem', fontWeight: 700 }}>
                         {rpe}/10 — {RPE_LABELS[rpe]}
                     </Typography>
@@ -199,8 +210,15 @@ export function ManualTrainingForm({ loading, hasTreinoHoje, onSubmit }: ManualT
                 )}
             </Box>
 
+            {emCalibracao && (
+                <CalibrationExtrasFields
+                    value={calibracaoExtras}
+                    onChange={(patch) => setCalibracaoExtras((prev) => ({ ...prev, ...patch }))}
+                />
+            )}
+
             <Box>
-                <SectionLabel>Observações (opcional)</SectionLabel>
+                <OnboardingSectionLabel>Observações (opcional)</OnboardingSectionLabel>
                 <TextField
                     multiline
                     rows={3}
@@ -210,7 +228,7 @@ export function ManualTrainingForm({ loading, hasTreinoHoje, onSubmit }: ManualT
                     fullWidth
                     placeholder="Como foi o treino? Algo a registrar?"
                     helperText={`${observacoes.length}/500`}
-                    sx={inputSx}
+                    sx={onboardingInputSx}
                 />
             </Box>
 
@@ -234,28 +252,3 @@ export function ManualTrainingForm({ loading, hasTreinoHoje, onSubmit }: ManualT
         </Box>
     );
 }
-
-function SectionLabel({ children }: { children: ReactNode }) {
-    return (
-        <Typography sx={{ color: surface[50], fontSize: '0.875rem', fontWeight: 600 }}>
-            {children}
-        </Typography>
-    );
-}
-
-const inputSx = {
-    mt: 0.5,
-    '& .MuiOutlinedInput-root': {
-        color: surface[50],
-        bgcolor: content.inputBg,
-        '& fieldset': { borderColor: content.inputBorder },
-        '&:hover fieldset': { borderColor: content.inputBorderFocus },
-        '&.Mui-focused fieldset': { borderColor: primary[500] },
-        '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button': {
-            display: 'none',
-        },
-    },
-    '& .MuiInputLabel-root': { color: surface[400] },
-    '& .MuiInputLabel-root.Mui-focused': { color: primary[500] },
-    '& .MuiFormHelperText-root': { color: surface[500] },
-};

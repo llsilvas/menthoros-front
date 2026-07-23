@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router';
 import ManualTrainingFormPage from './ManualTrainingFormPage';
 import { useManualTraining } from '../../../hooks/useManualTraining';
 import { useFitUpload } from '../../../hooks/useFitUpload';
+import { useCalibracao } from '../../../hooks/useCalibracao';
 import type { TreinoRealizadoDto } from '../../../types/TreinoManual';
 
 const navigateMock = vi.fn();
@@ -16,6 +17,7 @@ vi.mock('react-router', async () => {
 
 vi.mock('../../../hooks/useManualTraining');
 vi.mock('../../../hooks/useFitUpload');
+vi.mock('../../../hooks/useCalibracao');
 
 const TREINO_SALVO: TreinoRealizadoDto = {
   id: 't1',
@@ -65,6 +67,10 @@ describe('ManualTrainingFormPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseFitUpload();
+    vi.mocked(useCalibracao).mockReturnValue({
+      status: null, justExited: false, loading: false, error: null,
+      fetchStatus: vi.fn().mockResolvedValue(undefined), dismissJustExited: vi.fn(),
+    });
   });
 
   it('mostra o PostWorkoutFeedbackCard após registrar com sucesso, em vez do toast', async () => {

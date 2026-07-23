@@ -13,6 +13,7 @@ import { useManualTraining } from '../../../hooks/useManualTraining';
 import { useRegistrarCheckin } from '../../../hooks/useRegistrarCheckin';
 import { useUserInfo } from '../../../hooks/useUserInfo';
 import { useAthletePlan } from '../../../hooks/useAthletePlan';
+import { useCalibracao } from '../../../hooks/useCalibracao';
 import type { PlanoSemanal } from '../../../types/PlanoSemanal';
 
 vi.mock('../../../hooks/useAthleteHome');
@@ -24,6 +25,7 @@ vi.mock('../../../hooks/useManualTraining');
 vi.mock('../../../hooks/useRegistrarCheckin');
 vi.mock('../../../hooks/useUserInfo');
 vi.mock('../../../hooks/useAthletePlan');
+vi.mock('../../../hooks/useCalibracao');
 
 const noop = vi.fn();
 
@@ -65,6 +67,11 @@ describe('AthleteHomePage', () => {
     // Default: sem plano → banner de semana encerrada não aparece.
     vi.mocked(useAthletePlan).mockReturnValue({
       plano: null, loading: false, error: null, fetchPlano: vi.fn().mockResolvedValue(undefined),
+    });
+    // Default: sem calibração → CalibrationBanner não aparece.
+    vi.mocked(useCalibracao).mockReturnValue({
+      status: null, justExited: false, loading: false, error: null,
+      fetchStatus: vi.fn().mockResolvedValue(undefined), dismissJustExited: vi.fn(),
     });
   });
 
@@ -390,6 +397,56 @@ describe('AthleteHomePage', () => {
 
       expect(screen.queryByText(/Sua semana foi encerrada/)).toBeNull();
       expect(screen.getByText(/Não foi possível verificar o status da sua semana/)).toBeInTheDocument();
+    });
+  });
+
+  describe('banner de calibração (task 8.2/8.5)', () => {
+    it('exibe o banner informativo quando o atleta está em calibração', () => {
+      mockHome();
+      vi.mocked(useCalibracao).mockReturnValue({
+        status: { phase: 'CALIBRATION', stage: 'OBSERVATION', weekNumber: 1, confidenceScore: 20 },
+        justExited: false, loading: false, error: null,
+        fetchStatus: vi.fn().mockResolvedValue(undefined), dismissJustExited: vi.fn(),
+      });
+      renderPage();
+
+      expect(screen.getByText('Semana 1 de calibração')).toBeInTheDocument();
+    });
+
+    it('exibe o banner de saída quando o atleta acabou de sair da calibração', () => {
+      mockHome();
+      vi.mocked(useCalibracao).mockReturnValue({
+        status: null, justExited: true, loading: false, error: null,
+        fetchStatus: vi.fn().mockResolvedValue(undefined), dismissJustExited: vi.fn(),
+      });
+      renderPage();
+
+      expect(screen.getByText(/calibração concluída/i)).toBeInTheDocument();
+    });
+
+    it('não exibe nenhum banner de calibração fora de CALIBRATION', () => {
+      mockHome();
+      renderPage();
+
+      expect(screen.queryByText(/de calibração/i)).toBeNull();
+      expect(screen.queryByText(/calibração concluída/i)).toBeNull();
+    });
+
+    it('some ao dispensar e chama dismissJustExited', async () => {
+      mockHome();
+      const dismissJustExited = vi.fn();
+      vi.mocked(useCalibracao).mockReturnValue({
+        status: { phase: 'CALIBRATION', stage: 'CALIBRATION', weekNumber: 2, confidenceScore: 40 },
+        justExited: false, loading: false, error: null,
+        fetchStatus: vi.fn().mockResolvedValue(undefined), dismissJustExited,
+      });
+      renderPage();
+
+      expect(screen.getByText('Semana 2 de calibração')).toBeInTheDocument();
+      await userEvent.click(screen.getAllByRole('button', { name: /close/i })[0]);
+
+      expect(screen.queryByText('Semana 2 de calibração')).toBeNull();
+      expect(dismissJustExited).toHaveBeenCalled();
     });
   });
 });
