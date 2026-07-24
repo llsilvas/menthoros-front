@@ -226,4 +226,23 @@ describe('TreinoEditDialog — modo intervalado', () => {
         expect(screen.getByText('Aquecimento')).toBeInTheDocument();
         expect(screen.getByText('Desaquecimento')).toBeInTheDocument();
     });
+
+    it.each(['TIRO', 'SUBIDA'] as const)(
+        'exibe container de série para tipoTreino=%s (fisiologicamente intervalado)',
+        (tipoTreino) => {
+            render(
+                <TreinoEditDialog
+                    open
+                    treino={{ ...TREINO_INTERVALADO, tipoTreino }}
+                    isSaving={false}
+                    onClose={onClose}
+                    onSave={onSave}
+                />,
+            );
+
+            expect(screen.getByText(/Série/i)).toBeInTheDocument();
+            expect(screen.getByLabelText(/Diminuir repetições/i)).toBeInTheDocument();
+            expect(screen.getByLabelText(/Aumentar repetições/i)).toBeInTheDocument();
+        },
+    );
 });

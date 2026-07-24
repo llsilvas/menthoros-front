@@ -52,17 +52,19 @@ function toIso8601(minutos: string): string | undefined {
 // ── Constantes ────────────────────────────────────────────────────────────────
 
 const TIPOS_TREINO = [
-    { value: 'FACIL',            label: 'Fácil' },
-    { value: 'LONGO',            label: 'Longo' },
-    { value: 'TEMPO',            label: 'Tempo' },
-    { value: 'INTERVALADO',      label: 'Intervalado' },
-    { value: 'RECUPERACAO',      label: 'Recuperação' },
-    { value: 'FARTLEK',          label: 'Fartlek' },
-    { value: 'CORRIDA_CONTINUA', label: 'Corrida Contínua' },
-    { value: 'CONTINUO',         label: 'Contínuo' },
+    { value: 'FACIL',        label: 'Fácil'        },
+    { value: 'CONTINUO',     label: 'Contínuo'     },
+    { value: 'LONGO',        label: 'Longo'        },
+    { value: 'TEMPO_RUN',    label: 'Tempo Run'    },
+    { value: 'INTERVALADO',  label: 'Intervalado'  },
+    { value: 'FARTLEK',      label: 'Fartlek'      },
+    { value: 'REGENERATIVO', label: 'Regenerativo' },
+    { value: 'TIRO',         label: 'Tiro'         },
+    { value: 'SUBIDA',       label: 'Subida'       },
+    { value: 'PROVA',        label: 'Prova'        },
 ];
 
-const TIPOS_INTERVALADOS = new Set(['INTERVALADO', 'FARTLEK']);
+const TIPOS_INTERVALADOS = new Set(['INTERVALADO', 'FARTLEK', 'TIRO', 'SUBIDA']);
 
 const ACCENT = activeTheme.trainingStage;
 
@@ -612,7 +614,10 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
 
                 {isIntervalado ? (
                     /* ── Série (Intervalado / Fartlek) ── */
-                    <Box sx={{ border: `1px solid ${overlayWhite[10]}`, borderRadius: '10px', overflow: 'hidden' }}>
+                    // flexShrink: 0 evita que o flex column do DialogContent colapse este bloco a
+                    // ~0px: overflow:'hidden' zera o min-height automático do item flex, tornando-o
+                    // o único candidato a encolher quando o conteúdo total excede a altura do dialog.
+                    <Box sx={{ border: `1px solid ${overlayWhite[10]}`, borderRadius: '10px', overflow: 'hidden', flexShrink: 0 }}>
                         <Box
                             sx={{
                                 px: 1.5,
