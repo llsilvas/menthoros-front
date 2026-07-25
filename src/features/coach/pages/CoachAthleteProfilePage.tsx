@@ -30,6 +30,9 @@ import { KudosDialog } from '../components/KudosDialog';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { resolveStatusVencimentoPlanoBadge, formatDataVencimentoPlano } from '../adapters/billingPlanAdapters';
 import { useAthleteProfile } from '../../../hooks/useAthleteProfile';
+import { useWeeklyAthleteReview } from '../hooks/useWeeklyAthleteReview';
+import { buildWeeklyReviewFromDto } from '../adapters/weeklyReviewAdapters';
+import { WeeklyReviewCard } from '../components/WeeklyReviewCard';
 import { useEnviarKudos } from '../../../hooks/useEnviarKudos';
 import { surface } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
@@ -81,6 +84,14 @@ export default function CoachAthleteProfilePage() {
     const [kudosOpen, setKudosOpen] = useState(false);
 
     const { profile, isLoading, error, errorKind, fetchProfile } = useAthleteProfile(atletaId);
+    const {
+        revisao,
+        isLoading: revisaoLoading,
+        error: revisaoError,
+        naoDisponivel: revisaoNaoDisponivel,
+        fetchRevisao,
+    } = useWeeklyAthleteReview(atletaId);
+    const revisaoVm = useMemo(() => (revisao ? buildWeeklyReviewFromDto(revisao) : null), [revisao]);
     const { enviar: enviarKudo, loading: enviandoKudo, error: kudoError } = useEnviarKudos();
 
     async function handleEnviarKudo(motivo: MotivoKudos) {
@@ -266,6 +277,19 @@ export default function CoachAthleteProfilePage() {
                             <RecentSuggestionsPanel
                                 sugestoes={profile.sugestoesRecentes}
                                 onVerTodas={() => navigate('/coach/inbox')}
+                            />
+                        </SectionCard>
+                    </Grid>
+
+                    {/* Revisão semanal — 6 colunas */}
+                    <Grid size={{ xs: 12, md: 6 }}>
+                        <SectionCard title="Revisão semanal">
+                            <WeeklyReviewCard
+                                review={revisaoVm}
+                                isLoading={revisaoLoading}
+                                error={revisaoError}
+                                naoDisponivel={revisaoNaoDisponivel}
+                                onRetry={fetchRevisao}
                             />
                         </SectionCard>
                     </Grid>
