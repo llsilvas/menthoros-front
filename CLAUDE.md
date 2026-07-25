@@ -194,8 +194,16 @@ Regras de uso:
 | Strings de valor — domínio de negócio | **PT-BR** | `'ATRASADO'`, `'ALVO'`, `'AGUARDANDO_REVISAO'` |
 | Strings de valor — estados técnicos | **inglês** | `'PENDING'`, `'APPROVED'`, `'REJECTED'` |
 | Labels e copy na UI | **PT-BR** | `"Aderência"`, `"Fila de revisão"` |
+| Campos de DTO vindos do backend | **inglês** | `sufficientData`, `completionRate`, `nextWeekFocus` |
 
 Não renomear arquivos/componentes existentes por esta regra — aplicar apenas em código novo.
+
+**Campo de DTO em português (decisão 2026-07-25):** o backend padronizou identificadores novos em
+inglês (ver `apps/menthoros-backend/CLAUDE.md`, "Identifier Language"). Campo legado em PT no
+contrato é renomeado **junto com a change de backend que já está mexendo naquela entidade**, em PR
+coordenado nos dois repos — nunca isoladamente no front, que quebraria o consumo. Enquanto a
+renomeação não acontece, o campo PT continua válido; o adapter da feature (ver "Adapter Pattern") é
+o lugar de absorver a divergência se ela precisar coexistir.
 
 ## Mock Data
 
