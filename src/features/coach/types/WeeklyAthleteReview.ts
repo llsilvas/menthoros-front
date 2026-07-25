@@ -8,7 +8,7 @@ export interface WeeklyReviewVM {
     aderencia: string;
     aderenciaNivel: NivelAderencia;
     percentual: number | null;
-    dadosSuficientes: boolean;
+    sufficientData: boolean;
     /** Resumo já formatado do delta vs. semana anterior; `null` na primeira semana. */
     deltaResumo: string | null;
     nextWeekFocus: string | null;

@@ -21,9 +21,9 @@ export interface RevisaoSemanalOutputDto {
     semanaFim: string;
     recommendationType: RecommendationType;
     adherenceStatus: NivelAderencia;
-    percentualRealizacao?: number;
+    completionRate?: number;
     tsbFim?: number;
-    dadosSuficientes: boolean;
+    sufficientData: boolean;
     weekOverWeekDelta: WeekOverWeekDeltaDto;
     geradaEm: string;
     nextWeekFocus?: string;

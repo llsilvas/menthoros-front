@@ -11,7 +11,7 @@ const vm: WeeklyReviewVM = {
     aderencia: 'Média',
     aderenciaNivel: 'MEDIA',
     percentual: 75,
-    dadosSuficientes: true,
+    sufficientData: true,
     deltaResumo: null,
     nextWeekFocus: null,
 };

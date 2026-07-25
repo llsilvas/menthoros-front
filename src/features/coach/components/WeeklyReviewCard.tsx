@@ -80,7 +80,7 @@ export function WeeklyReviewCard({ review, isLoading, error, naoDisponivel, onRe
 
             {review.nextWeekFocus && <Typography variant="body2">{review.nextWeekFocus}</Typography>}
 
-            {!review.dadosSuficientes && (
+            {!review.sufficientData && (
                 <Typography variant="caption" color="warning.main">
                     Dados insuficientes na semana — leitura de menor confiança.
                 </Typography>
