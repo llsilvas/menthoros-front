@@ -1,0 +1,48 @@
+import { describe, it, expect } from 'vitest';
+import { buildWeeklyReviewFromDto } from './weeklyReviewAdapters';
+import type { RevisaoSemanalOutputDto } from '../../../types/RevisaoSemanal';
+
+const base: RevisaoSemanalOutputDto = {
+    planoSemanalId: 'p1',
+    semanaInicio: '2026-05-05',
+    semanaFim: '2026-05-11',
+    recommendationType: 'MAINTAIN',
+    adherenceStatus: 'MEDIA',
+    percentualRealizacao: 75,
+    tsbFim: -5,
+    dadosSuficientes: true,
+    weekOverWeekDelta: { primeiraSemana: true },
+    geradaEm: '2026-05-11T10:00:00Z',
+};
+
+describe('buildWeeklyReviewFromDto', () => {
+    it('mapeia rótulos PT-BR e o período', () => {
+        const vm = buildWeeklyReviewFromDto(base);
+        expect(vm.periodo).toBe('05/05 – 11/05');
+        expect(vm.recomendacao).toBe('Manter');
+        expect(vm.aderencia).toBe('Média');
+        expect(vm.percentual).toBe(75);
+        expect(vm.dadosSuficientes).toBe(true);
+    });
+
+    it('delta é null na primeira semana', () => {
+        expect(buildWeeklyReviewFromDto(base).delta).toBeNull();
+    });
+
+    it('delta traz Δs e a recomendação anterior quando há semana anterior', () => {
+        const vm = buildWeeklyReviewFromDto({
+            ...base,
+            weekOverWeekDelta: {
+                primeiraSemana: false,
+                deltaPercentualRealizacao: 15,
+                deltaTsbFim: 10,
+                recommendationAnterior: 'RECOVERY',
+            },
+        });
+        expect(vm.delta).toEqual({ percentual: 15, tsb: 10, recomendacaoAnterior: 'Recuperação' });
+    });
+
+    it('percentual ausente vira null', () => {
+        expect(buildWeeklyReviewFromDto({ ...base, percentualRealizacao: undefined }).percentual).toBeNull();
+    });
+});
