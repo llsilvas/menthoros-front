@@ -1,13 +1,6 @@
 import type { NivelAderencia, RecommendationType } from '../../../types/RevisaoSemanal';
 
-/** Delta vs. a semana anterior, já com rótulo PT-BR da recomendação anterior. */
-export interface WeeklyReviewDeltaVM {
-    percentual: number | null;
-    tsb: number | null;
-    recomendacaoAnterior: string | null;
-}
-
-/** View model do card de revisão semanal — rótulos PT-BR prontos para exibir. */
+/** View model do card de revisão semanal — tudo já formatado para exibir; card só renderiza. */
 export interface WeeklyReviewVM {
     periodo: string;
     recomendacao: string;
@@ -16,6 +9,7 @@ export interface WeeklyReviewVM {
     aderenciaNivel: NivelAderencia;
     percentual: number | null;
     dadosSuficientes: boolean;
-    delta: WeeklyReviewDeltaVM | null;
+    /** Resumo já formatado do delta vs. semana anterior; `null` na primeira semana. */
+    deltaResumo: string | null;
     nextWeekFocus: string | null;
 }

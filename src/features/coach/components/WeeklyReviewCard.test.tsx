@@ -12,7 +12,7 @@ const vm: WeeklyReviewVM = {
     aderenciaNivel: 'MEDIA',
     percentual: 75,
     dadosSuficientes: true,
-    delta: null,
+    deltaResumo: null,
     nextWeekFocus: null,
 };
 
@@ -43,7 +43,7 @@ describe('WeeklyReviewCard', () => {
         render(<WeeklyReviewCard {...props} review={vm} />);
 
         expect(screen.getByText('Manter')).toBeTruthy();
-        expect(screen.getByText(/Aderência: Média \(75%\)/)).toBeTruthy();
+        expect(screen.getByText(/Média \(75%\)/)).toBeTruthy();
         expect(screen.queryByRole('button')).toBeNull(); // sem botão no estado de dados → read-only
     });
 });

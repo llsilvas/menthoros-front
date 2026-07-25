@@ -1,4 +1,5 @@
 import { Alert, Box, Button, Chip, Skeleton, Stack, Typography } from '@mui/material';
+import type { NivelAderencia, RecommendationType } from '../../../types/RevisaoSemanal';
 import type { WeeklyReviewVM } from '../types/WeeklyAthleteReview';
 
 interface WeeklyReviewCardProps {
@@ -8,6 +9,19 @@ interface WeeklyReviewCardProps {
     naoDisponivel: boolean;
     onRetry: () => void;
 }
+
+/** Cor semântica do Chip por tipo de recomendação (RECOVERY = alerta, PROGRESS = positivo). */
+const CHIP_COLOR: Record<RecommendationType, 'warning' | 'default' | 'success'> = {
+    RECOVERY: 'warning',
+    MAINTAIN: 'default',
+    PROGRESS: 'success',
+};
+
+const ADERENCIA_COLOR: Record<NivelAderencia, string> = {
+    ALTA: 'success.main',
+    MEDIA: 'text.primary',
+    BAIXA: 'warning.main',
+};
 
 /**
  * Card read-only da revisão semanal do atleta (Fatia 3). Renderiza loading/empty/error e o sinal
@@ -35,7 +49,7 @@ export function WeeklyReviewCard({ review, isLoading, error, naoDisponivel, onRe
 
     if (naoDisponivel || !review) {
         return (
-            <Alert severity="warning">
+            <Alert severity="info">
                 Nenhuma semana fechada ainda — a revisão aparece após o encerramento da semana.
             </Alert>
         );
@@ -48,25 +62,23 @@ export function WeeklyReviewCard({ review, isLoading, error, naoDisponivel, onRe
             </Typography>
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                <Chip label={review.recomendacao} size="small" color="primary" variant="outlined" />
+                <Chip label={review.recomendacao} size="small" color={CHIP_COLOR[review.recomendacaoTipo]} variant="outlined" />
                 <Typography variant="body2">
-                    Aderência: {review.aderencia}
-                    {review.percentual != null ? ` (${review.percentual}%)` : ''}
+                    Aderência:{' '}
+                    <Box component="span" sx={{ color: ADERENCIA_COLOR[review.aderenciaNivel], fontWeight: 600 }}>
+                        {review.aderencia}
+                        {review.percentual != null ? ` (${review.percentual}%)` : ''}
+                    </Box>
                 </Typography>
             </Box>
 
-            {review.delta && (
+            {review.deltaResumo && (
                 <Typography variant="caption" color="text.secondary">
-                    vs. semana anterior
-                    {review.delta.percentual != null ? ` · aderência ${formatDelta(review.delta.percentual)}%` : ''}
-                    {review.delta.tsb != null ? ` · TSB ${formatDelta(review.delta.tsb)}` : ''}
-                    {review.delta.recomendacaoAnterior ? ` · era "${review.delta.recomendacaoAnterior}"` : ''}
+                    vs. semana anterior · {review.deltaResumo}
                 </Typography>
             )}
 
-            {review.nextWeekFocus && (
-                <Typography variant="body2">{review.nextWeekFocus}</Typography>
-            )}
+            {review.nextWeekFocus && <Typography variant="body2">{review.nextWeekFocus}</Typography>}
 
             {!review.dadosSuficientes && (
                 <Typography variant="caption" color="warning.main">
@@ -75,8 +87,4 @@ export function WeeklyReviewCard({ review, isLoading, error, naoDisponivel, onRe
             )}
         </Stack>
     );
-}
-
-function formatDelta(valor: number): string {
-    return valor > 0 ? `+${valor}` : String(valor);
 }

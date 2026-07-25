@@ -25,21 +25,21 @@ describe('buildWeeklyReviewFromDto', () => {
         expect(vm.dadosSuficientes).toBe(true);
     });
 
-    it('delta é null na primeira semana', () => {
-        expect(buildWeeklyReviewFromDto(base).delta).toBeNull();
+    it('deltaResumo é null na primeira semana', () => {
+        expect(buildWeeklyReviewFromDto(base).deltaResumo).toBeNull();
     });
 
-    it('delta traz Δs e a recomendação anterior quando há semana anterior', () => {
+    it('deltaResumo formatado com Δs e a recomendação anterior quando há semana anterior', () => {
         const vm = buildWeeklyReviewFromDto({
             ...base,
             weekOverWeekDelta: {
                 primeiraSemana: false,
                 deltaPercentualRealizacao: 15,
-                deltaTsbFim: 10,
+                deltaTsbFim: -8,
                 recommendationAnterior: 'RECOVERY',
             },
         });
-        expect(vm.delta).toEqual({ percentual: 15, tsb: 10, recomendacaoAnterior: 'Recuperação' });
+        expect(vm.deltaResumo).toBe('aderência +15% · TSB -8 · era "Recuperação"');
     });
 
     it('percentual ausente vira null', () => {
