@@ -5,10 +5,13 @@ import { MemoryRouter, Route, Routes } from 'react-router';
 import CoachAthleteProfilePage from './CoachAthleteProfilePage';
 import { SugestaoService } from '../../../api/services/SugestaoService';
 import * as useAthleteProfileModule from '../../../hooks/useAthleteProfile';
+import * as useWeeklyReviewModule from '../hooks/useWeeklyAthleteReview';
 import { useEnviarKudos } from '../../../hooks/useEnviarKudos';
 import type { AtletaPerfilCoachDto } from '../../../types/AtletaPerfilCoach';
+import type { RevisaoSemanalOutputDto } from '../../../types/RevisaoSemanal';
 
 vi.mock('../../../hooks/useAthleteProfile');
+vi.mock('../hooks/useWeeklyAthleteReview');
 vi.mock('../../../hooks/useEnviarKudos');
 vi.mock('../../../api/services/SugestaoService');
 vi.mock('../../athlete/components/PMCChart', () => ({
@@ -77,6 +80,10 @@ function renderPage(atletaId = 'uuid-1') {
 describe('CoachAthleteProfilePage', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        // default: sem revisão (evita chamada real ao serviço nas demais asserções)
+        vi.mocked(useWeeklyReviewModule.useWeeklyAthleteReview).mockReturnValue({
+            revisao: null, isLoading: false, error: null, naoDisponivel: true, fetchRevisao: vi.fn(),
+        });
         vi.mocked(useEnviarKudos).mockReturnValue({ enviar: vi.fn().mockResolvedValue(undefined), loading: false, error: null });
         vi.mocked(SugestaoService.detalhe).mockResolvedValue({
             id: 'sug-1',
@@ -177,6 +184,30 @@ describe('CoachAthleteProfilePage', () => {
         mockHook({ profile: STUB_PROFILE });
         renderPage();
         expect(screen.getByText(/Sugestões recentes/i)).toBeInTheDocument();
+    });
+
+    it('monta a revisão semanal — hook → adapter → card (props amarradas)', () => {
+        mockHook({ profile: STUB_PROFILE });
+        const revisao: RevisaoSemanalOutputDto = {
+            planoSemanalId: 'p1',
+            semanaInicio: '2026-06-16',
+            semanaFim: '2026-06-22',
+            recommendationType: 'PROGRESS',
+            adherenceStatus: 'ALTA',
+            percentualRealizacao: 95,
+            dadosSuficientes: true,
+            weekOverWeekDelta: { primeiraSemana: true },
+            geradaEm: '2026-06-22T10:00:00Z',
+        };
+        vi.mocked(useWeeklyReviewModule.useWeeklyAthleteReview).mockReturnValue({
+            revisao, isLoading: false, error: null, naoDisponivel: false, fetchRevisao: vi.fn(),
+        });
+        renderPage();
+
+        // Título do SectionCard + rótulo derivado pelo adapter (PROGRESS → "Progredir") renderizado
+        // pelo card = wiring correto (inversão de prop mostraria skeleton/empty, não "Progredir").
+        expect(screen.getByText('Revisão semanal')).toBeInTheDocument();
+        expect(screen.getByText('Progredir')).toBeInTheDocument();
     });
 
     it('carrega o resumo completo das sugestões recentes', async () => {
