@@ -41,8 +41,8 @@ export function buildWeeklyReviewFromDto(dto: RevisaoSemanalOutputDto): WeeklyRe
         recomendacaoTipo: dto.recommendationType,
         aderencia: ADERENCIA_LABEL[dto.adherenceStatus],
         aderenciaNivel: dto.adherenceStatus,
-        percentual: dto.percentualRealizacao ?? null,
-        dadosSuficientes: dto.dadosSuficientes,
+        percentual: dto.completionRate ?? null,
+        sufficientData: dto.sufficientData,
         deltaResumo: buildDeltaResumo(dto.weekOverWeekDelta),
         nextWeekFocus: dto.nextWeekFocus ?? null,
     };

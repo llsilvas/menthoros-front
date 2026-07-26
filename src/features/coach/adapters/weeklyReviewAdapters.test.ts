@@ -8,9 +8,9 @@ const base: RevisaoSemanalOutputDto = {
     semanaFim: '2026-05-11',
     recommendationType: 'MAINTAIN',
     adherenceStatus: 'MEDIA',
-    percentualRealizacao: 75,
+    completionRate: 75,
     tsbFim: -5,
-    dadosSuficientes: true,
+    sufficientData: true,
     weekOverWeekDelta: { primeiraSemana: true },
     geradaEm: '2026-05-11T10:00:00Z',
 };
@@ -22,7 +22,7 @@ describe('buildWeeklyReviewFromDto', () => {
         expect(vm.recomendacao).toBe('Manter');
         expect(vm.aderencia).toBe('Média');
         expect(vm.percentual).toBe(75);
-        expect(vm.dadosSuficientes).toBe(true);
+        expect(vm.sufficientData).toBe(true);
     });
 
     it('deltaResumo é null na primeira semana', () => {
@@ -43,6 +43,6 @@ describe('buildWeeklyReviewFromDto', () => {
     });
 
     it('percentual ausente vira null', () => {
-        expect(buildWeeklyReviewFromDto({ ...base, percentualRealizacao: undefined }).percentual).toBeNull();
+        expect(buildWeeklyReviewFromDto({ ...base, completionRate: undefined }).percentual).toBeNull();
     });
 });

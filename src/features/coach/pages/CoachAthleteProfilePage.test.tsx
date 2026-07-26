@@ -194,8 +194,8 @@ describe('CoachAthleteProfilePage', () => {
             semanaFim: '2026-06-22',
             recommendationType: 'PROGRESS',
             adherenceStatus: 'ALTA',
-            percentualRealizacao: 95,
-            dadosSuficientes: true,
+            completionRate: 95,
+            sufficientData: true,
             weekOverWeekDelta: { primeiraSemana: true },
             geradaEm: '2026-06-22T10:00:00Z',
         };
