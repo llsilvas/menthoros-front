@@ -10,6 +10,7 @@ const registrarConsentimento = vi.fn().mockResolvedValue(undefined);
 const VERSOES = { policyVersion: '2026-06-30', termsVersion: '2026-06-30' };
 let consentAtual: CurrentConsent = { granted: true, ...VERSOES };
 let loadingAtual = false;
+let errorAtual: Error | null = null;
 
 vi.mock('../../../hooks/useCurrentUser', () => ({
   useCurrentUser: () => ({
@@ -17,7 +18,7 @@ vi.mock('../../../hooks/useCurrentUser', () => ({
     tenant: { id: 't1', name: 'Assessoria', athleteCount: 0 },
     consent: consentAtual,
     loading: loadingAtual,
-    error: null,
+    error: errorAtual,
     fetchCurrentUser,
   }),
 }));
@@ -57,6 +58,7 @@ describe('CoachLayout — gate de consentimento', () => {
     vi.clearAllMocks();
     consentAtual = { granted: true, ...VERSOES };
     loadingAtual = false;
+    errorAtual = null;
   });
 
   it('renderiza o shell normal quando o consentimento está em dia', () => {
@@ -85,6 +87,20 @@ describe('CoachLayout — gate de consentimento', () => {
 
     expect(screen.queryByRole('button', { name: /aceitar e continuar/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+  });
+
+  // Regressão: com o gate de loading, uma falha no `me` deixava loading=false e granted=null,
+  // prendendo o coach num spinner para sempre — sem mensagem e sem como tentar de novo.
+  it('mostra erro com retry quando `me` falha, em vez de spinner infinito', async () => {
+    errorAtual = new Error('falhou');
+    const user = userEvent.setup();
+    renderLayout();
+
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /tentar de novo/i }));
+    expect(fetchCurrentUser).toHaveBeenCalled();
   });
 
   it('não renderiza o shell enquanto `me` está carregando', () => {

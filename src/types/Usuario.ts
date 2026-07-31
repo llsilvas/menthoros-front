@@ -10,6 +10,8 @@ export interface UsuarioMeOutputDto {
     id: string;
     nome: string;
     email: string;
+    /** URL do avatar sincronizada do Keycloak. Externa — renderizar com `referrerPolicy`. */
+    avatarUrl?: string;
     role: UserRole;
     assessoria?: UsuarioAssessoria;
     atletaId?: string;
@@ -27,6 +29,16 @@ export interface UsuarioMeOutputDto {
     lgpdCurrentPolicyVersion: string;
     /** Data de vigência dos Termos em vigor; mesma garantia da Política. */
     lgpdCurrentTermsVersion: string;
+    /** Momento do último aceite; ausente quando nunca consentiu. */
+    lgpdConsentedAt?: string;
+    /**
+     * Versão da Política efetivamente aceita. Pode ser **anterior** à vigente — nesse caso
+     * `lgpdConsentGranted` é `false`, e é a diferença entre as duas que explica ao coach por que o
+     * consentimento voltou a ser pedido.
+     */
+    lgpdAcceptedPolicyVersion?: string;
+    /** Versão dos Termos efetivamente aceita; mesma semântica da Política. */
+    lgpdAcceptedTermsVersion?: string;
 }
 
 /**

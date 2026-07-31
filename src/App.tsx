@@ -19,6 +19,7 @@ const CoachInboxPage = lazy(() => import('./features/coach/pages/CoachInboxPage'
 import CoachAthletesPage from './features/coach/pages/CoachAthletesPage';
 import CoachCalendarPage from './features/coach/pages/CoachCalendarPage';
 import CoachInsightsPage from './features/coach/pages/CoachInsightsPage';
+import CoachSettingsPage from './features/coach/pages/CoachSettingsPage';
 import CoachPlanReviewPage from './features/coach/pages/CoachPlanReviewPage';
 import CoachAthleteProfilePage from './features/coach/pages/CoachAthleteProfilePage';
 import AthleteLayout from './features/athlete/layout/AthleteLayout';
@@ -212,6 +213,7 @@ const router = createHashRouter([
           { path: 'athletes/:atletaId/onboarding', element: <AthleteOnboardingPage /> },
           { path: 'calendar', element: <CoachCalendarPage /> },
           { path: 'insights', element: <CoachInsightsPage /> },
+          { path: 'settings', element: <CoachSettingsPage /> },
         ],
       },
       // Athlete shell — refine-athlete-shell-ux

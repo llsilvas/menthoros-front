@@ -4,7 +4,11 @@ import { UsuarioService } from '../api/services/UsuarioService';
 export interface CurrentCoach {
     id: string;
     name: string;
+    /** URL externa vinda do Keycloak; renderizar com `referrerPolicy="no-referrer"`. */
     avatarUrl?: string;
+    /** Obrigatório no contrato (`email` é `String` não-nulo no DTO). Marcar opcional aqui
+     * mascararia quebra de integração como "usuário sem e-mail". */
+    email: string;
 }
 
 export interface CurrentTenant {
@@ -21,6 +25,11 @@ export interface CurrentConsent {
     /** Versões em vigor, que o cliente deve ecoar ao registrar o aceite. */
     policyVersion: string;
     termsVersion: string;
+    /** Último aceite registrado; ausente quando nunca consentiu. */
+    consentedAt?: string;
+    /** Versões efetivamente aceitas — podem ser anteriores às vigentes. */
+    acceptedPolicyVersion?: string;
+    acceptedTermsVersion?: string;
 }
 
 export interface CurrentUserState {
@@ -32,7 +41,7 @@ export interface CurrentUserState {
     fetchCurrentUser: () => Promise<void>;
 }
 
-const FALLBACK_COACH: CurrentCoach = { id: '', name: '' };
+const FALLBACK_COACH: CurrentCoach = { id: '', name: '', email: '' };
 const FALLBACK_TENANT: CurrentTenant = { id: '', name: '', athleteCount: 0 };
 // granted: null = indefinido. Distinguir de `false` importa: `false` renderiza o modal bloqueante,
 // e assumi-lo antes de `me` responder faria o modal piscar em todo carregamento.
@@ -51,7 +60,7 @@ export const useCurrentUser = (): CurrentUserState => {
             setLoading(true);
             setError(null);
             const me = await UsuarioService.getMe();
-            setCoach({ id: me.id, name: me.nome });
+            setCoach({ id: me.id, name: me.nome, avatarUrl: me.avatarUrl, email: me.email });
             setTenant({
                 id: me.assessoria?.id ?? '',
                 name: me.assessoria?.nome ?? '',
@@ -61,6 +70,9 @@ export const useCurrentUser = (): CurrentUserState => {
                 granted: me.lgpdConsentGranted,
                 policyVersion: me.lgpdCurrentPolicyVersion,
                 termsVersion: me.lgpdCurrentTermsVersion,
+                consentedAt: me.lgpdConsentedAt,
+                acceptedPolicyVersion: me.lgpdAcceptedPolicyVersion,
+                acceptedTermsVersion: me.lgpdAcceptedTermsVersion,
             });
         } catch (err) {
             setError(err instanceof Error ? err : new Error('Erro ao buscar usuário atual'));
