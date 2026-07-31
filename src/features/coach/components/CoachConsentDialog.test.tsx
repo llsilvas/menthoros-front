@@ -1,13 +1,20 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router';
 import { CoachConsentDialog } from './CoachConsentDialog';
 
 const VERSOES = { policyVersion: '2026-06-30', termsVersion: '2026-06-30' };
 
+// O link da Política usa RouterLink (o app roteia por hash), então o dialog precisa de contexto de
+// Router para renderizar.
 const renderDialog = (props: Partial<React.ComponentProps<typeof CoachConsentDialog>> = {}) => {
   const onAccept = vi.fn().mockResolvedValue(undefined);
-  render(<CoachConsentDialog open {...VERSOES} onAccept={onAccept} {...props} />);
+  render(
+    <MemoryRouter>
+      <CoachConsentDialog open {...VERSOES} onAccept={onAccept} {...props} />
+    </MemoryRouter>,
+  );
   return { onAccept };
 };
 
@@ -66,11 +73,13 @@ describe('CoachConsentDialog', () => {
     expect(screen.queryByRole('button', { name: /cancelar/i })).not.toBeInTheDocument();
   });
 
-  it('aponta a Política para /privacidade', () => {
+  // O href exato depende do router (hash em produção, path no MemoryRouter do teste), então a
+  // asserção é sobre a rota de destino, não sobre a serialização.
+  it('aponta a Política para a rota /privacidade', () => {
     renderDialog();
 
-    expect(screen.getByRole('link', { name: /política de privacidade/i }))
-      .toHaveAttribute('href', '/privacidade');
+    expect(screen.getByRole('link', { name: /política de privacidade/i }).getAttribute('href'))
+      .toContain('/privacidade');
   });
 
   // Regressão: o link vivia dentro do <label> do FormControlLabel, que repassa o clique ao
@@ -89,7 +98,7 @@ describe('CoachConsentDialog', () => {
   it('exibe mensagem de erro quando o aceite falha', async () => {
     const user = userEvent.setup();
     const onAccept = vi.fn().mockRejectedValue(new Error('falhou'));
-    render(<CoachConsentDialog open {...VERSOES} onAccept={onAccept} />);
+    renderDialog({ onAccept });
 
     await user.click(screen.getByRole('checkbox', { name: /termos de uso/i }));
     await user.click(screen.getByRole('checkbox', { name: /política de privacidade/i }));
@@ -101,7 +110,7 @@ describe('CoachConsentDialog', () => {
   it('avisa que os termos mudaram quando o backend recusa a versão', async () => {
     const user = userEvent.setup();
     const onAccept = vi.fn().mockRejectedValue({ status: 409, body: { code: 'CONSENT_VERSION_STALE' } });
-    render(<CoachConsentDialog open {...VERSOES} onAccept={onAccept} />);
+    renderDialog({ onAccept });
 
     await user.click(screen.getByRole('checkbox', { name: /termos de uso/i }));
     await user.click(screen.getByRole('checkbox', { name: /política de privacidade/i }));
@@ -113,7 +122,7 @@ describe('CoachConsentDialog', () => {
   it('desmarca os aceites após versão defasada, para o usuário reler o texto novo', async () => {
     const user = userEvent.setup();
     const onAccept = vi.fn().mockRejectedValue({ status: 409, body: { code: 'CONSENT_VERSION_STALE' } });
-    render(<CoachConsentDialog open {...VERSOES} onAccept={onAccept} />);
+    renderDialog({ onAccept });
 
     await user.click(screen.getByRole('checkbox', { name: /termos de uso/i }));
     await user.click(screen.getByRole('checkbox', { name: /política de privacidade/i }));

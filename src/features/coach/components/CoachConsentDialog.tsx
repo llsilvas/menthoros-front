@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link as RouterLink } from 'react-router';
 import {
   Alert,
   Box,
@@ -11,6 +12,7 @@ import {
 } from '@mui/material';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { PRIMARY_BTN_SX } from '../../../shared/components/actionButtonSx';
+import { ROUTES } from '../../../constants/routes';
 
 export interface CoachConsentDialogProps {
   open: boolean;
@@ -142,7 +144,19 @@ export function CoachConsentDialog({
         de um texto que o usuário tentou ler e não conseguiu.
       */}
       <Typography variant="body2" sx={{ mt: 1.5 }}>
-        <Link href="/privacidade" target="_blank" rel="noopener">
+        {/*
+          `component={RouterLink}` e não `href`: o app usa `createHashRouter`, então as rotas vivem
+          depois do `#`. Um `href="/privacidade"` aponta para um caminho de servidor que não existe
+          no roteamento por hash — o resultado observado era a URL virar
+          `/privacidade#/privacidade` em vez de abrir a política.
+        */}
+        <Link
+          component={RouterLink}
+          to={ROUTES.PRIVACIDADE}
+          target="_blank"
+          rel="noopener"
+          underline="always"
+        >
           Ler a Política de Privacidade
         </Link>
       </Typography>
