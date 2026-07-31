@@ -1,9 +1,11 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { Box } from '@mui/material';
 import { Outlet, useLocation, useNavigate } from 'react-router';
 import { elevation } from '../../../shared/design-tokens';
 import type { CoachRoute } from '../../../constants/routes';
 import CoachSidebar from './CoachSidebar';
+import { CoachConsentDialog } from '../components/CoachConsentDialog';
+import { UsuarioService } from '../../../api/services/UsuarioService';
 import { useCurrentUser } from '../../../hooks/useCurrentUser';
 import { useAttentionQueue } from '../../../hooks/useAttentionQueue';
 import { useCoachPlanReview } from '../../../hooks/useCoachPlanReview';
@@ -33,7 +35,7 @@ export default function CoachLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { coach, tenant, fetchCurrentUser } = useCurrentUser();
+  const { coach, tenant, consent, fetchCurrentUser } = useCurrentUser();
   const { queue, loading: queueLoading, error: queueError, fetchQueue } = useAttentionQueue();
   const {
     allPlanos,
@@ -54,6 +56,32 @@ export default function CoachLayout() {
     fetchQueue();
     fetchPendentes();
   }, [fetchCurrentUser, fetchQueue, fetchPendentes]);
+
+  const handleAcceptConsent = useCallback(
+    async (versoes: { policyVersion: string; termsVersion: string }) => {
+      await UsuarioService.registrarConsentimento({
+        termsAccepted: true,
+        privacyPolicyAccepted: true,
+        ...versoes,
+      });
+      // Revalidar é o que libera o shell: sem o refetch o modal continuaria montado após o 200.
+      await fetchCurrentUser();
+    },
+    [fetchCurrentUser],
+  );
+
+  // `granted === null` significa "me ainda não respondeu" — tratar como false faria o modal piscar
+  // em todo carregamento. Só bloqueia quando o backend afirmou que falta consentimento.
+  if (consent.granted === false) {
+    return (
+      <CoachConsentDialog
+        open
+        policyVersion={consent.policyVersion ?? ''}
+        termsVersion={consent.termsVersion ?? ''}
+        onAccept={handleAcceptConsent}
+      />
+    );
+  }
 
   const activeRoute = (location.pathname as CoachRoute) ?? '/coach/inbox';
 

@@ -12,7 +12,7 @@ import type { UsuarioMeOutputDto } from '../types/Usuario';
 vi.mock('../api/services/PlanoSemanalService');
 vi.mock('../api/services/UsuarioService');
 
-const ME: UsuarioMeOutputDto = { id: 'u1', nome: 'Carlos', email: 'c@x.com', role: 'ATLETA', atletaId: 'a1' };
+const ME: UsuarioMeOutputDto = { id: 'u1', nome: 'Carlos', email: 'c@x.com', role: 'ATLETA', lgpdConsentGranted: true, atletaId: 'a1' };
 
 const PLANO: PlanoSemanal = {
     id: 'p1',
