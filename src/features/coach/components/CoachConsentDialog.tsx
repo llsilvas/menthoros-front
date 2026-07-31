@@ -21,6 +21,12 @@ export interface CoachConsentDialogProps {
   /** Versão vigente dos Termos, vinda de `GET /users/me`. */
   termsVersion: string;
   onAccept: (versoes: { policyVersion: string; termsVersion: string }) => Promise<void>;
+  /**
+   * Chamado quando o backend recusa o aceite por versão defasada (`409`). Precisa recarregar `me`,
+   * senão o dialog segue com as versões antigas em prop e o próximo aceite toma 409 de novo — laço
+   * infinito até o usuário recarregar a página na mão.
+   */
+  onVersionStale?: () => Promise<void>;
 }
 
 const MSG_ERRO_PADRAO = 'Não foi possível registrar seu aceite. Tente novamente.';
@@ -48,6 +54,7 @@ export function CoachConsentDialog({
   policyVersion,
   termsVersion,
   onAccept,
+  onVersionStale,
 }: CoachConsentDialogProps) {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
@@ -68,6 +75,8 @@ export function CoachConsentDialog({
         setTermsAccepted(false);
         setPrivacyAccepted(false);
         setErro(MSG_VERSAO_DEFASADA);
+        // Buscar as versões novas: sem isso o próximo aceite repetiria o mesmo 409.
+        await onVersionStale?.();
       } else {
         setErro(MSG_ERRO_PADRAO);
       }
@@ -154,7 +163,7 @@ export function CoachConsentDialog({
           component={RouterLink}
           to={ROUTES.PRIVACIDADE}
           target="_blank"
-          rel="noopener"
+          rel="noopener noreferrer"
           underline="always"
         >
           Ler a Política de Privacidade

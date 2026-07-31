@@ -7,14 +7,16 @@ import type { CurrentConsent } from '../../../hooks/useCurrentUser';
 
 const fetchCurrentUser = vi.fn().mockResolvedValue(undefined);
 const registrarConsentimento = vi.fn().mockResolvedValue(undefined);
-let consentAtual: CurrentConsent = { granted: true };
+const VERSOES = { policyVersion: '2026-06-30', termsVersion: '2026-06-30' };
+let consentAtual: CurrentConsent = { granted: true, ...VERSOES };
+let loadingAtual = false;
 
 vi.mock('../../../hooks/useCurrentUser', () => ({
   useCurrentUser: () => ({
     coach: { id: 'c1', name: 'Coach' },
     tenant: { id: 't1', name: 'Assessoria', athleteCount: 0 },
     consent: consentAtual,
-    loading: false,
+    loading: loadingAtual,
     error: null,
     fetchCurrentUser,
   }),
@@ -53,7 +55,8 @@ const renderLayout = () =>
 describe('CoachLayout — gate de consentimento', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    consentAtual = { granted: true };
+    consentAtual = { granted: true, ...VERSOES };
+    loadingAtual = false;
   });
 
   it('renderiza o shell normal quando o consentimento está em dia', () => {
@@ -63,7 +66,7 @@ describe('CoachLayout — gate de consentimento', () => {
   });
 
   it('substitui o shell pelo modal quando falta consentimento', () => {
-    consentAtual = { granted: false, policyVersion: '2026-06-30', termsVersion: '2026-06-30' };
+    consentAtual = { granted: false, ...VERSOES };
 
     renderLayout();
 
@@ -72,16 +75,29 @@ describe('CoachLayout — gate de consentimento', () => {
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
   });
 
-  it('não exibe o modal enquanto o consentimento é indefinido (me ainda carregando)', () => {
-    consentAtual = { granted: null };
+  // Enquanto `me` não respondeu não pode aparecer nem o modal (piscaria a cada carregamento) nem o
+  // shell (a sidebar e os fetches da fila rodariam antes de saber se o coach consentiu — com
+  // enforcement ligado voltariam 403 e o coach veria erro cru no lugar do gate).
+  it('não exibe modal nem shell enquanto o consentimento é indefinido', () => {
+    consentAtual = { granted: null, ...VERSOES };
 
     renderLayout();
 
     expect(screen.queryByRole('button', { name: /aceitar e continuar/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+  });
+
+  it('não renderiza o shell enquanto `me` está carregando', () => {
+    loadingAtual = true;
+
+    renderLayout();
+
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /aceitar e continuar/i })).not.toBeInTheDocument();
   });
 
   it('após aceitar, registra e revalida o usuário para liberar a navegação', async () => {
-    consentAtual = { granted: false, policyVersion: '2026-06-30', termsVersion: '2026-06-30' };
+    consentAtual = { granted: false, ...VERSOES };
     const user = userEvent.setup();
     renderLayout();
 

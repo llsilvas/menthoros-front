@@ -19,8 +19,8 @@ export interface CurrentConsent {
     /** Já aceitou as versões vigentes? `null` enquanto `me` não carregou. */
     granted: boolean | null;
     /** Versões em vigor, que o cliente deve ecoar ao registrar o aceite. */
-    policyVersion?: string;
-    termsVersion?: string;
+    policyVersion: string;
+    termsVersion: string;
 }
 
 export interface CurrentUserState {
@@ -36,7 +36,7 @@ const FALLBACK_COACH: CurrentCoach = { id: '', name: '' };
 const FALLBACK_TENANT: CurrentTenant = { id: '', name: '', athleteCount: 0 };
 // granted: null = indefinido. Distinguir de `false` importa: `false` renderiza o modal bloqueante,
 // e assumi-lo antes de `me` responder faria o modal piscar em todo carregamento.
-const FALLBACK_CONSENT: CurrentConsent = { granted: null };
+const FALLBACK_CONSENT: CurrentConsent = { granted: null, policyVersion: '', termsVersion: '' };
 
 /** Identidade real do coach autenticado (`GET /api/v1/users/me`). */
 export const useCurrentUser = (): CurrentUserState => {

@@ -1,20 +1,23 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router';
+import { createHashRouter, RouterProvider } from 'react-router';
 import { CoachConsentDialog } from './CoachConsentDialog';
 
 const VERSOES = { policyVersion: '2026-06-30', termsVersion: '2026-06-30' };
 
-// O link da Política usa RouterLink (o app roteia por hash), então o dialog precisa de contexto de
-// Router para renderizar.
+// Monta com `createHashRouter` de propósito, e não com MemoryRouter: o app real usa hash routing,
+// e foi justamente aí que um `href` absoluto passou no teste e quebrou no browser. Com o router
+// certo, reverter o fix faz o teste falhar.
 const renderDialog = (props: Partial<React.ComponentProps<typeof CoachConsentDialog>> = {}) => {
   const onAccept = vi.fn().mockResolvedValue(undefined);
-  render(
-    <MemoryRouter>
-      <CoachConsentDialog open {...VERSOES} onAccept={onAccept} {...props} />
-    </MemoryRouter>,
-  );
+  const router = createHashRouter([
+    {
+      path: '/',
+      element: <CoachConsentDialog open {...VERSOES} onAccept={onAccept} {...props} />,
+    },
+  ]);
+  render(<RouterProvider router={router} />);
   return { onAccept };
 };
 
@@ -73,13 +76,49 @@ describe('CoachConsentDialog', () => {
     expect(screen.queryByRole('button', { name: /cancelar/i })).not.toBeInTheDocument();
   });
 
-  // O href exato depende do router (hash em produção, path no MemoryRouter do teste), então a
-  // asserção é sobre a rota de destino, não sobre a serialização.
-  it('aponta a Política para a rota /privacidade', () => {
+  // Trava o comportamento contra uma "simplificação" futura que troque o onClose no-op por um
+  // handler de verdade: Esc e backdrop passariam a fechar o gate sem aceite.
+  it('não fecha com Esc', async () => {
+    const user = userEvent.setup();
     renderDialog();
 
-    expect(screen.getByRole('link', { name: /política de privacidade/i }).getAttribute('href'))
-      .toContain('/privacidade');
+    await user.keyboard('{Escape}');
+
+    expect(screen.getByRole('button', { name: /aceitar e continuar/i })).toBeInTheDocument();
+  });
+
+  it('não fecha ao clicar no backdrop', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+
+    const backdrop = document.querySelector('.MuiBackdrop-root');
+    if (backdrop) await user.click(backdrop);
+
+    expect(screen.getByRole('button', { name: /aceitar e continuar/i })).toBeInTheDocument();
+  });
+
+  it('recarrega as versões quando o backend recusa por versão defasada', async () => {
+    const user = userEvent.setup();
+    const onAccept = vi.fn().mockRejectedValue({ status: 409, body: { code: 'CONSENT_VERSION_STALE' } });
+    const onVersionStale = vi.fn().mockResolvedValue(undefined);
+    renderDialog({ onAccept, onVersionStale });
+
+    await user.click(screen.getByRole('checkbox', { name: /termos de uso/i }));
+    await user.click(screen.getByRole('checkbox', { name: /política de privacidade/i }));
+    await user.click(botaoAceitar());
+
+    // Sem este refetch o dialog manteria as versões antigas e o próximo aceite tomaria 409 de novo.
+    await waitFor(() => expect(onVersionStale).toHaveBeenCalled());
+  });
+
+  // Regressão: com href absoluto o link resolvia para um caminho de servidor que não existe no
+  // roteamento por hash. Asserir `#/privacidade` é o que trava o fix — `toContain('/privacidade')`
+  // passava para as duas formas, a correta e a quebrada.
+  it('resolve a Política como rota de hash, não como caminho de servidor', () => {
+    renderDialog();
+
+    expect(screen.getByRole('link', { name: /política de privacidade/i }))
+      .toHaveAttribute('href', '#/privacidade');
   });
 
   // Regressão: o link vivia dentro do <label> do FormControlLabel, que repassa o clique ao

@@ -10,7 +10,7 @@ const ME_STUB: UsuarioMeOutputDto = {
     id: 'u1',
     nome: 'João Silva',
     email: 'joao@exemplo.com',
-    role: 'TECNICO', lgpdConsentGranted: true,
+    role: 'TECNICO', lgpdConsentGranted: true, lgpdCurrentPolicyVersion: '2026-06-30', lgpdCurrentTermsVersion: '2026-06-30',
     assessoria: { id: 't1', nome: 'Corridas Serra', dominio: 'corridasserra' },
 };
 

@@ -18,10 +18,15 @@ export interface UsuarioMeOutputDto {
      * Derivado no backend — volta a `false` quando uma das versões vigentes muda.
      */
     lgpdConsentGranted: boolean;
-    /** Data de vigência da Política em vigor; deve ser ecoada ao registrar o aceite. */
-    lgpdCurrentPolicyVersion?: string;
-    /** Data de vigência dos Termos em vigor; deve ser ecoada ao registrar o aceite. */
-    lgpdCurrentTermsVersion?: string;
+    /**
+     * Data de vigência da Política em vigor; deve ser ecoada ao registrar o aceite.
+     * Não é opcional: o backend a lê de `app.lgpd.policy-version`, que é `@NotBlank` e derruba o
+     * boot se faltar. Marcá-la opcional aqui convidaria a um fallback que mascararia bug de
+     * integração como "versão desatualizada".
+     */
+    lgpdCurrentPolicyVersion: string;
+    /** Data de vigência dos Termos em vigor; mesma garantia da Política. */
+    lgpdCurrentTermsVersion: string;
 }
 
 /**

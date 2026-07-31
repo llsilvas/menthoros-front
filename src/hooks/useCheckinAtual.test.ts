@@ -19,7 +19,7 @@ function checkin(data: string): CheckinProntidaoOutput {
     };
 }
 
-const USUARIO_BASE = { id: 'usuario-1', nome: 'Atleta Teste', email: 'atleta@teste.com', role: 'ATLETA' as const, lgpdConsentGranted: true, };
+const USUARIO_BASE = { id: 'usuario-1', nome: 'Atleta Teste', email: 'atleta@teste.com', role: 'ATLETA' as const, lgpdConsentGranted: true, lgpdCurrentPolicyVersion: '2026-06-30', lgpdCurrentTermsVersion: '2026-06-30', };
 
 describe('useCheckinAtual', () => {
     beforeEach(() => {

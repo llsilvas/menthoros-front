@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from 'react';
-import { Box } from '@mui/material';
+import { Box, CircularProgress } from '@mui/material';
 import { Outlet, useLocation, useNavigate } from 'react-router';
 import { elevation } from '../../../shared/design-tokens';
 import type { CoachRoute } from '../../../constants/routes';
@@ -35,7 +35,7 @@ export default function CoachLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { coach, tenant, consent, fetchCurrentUser } = useCurrentUser();
+  const { coach, tenant, consent, loading: userLoading, fetchCurrentUser } = useCurrentUser();
   const { queue, loading: queueLoading, error: queueError, fetchQueue } = useAttentionQueue();
   const {
     allPlanos,
@@ -70,15 +70,42 @@ export default function CoachLayout() {
     [fetchCurrentUser],
   );
 
-  // `granted === null` significa "me ainda não respondeu" — tratar como false faria o modal piscar
-  // em todo carregamento. Só bloqueia quando o backend afirmou que falta consentimento.
+  // 409 CONSENT_VERSION_STALE: as versões mudaram no servidor. Sem recarregar `me`, o dialog
+  // continuaria com as versões antigas em prop e o próximo aceite tomaria 409 de novo — laço
+  // infinito até o usuário recarregar a página na mão.
+  const handleConsentVersionStale = useCallback(async () => {
+    await fetchCurrentUser();
+  }, [fetchCurrentUser]);
+
+  // Enquanto `me` não respondeu, não renderiza nem o shell nem o modal. Liberar o shell no
+  // indefinido deixava sidebar e Outlet aparecerem — e os fetches da fila e da revisão dispararem —
+  // antes de saber se o coach consentiu; com enforcement ligado, essas chamadas voltariam 403 e o
+  // coach veria erro cru no lugar do gate. Tratar o indefinido como `false`, por outro lado, faria o
+  // modal piscar em todo carregamento.
+  if (userLoading || consent.granted === null) {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          height: '100vh',
+          alignItems: 'center',
+          justifyContent: 'center',
+          bgcolor: elevation.base,
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
+
   if (consent.granted === false) {
     return (
       <CoachConsentDialog
         open
-        policyVersion={consent.policyVersion ?? ''}
-        termsVersion={consent.termsVersion ?? ''}
+        policyVersion={consent.policyVersion}
+        termsVersion={consent.termsVersion}
         onAccept={handleAcceptConsent}
+        onVersionStale={handleConsentVersionStale}
       />
     );
   }
