@@ -129,14 +129,23 @@ export function CoachConsentDialog({
           label={
             <Typography variant="body2">
               Consinto com o tratamento dos meus dados pessoais (nome, e-mail, avatar e registro de
-              acesso) conforme a{' '}
-              <Link href="/privacidade" target="_blank" rel="noopener">
-                Política de Privacidade
-              </Link>
+              acesso) conforme a Política de Privacidade
             </Typography>
           }
         />
       </Box>
+
+      {/*
+        O link fica FORA do FormControlLabel de propósito. Dentro, ele vira conteúdo do <label>, que
+        repassa qualquer clique ao checkbox — então clicar para LER a política acabava apenas
+        marcando o aceite, sem abrir nada. Num fluxo de consentimento isso é grave: registra aceite
+        de um texto que o usuário tentou ler e não conseguiu.
+      */}
+      <Typography variant="body2" sx={{ mt: 1.5 }}>
+        <Link href="/privacidade" target="_blank" rel="noopener">
+          Ler a Política de Privacidade
+        </Link>
+      </Typography>
 
       {erro ? (
         <Alert severity="warning" sx={{ mt: 2 }}>

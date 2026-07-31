@@ -73,6 +73,19 @@ describe('CoachConsentDialog', () => {
       .toHaveAttribute('href', '/privacidade');
   });
 
+  // Regressão: o link vivia dentro do <label> do FormControlLabel, que repassa o clique ao
+  // checkbox. Clicar para LER a política apenas marcava o aceite, sem abrir a página — registrando
+  // consentimento sobre um texto que o usuário tentou ler e não conseguiu.
+  it('clicar no link da Política não marca o checkbox de aceite', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    const checkbox = screen.getByRole('checkbox', { name: /política de privacidade/i });
+
+    await user.click(screen.getByRole('link', { name: /política de privacidade/i }));
+
+    expect(checkbox).not.toBeChecked();
+  });
+
   it('exibe mensagem de erro quando o aceite falha', async () => {
     const user = userEvent.setup();
     const onAccept = vi.fn().mockRejectedValue(new Error('falhou'));
