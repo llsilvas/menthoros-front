@@ -13,6 +13,7 @@ export const ROUTES = {
 
     // Coach shell (standardize-coach-shell-ux)
     COACH_INBOX:    '/coach/inbox',
+    COACH_SETTINGS: '/coach/settings',
     COACH_ATHLETES: '/coach/athletes',
     COACH_CALENDAR: '/coach/calendar',
     COACH_INSIGHTS: '/coach/insights',
@@ -30,6 +31,7 @@ export const ROUTES = {
 
 export type CoachRoute =
     | '/coach/inbox'
+    | '/coach/settings'
     | '/coach/athletes'
     | '/coach/calendar'
     | '/coach/insights'

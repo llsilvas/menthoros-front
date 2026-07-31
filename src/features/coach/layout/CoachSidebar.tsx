@@ -16,6 +16,7 @@ import InboxIcon from '@mui/icons-material/Inbox';
 import InsightsIcon from '@mui/icons-material/Insights';
 import PeopleIcon from '@mui/icons-material/People';
 import RateReviewIcon from '@mui/icons-material/RateReview';
+import SettingsIcon from '@mui/icons-material/Settings';
 
 import type { CoachRoute } from '../../../constants/routes';
 import { content, gradients, semantic, surface } from '../../../theme/tokens';
@@ -64,6 +65,7 @@ const NAV_ITEMS: NavItemDef[] = [
   { route: '/coach/calendar',        label: 'Calendário',        Icon: CalendarMonthIcon },
   { route: '/coach/insights',        label: 'Insights',          Icon: InsightsIcon },
   { route: '/coach/planos/revisao',  label: 'Revisão de planos', Icon: RateReviewIcon },
+  { route: '/coach/settings',        label: 'Configurações',      Icon: SettingsIcon },
 ];
 
 // ── Dimensions ────────────────────────────────────────────────────────────────

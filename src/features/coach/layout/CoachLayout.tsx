@@ -7,6 +7,7 @@ import CoachSidebar from './CoachSidebar';
 import { CoachConsentDialog } from '../components/CoachConsentDialog';
 import { UsuarioService } from '../../../api/services/UsuarioService';
 import { useCurrentUser } from '../../../hooks/useCurrentUser';
+import type { CurrentCoach, CurrentConsent } from '../../../hooks/useCurrentUser';
 import { useAttentionQueue } from '../../../hooks/useAttentionQueue';
 import { useCoachPlanReview } from '../../../hooks/useCoachPlanReview';
 import type { CoachAttentionItem } from '../../../types/Coach';
@@ -15,6 +16,15 @@ import type { PlanoSemanalDto } from '../../../types/PlanoReview';
 import type { ReviewFilter } from '../../../hooks/useCoachPlanReview';
 
 export interface CoachLayoutOutletContext {
+  /**
+   * Identidade e consentimento já resolvidos pelo layout.
+   *
+   * Estão aqui porque `useCurrentUser` não busca sozinho: uma página que chamasse o hook de novo
+   * criaria estado próprio e ficaria em fallback vazio para sempre, e disparar o fetch nela
+   * duplicaria o `GET /users/me` que o layout já fez.
+   */
+  coach: CurrentCoach;
+  consent: CurrentConsent;
   queue: CoachAttentionItem[];
   queueLoading: boolean;
   queueError: Error | null;
@@ -119,6 +129,8 @@ export default function CoachLayout() {
   const reviewBadgeCount = allPlanos.filter(p => resolveReviewStatus(p.reviewStatus) === 'AGUARDANDO_REVISAO').length;
 
   const outletContext: CoachLayoutOutletContext = {
+    coach,
+    consent,
     queue,
     queueLoading,
     queueError,
