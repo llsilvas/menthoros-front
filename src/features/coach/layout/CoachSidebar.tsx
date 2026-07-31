@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { AVATAR_IMG_SLOT_PROPS, safeAvatarSrc } from '../../../shared/components/avatarSrc';
 import {
   Avatar,
   Box,
@@ -572,8 +573,9 @@ export default function CoachSidebar({
               }}
             >
               <Avatar
-                src={coach.avatarUrl}
+                src={safeAvatarSrc(coach.avatarUrl)}
                 alt={coach.name}
+                slotProps={AVATAR_IMG_SLOT_PROPS}
                 sx={{ width: 32, height: 32, fontSize: '0.75rem', bgcolor: `${primary[500]}26`, color: primary[500] }}
               >
                 {coach.name.charAt(0).toUpperCase()}
@@ -591,8 +593,9 @@ export default function CoachSidebar({
             }}
           >
             <Avatar
-              src={coach.avatarUrl}
+              src={safeAvatarSrc(coach.avatarUrl)}
               alt={coach.name}
+              slotProps={AVATAR_IMG_SLOT_PROPS}
               sx={{ width: 32, height: 32, fontSize: '0.75rem', bgcolor: `${primary[500]}26`, color: primary[500], flexShrink: 0 }}
             >
               {coach.name.charAt(0).toUpperCase()}

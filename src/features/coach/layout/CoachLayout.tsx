@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from 'react';
-import { Box, CircularProgress } from '@mui/material';
+import { Alert, Box, Button, CircularProgress } from '@mui/material';
 import { Outlet, useLocation, useNavigate } from 'react-router';
 import { elevation } from '../../../shared/design-tokens';
 import type { CoachRoute } from '../../../constants/routes';
@@ -41,11 +41,20 @@ export interface CoachLayoutOutletContext {
   reviewRejeitar: (id: string, motivo: string) => Promise<boolean>;
 }
 
+const telaCheia = {
+  display: 'flex',
+  height: '100vh',
+  alignItems: 'center',
+  justifyContent: 'center',
+  bgcolor: elevation.base,
+  p: 2,
+} as const;
+
 export default function CoachLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { coach, tenant, consent, loading: userLoading, fetchCurrentUser } = useCurrentUser();
+  const { coach, tenant, consent, loading: userLoading, error: userError, fetchCurrentUser } = useCurrentUser();
   const { queue, loading: queueLoading, error: queueError, fetchQueue } = useAttentionQueue();
   const {
     allPlanos,
@@ -92,17 +101,25 @@ export default function CoachLayout() {
   // antes de saber se o coach consentiu; com enforcement ligado, essas chamadas voltariam 403 e o
   // coach veria erro cru no lugar do gate. Tratar o indefinido como `false`, por outro lado, faria o
   // modal piscar em todo carregamento.
+  // Erro antes do spinner: se `me` falha, `loading` volta a false mas `consent.granted` fica em
+  // `null` (o fallback do hook). Sem este ramo o coach ficaria preso num spinner para sempre, sem
+  // mensagem e sem como tentar de novo.
+  if (userError) {
+    return (
+      <Box sx={telaCheia}>
+        <Alert
+          severity="error"
+          action={<Button color="inherit" size="small" onClick={() => { void fetchCurrentUser(); }}>Tentar de novo</Button>}
+        >
+          Não foi possível carregar seus dados.
+        </Alert>
+      </Box>
+    );
+  }
+
   if (userLoading || consent.granted === null) {
     return (
-      <Box
-        sx={{
-          display: 'flex',
-          height: '100vh',
-          alignItems: 'center',
-          justifyContent: 'center',
-          bgcolor: elevation.base,
-        }}
-      >
+      <Box sx={telaCheia}>
         <CircularProgress />
       </Box>
     );

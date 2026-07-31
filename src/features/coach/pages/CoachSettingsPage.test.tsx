@@ -72,7 +72,7 @@ describe('CoachSettingsPage', () => {
     expect(screen.getByText(/nenhum aceite registrado/i)).toBeInTheDocument();
   });
 
-  it('sinaliza quando o aceite é de versão anterior à vigente', () => {
+  it('nomeia quais documentos divergem, sem afirmar direção da mudança', () => {
     comContexto({
       granted: false,
       policyVersion: '2027-01-01',
@@ -82,7 +82,9 @@ describe('CoachSettingsPage', () => {
       acceptedTermsVersion: '2026-06-30',
     });
 
-    expect(screen.getByText(/atualizad/i)).toBeInTheDocument();
+    // Não diz "foram atualizados": um rollback de config deixa o vigente MAIS ANTIGO que o aceito.
+    expect(screen.getByText(/Política de Privacidade e Termos de Uso/)).toBeInTheDocument();
+    expect(screen.queryByText(/foram atualizados/i)).not.toBeInTheDocument();
   });
 
   it('a Política resolve como rota de hash, não caminho de servidor (CA5)', () => {

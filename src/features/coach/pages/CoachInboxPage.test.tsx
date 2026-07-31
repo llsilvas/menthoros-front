@@ -155,7 +155,7 @@ describe('CoachInboxPage', () => {
       expiresAt: '2026-07-01T13:30:00Z',
     });
     vi.mocked(reactRouter.useOutletContext).mockReturnValue({
-      coach: { id: 'c1', name: 'Coach' },
+      coach: { id: 'c1', name: 'Coach', email: 'coach@exemplo.com' },
       consent: { granted: true, policyVersion: '2026-06-30', termsVersion: '2026-06-30' },
       queue: [],
       queueLoading: false,

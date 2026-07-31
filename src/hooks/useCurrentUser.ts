@@ -6,7 +6,9 @@ export interface CurrentCoach {
     name: string;
     /** URL externa vinda do Keycloak; renderizar com `referrerPolicy="no-referrer"`. */
     avatarUrl?: string;
-    email?: string;
+    /** Obrigatório no contrato (`email` é `String` não-nulo no DTO). Marcar opcional aqui
+     * mascararia quebra de integração como "usuário sem e-mail". */
+    email: string;
 }
 
 export interface CurrentTenant {
@@ -39,7 +41,7 @@ export interface CurrentUserState {
     fetchCurrentUser: () => Promise<void>;
 }
 
-const FALLBACK_COACH: CurrentCoach = { id: '', name: '' };
+const FALLBACK_COACH: CurrentCoach = { id: '', name: '', email: '' };
 const FALLBACK_TENANT: CurrentTenant = { id: '', name: '', athleteCount: 0 };
 // granted: null = indefinido. Distinguir de `false` importa: `false` renderiza o modal bloqueante,
 // e assumi-lo antes de `me` responder faria o modal piscar em todo carregamento.
