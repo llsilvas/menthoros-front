@@ -8,7 +8,7 @@ import type { CalibrationStatus } from '../types/Calibracao';
 vi.mock('../api/services/OnboardingService');
 vi.mock('../api/services/UsuarioService');
 
-const USUARIO_BASE = { id: 'usuario-1', nome: 'Atleta Teste', email: 'atleta@teste.com', role: 'ATLETA' as const };
+const USUARIO_BASE = { id: 'usuario-1', nome: 'Atleta Teste', email: 'atleta@teste.com', role: 'ATLETA' as const, lgpdConsentGranted: true, lgpdCurrentPolicyVersion: '2026-06-30', lgpdCurrentTermsVersion: '2026-06-30', };
 
 const STATUS: CalibrationStatus = { phase: 'CALIBRATION', stage: 'CALIBRATION', weekNumber: 2, confidenceScore: 40 };
 

@@ -3,8 +3,19 @@ import { Box, Button, Link, Paper, Stack, Typography } from '@mui/material';
 import { gradients, glassAzulSx, surface } from '../../theme/tokens';
 import { overlayWhite } from '../../theme/overlays';
 
-// E-mail de contato/encarregado (LGPD). Confirmar/substituir antes do go-live.
+// E-mail de contato/encarregado (LGPD). Canal oficial confirmado (2026-07-31).
 const CONTATO_EMAIL = 'contato@menthoros.com';
+
+/**
+ * Data de vigência desta política.
+ *
+ * ATENÇÃO: precisa corresponder a `app.lgpd.policy-version` no backend (formato `YYYY-MM-DD`,
+ * hoje `2026-06-30`). É essa propriedade que carimba a versão no registro de consentimento — se as
+ * duas divergirem, o sistema grava que o coach aceitou uma versão diferente da que leu aqui.
+ *
+ * Ao atualizar o texto, siga o procedimento de bump da change `add-coach-lgpd-consent`: publicar
+ * esta página primeiro, só então mudar a propriedade no backend.
+ */
 const ATUALIZADA_EM = '30 de junho de 2026';
 
 interface Secao {
