@@ -9,8 +9,12 @@ import {
 } from './session';
 import {
   CHAVE_DESTINO,
+  ehRecusaDeLoginSilencioso,
   ehRetornoDeAutorizacao,
+  jaTentouRestaurar,
   limparParametrosDeAutorizacao,
+  limparTentativaDeRestauracao,
+  marcarTentativaDeRestauracao,
   userManager,
 } from './userManager';
 
@@ -46,9 +50,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Sessão do mecanismo antigo não sobrevive à virada (decisão 0.5 da change).
         limparTokenLegado();
 
+        // O Keycloak recusou a restauração silenciosa: não há sessão no provedor. É resposta
+        // esperada, não erro — segue para o login sem tentar de novo.
+        if (ehRecusaDeLoginSilencioso()) {
+          limparParametrosDeAutorizacao();
+          if (ativo) aplicarUsuario(null);
+          return;
+        }
+
         if (ehRetornoDeAutorizacao()) {
           const user = await userManager.signinCallback();
           limparParametrosDeAutorizacao();
+          limparTentativaDeRestauracao();
 
           const destino = (user?.state as Record<string, unknown> | undefined)?.[CHAVE_DESTINO];
           if (typeof destino === 'string' && destino) {
@@ -62,7 +75,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         const user = await userManager.getUser();
-        if (ativo) aplicarUsuario(user);
+        if (user && !user.expired) {
+          if (ativo) aplicarUsuario(user);
+          return;
+        }
+
+        /**
+         * Sem usuário em memória — é o caso de **recarregar a página**, porque o token não é
+         * persistido (D2). Antes de concluir "anônimo", pergunta ao Keycloak se ainda há sessão.
+         *
+         * `prompt=none` **por redirect**, não por iframe: o iframe foi descartado porque o cookie de
+         * sessão seria third-party em ambiente cross-site (D6) — mas numa navegação de topo ele é
+         * first-party e vai normalmente. Se houver sessão, o Keycloak devolve o code na hora, sem
+         * interação; se não houver, devolve `login_required`, tratado acima.
+         *
+         * A guarda existe porque isto é um redirect: falhar e tentar de novo produziria laço
+         * infinito, com a tela piscando sem parar.
+         */
+        if (!jaTentouRestaurar()) {
+          marcarTentativaDeRestauracao();
+          await userManager.signinRedirect({
+            prompt: 'none',
+            state: { [CHAVE_DESTINO]: window.location.hash },
+          });
+          return; // a página navega; nada depois disto executa
+        }
+
+        if (ativo) aplicarUsuario(null);
       } catch {
         // Falha ao restaurar sessão é "não autenticado", não erro fatal: o usuário segue para o
         // login. Propagar aqui deixaria a aplicação sem render nenhum.

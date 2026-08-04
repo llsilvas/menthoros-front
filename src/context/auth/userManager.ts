@@ -24,6 +24,53 @@ export function ehRetornoDeAutorizacao(url: string = window.location.href): bool
 }
 
 /**
+ * `true` quando o Keycloak recusou uma tentativa **silenciosa** de restaurar a sessão.
+ *
+ * Com `prompt=none`, não havendo sessão no provedor, o retorno vem com `error=login_required` (ou
+ * `interaction_required`) em vez de `code`. Isso não é falha: é a resposta correta para "tenta sem
+ * incomodar o usuário".
+ */
+export function ehRecusaDeLoginSilencioso(url: string = window.location.href): boolean {
+  const erro = new URL(url).searchParams.get('error');
+  return erro === 'login_required' || erro === 'interaction_required';
+}
+
+/**
+ * Guarda contra laço de restauração.
+ *
+ * A restauração silenciosa é um redirect. Se ela falhar e o bootstrap tentar de novo, o par
+ * app↔Keycloak entra em laço infinito — e o sintoma (tela piscando sem parar) é pior que o problema
+ * que se queria resolver. A marca vive em `sessionStorage` porque precisa sobreviver ao redirect,
+ * mas não à aba.
+ */
+const CHAVE_TENTATIVA = 'menthoros:restauracao-tentada';
+
+export function jaTentouRestaurar(): boolean {
+  try {
+    return sessionStorage.getItem(CHAVE_TENTATIVA) === '1';
+  } catch {
+    // Sem sessionStorage não há como evitar o laço com segurança; melhor não tentar restaurar.
+    return true;
+  }
+}
+
+export function marcarTentativaDeRestauracao(): void {
+  try {
+    sessionStorage.setItem(CHAVE_TENTATIVA, '1');
+  } catch {
+    // Ignorado: o `jaTentouRestaurar` já falha fechado.
+  }
+}
+
+export function limparTentativaDeRestauracao(): void {
+  try {
+    sessionStorage.removeItem(CHAVE_TENTATIVA);
+  } catch {
+    // Nada a limpar.
+  }
+}
+
+/**
  * Remove `code`/`state` da barra de endereço depois de processar o retorno.
  *
  * Sem isso, um reload reenviaria o mesmo `code` — que o Keycloak já invalidou —, e o usuário veria
