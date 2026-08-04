@@ -4,12 +4,10 @@ import { Navigate, useNavigate } from 'react-router';
 import { ROUTES } from '../../constants/routes';
 import { useAuth } from '../../context/auth/useAuth';
 import { AuthService } from '../../services/auth/AuthService';
-import { decodeJwtPayload, extractUserRoles } from '../../context/auth/jwt';
+import { getRoles } from '../../context/auth/session';
 import { gradients, glassAzulSx, glassAzulSxHover, transitions, primary, surface } from '../../theme/tokens';
 import { overlayWhite } from '../../theme/overlays';
 import logoMenthoros from '../../assets/icons/menthoros_mark.png';
-
-const TOKEN_STORAGE_KEY = '@Menthoros:token';
 
 /** Destino pós-login por role. */
 function destinoPorRoles(roles: string[]): string {
@@ -19,16 +17,14 @@ function destinoPorRoles(roles: string[]): string {
 }
 
 /**
- * Lê e decodifica o token direto do localStorage a cada chamada (sem memo) — necessário porque,
- * no fluxo de login, este componente já está montado com `isAuthenticated=false` quando o token
- * é gravado; um hook memoizado (ex. `useUserInfo`) manteria `roles` congelado em vazio no re-render
- * que segue o login, mandando o atleta para `/inicio` em vez do shell dele.
+ * Lê as roles da sessão a cada chamada (sem memo) — necessário porque, no fluxo de login, este
+ * componente já está montado com `isAuthenticated=false` quando o token é gravado; um hook
+ * memoizado (ex. `useUserInfo`) manteria `roles` congelado em vazio no re-render que segue o login,
+ * mandando o atleta para `/inicio` em vez do shell dele.
+ *
+ * `getRoles` é síncrono por isso: é chamado no corpo do render (ver `context/auth/session`).
  */
-function rolesDoTokenAtual(): string[] {
-  const token = localStorage.getItem(TOKEN_STORAGE_KEY) ?? '';
-  const payload = token ? decodeJwtPayload(token) : null;
-  return payload ? extractUserRoles(payload) : [];
-}
+const rolesDoTokenAtual = getRoles;
 
 export default function LoginPage() {
   const navigate = useNavigate();

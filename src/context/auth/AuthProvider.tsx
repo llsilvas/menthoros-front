@@ -1,20 +1,19 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { AuthContext } from './authContext';
 import { isTokenValid } from './jwt';
-
-const TOKEN_STORAGE_KEY = '@Menthoros:token';
-
-const readToken = (): string => localStorage.getItem(TOKEN_STORAGE_KEY) ?? '';
+import { clearToken, getAccessTokenSync, setToken } from './session';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => isTokenValid(readToken()));
+  // Leitura SÍNCRONA de propósito: o estado inicial define se o guard de rota deixa passar no
+  // primeiro render. Um valor assíncrono aqui faria toda montagem começar como "não autenticado".
+  const [isAuthenticated, setIsAuthenticated] = useState(() => isTokenValid(getAccessTokenSync()));
 
   useEffect(() => {
     const checkTokenExpiration = () => {
-      const token = readToken();
+      const token = getAccessTokenSync();
       if (token && !isTokenValid(token)) {
         setIsAuthenticated(false);
-        localStorage.removeItem(TOKEN_STORAGE_KEY);
+        clearToken();
       }
     };
 
@@ -23,12 +22,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = (token: string) => {
-    localStorage.setItem(TOKEN_STORAGE_KEY, token);
+    setToken(token);
     setIsAuthenticated(true);
   };
 
   const logout = () => {
-    localStorage.removeItem(TOKEN_STORAGE_KEY);
+    clearToken();
     setIsAuthenticated(false);
     window.location.hash = '#/auth/login';
   };
