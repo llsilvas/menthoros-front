@@ -44,6 +44,18 @@ export const oidcSettings: UserManagerSettings = {
   userStore: new WebStorageStateStore({ store: new InMemoryWebStorage() }),
 
   /**
+   * **`stateStore` é outra coisa e precisa persistir.** Ele guarda o `code_verifier` do PKCE e o
+   * `state` durante o redirect — e o redirect recarrega a página, então memória não serve: sem isso
+   * a troca do `code` por token falha em 100% dos logins.
+   *
+   * Fica em `sessionStorage`, não no `localStorage` que a biblioteca usa por padrão: o dado é
+   * efêmero e vale por aba. O `localStorage` sobreviveria ao fechamento do navegador e deixaria
+   * resíduo de fluxos abandonados. **Nenhum token é guardado aqui** — o critério de aceite da change
+   * ("`localStorage` sem access token nem refresh token") continua valendo.
+   */
+  stateStore: new WebStorageStateStore({ store: window.sessionStorage }),
+
+  /**
    * Renovação por **redirect**, não por iframe.
    *
    * Todos os ambientes são cross-site (em produção, `menthoros.com` contra Keycloak em

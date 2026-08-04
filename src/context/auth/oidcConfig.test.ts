@@ -45,4 +45,15 @@ describe('oidcConfig', () => {
     expect(oidcSettings.redirect_uri).toBe(`${window.location.origin}/`);
     expect(oidcSettings.redirect_uri).not.toContain('#');
   });
+
+  /**
+   * `stateStore` é diferente do `userStore` e **precisa** persistir: guarda o `code_verifier` do
+   * PKCE durante o redirect, e o redirect recarrega a página. Em memória, a troca do `code` por
+   * token falharia em 100% dos logins — modo de falha total que só apareceria no primeiro login
+   * real, porque nenhum teste de config o revela.
+   */
+  it('mantém um stateStore persistente, separado do userStore em memória', () => {
+    expect(oidcSettings.stateStore).toBeDefined();
+    expect(oidcSettings.stateStore).not.toBe(oidcSettings.userStore);
+  });
 });
