@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AVATAR_IMG_SLOT_PROPS, safeAvatarSrc } from '../../../shared/components/avatarSrc';
+import { LogoutButton } from '../../../shared/components/LogoutButton';
 import {
   Avatar,
   Box,
@@ -623,6 +624,9 @@ export default function CoachSidebar({
           onTenantSwitch={onTenantSwitch}
           collapsed={collapsed}
         />
+
+        {/* Sair — por último no rodapé, longe dos itens de navegação: é ação de saída, não destino. */}
+        <LogoutButton colapsado={collapsed} />
       </Box>
     </Box>
   );
