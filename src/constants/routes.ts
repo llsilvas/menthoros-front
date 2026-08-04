@@ -10,6 +10,7 @@ export const ROUTES = {
     REGISTRO: '/auth/registro',
     WAITLIST: '/waitlist',
     PRIVACIDADE: '/privacidade',
+    TERMOS: '/termos',
 
     // Coach shell (standardize-coach-shell-ux)
     COACH_INBOX:    '/coach/inbox',
