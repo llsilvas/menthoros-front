@@ -13,6 +13,7 @@ import LandingPage from './pages/landing/LandingPage';
 // Sem lazy: páginas públicas de pré-lançamento, carregam imediatamente sem spinner.
 import WaitlistPage from './pages/waitlist/WaitlistPage';
 import PrivacidadePage from './pages/waitlist/PrivacidadePage';
+import TermosPage from './pages/legal/TermosPage';
 import CoachLayout from './features/coach/layout/CoachLayout';
 // CoachAttentionQueuePage: sem rota em v1 — aguardando add-coach-queue-route
 const CoachInboxPage = lazy(() => import('./features/coach/pages/CoachInboxPage'));
@@ -178,6 +179,12 @@ const router = createHashRouter([
   {
     path: '/privacidade',
     element: <PrivacidadePage />,
+  },
+  // Pública e fora do ProtectedRoute de propósito: o coach precisa conseguir LER os Termos a partir
+  // do dialog de consentimento, que aparece justamente antes de ele poder operar.
+  {
+    path: '/termos',
+    element: <TermosPage />,
   },
   {
     element: <ProtectedRoute />,

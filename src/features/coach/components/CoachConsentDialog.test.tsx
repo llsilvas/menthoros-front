@@ -121,6 +121,28 @@ describe('CoachConsentDialog', () => {
       .toHaveAttribute('href', '#/privacidade');
   });
 
+  // Regressão: o dialog pedia aceite dos Termos de Uso sem oferecer onde lê-los — só a Política
+  // tinha link, e a rota `/termos` não existia. O aceite era registrado, em tabela append-only,
+  // sobre um documento que o coach não tinha como ler.
+  it('resolve os Termos de Uso como rota de hash', () => {
+    renderDialog();
+
+    expect(screen.getByRole('link', { name: /termos de uso/i })).toHaveAttribute(
+      'href',
+      '#/termos',
+    );
+  });
+
+  it('clicar no link dos Termos não marca o checkbox de aceite', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    const checkbox = screen.getByRole('checkbox', { name: /termos de uso/i });
+
+    await user.click(screen.getByRole('link', { name: /termos de uso/i }));
+
+    expect(checkbox).not.toBeChecked();
+  });
+
   // Regressão: o link vivia dentro do <label> do FormControlLabel, que repassa o clique ao
   // checkbox. Clicar para LER a política apenas marcava o aceite, sem abrir a página — registrando
   // consentimento sobre um texto que o usuário tentou ler e não conseguiu.
