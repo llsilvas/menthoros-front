@@ -18,10 +18,10 @@ export const CONTATO_EMAIL = 'contato@menthoros.com';
  * carimba a versão no registro de consentimento — se as duas divergirem, o sistema grava que o
  * coach aceitou uma versão diferente da que leu aqui.
  */
-export const POLITICA_VERSAO = '2026-08-02';
+export const POLITICA_VERSAO = '2026-08-03';
 
 /** Mesma data de `POLITICA_VERSAO`, por extenso para exibição. */
-export const POLITICA_ATUALIZADA_EM = '2 de agosto de 2026';
+export const POLITICA_ATUALIZADA_EM = '3 de agosto de 2026';
 
 export interface Tabela {
   /** Rótulo acessível da tabela — vira `aria-label`. */
@@ -278,7 +278,7 @@ export const POLITICA_SECOES: Secao[] = [
       {
         paragrafos: [
           'A plataforma Menthoros utiliza apenas cookies estritamente necessários para autenticação e funcionamento da aplicação. Não utilizamos cookies de rastreamento, publicidade ou analytics de terceiros.',
-          'O frontend não contém Google Analytics, Facebook Pixel, Hotjar, Sentry ou qualquer outro serviço de rastreamento. As fontes tipográficas são carregadas via Google Fonts (CSS API), que não utiliza cookies de tracking. O token de autenticação JWT é armazenado em localStorage (não em cookie) e trafega apenas via header Authorization.',
+          'O frontend não contém Google Analytics, Facebook Pixel, Hotjar, Sentry ou qualquer outro serviço de rastreamento. As fontes tipográficas são carregadas via Google Fonts (CSS API), que não utiliza cookies de tracking. O token de autenticação JWT é mantido no navegador do usuário durante a sessão e trafega exclusivamente no cabeçalho Authorization das requisições à API; não é utilizado cookie de rastreamento para autenticação.',
         ],
       },
     ],
