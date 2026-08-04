@@ -1,0 +1,88 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: CI
+
+# `pull_request`, nunca `pull_request_target`: este último roda com o token do repositório-base e
+# acesso a secrets, mesmo em PR de fork — combinação que transforma um PR num vetor de execução.
+on:
+  pull_request:
+    branches: [develop]
+  push:
+    branches: [develop]
+  # CI só-em-PR fica cego em períodos sem PR. Foi assim que um teste apodreceu por 2,5 meses no
+  # backend: nada o executava. O agendamento revela quebra por causa externa (dependência, browser,
+  # runtime) sem depender de atividade.
+  schedule:
+    - cron: '0 9 * * 1-5'
+
+# Sem escrita: o CI só precisa ler o código. Um primeiro CI que amplia a superfície de ataque troca
+# um problema por outro.
+permissions:
+  contents: read
+
+# Push novo no mesmo PR cancela a execução anterior — economiza runner e evita status de commit
+# velho chegando depois do novo.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Gate rápido e determinístico: é o que todo PR paga. Separado do E2E de propósito — num job
+  # único, o feedback de um erro de lint esperaria o download do browser.
+  verify:
+    name: Lint, build e testes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - uses: actions/setup-node@v4.1.0
+        with:
+          # Lê do .nvmrc para CI e desenvolvimento não divergirem: já houve teste cujo resultado
+          # dependia da versão do runtime (Web Storage no Node 26).
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      # Passos separados de propósito: a falha diz qual dos três quebrou, sem abrir o log.
+      - name: Lint
+        run: npm run lint
+
+      - name: Build (inclui type-check via tsc -b)
+        run: npm run build
+
+      - name: Testes unitários e de componente
+        run: npm run test:run
+
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - uses: actions/setup-node@v4.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      # Só chromium: é o único projeto declarado no playwright.config. Baixar os três browsers
+      # custaria minutos por execução sem testar nada a mais.
+      - name: Instalar browser
+        run: npx playwright install --with-deps chromium
+
+      # O webServer do playwright.config sobe o preview sobre o build — em CI, o mesmo artefato que
+      # vai para produção, não o dev server.
+      - name: Rodar E2E
+        run: npm run test:e2e
+
+      # Sem o relatório, uma falha de E2E no CI é quase indepurável: não há navegador para olhar.
+      - name: Publicar relatório em caso de falha
+        if: failure()
+        uses: actions/upload-artifact@v4.4.3
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
