@@ -152,13 +152,22 @@ export function CoachConsentDialog({
         marcando o aceite, sem abrir nada. Num fluxo de consentimento isso é grave: registra aceite
         de um texto que o usuário tentou ler e não conseguiu.
       */}
-      <Typography variant="body2" sx={{ mt: 1.5 }}>
+      <Typography variant="body2" sx={{ mt: 1.5, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
         {/*
           `component={RouterLink}` e não `href`: o app usa `createHashRouter`, então as rotas vivem
           depois do `#`. Um `href="/privacidade"` aponta para um caminho de servidor que não existe
           no roteamento por hash — o resultado observado era a URL virar
           `/privacidade#/privacidade` em vez de abrir a política.
         */}
+        <Link
+          component={RouterLink}
+          to={ROUTES.TERMOS}
+          target="_blank"
+          rel="noopener noreferrer"
+          underline="always"
+        >
+          Ler os Termos de Uso
+        </Link>
         <Link
           component={RouterLink}
           to={ROUTES.PRIVACIDADE}
