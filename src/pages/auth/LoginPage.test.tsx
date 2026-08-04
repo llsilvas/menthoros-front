@@ -3,39 +3,16 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router';
 import LoginPage from './LoginPage';
-import { AuthProvider } from '../../context/auth/AuthProvider';
-import { AuthService } from '../../services/auth/AuthService';
-
-vi.mock('../../services/auth/AuthService');
-
-const TOKEN_STORAGE_KEY = '@Menthoros:token';
+import { AuthContext, type AuthContextData } from '../../context/auth/authContext';
+import { definirUsuario, limparUsuario } from '../../context/auth/session';
 
 /**
- * jsdom (env `about:blank` sem `environmentOptions.jsdom.url` configurado) não expõe
- * `window.localStorage` (origem opaca). Stub em memória só para este arquivo — necessário
- * porque o teste usa o `AuthProvider` real (não mockado) para exercitar a corrida entre o
- * `setIsAuthenticated(true)` do login e a leitura de `roles` no re-render do `LoginPage`.
+ * Reescrito na migração para Authorization Code + PKCE.
+ *
+ * A versão anterior exercitava o formulário de usuário/senha e o `AuthService` (ROPC). Esse fluxo
+ * deixou de existir: a senha passou a ser digitada na tela do Keycloak e nunca trafega pela
+ * aplicação. Os testes de destino por role continuam, porque a regra é a mesma.
  */
-function stubLocalStorage() {
-  let store: Record<string, string> = {};
-  const mock: Storage = {
-    getItem: (key: string) => store[key] ?? null,
-    setItem: (key: string, value: string) => {
-      store[key] = value;
-    },
-    removeItem: (key: string) => {
-      delete store[key];
-    },
-    clear: () => {
-      store = {};
-    },
-    key: (index: number) => Object.keys(store)[index] ?? null,
-    get length() {
-      return Object.keys(store).length;
-    },
-  };
-  vi.stubGlobal('localStorage', mock);
-}
 
 function fakeToken(roles: string[]): string {
   const payload = {
@@ -43,85 +20,104 @@ function fakeToken(roles: string[]): string {
     exp: Math.floor(Date.now() / 1000) + 3600,
     tenantId: 'tenant-teste',
   };
-  const base64url = btoa(JSON.stringify(payload)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const base64url = btoa(JSON.stringify(payload))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
   return `header.${base64url}.signature`;
 }
 
-function renderLogin() {
-  return render(
-    <MemoryRouter initialEntries={['/auth/login']}>
-      <AuthProvider>
+function autenticarCom(roles: string[]) {
+  definirUsuario({ access_token: fakeToken(roles) } as unknown as Parameters<
+    typeof definirUsuario
+  >[0]);
+}
+
+function renderLogin(ctx: Partial<AuthContextData>, estadoDaRota: unknown = undefined) {
+  const valor: AuthContextData = {
+    isAuthenticated: false,
+    carregando: false,
+    login: vi.fn().mockResolvedValue(undefined),
+    logout: vi.fn().mockResolvedValue(undefined),
+    ...ctx,
+  };
+
+  render(
+    <MemoryRouter initialEntries={[{ pathname: '/auth/login', state: estadoDaRota }]}>
+      <AuthContext.Provider value={valor}>
         <Routes>
           <Route path="/auth/login" element={<LoginPage />} />
-          <Route path="/athlete/home" element={<div>Shell do Atleta</div>} />
-          <Route path="/coach/inbox" element={<div>Coach Inbox</div>} />
-          <Route path="/inicio" element={<div>Início Neutro</div>} />
+          <Route path="/athlete/home" element={<div>Home do atleta</div>} />
+          <Route path="/coach/inbox" element={<div>Inbox do coach</div>} />
+          <Route path="/inicio" element={<div>Inicio neutro</div>} />
         </Routes>
-      </AuthProvider>
+      </AuthContext.Provider>
     </MemoryRouter>,
   );
+
+  return valor;
 }
 
 describe('LoginPage', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    stubLocalStorage();
+    limparUsuario();
   });
 
-  it('após login com role ATLETA, navega direto para /athlete/home', async () => {
-    vi.mocked(AuthService.login).mockResolvedValue({ accessToken: fakeToken(['ATLETA']) });
-    const user = userEvent.setup();
-    renderLogin();
+  // O ponto central da migração: a aplicação não vê mais a senha do usuário.
+  it('não coleta credenciais', () => {
+    renderLogin({});
 
-    await user.type(screen.getByLabelText(/email ou usuário/i), 'atleta@x.com');
-    await user.type(screen.getByLabelText(/senha/i), 'senha123');
+    expect(screen.queryByLabelText(/senha/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/usuário|email/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /entrar/i })).toBeInTheDocument();
+  });
+
+  it('dispara o fluxo de autorização ao clicar em Entrar', async () => {
+    const user = userEvent.setup();
+    const ctx = renderLogin({});
+
     await user.click(screen.getByRole('button', { name: /entrar/i }));
 
-    expect(await screen.findByText('Shell do Atleta')).toBeInTheDocument();
+    expect(ctx.login).toHaveBeenCalledTimes(1);
   });
 
-  it('após login com role TECNICO, navega para /coach/inbox', async () => {
-    vi.mocked(AuthService.login).mockResolvedValue({ accessToken: fakeToken(['TECNICO']) });
+  // Sem isto, quem foi interrompido em #/coach/inbox volta para a raiz e cai na landing.
+  it('preserva a rota que o guard interrompeu', async () => {
     const user = userEvent.setup();
-    renderLogin();
+    const ctx = renderLogin({}, { de: '/coach/inbox' });
 
-    await user.type(screen.getByLabelText(/email ou usuário/i), 'coach@x.com');
-    await user.type(screen.getByLabelText(/senha/i), 'senha123');
     await user.click(screen.getByRole('button', { name: /entrar/i }));
 
-    expect(await screen.findByText('Coach Inbox')).toBeInTheDocument();
+    expect(ctx.login).toHaveBeenCalledWith('#/coach/inbox');
   });
 
-  it('após login com role ADMIN, navega para /inicio', async () => {
-    vi.mocked(AuthService.login).mockResolvedValue({ accessToken: fakeToken(['ADMIN']) });
-    const user = userEvent.setup();
-    renderLogin();
+  it('enquanto o estado de sessão é desconhecido, não mostra o botão', () => {
+    renderLogin({ carregando: true });
 
-    await user.type(screen.getByLabelText(/email ou usuário/i), 'admin@x.com');
-    await user.type(screen.getByLabelText(/senha/i), 'senha123');
-    await user.click(screen.getByRole('button', { name: /entrar/i }));
-
-    expect(await screen.findByText('Início Neutro')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /entrar/i })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Verificando sessão')).toBeInTheDocument();
   });
 
-  it('usuário já autenticado com role ATLETA é redirecionado direto ao shell do atleta', () => {
-    localStorage.setItem(TOKEN_STORAGE_KEY, fakeToken(['ATLETA']));
-    renderLogin();
+  describe('destino por role', () => {
+    it('ATLETA vai para o shell do atleta', () => {
+      autenticarCom(['ATLETA']);
+      renderLogin({ isAuthenticated: true });
 
-    expect(screen.getByText('Shell do Atleta')).toBeInTheDocument();
-  });
+      expect(screen.getByText('Home do atleta')).toBeInTheDocument();
+    });
 
-  it('usuário já autenticado com role TECNICO é redirecionado ao coach/inbox', () => {
-    localStorage.setItem(TOKEN_STORAGE_KEY, fakeToken(['TECNICO']));
-    renderLogin();
+    it('TECNICO vai para o inbox do coach', () => {
+      autenticarCom(['TECNICO']);
+      renderLogin({ isAuthenticated: true });
 
-    expect(screen.getByText('Coach Inbox')).toBeInTheDocument();
-  });
+      expect(screen.getByText('Inbox do coach')).toBeInTheDocument();
+    });
 
-  it('usuário já autenticado com role ADMIN é redirecionado ao início neutro', () => {
-    localStorage.setItem(TOKEN_STORAGE_KEY, fakeToken(['ADMIN']));
-    renderLogin();
+    it('ADMIN vai para o início neutro', () => {
+      autenticarCom(['ADMIN']);
+      renderLogin({ isAuthenticated: true });
 
-    expect(screen.getByText('Início Neutro')).toBeInTheDocument();
+      expect(screen.getByText('Inicio neutro')).toBeInTheDocument();
+    });
   });
 });

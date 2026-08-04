@@ -1,18 +1,20 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   TOKEN_STORAGE_KEY,
-  clearToken,
+  definirRenovacaoPendente,
+  definirUsuario,
   getAccessToken,
   getAccessTokenSync,
   getClaims,
   getRoles,
   getTenantId,
-  setToken,
+  limparTokenLegado,
+  limparUsuario,
 } from './session';
 
 /**
  * Monta um JWT sem assinatura válida — só o payload importa, porque a verificação de assinatura é
- * do backend. Mesmo formato usado em `LoginPage.test.tsx`.
+ * do backend.
  */
 function fakeToken(payload: Record<string, unknown>): string {
   const base64url = btoa(JSON.stringify(payload))
@@ -29,13 +31,15 @@ const tokenValido = fakeToken({
   sub: 'user-1',
 });
 
+/** Só o que `session` consome de um `User` do oidc-client-ts. */
+function usuarioOidc(accessToken: string) {
+  return { access_token: accessToken } as unknown as Parameters<typeof definirUsuario>[0];
+}
+
 /**
- * Storage próprio em vez do global do ambiente.
- *
- * Neste runtime o jsdom não fornece `localStorage` (`window.localStorage` é `undefined`) e o Node 26
- * expõe um nativo experimental que fica indisponível sem `--localstorage-file`. Depender do global
- * tornaria o teste refém da versão do Node. Um stub explícito também deixa o contrato visível: o
- * módulo precisa apenas de `getItem`/`setItem`/`removeItem`.
+ * Storage próprio em vez do global do ambiente: o jsdom deste runtime não fornece `localStorage`
+ * (`window.localStorage` é `undefined`) e o Node 26 expõe um nativo indisponível sem
+ * `--localstorage-file`. Depender do global tornaria o teste refém da versão do Node.
  */
 function criarStorage(): Storage {
   const dados = new Map<string, string>();
@@ -54,73 +58,102 @@ function criarStorage(): Storage {
 describe('session — fonte única de token e claims', () => {
   beforeEach(() => {
     vi.stubGlobal('localStorage', criarStorage());
+    limparUsuario();
+    definirRenovacaoPendente(null);
   });
 
-  describe('getAccessToken', () => {
-    it('devolve o token guardado', async () => {
-      setToken(tokenValido);
+  describe('token', () => {
+    it('devolve o token do usuário autenticado', async () => {
+      definirUsuario(usuarioOidc(tokenValido));
 
+      expect(getAccessTokenSync()).toBe(tokenValido);
       await expect(getAccessToken()).resolves.toBe(tokenValido);
     });
 
-    it('devolve string vazia quando não há token, em vez de lançar', async () => {
+    it('devolve string vazia sem sessão, em vez de lançar', async () => {
       await expect(getAccessToken()).resolves.toBe('');
+      expect(getAccessTokenSync()).toBe('');
     });
 
-    // `OpenAPI.TOKEN` é assíncrono, mas o roteamento pós-login lê no corpo do render. As duas
-    // formas precisam existir e concordar.
-    it('a forma síncrona concorda com a assíncrona', async () => {
-      setToken(tokenValido);
+    // A renovação por redirect não é instantânea. Uma chamada de API disparada no meio dela não
+    // pode sair com o token velho nem com string vazia.
+    it('aguarda a renovação pendente antes de devolver o token', async () => {
+      const tokenNovo = fakeToken({ realm_access: { roles: ['TECNICO'] }, tenantId: 'tenant-abc' });
+      definirUsuario(usuarioOidc(tokenValido));
 
-      expect(getAccessTokenSync()).toBe(await getAccessToken());
+      let concluir: () => void = () => {};
+      const renovacao = new Promise<void>((r) => {
+        concluir = r;
+      }).then(() => {
+        definirUsuario(usuarioOidc(tokenNovo));
+      });
+      definirRenovacaoPendente(renovacao);
+
+      const promessa = getAccessToken();
+      concluir();
+
+      await expect(promessa).resolves.toBe(tokenNovo);
     });
   });
 
   describe('claims derivadas', () => {
     it('tenantId e roles saem do mesmo token', () => {
-      setToken(tokenValido);
+      definirUsuario(usuarioOidc(tokenValido));
 
       expect(getTenantId()).toBe('tenant-abc');
       expect(getRoles()).toEqual(['TECNICO']);
       expect(getClaims()?.sub).toBe('user-1');
     });
 
-    // Regressão do risco levantado no pré-mortem: se o header X-Tenant-ID e o Authorization saírem
-    // de leituras diferentes, uma renovação produz Authorization novo com tenant ausente.
-    it('token e tenantId vêm da mesma leitura', () => {
-      setToken(tokenValido);
-
+    // Regressão do risco do pré-mortem: token e X-Tenant-ID saindo de leituras diferentes fazem uma
+    // renovação produzir Authorization novo com tenant ausente.
+    it('token e tenantId vêm da mesma fonte', () => {
+      definirUsuario(usuarioOidc(tokenValido));
       expect(getAccessTokenSync()).toBe(tokenValido);
       expect(getTenantId()).toBe('tenant-abc');
 
-      clearToken();
-
+      limparUsuario();
       expect(getAccessTokenSync()).toBe('');
       expect(getTenantId()).toBeUndefined();
     });
 
-    it('sem token, claims são vazias e não lançam', () => {
+    it('sem sessão, claims são vazias e não lançam', () => {
       expect(getClaims()).toBeNull();
       expect(getTenantId()).toBeUndefined();
       expect(getRoles()).toEqual([]);
     });
 
     it('token malformado não derruba a aplicação', () => {
-      localStorage.setItem(TOKEN_STORAGE_KEY, 'nao-e-um-jwt');
+      definirUsuario(usuarioOidc('nao-e-um-jwt'));
 
       expect(getClaims()).toBeNull();
-      expect(getTenantId()).toBeUndefined();
       expect(getRoles()).toEqual([]);
     });
   });
 
-  describe('setToken / clearToken', () => {
-    it('grava e remove sob a chave conhecida', () => {
-      setToken(tokenValido);
-      expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBe(tokenValido);
+  describe('nada é persistido', () => {
+    // Critério de aceite da change: `localStorage` sem token depois de autenticar.
+    it('autenticar não escreve no localStorage', () => {
+      definirUsuario(usuarioOidc(tokenValido));
 
-      clearToken();
+      expect(localStorage.length).toBe(0);
       expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull();
+    });
+  });
+
+  describe('limparTokenLegado', () => {
+    // Decisão 0.5: derrubar todas as sessões vigentes na virada, em vez de deixar expirar. Sem isso
+    // sobra token velho no storage com o app já esperando sessão em memória.
+    it('remove a chave do mecanismo antigo', () => {
+      localStorage.setItem(TOKEN_STORAGE_KEY, tokenValido);
+
+      limparTokenLegado();
+
+      expect(localStorage.getItem(TOKEN_STORAGE_KEY)).toBeNull();
+    });
+
+    it('é idempotente quando não há nada a limpar', () => {
+      expect(() => limparTokenLegado()).not.toThrow();
     });
   });
 });

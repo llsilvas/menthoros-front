@@ -1,56 +1,68 @@
-import { useState, type FormEvent } from 'react';
-import { Alert, Box, Button, Paper, Stack, TextField, Typography } from '@mui/material';
-import { Navigate, useNavigate } from 'react-router';
+import { useState } from 'react';
+import { Alert, Box, Button, CircularProgress, Paper, Stack, Typography } from '@mui/material';
+import { Navigate, useLocation } from 'react-router';
 import { ROUTES } from '../../constants/routes';
 import { useAuth } from '../../context/auth/useAuth';
-import { AuthService } from '../../services/auth/AuthService';
 import { getRoles } from '../../context/auth/session';
-import { gradients, glassAzulSx, glassAzulSxHover, transitions, primary, surface } from '../../theme/tokens';
+import { gradients, glassAzulSx, transitions, primary, surface } from '../../theme/tokens';
 import { overlayWhite } from '../../theme/overlays';
 import logoMenthoros from '../../assets/icons/menthoros_mark.png';
 
 /** Destino pós-login por role. */
 function destinoPorRoles(roles: string[]): string {
-  if (roles.includes('ATLETA'))  return ROUTES.ATHLETE_HOME;
+  if (roles.includes('ATLETA')) return ROUTES.ATHLETE_HOME;
   if (roles.includes('TECNICO')) return ROUTES.COACH_INBOX;
   return ROUTES.INICIO;
 }
 
 /**
- * Lê as roles da sessão a cada chamada (sem memo) — necessário porque, no fluxo de login, este
- * componente já está montado com `isAuthenticated=false` quando o token é gravado; um hook
- * memoizado (ex. `useUserInfo`) manteria `roles` congelado em vazio no re-render que segue o login,
- * mandando o atleta para `/inicio` em vez do shell dele.
+ * Tela de entrada.
  *
- * `getRoles` é síncrono por isso: é chamado no corpo do render (ver `context/auth/session`).
+ * **Não coleta credenciais.** Desde a migração para Authorization Code + PKCE, a senha é digitada na
+ * tela do Keycloak e nunca passa pela aplicação — era o que o grant anterior (ROPC, removido do
+ * OAuth 2.1) exigia, e o que impedia oferecer MFA.
+ *
+ * As roles são lidas de forma síncrona (`getRoles`) porque a decisão de destino acontece no corpo do
+ * render, logo depois de a sessão ser estabelecida.
  */
-const rolesDoTokenAtual = getRoles;
-
 export default function LoginPage() {
-  const navigate = useNavigate();
-  const { isAuthenticated, login } = useAuth();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const { isAuthenticated, carregando, login } = useAuth();
+  const location = useLocation();
+  const [entrando, setEntrando] = useState(false);
+  const [erro, setErro] = useState('');
 
-  if (isAuthenticated) {
-    return <Navigate to={destinoPorRoles(rolesDoTokenAtual())} replace />;
+  // Enquanto o bootstrap ou o callback estão em curso, mostrar o botão faria a tela piscar
+  // login → dashboard para quem já tem sessão.
+  if (carregando) {
+    return (
+      <Box
+        sx={{
+          minHeight: '100vh',
+          display: 'grid',
+          placeItems: 'center',
+          background: gradients.background,
+        }}
+      >
+        <CircularProgress aria-label="Verificando sessão" />
+      </Box>
+    );
   }
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setSubmitting(true);
-    setError('');
+  if (isAuthenticated) {
+    return <Navigate to={destinoPorRoles(getRoles())} replace />;
+  }
 
+  const handleEntrar = async () => {
+    setEntrando(true);
+    setErro('');
     try {
-      const result = await AuthService.login({ username, password });
-      login(result.accessToken);
-      navigate(destinoPorRoles(rolesDoTokenAtual()), { replace: true });
+      // A rota que o guard tentou proteger volta como destino; sem isso, quem foi interrompido em
+      // `#/coach/inbox` reapareceria na raiz.
+      const de = (location.state as { de?: string } | null)?.de;
+      await login(de ? `#${de}` : undefined);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao autenticar.');
-    } finally {
-      setSubmitting(false);
+      setErro(err instanceof Error ? err.message : 'Não foi possível iniciar o login.');
+      setEntrando(false);
     }
   };
 
@@ -74,112 +86,28 @@ export default function LoginPage() {
           borderRadius: 2,
           transition: transitions.default,
           ...glassAzulSx,
-          '&:hover': glassAzulSxHover,
         }}
       >
-        <Stack spacing={3} component="form" onSubmit={handleSubmit}>
+        <Stack spacing={3}>
           <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
-            <img
-              src={logoMenthoros}
-              alt="Menthoros"
-              style={{
-                height: 44,
-                opacity: 0.95,
-              }}
-            />
+            <img src={logoMenthoros} alt="Menthoros" style={{ height: 44, opacity: 0.95 }} />
           </Box>
 
           <Box>
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: 700,
-                color: surface[0],
-                mb: 0.5,
-              }}
-            >
+            <Typography variant="h5" sx={{ fontWeight: 700, color: surface[0], mb: 0.5 }}>
               Bem-vindo de volta
             </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                color: overlayWhite[70],
-              }}
-            >
+            <Typography variant="body2" sx={{ color: overlayWhite[70] }}>
               Acesse sua assessoria
             </Typography>
           </Box>
 
-          <TextField
-            label="Email ou usuário"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-            disabled={submitting}
-            fullWidth
-            InputLabelProps={{
-              style: { color: overlayWhite[70] },
-            }}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                color: surface[0],
-                '& fieldset': {
-                  borderColor: `4D`,
-                },
-                '&:hover fieldset': {
-                  borderColor: `4D`,
-                },
-                '&.Mui-focused fieldset': {
-                  borderColor: primary[500],
-                },
-              },
-              '& .MuiOutlinedInput-input::placeholder': {
-                color: 'rgba(255, 255, 255, 0.5)',
-                opacity: 1,
-              },
-            }}
-          />
-          <TextField
-            label="Senha"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            disabled={submitting}
-            fullWidth
-            InputLabelProps={{
-              style: { color: overlayWhite[70] },
-            }}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                color: surface[0],
-                '& fieldset': {
-                  borderColor: `4D`,
-                },
-                '&:hover fieldset': {
-                  borderColor: `4D`,
-                },
-                '&.Mui-focused fieldset': {
-                  borderColor: primary[500],
-                },
-              },
-              '& .MuiOutlinedInput-input::placeholder': {
-                color: 'rgba(255, 255, 255, 0.5)',
-                opacity: 1,
-              },
-            }}
-          />
-
-          {error ? (
-            <Alert severity="error" sx={{ bgcolor: 'rgba(231, 76, 60, 0.15)', color: '#e74c3c' }}>
-              {error}
-            </Alert>
-          ) : null}
+          {erro ? <Alert severity="error">{erro}</Alert> : null}
 
           <Button
-            type="submit"
+            onClick={handleEntrar}
             variant="contained"
-            disabled={submitting || !username || !password}
+            disabled={entrando}
             fullWidth
             sx={{
               bgcolor: primary[500],
@@ -187,17 +115,10 @@ export default function LoginPage() {
               fontWeight: 700,
               fontSize: '1rem',
               py: 1.5,
-              mt: 1,
-              '&:hover': {
-                bgcolor: '#c5f05a',
-              },
-              '&:disabled': {
-                bgcolor: `33`,
-                color: 'rgba(14, 49, 71, 0.5)',
-              },
+              '&:hover': { bgcolor: '#c5f05a' },
             }}
           >
-            {submitting ? 'Entrando...' : 'Entrar'}
+            {entrando ? 'Redirecionando...' : 'Entrar'}
           </Button>
         </Stack>
       </Paper>
