@@ -263,12 +263,46 @@ npm run build       # tsc -b && vite build  (type-check + build)
 npm run test:run    # vitest run (unit/component)
 ```
 
-Run E2E when the task affects critical user flows (auth, listings, dashboards):
+### E2E is mandatory on critical flows (not optional)
 
 ```bash
 npm run test:e2e        # playwright test
 npm run test:e2e:ui     # interactive
 ```
+
+A task that touches any of the flows below is **not done** until it has E2E coverage — either a new
+spec or an existing one that genuinely exercises the change:
+
+- **Authentication and session** — login, logout, token renewal, route guards, role-based redirect
+  (coach vs. athlete).
+- **Consent and legal gates** — anything that can block the coach from operating (LGPD consent).
+- **Coach-in-the-loop decisions** — plan review/approval/rejection, editing a planned workout,
+  closing the week. These write to the athlete's plan; a silent failure here reaches a real person's
+  training.
+- **Data entry that feeds the engine** — manual workout log, `.fit` upload, check-in.
+- **Anything crossing a repo/system boundary** — Keycloak, the API contract, Strava/intervals.icu.
+
+**Why this is a rule and not a suggestion.** The repo has repeated evidence that a green unit suite
+says nothing about these paths:
+
+- `add-coach-lgpd-consent` shipped with **762 passing tests** and two real bugs that only appeared in
+  the browser: a link inside a `<label>` that ticked the consent checkbox instead of opening the
+  policy (recording consent to a text the user *tried* to read), and an absolute `href` that never
+  resolved under `createHashRouter`. **The test that "covered" the second one passed for both the
+  correct and the broken form.**
+- `athlete-onboarding-baseline` passed its whole suite and a real click-through found three bugs that
+  no mocked test could have caught.
+
+The pattern is always the same: mocks agree with the code because the same author wrote both. E2E is
+the only layer here that runs the real router, the real storage and the real network.
+
+**What E2E does not replace.** Business rules, adapters and edge cases stay in unit/component tests —
+they are faster and pinpoint the failure. E2E covers *the flow holding together*, not every branch;
+a suite that pushes rule coverage into E2E becomes slow and flaky, and gets ignored.
+
+**If E2E cannot be written** for a critical flow (missing environment, external dependency), say so
+explicitly in the change's `tasks.md` as a deferred item with a reason — the same treatment given to
+any other pending validation. Silence is what let a broken flow ship before.
 
 ### Unit/component tests (Vitest + Testing Library)
 
@@ -286,9 +320,12 @@ A frontend task is done only if:
 1. Implementation matches the active OpenSpec change scope.
 2. The corresponding `tasks.md` item is updated.
 3. UI behavior and API usage align with current contracts (generated client regenerated if the backend changed).
-4. `npm run lint`, `npm run build` and `npm run test:run` pass; `npm run test:e2e` passes when the task touches a critical flow.
-5. No leftover `MOCK_*` in delivered screens (or documented as a follow-up).
-6. No intentional out-of-scope modifications were introduced.
+4. `npm run lint`, `npm run build` and `npm run test:run` pass.
+5. **If the task touches a critical flow** (see "E2E is mandatory on critical flows"), `npm run test:e2e`
+   passes **and** the flow is actually exercised by a spec — a green E2E run that never visits the
+   changed path is not coverage. If it could not be written, the reason is recorded in `tasks.md`.
+6. No leftover `MOCK_*` in delivered screens (or documented as a follow-up).
+7. No intentional out-of-scope modifications were introduced.
 
 ## Delivery Checklist
 
