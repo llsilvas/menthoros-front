@@ -13,12 +13,14 @@ import LandingPage from './pages/landing/LandingPage';
 // Sem lazy: páginas públicas de pré-lançamento, carregam imediatamente sem spinner.
 import WaitlistPage from './pages/waitlist/WaitlistPage';
 import PrivacidadePage from './pages/waitlist/PrivacidadePage';
+import TermosPage from './pages/legal/TermosPage';
 import CoachLayout from './features/coach/layout/CoachLayout';
 // CoachAttentionQueuePage: sem rota em v1 — aguardando add-coach-queue-route
 const CoachInboxPage = lazy(() => import('./features/coach/pages/CoachInboxPage'));
 import CoachAthletesPage from './features/coach/pages/CoachAthletesPage';
 import CoachCalendarPage from './features/coach/pages/CoachCalendarPage';
 import CoachInsightsPage from './features/coach/pages/CoachInsightsPage';
+import CoachSettingsPage from './features/coach/pages/CoachSettingsPage';
 import CoachPlanReviewPage from './features/coach/pages/CoachPlanReviewPage';
 import CoachAthleteProfilePage from './features/coach/pages/CoachAthleteProfilePage';
 import AthleteLayout from './features/athlete/layout/AthleteLayout';
@@ -178,6 +180,12 @@ const router = createHashRouter([
     path: '/privacidade',
     element: <PrivacidadePage />,
   },
+  // Pública e fora do ProtectedRoute de propósito: o coach precisa conseguir LER os Termos a partir
+  // do dialog de consentimento, que aparece justamente antes de ele poder operar.
+  {
+    path: '/termos',
+    element: <TermosPage />,
+  },
   {
     element: <ProtectedRoute />,
     children: [
@@ -212,6 +220,7 @@ const router = createHashRouter([
           { path: 'athletes/:atletaId/onboarding', element: <AthleteOnboardingPage /> },
           { path: 'calendar', element: <CoachCalendarPage /> },
           { path: 'insights', element: <CoachInsightsPage /> },
+          { path: 'settings', element: <CoachSettingsPage /> },
         ],
       },
       // Athlete shell — refine-athlete-shell-ux

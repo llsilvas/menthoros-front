@@ -19,7 +19,7 @@ When instructions conflict, follow this order:
 
 - **Language/Build:** TypeScript ~5.8, Vite 7, ESLint 9 (flat config).
 - **UI:** React 19 + MUI 7 (`@mui/material`, `@mui/icons-material`, `@mui/x-data-grid`) with Emotion (`@emotion/react`, `@emotion/styled`). **There is no Tailwind** — never add Tailwind classes or utilities.
-- **Routing:** `react-router-dom` 7.
+- **Routing:** `react-router-dom` 7, via **`createHashRouter`** (`App.tsx`) — routes live after the `#` (`/#/privacidade`). See **Routing Standards**.
 - **HTTP:** `axios`, consumed through an **OpenAPI-generated client** in `src/api` (no React Query / SWR).
 - **State:** React Context + custom hooks. **No Redux / Zustand** — do not introduce a global state library without an explicit change scope.
 - **Charts/Dates:** `recharts`, `date-fns`.
@@ -78,12 +78,53 @@ The app is migrating from the **legacy shell in `pages/`** to **feature shells i
 - Preserve consistency with the existing design system (see **Design System Standards**).
 - Handle **loading, empty, and error** states for every data-driven flow.
 
+## Routing Standards
+
+The app uses **`createHashRouter`** (`App.tsx`). Every route is addressed after the `#`, so a bare
+path is *not* a valid internal link.
+
+- **Never write an absolute `href` for an internal route.** `href="/privacidade"` asks the server
+  for `/privacidade`; the hash router never sees it. Under a dev server that falls back to
+  `index.html`, the app reloads at the root and the URL degrades to
+  `http://localhost:5174/privacidade#/privacidade` — it "looks routed" but reloaded the whole SPA.
+- **Use `RouterLink`** (`import { Link as RouterLink } from 'react-router'`) and let the router
+  build the URL. With MUI, keep the styling component and swap the element:
+  ```tsx
+  <Link component={RouterLink} to={ROUTES.PRIVACIDADE}>Política de Privacidade</Link>
+  ```
+- **Test links with a real router, never `MemoryRouter`.** `MemoryRouter` resolves `to` against an
+  in-memory history and renders `href="/privacidade"` — so an assertion like
+  `toHaveAttribute('href', '/privacidade')` passes on code that is broken in the browser. Mount
+  `createHashRouter` + `RouterProvider` and assert the hash form:
+  ```tsx
+  const router = createHashRouter([{ path: '/', element: <MyPage /> }]);
+  render(<RouterProvider router={router} />);
+  expect(screen.getByRole('link', { name: /política/i })).toHaveAttribute('href', '#/privacidade');
+  ```
+  Reference: `src/features/coach/pages/CoachSettingsPage.test.tsx`.
+
 ## Component Standards
 
 - **Presentational vs. container:** components that fetch data, hold server state, or call the API must delegate that to a hook (`useXxx`). The component renders state and forwards callbacks. A component doing `useState` + `axios`/service calls + multiple dialogs inline is too big — extract a `useXxx` hook.
 - **Props:** declare an explicit `interface XxxProps`. No implicit `any`, no untyped `...rest` spreads onto DOM nodes.
 - **States:** always render `loading`, `error`, and `empty` explicitly — never leave a data view blank while pending.
 - **MUI:** style via the `sx` prop / `styled()` and theme tokens; do not inline hex colors (see Design System).
+- **No interactive content inside a `FormControlLabel` label.** The label is a `<label>` bound to the
+  control, so the browser forwards *any* click inside it to the checkbox/radio — a nested link or
+  button toggles the control instead of firing its own action. `onClick={e => e.stopPropagation()}`
+  does **not** fix it: label-to-control forwarding is native browser behavior, not React bubbling.
+  Move the interactive element **out** of the label and render it as a sibling:
+  ```tsx
+  {/* ❌ o link nunca navega — o clique vira toggle do checkbox */}
+  <FormControlLabel control={<Checkbox />} label={<>Li a <Link to="/privacidade">Política</Link></>} />
+
+  {/* ✅ label só com texto; o link fora dela */}
+  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+    <FormControlLabel control={<Checkbox />} label="Li e aceito a" />
+    <Link component={RouterLink} to={ROUTES.PRIVACIDADE}>Política de Privacidade</Link>
+  </Box>
+  ```
+  Reference: `src/features/coach/components/CoachConsentDialog.tsx`.
 
 ## Hooks & Data Fetching Standards
 

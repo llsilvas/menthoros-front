@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { AVATAR_IMG_SLOT_PROPS, safeAvatarSrc } from '../../../shared/components/avatarSrc';
 import {
   Avatar,
   Box,
@@ -16,6 +17,7 @@ import InboxIcon from '@mui/icons-material/Inbox';
 import InsightsIcon from '@mui/icons-material/Insights';
 import PeopleIcon from '@mui/icons-material/People';
 import RateReviewIcon from '@mui/icons-material/RateReview';
+import SettingsIcon from '@mui/icons-material/Settings';
 
 import type { CoachRoute } from '../../../constants/routes';
 import { content, gradients, semantic, surface } from '../../../theme/tokens';
@@ -64,6 +66,7 @@ const NAV_ITEMS: NavItemDef[] = [
   { route: '/coach/calendar',        label: 'Calendário',        Icon: CalendarMonthIcon },
   { route: '/coach/insights',        label: 'Insights',          Icon: InsightsIcon },
   { route: '/coach/planos/revisao',  label: 'Revisão de planos', Icon: RateReviewIcon },
+  { route: '/coach/settings',        label: 'Configurações',      Icon: SettingsIcon },
 ];
 
 // ── Dimensions ────────────────────────────────────────────────────────────────
@@ -570,8 +573,9 @@ export default function CoachSidebar({
               }}
             >
               <Avatar
-                src={coach.avatarUrl}
+                src={safeAvatarSrc(coach.avatarUrl)}
                 alt={coach.name}
+                slotProps={AVATAR_IMG_SLOT_PROPS}
                 sx={{ width: 32, height: 32, fontSize: '0.75rem', bgcolor: `${primary[500]}26`, color: primary[500] }}
               >
                 {coach.name.charAt(0).toUpperCase()}
@@ -589,8 +593,9 @@ export default function CoachSidebar({
             }}
           >
             <Avatar
-              src={coach.avatarUrl}
+              src={safeAvatarSrc(coach.avatarUrl)}
               alt={coach.name}
+              slotProps={AVATAR_IMG_SLOT_PROPS}
               sx={{ width: 32, height: 32, fontSize: '0.75rem', bgcolor: `${primary[500]}26`, color: primary[500], flexShrink: 0 }}
             >
               {coach.name.charAt(0).toUpperCase()}
