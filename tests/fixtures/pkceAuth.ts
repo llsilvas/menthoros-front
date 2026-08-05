@@ -1,6 +1,7 @@
 import { Buffer } from 'node:buffer'
-import type { Page } from '@playwright/test'
+import { expect, type Page } from '@playwright/test'
 import { buildFakeJwt } from './auth'
+import { IDP_CLIENT_ID, ISSUER, REDIRECT_URI } from './idp'
 
 /**
  * Autenticação para E2E sob Authorization Code + PKCE.
@@ -24,10 +25,11 @@ import { buildFakeJwt } from './auth'
  * 4. `/logout` — encerramento de sessão.
  */
 
-const ISSUER = 'http://192.168.15.24:8080/realms/menthoros'
-
-/** Endereço de retorno: o app usa a raiz, não uma rota de callback (ver design D4). */
-const REDIRECT = 'http://localhost:5174/'
+/**
+ * Issuer e endereço de retorno vêm de `./idp` — a **mesma** fonte que o `playwright.config` injeta
+ * no servidor sob teste. Escrevê-los à mão aqui foi o que acoplou a suíte ao `.env` do autor.
+ */
+const REDIRECT = REDIRECT_URI
 
 interface OpcoesAuth {
   /** Papéis no token. Default cobre o coach; use `['ATLETA']` para o outro shell. */
@@ -42,7 +44,7 @@ function construirIdToken(): string {
   const payload = Buffer.from(
     JSON.stringify({
       iss: ISSUER,
-      aud: 'menthoros-web',
+      aud: IDP_CLIENT_ID,
       sub: 'test-coach-uuid',
       exp: agora + 3600,
       iat: agora,
@@ -110,6 +112,32 @@ export async function autenticarComPkce(page: Page, { roles = ['ADMIN'] }: Opcoe
   await page.route(`${ISSUER}/protocol/openid-connect/logout*`, async (route) => {
     await route.fulfill({ status: 302, headers: { location: REDIRECT }, body: '' })
   })
+}
+
+/** Marca que o app mantém em `sessionStorage` enquanto uma restauração de sessão está em curso. */
+const MARCA_RESTAURACAO = 'menthoros:restauracao-tentada'
+
+/**
+ * Espera o fluxo de autenticação **parar de navegar**.
+ *
+ * `toHaveURL` resolve assim que o hash bate, o que pode ser antes de o bootstrap fechar — e o fluxo
+ * PKCE ainda dá um ou mais redirects depois disso. Qualquer `page.evaluate` nessa janela morre com
+ * "Execution context was destroyed", falha que se parece com bug do app e não é: é o teste correndo
+ * com a navegação. Foi assim que dois specs pipocaram entre rodadas idênticas.
+ *
+ * A marca só é limpa quando o fluxo termina, então a ausência dela é o sinal exato de "estável".
+ */
+export async function aguardarFluxoEstavel(page: Page) {
+  await expect
+    .poll(async () => {
+      try {
+        return await page.evaluate((chave) => sessionStorage.getItem(chave), MARCA_RESTAURACAO)
+      } catch {
+        // Contexto destruído: está navegando agora, logo ainda não está estável.
+        return 'navegando'
+      }
+    })
+    .toBeNull()
 }
 
 /**

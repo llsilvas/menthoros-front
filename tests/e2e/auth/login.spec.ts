@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { autenticarComPkce, semSessaoNoProvedor } from '../../fixtures/pkceAuth'
+import { aguardarFluxoEstavel, autenticarComPkce, semSessaoNoProvedor } from '../../fixtures/pkceAuth'
 import { TOKEN_KEY } from '../../fixtures/auth'
 
 /**
@@ -64,6 +64,7 @@ test.describe('Autenticação', () => {
     await autenticarComPkce(page)
     await page.goto(ROTA_PROTEGIDA)
     await expect(page).toHaveURL(/#\/atletas/)
+    await aguardarFluxoEstavel(page)
 
     const armazenado = await page.evaluate(
       (chave) => ({ legado: localStorage.getItem(chave), total: localStorage.length }),
@@ -87,6 +88,7 @@ test.describe('Autenticação', () => {
 
     await page.goto(ROTA_PROTEGIDA)
     await expect(page).toHaveURL(/#\/atletas/)
+    await aguardarFluxoEstavel(page)
 
     expect(await page.evaluate((c) => localStorage.getItem(c), TOKEN_KEY)).toBeNull()
   })
@@ -101,13 +103,9 @@ test.describe('Autenticação', () => {
     await page.goto(ROTA_PROTEGIDA)
     await expect(page).toHaveURL(/#\/atletas/)
 
-    // Espera o bootstrap concluir de fato antes de recarregar. `toHaveURL` resolve assim que o hash
-    // muda, o que pode ser antes de o callback terminar — recarregar nesse instante testa uma
-    // corrida do teste, não o comportamento do app. A marca de restauração só é limpa quando o
-    // fluxo fecha, então a ausência dela é o sinal exato de "pronto".
-    await expect
-      .poll(() => page.evaluate(() => sessionStorage.getItem('menthoros:restauracao-tentada')))
-      .toBeNull()
+    // Recarregar antes de o bootstrap fechar testaria uma corrida do teste, não o comportamento do
+    // app.
+    await aguardarFluxoEstavel(page)
 
     await page.reload()
 
