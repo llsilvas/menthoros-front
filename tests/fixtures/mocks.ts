@@ -33,11 +33,3 @@ export const MOCK_ATLETAS = [
     provas: [],
   },
 ]
-
-export const MOCK_KEYCLOAK_TOKEN_RESPONSE = {
-  access_token: 'mock-access-token-from-keycloak',
-  token_type: 'Bearer',
-  expires_in: 3600,
-  refresh_token: 'mock-refresh-token',
-  scope: 'openid profile email',
-}

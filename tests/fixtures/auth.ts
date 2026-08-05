@@ -36,5 +36,3 @@ export function buildFakeJwt(overrides?: { exp?: number; sub?: string; roles?: s
   ).toString('base64url')
   return `${header}.${payload}.fakesignature`
 }
-
-export const EXPIRED_JWT = buildFakeJwt({ exp: Math.floor(Date.now() / 1000) - 60 })
