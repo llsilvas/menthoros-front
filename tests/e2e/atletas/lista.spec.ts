@@ -1,15 +1,15 @@
 import { test, expect } from '@playwright/test'
-import { TOKEN_KEY, buildFakeJwt } from '../../fixtures/auth'
 import { MOCK_ATLETAS } from '../../fixtures/mocks'
+import { autenticarComPkce } from '../../fixtures/pkceAuth'
 
 const ATLETAS_URL = '/#/atletas'
 const ATLETAS_API = '**/api/v1/atletas**'
 
 test.describe('Atletas — Lista', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(({ key, token }) => {
-      localStorage.setItem(key, token)
-    }, { key: TOKEN_KEY, token: buildFakeJwt() })
+    // Autentica pelo fluxo PKCE real, contra um IdP falso: injetar token em localStorage deixou de
+    // funcionar quando a sessão passou a viver em memória (ver `fixtures/pkceAuth`).
+    await autenticarComPkce(page)
   })
 
   test('renders athletes list with mocked data', async ({ page }) => {

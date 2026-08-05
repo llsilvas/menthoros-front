@@ -73,8 +73,10 @@ jobs:
       - name: Instalar browser
         run: npx playwright install --with-deps chromium
 
-      # O webServer do playwright.config sobe o preview sobre o build — em CI, o mesmo artefato que
-      # vai para produção, não o dev server.
+      # O webServer do playwright.config sobe o preview sobre o build — o mesmo artefato que vai
+      # para produção, não o dev server — com a identidade do IdP falso injetada por ele. Nada aqui
+      # depende de `.env`, que não é versionado: foi essa dependência que fez a suíte passar na
+      # máquina do autor e falhar neste runner.
       - name: Rodar E2E
         run: npm run test:e2e
 
