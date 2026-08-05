@@ -1,19 +1,10 @@
 import { OpenAPI } from '../api/core/OpenAPI';
-import type { ApiRequestOptions } from '../api/core/ApiRequestOptions';
+import { getAccessToken } from '../context/auth/session';
 import type { StravaStatusGlobal } from '../types/Metricas';
 
-const getAuthToken = async (): Promise<string> => {
-  if (!OpenAPI.TOKEN) {
-    throw new Error('No authorization token available');
-  }
-
-  if (typeof OpenAPI.TOKEN === 'string') {
-    return OpenAPI.TOKEN;
-  }
-
-  const options: ApiRequestOptions = { method: 'GET', url: '/' };
-  return await OpenAPI.TOKEN(options);
-};
+// Reexporta a fonte única em vez de reimplementar a leitura: este helper existia duplicado aqui e
+// em StravaService, cada um remontando a lógica de `OpenAPI.TOKEN` (ver `context/auth/session`).
+const getAuthToken = getAccessToken;
 
 export class StravaService {
   static async getStatusGlobal(): Promise<StravaStatusGlobal> {

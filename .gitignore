@@ -28,3 +28,7 @@ dist-ssr
 .env.example
 
 AGENTS.md
+
+# Artefatos do Playwright
+test-results/
+playwright-report/

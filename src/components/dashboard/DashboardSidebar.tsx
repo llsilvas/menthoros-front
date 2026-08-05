@@ -134,8 +134,11 @@ export default function DashboardSidebar({
               id="dashboard"
               title="Dashboard"
               icon={<BarChartIcon />}
-              href="/"
-              selected={pathname === '/'}
+              // `/inicio`, não `/`: a home legada saiu da raiz quando a landing pública assumiu
+              // `/` (`redesign-landing-premium`). Apontar para a raiz levava o ADMIN para a landing
+              // ao clicar em "Dashboard" — passou despercebido porque só esse papel vê este shell.
+              href="/inicio"
+              selected={pathname === '/inicio'}
             />
             <DashboardSidebarPageItem
               id="atletas"

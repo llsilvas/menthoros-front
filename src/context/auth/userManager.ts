@@ -1,0 +1,90 @@
+import { UserManager } from 'oidc-client-ts';
+import { oidcSettings } from './oidcConfig';
+
+/**
+ * Instância única do `UserManager`.
+ *
+ * Precisa ser única porque o `UserManager` guarda o estado do fluxo (o `code_verifier` do PKCE, o
+ * `state`) — duas instâncias trocariam mensagens entre si e o retorno do Keycloak falharia com um
+ * erro que não parece o que é.
+ *
+ * Fica fora do React de propósito: `main.tsx` precisa dele antes do primeiro render para processar o
+ * callback, e o `session` precisa dele para responder ao `OpenAPI.TOKEN`, que não vive num
+ * componente.
+ */
+export const userManager = new UserManager(oidcSettings);
+
+/** Chave do `state` onde viaja a rota de origem, para restaurar o destino após o callback. */
+export const CHAVE_DESTINO = 'destino';
+
+/** `true` quando a URL atual é o retorno do fluxo de autorização (traz `code` e `state`). */
+export function ehRetornoDeAutorizacao(url: string = window.location.href): boolean {
+  const params = new URL(url).searchParams;
+  return params.has('code') && params.has('state');
+}
+
+/**
+ * `true` quando o Keycloak recusou uma tentativa **silenciosa** de restaurar a sessão.
+ *
+ * Com `prompt=none`, não havendo sessão no provedor, o retorno vem com `error=login_required` (ou
+ * `interaction_required`) em vez de `code`. Isso não é falha: é a resposta correta para "tenta sem
+ * incomodar o usuário".
+ */
+export function ehRecusaDeLoginSilencioso(url: string = window.location.href): boolean {
+  const erro = new URL(url).searchParams.get('error');
+  return erro === 'login_required' || erro === 'interaction_required';
+}
+
+/**
+ * Guarda contra laço de restauração.
+ *
+ * A restauração silenciosa é um redirect. Se ela falhar e o bootstrap tentar de novo, o par
+ * app↔Keycloak entra em laço infinito — e o sintoma (tela piscando sem parar) é pior que o problema
+ * que se queria resolver. A marca vive em `sessionStorage` porque precisa sobreviver ao redirect,
+ * mas não à aba.
+ */
+const CHAVE_TENTATIVA = 'menthoros:restauracao-tentada';
+
+export function jaTentouRestaurar(): boolean {
+  try {
+    return sessionStorage.getItem(CHAVE_TENTATIVA) === '1';
+  } catch {
+    // Sem sessionStorage não há como evitar o laço com segurança; melhor não tentar restaurar.
+    return true;
+  }
+}
+
+export function marcarTentativaDeRestauracao(): void {
+  try {
+    sessionStorage.setItem(CHAVE_TENTATIVA, '1');
+  } catch {
+    // Ignorado: o `jaTentouRestaurar` já falha fechado.
+  }
+}
+
+export function limparTentativaDeRestauracao(): void {
+  try {
+    sessionStorage.removeItem(CHAVE_TENTATIVA);
+  } catch {
+    // Nada a limpar.
+  }
+}
+
+/**
+ * Remove `code`/`state` da barra de endereço depois de processar o retorno.
+ *
+ * Sem isso, um reload reenviaria o mesmo `code` — que o Keycloak já invalidou —, e o usuário veria
+ * um erro de autorização sem ter feito nada.
+ */
+export function limparParametrosDeAutorizacao(): void {
+  const url = new URL(window.location.href);
+  url.searchParams.delete('code');
+  url.searchParams.delete('state');
+  url.searchParams.delete('session_state');
+  url.searchParams.delete('iss');
+  // `error` também: o retorno de uma recusa silenciosa traz `?error=login_required`, e deixá-lo na
+  // barra de endereço mostra ao usuário um erro técnico de um fluxo que nem era visível para ele.
+  url.searchParams.delete('error');
+  url.searchParams.delete('error_description');
+  window.history.replaceState({}, document.title, url.toString());
+}
