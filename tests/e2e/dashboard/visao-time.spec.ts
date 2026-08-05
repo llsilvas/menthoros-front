@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
-import { TOKEN_KEY, buildFakeJwt } from '../../fixtures/auth'
 import { MOCK_ATLETAS } from '../../fixtures/mocks'
+import { autenticarComPkce } from '../../fixtures/pkceAuth'
 
 // The app uses HashRouter. '/#/atletas' is unambiguously in DashboardLayout.
 // Clicking the "Dashboard" sidebar link navigates to '/#/' which React Router
@@ -10,9 +10,9 @@ const ATLETAS_API = '**/api/v1/atletas**'
 
 test.describe('Dashboard — Layout', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(({ key, token }) => {
-      localStorage.setItem(key, token)
-    }, { key: TOKEN_KEY, token: buildFakeJwt() })
+    // Autentica pelo fluxo PKCE real, contra um IdP falso: injetar token em localStorage deixou de
+    // funcionar quando a sessão passou a viver em memória (ver `fixtures/pkceAuth`).
+    await autenticarComPkce(page)
 
     await page.route(ATLETAS_API, async (route) => {
       await route.fulfill({

@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
+import { APP_ORIGIN, IDP_CLIENT_ID, IDP_ORIGIN, IDP_REALM, PORTA_E2E } from './tests/fixtures/idp'
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -14,7 +15,7 @@ export default defineConfig({
     timeout: 10_000,
   },
   use: {
-    baseURL: process.env.BASE_URL ?? 'http://localhost:5174',
+    baseURL: process.env.BASE_URL ?? APP_ORIGIN,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -33,18 +34,28 @@ export default defineConfig({
    * vermelhos) não se parece com "faltou servidor", então o CI nasceria vermelho por motivo alheio
    * ao produto, que é o jeito mais rápido de ensinar a equipe a ignorá-lo.
    *
-   * `reuseExistingServer` fora de CI: quem já está com o dev server aberto não paga por outro, e o
-   * teste local usa o mesmo processo que a pessoa está olhando. No CI, sempre sobe um limpo.
-   *
    * Usa `preview` sobre o build (o mesmo artefato que vai para produção) em vez de `dev`: evita
    * testar contra HMR e transformação de desenvolvimento, que não existem em produção.
+   *
+   * **Servidor próprio, sempre** — porta dedicada e `reuseExistingServer: false`. Reaproveitar o
+   * `npm run dev` de quem está trabalhando faria a suíte rodar com o `.env` daquela máquina, que é
+   * precisamente o acoplamento que fez 10 specs passarem aqui e falharem no runner.
+   *
+   * O `env` fixa a identidade do provedor: é o que a fixture PKCE intercepta. Variável já presente
+   * no processo tem prioridade sobre arquivo `.env` no Vite, então isto vence o `.env` local sem
+   * precisar removê-lo.
    */
   webServer: {
-    command: process.env.CI ? 'npm run build && npm run preview -- --port 5174' : 'npm run dev',
-    url: 'http://localhost:5174',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    command: `npm run build && npm run preview -- --port ${PORTA_E2E} --strictPort`,
+    url: APP_ORIGIN,
+    reuseExistingServer: false,
+    timeout: 180_000,
     stdout: 'pipe',
     stderr: 'pipe',
+    env: {
+      VITE_KEYCLOAK_URL: IDP_ORIGIN,
+      VITE_KEYCLOAK_REALM: IDP_REALM,
+      VITE_KEYCLOAK_CLIENT_ID: IDP_CLIENT_ID,
+    },
   },
 })

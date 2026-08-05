@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { decodeJwtPayload, extractOrganizationName, extractTenantId, extractUserRoles } from '../context/auth/jwt';
+import { extractOrganizationName, extractTenantId, extractUserRoles } from '../context/auth/jwt';
+import { getClaims } from '../context/auth/session';
 
 interface UserInfo {
   id?: string;
@@ -12,10 +13,7 @@ interface UserInfo {
 
 export const useUserInfo = (): UserInfo => {
   return useMemo(() => {
-    const token = localStorage.getItem('@Menthoros:token') ?? '';
-    if (!token) return {};
-
-    const payload = decodeJwtPayload(token);
+    const payload = getClaims();
     if (!payload) {
       return {};
     }
