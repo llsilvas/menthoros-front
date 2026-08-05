@@ -9,9 +9,10 @@ import { definirUsuario, limparUsuario } from '../../context/auth/session';
 /**
  * Reescrito na migração para Authorization Code + PKCE.
  *
- * A versão anterior exercitava o formulário de usuário/senha e o `AuthService` (ROPC). Esse fluxo
- * deixou de existir: a senha passou a ser digitada na tela do Keycloak e nunca trafega pela
- * aplicação. Os testes de destino por role continuam, porque a regra é a mesma.
+ * A versão anterior exercitava o formulário de usuário/senha e o `AuthService` (ROPC), **removido do
+ * repositório** na task 5.4 da change. Esse fluxo deixou de existir: a senha passou a ser digitada na
+ * tela do Keycloak e nunca trafega pela aplicação. Os testes de destino por role continuam, porque a
+ * regra é a mesma.
  */
 
 function fakeToken(roles: string[]): string {
