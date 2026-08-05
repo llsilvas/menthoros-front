@@ -82,5 +82,9 @@ export function limparParametrosDeAutorizacao(): void {
   url.searchParams.delete('state');
   url.searchParams.delete('session_state');
   url.searchParams.delete('iss');
+  // `error` também: o retorno de uma recusa silenciosa traz `?error=login_required`, e deixá-lo na
+  // barra de endereço mostra ao usuário um erro técnico de um fluxo que nem era visível para ele.
+  url.searchParams.delete('error');
+  url.searchParams.delete('error_description');
   window.history.replaceState({}, document.title, url.toString());
 }

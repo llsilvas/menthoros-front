@@ -50,11 +50,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Sessão do mecanismo antigo não sobrevive à virada (decisão 0.5 da change).
         limparTokenLegado();
 
-        // O Keycloak recusou a restauração silenciosa: não há sessão no provedor. É resposta
-        // esperada, não erro — segue para o login sem tentar de novo.
+        /**
+         * O Keycloak recusou a restauração silenciosa: não há sessão no provedor. É resposta
+         * esperada, não erro — mas o usuário precisa **chegar a algum lugar**.
+         *
+         * O retorno cai na raiz (é o `redirect_uri`), e a raiz é a landing pública. Sem mandar para
+         * o login explicitamente, quem tentou abrir uma rota protegida termina na página de
+         * marketing, sem entender o que houve — bug encontrado pelo E2E de autenticação.
+         */
         if (ehRecusaDeLoginSilencioso()) {
           limparParametrosDeAutorizacao();
-          if (ativo) aplicarUsuario(null);
+          if (ativo) {
+            aplicarUsuario(null);
+            window.location.hash = '#/auth/login';
+          }
           return;
         }
 
@@ -102,9 +111,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         if (ativo) aplicarUsuario(null);
-      } catch {
+      } catch (erro) {
         // Falha ao restaurar sessão é "não autenticado", não erro fatal: o usuário segue para o
         // login. Propagar aqui deixaria a aplicação sem render nenhum.
+        //
+        // Mas **não é silencioso**: engolir o motivo transforma qualquer defeito de autenticação em
+        // "voltou para o login sem explicação", que é indistinguível de sessão expirada. O log é o
+        // único rastro que sobra quando o fluxo falha no navegador de alguém.
+        console.error('[auth] falha ao restaurar sessão:', erro);
         if (ativo) aplicarUsuario(null);
       } finally {
         if (ativo) setCarregando(false);
