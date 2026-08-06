@@ -26,6 +26,15 @@ import {
  * provider da biblioteca traria um segundo `useAuth` ao projeto, e importar o errado é um engano
  * que compila.
  */
+/**
+ * Prazo máximo que uma requisição espera por uma renovação em curso.
+ *
+ * Não é o timeout da renovação — esse é da biblioteca (`silentRequestTimeoutInSeconds`). É o
+ * cinto de segurança: se nenhum dos dois eventos chegar, as requisições não podem ficar presas
+ * para sempre.
+ */
+const TEMPO_MAXIMO_DE_RENOVACAO_MS = 15_000;
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   // Começa carregando: no primeiro render ainda não se sabe se há sessão. Assumir "anônimo" aqui
@@ -133,37 +142,74 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [aplicarUsuario]);
 
   useEffect(() => {
-    const aoCarregarUsuario = (user: User) => aplicarUsuario(user);
     const aoDescarregarUsuario = () => aplicarUsuario(null);
 
     /**
-     * Renovação por **redirect**, não por iframe: todos os ambientes são cross-site, e o cookie de
-     * sessão do Keycloak seria third-party dentro do iframe — bloqueado por padrão em Safari e
-     * Firefox, falhando em silêncio (decisão 0.2 / D6).
+     * **O app observa a renovação; não a executa.**
      *
-     * Dispara com folga sobre o expiry (`accessTokenExpiringNotificationTimeInSeconds`), para
-     * renovar antes de uma chamada tomar 401 no meio de uma ação do treinador.
+     * Com `automaticSilentRenew`, quem chama `signinSilent()` é o `SilentRenewService` da
+     * biblioteca. Se este handler chamasse também, seriam duas renovações concorrentes — e com
+     * `revokeRefreshToken` ligado no realm, a segunda reapresenta um refresh token já rotacionado
+     * pela primeira. O Keycloak trata como replay e **derruba a sessão**: a proteção contra roubo de
+     * token viraria a causa da queda, em toda renovação normal.
+     *
+     * O que sobra para o app é manter o contrato do `session.ts`, que segura requisições enquanto há
+     * renovação em curso (senão uma chamada sai com o token velho e toma 401). Como não há mais
+     * promessa de `signinRedirect` para registrar, ela vira um *deferred* resolvido pelos eventos.
      */
-    const aoExpirar = () => {
-      const destino = window.location.hash || undefined;
-      const renovacao = userManager
-        .signinRedirect({ state: { [CHAVE_DESTINO]: destino } })
-        .catch(() => {
-          // Renovação falhou: cai para não autenticado e o guard leva ao login — uma vez, sem laço,
-          // porque `carregando` já é false e o estado é definitivo.
-          aplicarUsuario(null);
-        });
-      definirRenovacaoPendente(renovacao);
+    let concluirRenovacao: (() => void) | null = null;
+
+    const encerrarRenovacao = () => {
+      concluirRenovacao?.();
+      concluirRenovacao = null;
+      definirRenovacaoPendente(null);
     };
 
-    userManager.events.addUserLoaded(aoCarregarUsuario);
+    const aoExpirar = () => {
+      if (concluirRenovacao) return; // renovação já em curso: não empilhar deferred
+
+      const pendente = new Promise<void>((resolve) => {
+        concluirRenovacao = resolve;
+      });
+      definirRenovacaoPendente(pendente);
+
+      /**
+       * Rede de segurança: se nem `userLoaded` nem `silentRenewError` chegarem, as requisições
+       * ficariam presas para sempre — o app inteiro travaria em silêncio. A lib tem timeout próprio
+       * (`silentRequestTimeoutInSeconds`), então este prazo é só o cinto de segurança dele.
+       */
+      window.setTimeout(encerrarRenovacao, TEMPO_MAXIMO_DE_RENOVACAO_MS);
+    };
+
+    const aoRenovar = (user: User) => {
+      encerrarRenovacao();
+      aplicarUsuario(user);
+    };
+
+    /**
+     * Erro da renovação **automática** é publicado por `_raiseSilentRenewError` e **não** passa por
+     * nenhum `catch` do app — sem assinar este evento, a falha aconteceria e nada reagiria.
+     *
+     * Cai para não autenticado e o guard leva ao login: uma vez, sem laço, porque `carregando` já é
+     * false e o estado é definitivo.
+     */
+    const aoFalharRenovacao = (erro: unknown) => {
+      console.warn('[auth] renovação silenciosa falhou; caindo para o login:', erro);
+      encerrarRenovacao();
+      aplicarUsuario(null);
+    };
+
+    userManager.events.addUserLoaded(aoRenovar);
     userManager.events.addUserUnloaded(aoDescarregarUsuario);
     userManager.events.addAccessTokenExpiring(aoExpirar);
+    userManager.events.addSilentRenewError(aoFalharRenovacao);
 
     return () => {
-      userManager.events.removeUserLoaded(aoCarregarUsuario);
+      encerrarRenovacao();
+      userManager.events.removeUserLoaded(aoRenovar);
       userManager.events.removeUserUnloaded(aoDescarregarUsuario);
       userManager.events.removeAccessTokenExpiring(aoExpirar);
+      userManager.events.removeSilentRenewError(aoFalharRenovacao);
     };
   }, [aplicarUsuario]);
 
