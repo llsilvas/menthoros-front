@@ -14,6 +14,43 @@ import { oidcSettings } from './oidcConfig';
  */
 export const userManager = new UserManager(oidcSettings);
 
+/**
+ * O código de autorização só pode ser trocado **uma vez**.
+ *
+ * O `StrictMode` monta os efeitos duas vezes em desenvolvimento, então `signinCallback()` era
+ * chamado duas vezes com o mesmo `code`. O Keycloak trata a segunda como replay — e a punição não é
+ * só recusar a troca: ele **remove a client session**.
+ *
+ * ```
+ * OAuth2CodeParser  Code '...' already used for userSession ...
+ * events            type="CODE_TO_TOKEN_ERROR" error="invalid_code"
+ * (na renovação seguinte)
+ * events            type="REFRESH_TOKEN_ERROR" reason="Session doesn't have required client"
+ * ```
+ *
+ * **O defeito é anterior à renovação silenciosa, mas só apareceu com ela.** Enquanto a renovação era
+ * um redirect completo a cada ~4 minutos, o app ganhava uma sessão nova antes de precisar da antiga,
+ * e a client session morta nunca fazia falta. Ao passar a depender do refresh token, ela passa a ser
+ * a única que existe.
+ *
+ * Causalidade verificada por experimento em 2026-08-06: com `StrictMode` desligado, nenhuma
+ * ocorrência de `already used`; religado, uma por carregamento.
+ *
+ * Memoizar a **promessa** (e não um booleano) faz a segunda chamada aguardar o mesmo resultado, em
+ * vez de seguir como se não houvesse sessão.
+ */
+let trocaDeCodigo: Promise<Awaited<ReturnType<typeof userManager.signinCallback>>> | null = null;
+
+export function trocarCodigoUmaVez() {
+  trocaDeCodigo ??= userManager.signinCallback();
+  return trocaDeCodigo;
+}
+
+/** Libera a guarda para um novo fluxo — usado após concluir (ou falhar) o callback. */
+export function liberarTrocaDeCodigo(): void {
+  trocaDeCodigo = null;
+}
+
 /** Chave do `state` onde viaja a rota de origem, para restaurar o destino após o callback. */
 export const CHAVE_DESTINO = 'destino';
 

@@ -56,14 +56,27 @@ export const oidcSettings: UserManagerSettings = {
   stateStore: new WebStorageStateStore({ store: window.sessionStorage }),
 
   /**
-   * Renovação por **redirect**, não por iframe.
+   * Renovação **silenciosa por refresh token**. São três mecanismos possíveis, e só um serve aqui:
    *
-   * Todos os ambientes são cross-site (em produção, `menthoros.com` contra Keycloak em
-   * `*.up.railway.app`), então o cookie de sessão do Keycloak é third-party dentro de um iframe —
-   * bloqueado por padrão em Safari e Firefox. O silent renew falharia **em silêncio**, jogando o
-   * usuário no login sem motivo aparente: o pior modo de falha possível aqui.
+   * | Mecanismo | Como renova | Cross-site |
+   * |---|---|---|
+   * | redirect | navega até o IdP e volta | funciona — e **recarrega a página inteira** |
+   * | iframe (`prompt=none`) | iframe oculto, apoiado no cookie de sessão do Keycloak | **quebra** — cookie third-party |
+   * | refresh token | `POST /token` com `grant_type=refresh_token` | **funciona** — não usa cookie |
+   *
+   * A versão anterior desta config usava **redirect**, com a justificativa de que o iframe quebraria
+   * cross-site (`menthoros.com` contra Keycloak em `*.up.railway.app`). A parte sobre o iframe está
+   * certa; o erro foi concluir dali que *nenhuma* renovação silenciosa serve. O preço foi a página
+   * recarregando a cada ~4 minutos, no meio do trabalho do treinador.
+   *
+   * `signinSilent()` usa o refresh token quando existe e **só cai no iframe quando não existe**. Um
+   * POST com token no corpo não é afetado por ITP nem pelo bloqueio de cookies de terceiros.
+   *
+   * ⚠️ **Não configurar `silent_redirect_uri`.** Sem refresh token em memória — toda aba nova, todo
+   * reload — a lib tentaria o iframe; sem essa URL ela falha explicitamente, e a falha vira
+   * `silentRenewError`, tratado no `AuthProvider`. Falhar alto é melhor que um iframe morrendo calado.
    */
-  automaticSilentRenew: false,
+  automaticSilentRenew: true,
 
   /** Avisa antes de expirar, para renovar com folga em vez de reagir a um 401 no meio de uma ação. */
   accessTokenExpiringNotificationTimeInSeconds: 60,

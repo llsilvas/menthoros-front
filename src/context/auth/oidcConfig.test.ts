@@ -23,10 +23,26 @@ describe('oidcConfig', () => {
     expect(oidcSettings.authority).toBe(authority);
   });
 
-  // Cross-site em todos os ambientes: o cookie de sessão do Keycloak é third-party dentro do
-  // iframe e o renew silencioso falharia em silêncio. A renovação é por redirect.
-  it('não usa silent renew por iframe', () => {
-    expect(oidcSettings.automaticSilentRenew).toBe(false);
+  /**
+   * Renova em silêncio, **por refresh token** — não por iframe.
+   *
+   * A versão anterior deste teste afirmava `automaticSilentRenew === false`, com o comentário de que
+   * o cookie do Keycloak seria third-party dentro do iframe e o renew falharia calado. A premissa
+   * sobre o iframe continua verdadeira; o que estava errado era a conclusão de que nenhuma renovação
+   * silenciosa serviria. `signinSilent()` usa o refresh token quando ele existe, e um POST com token
+   * no corpo não depende de cookie nenhum.
+   */
+  it('renova em silêncio, sem recarregar a página', () => {
+    expect(oidcSettings.automaticSilentRenew).toBe(true);
+  });
+
+  /**
+   * Sem refresh token em memória — toda aba nova, todo reload — a lib cairia no iframe. Sem esta
+   * URL ela falha explicitamente, e a falha vira `silentRenewError`, tratado no `AuthProvider`.
+   * Um iframe cross-site morreria em silêncio; falhar alto é o comportamento desejado.
+   */
+  it('não configura silent_redirect_uri, para o iframe falhar alto', () => {
+    expect(oidcSettings.silent_redirect_uri).toBeUndefined();
   });
 
   it('renova com folga, em vez de reagir ao token já expirado', () => {
