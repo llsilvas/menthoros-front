@@ -15,6 +15,8 @@ import {
   limparParametrosDeAutorizacao,
   limparTentativaDeRestauracao,
   marcarTentativaDeRestauracao,
+  liberarTrocaDeCodigo,
+  trocarCodigoUmaVez,
   userManager,
 } from './userManager';
 
@@ -77,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         if (ehRetornoDeAutorizacao()) {
-          const user = await userManager.signinCallback();
+          const user = await trocarCodigoUmaVez();
           limparParametrosDeAutorizacao();
           limparTentativaDeRestauracao();
 
@@ -130,6 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error('[auth] falha ao restaurar sessão:', erro);
         if (ativo) aplicarUsuario(null);
       } finally {
+        liberarTrocaDeCodigo();
         if (ativo) setCarregando(false);
       }
     }
