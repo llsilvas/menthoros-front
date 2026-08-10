@@ -9,6 +9,7 @@ export const ROUTES = {
     LOGIN: '/auth/login',
     REGISTRO: '/auth/registro',
     WAITLIST: '/waitlist',
+    CADASTRO: '/cadastro',
     PRIVACIDADE: '/privacidade',
     TERMOS: '/termos',
 
