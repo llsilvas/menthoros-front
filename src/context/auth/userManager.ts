@@ -99,9 +99,43 @@ export function marcarTentativaDeRestauracao(): void {
   }
 }
 
+/**
+ * Rota de onde a restauração silenciosa partiu.
+ *
+ * Existe porque o retorno do Keycloak cai sempre na raiz (é o `redirect_uri`) e perde o hash. Sem
+ * guardar a origem, quem abriu uma rota **pública** sem sessão é jogado no login — inclusive quem
+ * foi criar a conta, que é justamente quem ainda não tem uma.
+ */
+const CHAVE_ORIGEM = 'menthoros:restauracao-origem';
+
+/** Rotas que não exigem sessão. Devem espelhar as registradas fora do `ProtectedRoute`. */
+const ROTAS_PUBLICAS = new Set(['', '#/', '#/cadastro', '#/waitlist', '#/privacidade', '#/termos', '#/auth/login']);
+
+export function guardarRotaDeOrigem(hash: string = window.location.hash): void {
+  try {
+    sessionStorage.setItem(CHAVE_ORIGEM, hash);
+  } catch {
+    // Sem sessionStorage o destino se perde e o usuário cai no login — degradação aceitável.
+  }
+}
+
+export function lerRotaDeOrigem(): string {
+  try {
+    return sessionStorage.getItem(CHAVE_ORIGEM) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+export function ehRotaPublica(hash: string): boolean {
+  // Ignora query dentro do hash (`#/cadastro?x=1`) — o que decide é o caminho.
+  return ROTAS_PUBLICAS.has(hash.split('?')[0]);
+}
+
 export function limparTentativaDeRestauracao(): void {
   try {
     sessionStorage.removeItem(CHAVE_TENTATIVA);
+    sessionStorage.removeItem(CHAVE_ORIGEM);
   } catch {
     // Nada a limpar.
   }

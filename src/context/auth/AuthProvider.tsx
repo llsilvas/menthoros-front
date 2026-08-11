@@ -18,6 +18,9 @@ import {
   liberarTrocaDeCodigo,
   trocarCodigoUmaVez,
   userManager,
+  ehRotaPublica,
+  guardarRotaDeOrigem,
+  lerRotaDeOrigem,
 } from './userManager';
 
 /**
@@ -73,7 +76,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           limparParametrosDeAutorizacao();
           if (ativo) {
             aplicarUsuario(null);
-            window.location.hash = '#/auth/login';
+            /**
+             * Rota pública volta para onde estava; rota protegida vai para o login.
+             *
+             * Mandar todo mundo para o login quebra o auto-cadastro: quem abre `/#/cadastro` sem
+             * sessão é exatamente quem **não tem conta**, e cairia numa tela pedindo que entrasse.
+             * Encontrado pelo E2E do cadastro — nenhum teste de componente veria, porque o desvio
+             * acontece no retorno do provedor.
+             */
+            const origem = lerRotaDeOrigem();
+            window.location.hash = ehRotaPublica(origem) ? origem || '#/' : '#/auth/login';
           }
           return;
         }
@@ -114,6 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
          */
         if (!jaTentouRestaurar()) {
           marcarTentativaDeRestauracao();
+          guardarRotaDeOrigem();
           await userManager.signinRedirect({
             prompt: 'none',
             state: { [CHAVE_DESTINO]: window.location.hash },

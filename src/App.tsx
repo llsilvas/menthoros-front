@@ -12,6 +12,7 @@ import LoginPage from './pages/auth/LoginPage';
 import LandingPage from './pages/landing/LandingPage';
 // Sem lazy: páginas públicas de pré-lançamento, carregam imediatamente sem spinner.
 import WaitlistPage from './pages/waitlist/WaitlistPage';
+import CadastroPage from './pages/cadastro/CadastroPage';
 import PrivacidadePage from './pages/waitlist/PrivacidadePage';
 import TermosPage from './pages/legal/TermosPage';
 import CoachLayout from './features/coach/layout/CoachLayout';
@@ -175,6 +176,11 @@ const router = createHashRouter([
   {
     path: '/waitlist',
     element: <WaitlistPage />,
+  },
+  // Auto-cadastro público: roda ANTES de existir sessão, então fica fora do ProtectedRoute.
+  {
+    path: '/cadastro',
+    element: <CadastroPage />,
   },
   {
     path: '/privacidade',
