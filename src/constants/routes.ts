@@ -16,6 +16,7 @@ export const ROUTES = {
     // Coach shell (standardize-coach-shell-ux)
     COACH_INBOX:    '/coach/inbox',
     COACH_SETTINGS: '/coach/settings',
+    COACH_SETTINGS_ASSESSORIA: '/coach/settings/assessoria',
     COACH_ATHLETES: '/coach/athletes',
     COACH_CALENDAR: '/coach/calendar',
     COACH_INSIGHTS: '/coach/insights',

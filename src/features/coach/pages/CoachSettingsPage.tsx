@@ -58,6 +58,17 @@ export default function CoachSettingsPage() {
       <Typography variant="h4" sx={{ mb: 3 }}>Configurações</Typography>
 
       <Stack spacing={3}>
+        <SectionCard title="Assessoria">
+          <Stack spacing={1.5}>
+            <Typography variant="body2" sx={{ color: text.secondary }}>
+              Nome e logo da assessoria, além do plano contratado e do uso atual.
+            </Typography>
+            <Link component={RouterLink} to={ROUTES.COACH_SETTINGS_ASSESSORIA}>
+              Configurar assessoria
+            </Link>
+          </Stack>
+        </SectionCard>
+
         <SectionCard title="Dados pessoais">
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} alignItems={{ sm: 'center' }}>
             <Avatar

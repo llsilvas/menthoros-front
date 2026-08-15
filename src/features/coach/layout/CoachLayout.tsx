@@ -137,7 +137,7 @@ export default function CoachLayout() {
     );
   }
 
-  const activeRoute = (location.pathname as CoachRoute) ?? '/coach/inbox';
+  const activeRoute = resolverRotaAtiva(location.pathname);
 
   const handleNavigate = (route: CoachRoute) => {
     navigate(route);
@@ -186,4 +186,27 @@ export default function CoachLayout() {
       </Box>
     </Box>
   );
+}
+
+/**
+ * Resolve qual item da sidebar fica ativo.
+ *
+ * Era `location.pathname as CoachRoute`, comparação exata — com a sub-rota
+ * `/coach/settings/assessoria` nenhum item casaria e a sidebar ficaria sem destaque nenhum,
+ * deixando o coach sem saber onde está. Aqui vence o prefixo mais longo, então
+ * `/coach/settings/assessoria` mantém "Configurações" aceso.
+ */
+function resolverRotaAtiva(pathname: string): CoachRoute {
+  const rotas: CoachRoute[] = [
+    '/coach/inbox',
+    '/coach/athletes',
+    '/coach/calendar',
+    '/coach/insights',
+    '/coach/planos/revisao',
+    '/coach/settings',
+  ];
+
+  return rotas
+    .filter((rota) => pathname === rota || pathname.startsWith(`${rota}/`))
+    .sort((a, b) => b.length - a.length)[0] ?? '/coach/inbox';
 }
