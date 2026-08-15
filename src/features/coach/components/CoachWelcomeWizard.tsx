@@ -5,10 +5,6 @@ import {
   Button,
   Chip,
   CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   MenuItem,
   Stack,
   Step,
@@ -20,6 +16,7 @@ import {
   useTheme,
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { useAssessoriaSettings } from '../../../hooks/useAssessoriaSettings';
 import { useCoachOnboarding } from '../../../hooks/useCoachOnboarding';
 import { DIA_SEMANA_LABELS, NIVEL_EXPERIENCIA_LABELS } from '../../../types/Atleta';
@@ -49,7 +46,12 @@ export function CoachWelcomeWizard({ onConcluido }: CoachWelcomeWizardProps) {
   const mobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const [etapa, setEtapa] = useState(0);
-  const { assessoria, carregar, salvarNome, salvando: salvandoAssessoria } = useAssessoriaSettings();
+  const {
+    assessoria, carregar, salvarNome,
+    salvando: salvandoAssessoria,
+    erro: erroAssessoria,
+    conflito: conflitoAssessoria,
+  } = useAssessoriaSettings();
   const {
     atletaId, conviteEnviado, salvando: salvandoOnboarding, erro,
     criarAtleta, convidar, concluir,
@@ -106,22 +108,52 @@ export function CoachWelcomeWizard({ onConcluido }: CoachWelcomeWizardProps) {
     }));
   };
 
-  return (
-    <Dialog
-      open
-      fullWidth
-      maxWidth="sm"
-      fullScreen={mobile}
-      disableEscapeKeyDown
-      onClose={(_, motivo) => {
-        // Nem Escape nem backdrop fecham; a saída é explícita.
-        if (motivo === 'backdropClick') return;
-      }}
-      aria-labelledby="wizard-titulo"
-    >
-      <DialogTitle id="wizard-titulo">Bem-vindo à Menthoros</DialogTitle>
+  const acoes = (
+    <>
+      <Button onClick={() => void finalizar()} disabled={salvando} color="inherit">
+        Pular por agora
+      </Button>
+      <Box sx={{ flex: 1 }} />
+      {etapa > 0 && (
+        <Button onClick={() => setEtapa(etapa - 1)} disabled={salvando}>Voltar</Button>
+      )}
+      {etapa === 0 && (
+        <Button variant="contained" onClick={() => void avancarAssessoria()} disabled={salvando}>
+          Continuar
+        </Button>
+      )}
+      {etapa === 1 && (
+        <Button
+          variant="contained"
+          onClick={() => void avancarAtleta()}
+          disabled={salvando || atleta.nome.trim().length === 0}
+        >
+          Cadastrar atleta
+        </Button>
+      )}
+      {etapa === 2 && (
+        <Button variant="contained" onClick={() => void finalizar()} disabled={salvando}>
+          Concluir
+        </Button>
+      )}
+    </>
+  );
 
-      <DialogContent dividers>
+  return (
+    // `CoachDialog` é o shell padrão dos dialogs do coach — mesma superfície dark-first, mesma
+    // tipografia. Montar um `Dialog` cru aqui faria dois gates seguidos (consentimento e wizard)
+    // parecerem vir de produtos diferentes. `showClose={false}` + `onClose` no-op é exatamente o
+    // que o `CoachConsentDialog` faz para ser bloqueante.
+    <CoachDialog
+      open
+      onClose={() => { /* bloqueante: a saída é "Pular por agora" */ }}
+      showClose={false}
+      title="Bem-vindo à Menthoros"
+      subtitle="Três passos rápidos para começar. Você pode pular e fazer depois."
+      maxWidth="sm"
+      actions={acoes}
+    >
+      <>
         <Stepper
           activeStep={etapa}
           orientation={mobile ? 'vertical' : 'horizontal'}
@@ -134,14 +166,34 @@ export function CoachWelcomeWizard({ onConcluido }: CoachWelcomeWizardProps) {
 
         {erro && <Alert severity="error" sx={{ mb: 2 }}>{erro}</Alert>}
 
+        {conflitoAssessoria && (
+          <Alert
+            severity="warning"
+            sx={{ mb: 2 }}
+            action={<Button size="small" onClick={() => void carregar()}>Recarregar</Button>}
+          >
+            A assessoria foi alterada em outra sessão. Recarregue para ver o estado atual.
+          </Alert>
+        )}
+
+        {erroAssessoria && (
+          <Alert
+            severity="error"
+            sx={{ mb: 2 }}
+            action={<Button size="small" onClick={() => void carregar()}>Tentar de novo</Button>}
+          >
+            Não foi possível carregar os dados da assessoria.
+          </Alert>
+        )}
+
         {etapa === 0 && (
           <Stack spacing={2}>
             <Typography variant="body2" sx={{ color: text.secondary }}>
               Confirme o nome da sua assessoria. Você pode ajustar isso depois em Configurações.
             </Typography>
-            {assessoria == null ? (
+            {assessoria == null && erroAssessoria == null ? (
               <CircularProgress size={24} aria-label="Carregando assessoria" />
-            ) : (
+            ) : assessoria == null ? null : (
               <TextField
                 label="Nome da assessoria"
                 defaultValue={assessoria.nome}
@@ -193,6 +245,9 @@ export function CoachWelcomeWizard({ onConcluido }: CoachWelcomeWizardProps) {
                     key={dia}
                     label={DIA_SEMANA_LABELS[dia]}
                     onClick={() => alternarDia(dia)}
+                    // Chip como toggle: sem `aria-pressed` o leitor de tela não anuncia se o dia
+                    // está selecionado, e o dialog é bloqueante e navegável só por teclado/AT.
+                    aria-pressed={atleta.diasDisponiveis.includes(dia)}
                     color={atleta.diasDisponiveis.includes(dia) ? 'primary' : 'default'}
                     variant={atleta.diasDisponiveis.includes(dia) ? 'filled' : 'outlined'}
                     disabled={salvando}
@@ -226,37 +281,8 @@ export function CoachWelcomeWizard({ onConcluido }: CoachWelcomeWizardProps) {
             </Button>
           </Stack>
         )}
-      </DialogContent>
-
-      <DialogActions sx={{ px: 3, py: 2, flexWrap: 'wrap', gap: 1 }}>
-        <Button onClick={() => void finalizar()} disabled={salvando} color="inherit">
-          Pular por agora
-        </Button>
-        <Box sx={{ flex: 1 }} />
-        {etapa > 0 && (
-          <Button onClick={() => setEtapa(etapa - 1)} disabled={salvando}>Voltar</Button>
-        )}
-        {etapa === 0 && (
-          <Button variant="contained" onClick={() => void avancarAssessoria()} disabled={salvando}>
-            Continuar
-          </Button>
-        )}
-        {etapa === 1 && (
-          <Button
-            variant="contained"
-            onClick={() => void avancarAtleta()}
-            disabled={salvando || atleta.nome.trim().length === 0}
-          >
-            Cadastrar atleta
-          </Button>
-        )}
-        {etapa === 2 && (
-          <Button variant="contained" onClick={() => void finalizar()} disabled={salvando}>
-            Concluir
-          </Button>
-        )}
-      </DialogActions>
-    </Dialog>
+      </>
+    </CoachDialog>
   );
 }
 
