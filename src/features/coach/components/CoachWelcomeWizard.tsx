@@ -60,12 +60,15 @@ export function CoachWelcomeWizard({ onConcluido }: CoachWelcomeWizardProps) {
   const [nomeAssessoria, setNomeAssessoria] = useState('');
   const [atleta, setAtleta] = useState({
     nome: '',
+    email: '',
     objetivo: '',
     nivelExperiencia: 'INICIANTE' as nivelExperiencia,
     diasDisponiveis: [] as diaSemana[],
   });
 
   const salvando = salvandoAssessoria || salvandoOnboarding;
+  /** Sem e-mail o convite é recusado pelo servidor; melhor explicar do que deixar tentar e falhar. */
+  const atletaSemEmail = atleta.email.trim().length === 0;
 
   useEffect(() => {
     void carregar();
@@ -89,8 +92,12 @@ export function CoachWelcomeWizard({ onConcluido }: CoachWelcomeWizardProps) {
 
   const avancarAtleta = async () => {
     if (atleta.nome.trim().length === 0) return;
+    const email = atleta.email.trim();
     if (await criarAtleta({
       nome: atleta.nome.trim(),
+      // Sem e-mail o atleta é criado, mas não pode ser convidado — e o convite é a etapa
+      // seguinte. Enviar vazio como `undefined` evita gravar string vazia no banco.
+      email: email.length > 0 ? email : undefined,
       objetivo: atleta.objetivo.trim() || 'Melhorar condicionamento',
       nivelExperiencia: atleta.nivelExperiencia,
       diasDisponiveis: atleta.diasDisponiveis,
@@ -218,6 +225,14 @@ export function CoachWelcomeWizard({ onConcluido }: CoachWelcomeWizardProps) {
               fullWidth size="small" disabled={salvando} required
             />
             <TextField
+              label="E-mail do atleta"
+              type="email"
+              value={atleta.email}
+              onChange={(e) => setAtleta({ ...atleta, email: e.target.value })}
+              helperText="Necessário para enviar o convite de acesso. Você pode preencher depois."
+              fullWidth size="small" disabled={salvando}
+            />
+            <TextField
               label="Objetivo"
               value={atleta.objetivo}
               onChange={(e) => setAtleta({ ...atleta, objetivo: e.target.value })}
@@ -261,9 +276,11 @@ export function CoachWelcomeWizard({ onConcluido }: CoachWelcomeWizardProps) {
         {etapa === 2 && (
           <Stack spacing={2}>
             <Typography variant="body2" sx={{ color: text.secondary }}>
-              {atletaId
-                ? 'Envie o convite de acesso para o atleta criar a conta dele.'
-                : 'Nenhum atleta foi criado nesta sessão. Você pode convidar depois, na tela de Atletas.'}
+              {!atletaId
+                ? 'Nenhum atleta foi criado nesta sessão. Você pode convidar depois, na tela de Atletas.'
+                : atletaSemEmail
+                  ? 'O atleta foi criado sem e-mail, então ainda não dá para convidá-lo. Adicione o e-mail na tela de Atletas para enviar o convite.'
+                  : 'Envie o convite de acesso para o atleta criar a conta dele.'}
             </Typography>
             {conviteEnviado && (
               <Alert severity="success" icon={<CheckCircleIcon fontSize="inherit" />}>
@@ -275,7 +292,7 @@ export function CoachWelcomeWizard({ onConcluido }: CoachWelcomeWizardProps) {
               onClick={() => void convidar()}
               // Desabilitado após o primeiro sucesso: o endpoint REENVIA a cada chamada, e um
               // segundo clique manda outro e-mail ao atleta.
-              disabled={!atletaId || conviteEnviado || salvando}
+              disabled={!atletaId || atletaSemEmail || conviteEnviado || salvando}
             >
               Enviar convite
             </Button>

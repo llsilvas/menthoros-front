@@ -101,6 +101,10 @@ test.describe('Coach — wizard de boas-vindas', () => {
     await page.getByRole('button', { name: /continuar/i }).click()
 
     await page.getByLabel(/nome do atleta/i).fill('Ana Corredora')
+    // O e-mail é o que habilita o convite na etapa seguinte: sem ele o servidor recusa com
+    // "Atleta sem email não pode ser convidado", e o wizard desabilita o botão em vez de deixar
+    // o coach descobrir isso por um erro.
+    await page.getByLabel(/e-mail do atleta/i).fill('ana@exemplo.com')
     await page.getByRole('button', { name: /cadastrar atleta/i }).click()
 
     await expect(page.getByRole('button', { name: /enviar convite/i })).toBeEnabled()

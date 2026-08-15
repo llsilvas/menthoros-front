@@ -109,6 +109,33 @@ describe('CoachWelcomeWizard', () => {
         .toHaveBeenCalledWith(expect.objectContaining({ nome: 'Ana Corredora' })));
     });
 
+    /**
+     * O bug que o teste manual encontrou: o wizard criava o atleta sem e-mail e oferecia, na etapa
+     * seguinte, um convite que o servidor recusa com "Atleta sem email não pode ser convidado".
+     */
+    it('envia o e-mail digitado, porque o convite depende dele', async () => {
+      montar();
+      await irParaEtapaAtleta();
+
+      await userEvent.type(screen.getByLabelText(/nome do atleta/i), 'Ana Corredora');
+      await userEvent.type(screen.getByLabelText(/e-mail do atleta/i), 'ana@exemplo.com');
+      await userEvent.click(screen.getByRole('button', { name: /cadastrar atleta/i }));
+
+      await waitFor(() => expect(CoachOnboardingService.criarPrimeiroAtleta)
+        .toHaveBeenCalledWith(expect.objectContaining({ email: 'ana@exemplo.com' })));
+    });
+
+    it('sem e-mail, envia undefined em vez de string vazia', async () => {
+      montar();
+      await irParaEtapaAtleta();
+
+      await userEvent.type(screen.getByLabelText(/nome do atleta/i), 'Ana Corredora');
+      await userEvent.click(screen.getByRole('button', { name: /cadastrar atleta/i }));
+
+      await waitFor(() => expect(CoachOnboardingService.criarPrimeiroAtleta)
+        .toHaveBeenCalledWith(expect.objectContaining({ email: undefined })));
+    });
+
     it('sem nome, o botão fica desabilitado', async () => {
       montar();
       await irParaEtapaAtleta();
@@ -139,6 +166,7 @@ describe('CoachWelcomeWizard', () => {
     async function chegarNoConvite() {
       await irParaEtapaAtleta();
       await userEvent.type(screen.getByLabelText(/nome do atleta/i), 'Ana Corredora');
+      await userEvent.type(screen.getByLabelText(/e-mail do atleta/i), 'ana@exemplo.com');
       await userEvent.click(screen.getByRole('button', { name: /cadastrar atleta/i }));
       await screen.findByRole('button', { name: /enviar convite/i });
     }
@@ -157,6 +185,21 @@ describe('CoachWelcomeWizard', () => {
       await waitFor(() => expect(screen.getByText(/convite enviado/i)).toBeInTheDocument());
       expect(botao).toBeDisabled();
       expect(CoachOnboardingService.convidarAtleta).toHaveBeenCalledTimes(1);
+    });
+
+    /**
+     * Deixar o botão habilitado faria o coach clicar e receber um erro do servidor que ele não tem
+     * como resolver dali — o campo de e-mail está na etapa anterior, já passada.
+     */
+    it('atleta sem e-mail: convite indisponível, com explicação', async () => {
+      montar();
+      await irParaEtapaAtleta();
+      await userEvent.type(screen.getByLabelText(/nome do atleta/i), 'Ana Corredora');
+      await userEvent.click(screen.getByRole('button', { name: /cadastrar atleta/i }));
+
+      const botao = await screen.findByRole('button', { name: /enviar convite/i });
+      expect(botao).toBeDisabled();
+      expect(screen.getByText(/criado sem e-mail/i)).toBeInTheDocument();
     });
 
     it('conclui chamando o servidor e avisando o layout', async () => {
