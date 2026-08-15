@@ -4,6 +4,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router';
 import { elevation } from '../../../shared/design-tokens';
 import type { CoachRoute } from '../../../constants/routes';
 import CoachSidebar from './CoachSidebar';
+import { CoachWelcomeWizard } from '../components/CoachWelcomeWizard';
 import { CoachConsentDialog } from '../components/CoachConsentDialog';
 import { UsuarioService } from '../../../api/services/UsuarioService';
 import { useCurrentUser } from '../../../hooks/useCurrentUser';
@@ -54,7 +55,7 @@ export default function CoachLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { coach, tenant, consent, loading: userLoading, error: userError, fetchCurrentUser } = useCurrentUser();
+  const { coach, tenant, consent, onboardingConcluido, loading: userLoading, error: userError, fetchCurrentUser } = useCurrentUser();
   const { queue, loading: queueLoading, error: queueError, fetchQueue } = useAttentionQueue();
   const {
     allPlanos,
@@ -72,9 +73,19 @@ export default function CoachLayout() {
 
   useEffect(() => {
     fetchCurrentUser();
+  }, [fetchCurrentUser]);
+
+  // As buscas do dashboard esperam os DOIS gates. Antes elas saíam junto com o `me`, e o gate
+  // existia só no render: o consentimento e o wizard cobriam a tela enquanto fila e revisões já
+  // tinham sido pedidas por trás — respostas que ninguém consome, e 403 no console quando o
+  // enforcement de consentimento está ligado.
+  const liberado = consent.granted === true && onboardingConcluido === true;
+
+  useEffect(() => {
+    if (!liberado) return;
     fetchQueue();
     fetchPendentes();
-  }, [fetchCurrentUser, fetchQueue, fetchPendentes]);
+  }, [liberado, fetchQueue, fetchPendentes]);
 
   const handleAcceptConsent = useCallback(
     async (versoes: { policyVersion: string; termsVersion: string }) => {
@@ -117,7 +128,7 @@ export default function CoachLayout() {
     );
   }
 
-  if (userLoading || consent.granted === null) {
+  if (userLoading || consent.granted === null || onboardingConcluido === null) {
     return (
       <Box sx={telaCheia}>
         <CircularProgress />
@@ -135,6 +146,14 @@ export default function CoachLayout() {
         onVersionStale={handleConsentVersionStale}
       />
     );
+  }
+
+  // Onboarding vem DEPOIS do consentimento, e a ordem importa: o wizard escreve dados (nome da
+  // assessoria, primeiro atleta). Montá-lo antes do aceite faria o coach gravar informação no
+  // produto antes de concordar com os termos — invertendo a garantia que a change de consentimento
+  // estabeleceu.
+  if (onboardingConcluido === false) {
+    return <CoachWelcomeWizard onConcluido={fetchCurrentUser} />;
   }
 
   const activeRoute = resolverRotaAtiva(location.pathname);

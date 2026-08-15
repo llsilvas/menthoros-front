@@ -20,6 +20,14 @@ export interface UsuarioMeOutputDto {
      * Derivado no backend — volta a `false` quando uma das versões vigentes muda.
      */
     lgpdConsentGranted: boolean;
+
+    /**
+     * Indica se o usuário já passou pelo wizard de boas-vindas.
+     *
+     * Usuários anteriores ao lançamento do wizard nascem `true` e nunca o veem; só o auto-cadastro
+     * cria com `false`. Técnico convidado depois também nasce `true` — o wizard é do dono.
+     */
+    onboardingConcluido: boolean;
     /**
      * Data de vigência da Política em vigor; deve ser ecoada ao registrar o aceite.
      * Não é opcional: o backend a lê de `app.lgpd.policy-version`, que é `@NotBlank` e derruba o

@@ -6,6 +6,7 @@ export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
 export { AssessoriaSettingsService } from './services/AssessoriaSettingsService'; // curado à mão — não remover ao regenerar
+export { CoachOnboardingService } from './services/CoachOnboardingService'; // curado à mão — não remover ao regenerar
 export { AtletasService } from './services/AtletasService';
 export { CoachDashboardService } from './services/CoachDashboardService'; // curado à mão — não remover ao regenerar
 export { PlanoSemanalService } from './services/PlanoSemanalService';

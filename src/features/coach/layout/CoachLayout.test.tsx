@@ -9,6 +9,9 @@ const fetchCurrentUser = vi.fn().mockResolvedValue(undefined);
 const registrarConsentimento = vi.fn().mockResolvedValue(undefined);
 const VERSOES = { policyVersion: '2026-06-30', termsVersion: '2026-06-30' };
 let consentAtual: CurrentConsent = { granted: true, ...VERSOES };
+let onboardingAtual: boolean | null = true;
+const fetchQueue = vi.fn();
+const fetchPendentes = vi.fn();
 let loadingAtual = false;
 let errorAtual: Error | null = null;
 
@@ -17,6 +20,7 @@ vi.mock('../../../hooks/useCurrentUser', () => ({
     coach: { id: 'c1', name: 'Coach' },
     tenant: { id: 't1', name: 'Assessoria', athleteCount: 0 },
     consent: consentAtual,
+    onboardingConcluido: onboardingAtual,
     loading: loadingAtual,
     error: errorAtual,
     fetchCurrentUser,
@@ -24,19 +28,27 @@ vi.mock('../../../hooks/useCurrentUser', () => ({
 }));
 
 vi.mock('../../../hooks/useAttentionQueue', () => ({
-  useAttentionQueue: () => ({ queue: [], loading: false, error: null, fetchQueue: vi.fn() }),
+  useAttentionQueue: () => ({ queue: [], loading: false, error: null, fetchQueue }),
 }));
 
 vi.mock('../../../hooks/useCoachPlanReview', () => ({
   useCoachPlanReview: () => ({
     allPlanos: [], pendentes: [], activeFilter: 'TODOS', setFilter: vi.fn(),
     isFetching: false, isActing: false, fetchError: null, actionError: null,
-    fetchPendentes: vi.fn(), aprovar: vi.fn(), rejeitar: vi.fn(),
+    fetchPendentes, aprovar: vi.fn(), rejeitar: vi.fn(),
   }),
 }));
 
 vi.mock('../../../api/services/UsuarioService', () => ({
   UsuarioService: { registrarConsentimento: (...args: unknown[]) => registrarConsentimento(...args) },
+}));
+
+vi.mock('../components/CoachWelcomeWizard', () => ({
+  CoachWelcomeWizard: ({ onConcluido }: { onConcluido: () => void }) => (
+    <div data-testid="wizard">
+      <button onClick={onConcluido}>concluir-stub</button>
+    </div>
+  ),
 }));
 
 // A sidebar real lê `localStorage` no mount, que não existe neste ambiente de teste. O objeto de
@@ -57,6 +69,7 @@ describe('CoachLayout — gate de consentimento', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     consentAtual = { granted: true, ...VERSOES };
+    onboardingAtual = true;
     loadingAtual = false;
     errorAtual = null;
   });
@@ -131,5 +144,65 @@ describe('CoachLayout — gate de consentimento', () => {
     );
     // O refetch é o que libera o shell — sem ele o modal ficaria preso mesmo após o 200.
     await waitFor(() => expect(fetchCurrentUser).toHaveBeenCalledTimes(2));
+  });
+
+  describe('gate de onboarding', () => {
+    it('monta o wizard quando o onboarding está pendente', () => {
+      onboardingAtual = false;
+      renderLayout();
+
+      expect(screen.getByTestId('wizard')).toBeInTheDocument();
+      expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+    });
+
+    /**
+     * A ordem importa: o wizard escreve dados (nome da assessoria, primeiro atleta). Montá-lo
+     * antes do aceite faria o coach gravar informação no produto antes de concordar com os termos.
+     */
+    it('consentimento vem antes do onboarding', () => {
+      consentAtual = { granted: false, ...VERSOES };
+      onboardingAtual = false;
+      renderLayout();
+
+      expect(screen.getByRole('button', { name: /aceitar e continuar/i })).toBeInTheDocument();
+      expect(screen.queryByTestId('wizard')).not.toBeInTheDocument();
+    });
+
+    /**
+     * O gate precisa preceder as BUSCAS, não só a renderização. Antes elas saíam junto com o `me`:
+     * o wizard cobria a tela enquanto fila e revisões já tinham sido pedidas por trás.
+     */
+    it('com onboarding pendente, as buscas de dashboard não disparam', () => {
+      onboardingAtual = false;
+      renderLayout();
+
+      expect(fetchQueue).not.toHaveBeenCalled();
+      expect(fetchPendentes).not.toHaveBeenCalled();
+    });
+
+    it('com consentimento pendente, as buscas de dashboard não disparam', () => {
+      consentAtual = { granted: false, ...VERSOES };
+      renderLayout();
+
+      expect(fetchQueue).not.toHaveBeenCalled();
+      expect(fetchPendentes).not.toHaveBeenCalled();
+    });
+
+    it('liberado, as buscas de dashboard disparam', async () => {
+      renderLayout();
+
+      await waitFor(() => expect(fetchQueue).toHaveBeenCalled());
+      expect(fetchPendentes).toHaveBeenCalled();
+    });
+
+    it('concluir o wizard revalida o usuário', async () => {
+      onboardingAtual = false;
+      const user = userEvent.setup();
+      renderLayout();
+
+      await user.click(screen.getByRole('button', { name: /concluir-stub/i }));
+
+      await waitFor(() => expect(fetchCurrentUser).toHaveBeenCalledTimes(2));
+    });
   });
 });

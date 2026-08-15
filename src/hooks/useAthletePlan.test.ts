@@ -12,7 +12,7 @@ import type { UsuarioMeOutputDto } from '../types/Usuario';
 vi.mock('../api/services/PlanoSemanalService');
 vi.mock('../api/services/UsuarioService');
 
-const ME: UsuarioMeOutputDto = { id: 'u1', nome: 'Carlos', email: 'c@x.com', role: 'ATLETA', lgpdConsentGranted: true, lgpdCurrentPolicyVersion: '2026-06-30', lgpdCurrentTermsVersion: '2026-06-30', atletaId: 'a1' };
+const ME: UsuarioMeOutputDto = { id: 'u1', nome: 'Carlos', email: 'c@x.com', role: 'ATLETA', lgpdConsentGranted: true, onboardingConcluido: true, lgpdCurrentPolicyVersion: '2026-06-30', lgpdCurrentTermsVersion: '2026-06-30', atletaId: 'a1' };
 
 const PLANO: PlanoSemanal = {
     id: 'p1',

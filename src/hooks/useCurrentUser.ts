@@ -36,6 +36,8 @@ export interface CurrentUserState {
     coach: CurrentCoach;
     tenant: CurrentTenant;
     consent: CurrentConsent;
+    /** `null` enquanto o `me` não respondeu — ver FALLBACK_ONBOARDING. */
+    onboardingConcluido: boolean | null;
     loading: boolean;
     error: Error | null;
     fetchCurrentUser: () => Promise<void>;
@@ -47,11 +49,17 @@ const FALLBACK_TENANT: CurrentTenant = { id: '', name: '', athleteCount: 0 };
 // e assumi-lo antes de `me` responder faria o modal piscar em todo carregamento.
 const FALLBACK_CONSENT: CurrentConsent = { granted: null, policyVersion: '', termsVersion: '' };
 
+// `null` = indefinido, mesma convenção de `consent.granted`. Distinguir de `false` importa: `false`
+// monta o wizard bloqueante, e tratar o indefinido como `false` faria o wizard piscar em todo
+// carregamento — inclusive para quem já concluiu.
+const FALLBACK_ONBOARDING: boolean | null = null;
+
 /** Identidade real do coach autenticado (`GET /api/v1/users/me`). */
 export const useCurrentUser = (): CurrentUserState => {
     const [coach, setCoach] = useState<CurrentCoach>(FALLBACK_COACH);
     const [tenant, setTenant] = useState<CurrentTenant>(FALLBACK_TENANT);
     const [consent, setConsent] = useState<CurrentConsent>(FALLBACK_CONSENT);
+    const [onboardingConcluido, setOnboardingConcluido] = useState<boolean | null>(FALLBACK_ONBOARDING);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
 
@@ -66,6 +74,7 @@ export const useCurrentUser = (): CurrentUserState => {
                 name: me.assessoria?.nome ?? '',
                 athleteCount: 0,
             });
+            setOnboardingConcluido(me.onboardingConcluido);
             setConsent({
                 granted: me.lgpdConsentGranted,
                 policyVersion: me.lgpdCurrentPolicyVersion,
@@ -81,5 +90,5 @@ export const useCurrentUser = (): CurrentUserState => {
         }
     }, []);
 
-    return { coach, tenant, consent, loading, error, fetchCurrentUser };
+    return { coach, tenant, consent, onboardingConcluido, loading, error, fetchCurrentUser };
 };
