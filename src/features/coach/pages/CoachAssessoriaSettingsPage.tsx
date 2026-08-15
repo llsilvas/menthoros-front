@@ -49,7 +49,8 @@ export function CoachAssessoriaSettingsPage() {
     removerLogo,
   } = useAssessoriaSettings();
 
-  const [nome, setNome] = useState('');
+  // `null` = ainda não carregado; string vazia = o coach apagou o campo de propósito.
+  const [nome, setNome] = useState<string | null>(null);
   const [erroLocal, setErroLocal] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const inputArquivo = useRef<HTMLInputElement>(null);
@@ -60,15 +61,23 @@ export function CoachAssessoriaSettingsPage() {
     void carregar();
   }, [carregar]);
 
-  // Só sincroniza o campo com o servidor enquanto não há rascunho: sobrescrever o que o coach
-  // está digitando a cada recarga seria pior que mostrar um valor levemente desatualizado.
+  // Preenche o campo uma única vez, quando a assessoria chega. A distinção entre `null` e `''`
+  // é o que permite apagar o campo para digitar outro nome — com `nome === ''` como gatilho, o
+  // valor do servidor voltava sozinho a cada tecla apagada e o coach ficava preso ao nome antigo.
   useEffect(() => {
-    if (assessoria && nome === '') {
+    if (assessoria && nome === null) {
       setNome(assessoria.nome);
     }
   }, [assessoria, nome]);
 
-  const sujo = assessoria != null && nome.trim() !== assessoria.nome;
+  const rascunho = nome ?? '';
+  const sujo = assessoria != null && nome !== null && rascunho.trim() !== assessoria.nome;
+
+  /** Recarrega descartando o rascunho — usado no conflito, depois que o coach opta por ver o atual. */
+  const recarregarDoServidor = useCallback(async () => {
+    setNome(null);
+    await carregar();
+  }, [carregar]);
 
   // Avisa antes de fechar a aba com alteração pendente. Navegação interna é coberta pelo aviso
   // visível no rodapé do formulário — o bloqueio de rota do react-router exigiria data router
@@ -88,7 +97,7 @@ export function CoachAssessoriaSettingsPage() {
 
   const aoSalvarNome = async () => {
     if (!assessoria) return;
-    const limpo = nome.trim();
+    const limpo = rascunho.trim();
     if (limpo.length === 0) {
       setErroLocal('Informe o nome da assessoria.');
       return;
@@ -177,7 +186,7 @@ export function CoachAssessoriaSettingsPage() {
       {conflito && (
         <Alert
           severity="warning"
-          action={<Button onClick={() => void carregar()}>Recarregar</Button>}
+          action={<Button onClick={() => void recarregarDoServidor()}>Recarregar</Button>}
         >
           Alguém alterou a assessoria enquanto esta página estava aberta. Recarregue para ver o
           estado atual — o que você digitou continua aqui.
@@ -191,7 +200,7 @@ export function CoachAssessoriaSettingsPage() {
         <Stack spacing={2} sx={{ p: 2 }}>
           <TextField
             label="Nome da assessoria"
-            value={nome}
+            value={rascunho}
             onChange={(e) => setNome(e.target.value)}
             inputProps={{ maxLength: NOME_MAXIMO }}
             fullWidth
