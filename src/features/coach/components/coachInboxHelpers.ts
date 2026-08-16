@@ -1,18 +1,8 @@
 import { semantic, surface } from '../../../theme/tokens';
 import type { CoachAtletaStatus } from '../../../types/Coach';
-import type { DecisionState } from '../types/CoachInbox';
 import type { AttentionInfo } from '../adapters/coachInboxAdapters';
 import type { PlanoReviewStatus } from '../../../types/PlanoReview';
 
-export function paletteForDecision(decision: DecisionState): { bg: string; fg: string; border: string; label: string } {
-  if (decision === 'APPROVED') {
-    return { bg: `${semantic.success[500]}1A`, fg: semantic.success[500], border: `${semantic.success[500]}44`, label: 'Aprovado' };
-  }
-  if (decision === 'REJECTED') {
-    return { bg: `${semantic.danger[500]}1A`, fg: semantic.danger[500], border: `${semantic.danger[500]}44`, label: 'Rejeitado' };
-  }
-  return { bg: `${semantic.warning[500]}1A`, fg: semantic.warning[500], border: `${semantic.warning[500]}44`, label: 'Pendente' };
-}
 
 export function statusPalette(status: CoachAtletaStatus): { bg: string; fg: string; border: string } {
   if (status === 'active') {

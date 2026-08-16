@@ -35,7 +35,7 @@ import { CoachAthleteAvatar } from '../components/CoachAthleteAvatar';
 import { MetricTile } from '../components/MetricTile';
 import { QueueRow } from '../components/QueueRow';
 import { AttentionOnlyRow } from '../components/AttentionOnlyRow';
-import { formatKm, formatPercent, paletteForDecision } from '../components/coachInboxHelpers';
+import { formatKm, formatPercent, statusPalette } from '../components/coachInboxHelpers';
 import { ACTION_BTN_START_ICON_SX, ACTION_BTN_END_ICON_SX } from '../../../shared/components/actionButtonSx';
 import { DiagnosisTabPanel } from '../components/panels/DiagnosisTabPanel';
 import { PlanTabPanel } from '../components/panels/PlanTabPanel';
@@ -226,7 +226,10 @@ function CoachInboxPage() {
     ? new Date(dashboard.generatedAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
     : null;
 
-  const selectedPalette = selected ? paletteForDecision(selected.decision) : paletteForDecision('PENDING');
+  // Mesma correção do card da lista: o chip mostra `statusLabel`, então a cor tem de vir do MESMO
+  // status. Vinha de `paletteForDecision(selected.decision)` — e `decision` é `'PENDING'` fixo no
+  // roster, então o chip saía âmbar mesmo para atleta ativo, contradizendo o próprio texto.
+  const selectedPalette = statusPalette(selected?.status ?? 'active');
   const rosterHeaderLabel = rosterTotal > 0 ? `${dashboardPage + 1}/${rosterPageCount}` : '0/0';
   const selectedPlanId = selectedProfile?.planoVigente?.planoId ?? null;
   const selectedReviewStatus = selectedProfile?.planoVigente?.reviewStatus ?? null;

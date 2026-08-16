@@ -4,7 +4,7 @@ import { content, primary, semantic, surface } from '../../../theme/tokens';
 import type { CoachAthleteRow } from '../types/CoachInbox';
 import type { AttentionInfo } from '../adapters/coachInboxAdapters';
 import { CoachAthleteAvatar } from './CoachAthleteAvatar';
-import { REASON_LABEL, formatPercent, paletteForDecision } from './coachInboxHelpers';
+import { REASON_LABEL, formatPercent, statusPalette } from './coachInboxHelpers';
 
 interface QueueRowProps {
   athlete: CoachAthleteRow;
@@ -26,7 +26,10 @@ function severidadeVisual(severity: AttentionInfo['severity']) {
 }
 
 export const QueueRow = memo(function QueueRow({ athlete, selected, onClick, attention }: QueueRowProps) {
-  const decision = paletteForDecision(athlete.decision);
+  // A cor vem do MESMO status que gera o rótulo. Antes vinha de `paletteForDecision(athlete.decision)`
+  // — e o `decision` do roster é `'PENDING'` fixo, então todo card saía âmbar, inclusive o do atleta
+  // ativo: a cor contradizia o texto ao lado dela.
+  const cores = statusPalette(athlete.status);
   const sinal = attention ? severidadeVisual(attention.severity) : null;
 
   return (
@@ -90,9 +93,9 @@ export const QueueRow = memo(function QueueRow({ athlete, selected, onClick, att
               height: { xs: 20, xl: 24 },
               fontSize: { xs: '0.6875rem', sm: '0.6875rem', xl: '0.6875rem' },
               fontWeight: 700,
-              color: decision.fg,
-              bgcolor: decision.bg,
-              border: `1px solid ${decision.border}`,
+              color: cores.fg,
+              bgcolor: cores.bg,
+              border: `1px solid ${cores.border}`,
               '& .MuiChip-label': { px: { xs: 0.7, sm: 0.8, xl: 1 } },
             }}
           />

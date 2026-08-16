@@ -1,5 +1,6 @@
 import type { FormVariant } from './AthleteForm';
 import type { FaixaTsbStatus } from '../../../types/FaixaTsb';
+import type { CoachAtletaStatus } from '../../../types/Coach';
 
 export type DecisionState = 'PENDING' | 'APPROVED' | 'REJECTED';
 export type SegmentFilter = 'all' | 'attention' | 'drop' | 'stable' | 'growth';
@@ -23,6 +24,12 @@ export interface CoachAthleteRow {
   segment: SegmentFilter;
   planStatus: PlanStatus;
   trainingType: TrainingType;
+  /**
+   * Status do atleta, cru. O `statusLabel` é a versão exibível dele; a COR do chip precisa vir da
+   * mesma fonte, senão rótulo e cor divergem — foi o que aconteceu quando a cor vinha da decisão
+   * do plano.
+   */
+  status: CoachAtletaStatus;
   statusLabel: string;
   decision: DecisionState;
   adherence: number;
