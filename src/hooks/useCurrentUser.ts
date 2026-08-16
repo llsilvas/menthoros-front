@@ -16,6 +16,14 @@ export interface CurrentTenant {
     name: string;
     /** follow-up: derivar de kpis.totalAtletas (add-coach-suggestion-inbox) */
     athleteCount: number;
+    /** Rota da logo da assessoria; `null` quando não há. */
+    logoUrl?: string | null;
+    /**
+     * Versão da assessoria. Serve de cache-bust: a URL da logo é fixa
+     * (`/api/v1/assessorias/me/logo`), então sem isto o navegador continuaria servindo a imagem
+     * antiga depois de uma troca.
+     */
+    version?: number;
 }
 
 /** Estado de consentimento LGPD do usuário autenticado, como o backend o computou. */
@@ -73,6 +81,10 @@ export const useCurrentUser = (): CurrentUserState => {
                 id: me.assessoria?.id ?? '',
                 name: me.assessoria?.nome ?? '',
                 athleteCount: 0,
+                // `temLogo` decide; `logoUrl` é a rota. Sem o primeiro, um `logoUrl` residual faria
+                // a shell pedir uma imagem que o servidor responde com 404.
+                logoUrl: me.assessoria?.temLogo ? me.assessoria.logoUrl ?? null : null,
+                version: me.assessoria?.version,
             });
             setOnboardingConcluido(me.onboardingConcluido);
             setConsent({

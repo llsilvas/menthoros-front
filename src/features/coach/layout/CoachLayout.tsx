@@ -32,6 +32,11 @@ export interface CoachLayoutOutletContext {
   queueLoading: boolean;
   queueError: Error | null;
   refetchQueue: () => Promise<void>;
+  /**
+   * Recarrega o `me`. A logo da assessoria vive nele e é enviada em outra tela — sem esta
+   * revalidação, a sidebar só mostraria a logo nova depois de um reload manual.
+   */
+  refetchCurrentUser: () => Promise<void>;
   reviewPendentes: PlanoSemanalDto[];
   reviewIsFetching: boolean;
   reviewIsActing: boolean;
@@ -133,7 +138,15 @@ export default function CoachLayout() {
     );
   }
 
-  if (userLoading || consent.granted === null || onboardingConcluido === null) {
+  /*
+    Spinner só na PRIMEIRA carga. `userLoading` também sobe nas revalidações — e o shell trocar a
+    tela inteira por um spinner nesse momento desmonta a página filha, levando junto o estado local
+    dela (foi assim que o aviso "Logo atualizada" sumiu ao revalidar o `me` após o upload).
+    `coach.id` vazio é o que distingue "ainda não carregou nada" de "recarregando com dado em mão".
+  */
+  const cargaInicial = userLoading && !coach.id;
+
+  if (cargaInicial || consent.granted === null || onboardingConcluido === null) {
     return (
       <Box sx={telaCheia}>
         <CircularProgress />
@@ -176,6 +189,7 @@ export default function CoachLayout() {
     queueLoading,
     queueError,
     refetchQueue: fetchQueue,
+    refetchCurrentUser: fetchCurrentUser,
     reviewPendentes: pendentes,
     reviewActiveFilter,
     reviewSetFilter,

@@ -13,11 +13,12 @@ let onboardingAtual: boolean | null = true;
 const fetchQueue = vi.fn();
 const fetchPendentes = vi.fn();
 let loadingAtual = false;
+let coachAtual: { id: string; name: string } = { id: 'c1', name: 'Coach' };
 let errorAtual: Error | null = null;
 
 vi.mock('../../../hooks/useCurrentUser', () => ({
   useCurrentUser: () => ({
-    coach: { id: 'c1', name: 'Coach' },
+    coach: coachAtual,
     tenant: { id: 't1', name: 'Assessoria', athleteCount: 0 },
     consent: consentAtual,
     onboardingConcluido: onboardingAtual,
@@ -71,6 +72,7 @@ describe('CoachLayout — gate de consentimento', () => {
     consentAtual = { granted: true, ...VERSOES };
     onboardingAtual = true;
     loadingAtual = false;
+    coachAtual = { id: 'c1', name: 'Coach' };
     errorAtual = null;
   });
 
@@ -116,13 +118,29 @@ describe('CoachLayout — gate de consentimento', () => {
     expect(fetchCurrentUser).toHaveBeenCalled();
   });
 
-  it('não renderiza o shell enquanto `me` está carregando', () => {
+  it('não renderiza o shell na primeira carga do `me`', () => {
     loadingAtual = true;
+    // Primeira carga = ainda não há usuário em mão.
+    coachAtual = { id: '', name: '' };
 
     renderLayout();
 
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /aceitar e continuar/i })).not.toBeInTheDocument();
+  });
+
+  /**
+   * Revalidação **não** é primeira carga. Trocar a tela inteira por um spinner nesse momento
+   * desmonta a página filha e leva junto o estado local dela — foi assim que o aviso
+   * "Logo atualizada" sumia depois do upload, quando a sidebar passou a revalidar o `me`.
+   */
+  it('mantém o shell montado durante uma revalidação', () => {
+    loadingAtual = true;
+    coachAtual = { id: 'c1', name: 'Coach' };
+
+    renderLayout();
+
+    expect(screen.getByRole('navigation')).toBeInTheDocument();
   });
 
   it('após aceitar, registra e revalida o usuário para liberar a navegação', async () => {

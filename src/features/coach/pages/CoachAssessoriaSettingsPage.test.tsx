@@ -1,10 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { createHashRouter, RouterProvider } from 'react-router';
+import { createHashRouter, Outlet, RouterProvider } from 'react-router';
 import CoachAssessoriaSettingsPage from './CoachAssessoriaSettingsPage';
 import { AssessoriaSettingsService } from '../../../api/services/AssessoriaSettingsService';
 import type { AssessoriaMe } from '../../../types/AssessoriaSettings';
+
+const mockRefetchCurrentUser = vi.fn().mockResolvedValue(undefined);
 
 vi.mock('../../../api/services/AssessoriaSettingsService');
 
@@ -25,7 +27,13 @@ function apiError(status: number) {
 
 const montar = () => {
     // Hash router de propósito: o app real roteia por hash (ver CLAUDE.md do módulo).
-    const router = createHashRouter([{ path: '/', element: <CoachAssessoriaSettingsPage /> }]);
+    // A página passou a consumir `refetchCurrentUser` do layout: a logo enviada aqui aparece na
+    // sidebar, que lê o `me`. Sem o contexto, o `useOutletContext` devolve `null` e a página quebra.
+    const router = createHashRouter([{
+      path: '/',
+      element: <Outlet context={{ refetchCurrentUser: mockRefetchCurrentUser }} />,
+      children: [{ index: true, element: <CoachAssessoriaSettingsPage /> }],
+    }]);
     render(<RouterProvider router={router} />);
 };
 
@@ -159,6 +167,35 @@ describe('CoachAssessoriaSettingsPage', () => {
 
             await waitFor(() => expect(AssessoriaSettingsService.enviarLogo)
                 .toHaveBeenCalledWith(expect.any(File), 3));
+        });
+
+        /**
+         * O bug que a change corrige tinha duas metades: o `me` não expunha a logo, e nada avisava a
+         * shell quando ela mudava. Sem revalidar, a logo nova só apareceria na sidebar no próximo
+         * reload — que é exatamente como o coach percebeu o problema ("enviei e não apareceu").
+         */
+        it('revalida o `me` após enviar a logo, para a sidebar acompanhar', async () => {
+            vi.mocked(AssessoriaSettingsService.enviarLogo)
+                .mockResolvedValue({ ...ASSESSORIA, temLogo: true, logoUrl: '/api/v1/assessorias/me/logo', version: 4 });
+            montar();
+            await screen.findByDisplayValue('Corridas Serra');
+
+            await userEvent.upload(screen.getByLabelText(/selecionar imagem da logo/i), arquivoPng());
+
+            await waitFor(() => expect(mockRefetchCurrentUser).toHaveBeenCalled());
+        });
+
+        it('revalida o `me` após remover a logo', async () => {
+            vi.mocked(AssessoriaSettingsService.buscarMinhaAssessoria)
+                .mockResolvedValue({ ...ASSESSORIA, temLogo: true, logoUrl: '/api/v1/assessorias/me/logo' });
+            // `removerLogo` devolve void: quem recarrega o estado é o hook.
+            vi.mocked(AssessoriaSettingsService.removerLogo).mockResolvedValue(undefined);
+            montar();
+            await screen.findByDisplayValue('Corridas Serra');
+
+            await userEvent.click(screen.getByRole('button', { name: /^remover$/i }));
+
+            await waitFor(() => expect(mockRefetchCurrentUser).toHaveBeenCalled());
         });
 
         it('arquivo acima de 2 MB é barrado antes do envio', async () => {

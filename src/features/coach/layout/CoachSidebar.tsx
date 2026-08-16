@@ -24,6 +24,7 @@ import type { CoachRoute } from '../../../constants/routes';
 import { content, gradients, semantic, surface } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import { activeTheme } from '../../../theme/activeTheme';
+import { OpenAPI } from '../../../api/core/OpenAPI';
 import menthorosMark from '../../../assets/icons/menthoros_mark.png';
 
 const { primary, sidebar, overlayBlack } = activeTheme;
@@ -34,6 +35,21 @@ interface TenantInfo {
   id: string;
   name: string;
   athleteCount: number;
+  /** Rota da logo da assessoria; `null` quando não há. */
+  logoUrl?: string | null;
+  /** Versão da assessoria — cache-bust da logo, cuja URL é fixa. */
+  version?: number;
+}
+
+/**
+ * URL da logo com cache-bust.
+ *
+ * A rota é fixa (`/api/v1/assessorias/me/logo`), então trocar a imagem não muda o endereço: sem o
+ * `?v=`, o navegador continuaria servindo a logo antiga do cache. Mesma convenção da tela de
+ * configurações da assessoria.
+ */
+function urlDaLogo(tenant: TenantInfo): string | null {
+  return tenant.logoUrl ? `${OpenAPI.BASE}${tenant.logoUrl}?v=${tenant.version ?? 0}` : null;
 }
 
 interface CoachInfo {
@@ -155,6 +171,8 @@ function TenantSwitcher({
   collapsed,
 }: TenantSwitcherProps) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [logoFalhou, setLogoFalhou] = useState(false);
+  const logoSrc = urlDaLogo(currentTenant);
   const open = Boolean(anchorEl);
 
   const hasOptions =
@@ -206,17 +224,29 @@ function TenantSwitcher({
           flexShrink: 0,
         }}
       >
-        <Typography
-          component="span"
-          sx={{
-            fontSize: '0.7rem',
-            fontWeight: 700,
-            color: primary[500],
-            lineHeight: 1,
-          }}
-        >
-          {currentTenant.name.slice(0, 2).toUpperCase()}
-        </Typography>
+        {logoSrc && !logoFalhou ? (
+          <Box
+            component="img"
+            src={logoSrc}
+            alt={currentTenant.name}
+            // Logo que falha ao carregar cai para as iniciais: um quadrado quebrado fixo na
+            // navegação é pior que a inicial que já existia.
+            onError={() => setLogoFalhou(true)}
+            sx={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 1 }}
+          />
+        ) : (
+          <Typography
+            component="span"
+            sx={{
+              fontSize: '0.7rem',
+              fontWeight: 700,
+              color: primary[500],
+              lineHeight: 1,
+            }}
+          >
+            {currentTenant.name.slice(0, 2).toUpperCase()}
+          </Typography>
+        )}
       </Box>
 
       {!collapsed && (
@@ -318,6 +348,8 @@ export default function CoachSidebar({
   const [collapsed, setCollapsed] = useState<boolean>(
     () => localStorage.getItem(LS_KEY) === 'true',
   );
+  const [logoHeaderFalhou, setLogoHeaderFalhou] = useState(false);
+  const logoDoHeader = logoHeaderFalhou ? null : urlDaLogo(currentTenant);
 
   const toggleRef = useRef(collapsed);
   toggleRef.current = collapsed;
@@ -378,8 +410,11 @@ export default function CoachSidebar({
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
             <Box
               component="img"
-              src={menthorosMark}
-              alt="Menthoros"
+              // Com logo da assessoria, o produto se apresenta com a marca DELA — é a assessoria
+              // que atende o atleta. Sem logo, a marca Menthoros; e se a imagem falhar, também.
+              src={logoDoHeader ?? menthorosMark}
+              alt={logoDoHeader ? currentTenant.name : 'Menthoros'}
+              onError={() => setLogoHeaderFalhou(true)}
               sx={{
                 width: 32,
                 height: 32,
