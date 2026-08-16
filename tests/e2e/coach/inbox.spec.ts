@@ -126,9 +126,10 @@ test.describe('Coach — lista principal do inbox', () => {
     })
     await page.goto(INBOX_URL)
 
-    // O `TablePagination` não é localizado: o rótulo de linhas exibidas sai em inglês ("of 15").
-    const total = page.getByText(/of 15|de 15/i)
-    await expect(total).toBeVisible()
+    // Escopado ao TablePagination: desde a task 2.11 o header da lista também exibe "10 de 15",
+    // e um matcher solto casaria com os dois.
+    const paginacao = page.locator('.MuiTablePagination-displayedRows')
+    await expect(paginacao).toHaveText(/of 15/i)
     await expect(page.getByRole('button', { name: /ana fora da pagina/i })).toBeVisible()
 
     await page.getByRole('button', { name: 'Go to next page' }).click()
@@ -136,7 +137,7 @@ test.describe('Coach — lista principal do inbox', () => {
     // O fixado sobrevive à troca de página...
     await expect(page.getByRole('button', { name: /ana fora da pagina/i })).toBeVisible()
     // ...e não entra na contagem: somá-lo faria "of 15" virar "of 16" e a última página vir curta.
-    await expect(page.getByText(/of 15/i)).toBeVisible()
+    await expect(page.locator('.MuiTablePagination-displayedRows')).toHaveText(/of 15/i)
   })
 
   test('atleta em atenção fora do filtro ativo é contado, não sumido', async ({ page }) => {
@@ -144,10 +145,9 @@ test.describe('Coach — lista principal do inbox', () => {
     await page.goto(INBOX_URL)
     await expect(page.getByRole('button', { name: /ana fora da pagina/i })).toBeVisible()
 
-    // O `Select` de status não tem label associado (o texto "Status" é um Typography solto), então
-    // a busca é pelo combobox. Corrigir a a11y disso é escopo da fase 2, não deste gate.
-    await page.getByRole('combobox').filter({ hasText: 'Todos' }).click()
-    await page.getByRole('option', { name: 'Atenção', exact: true }).click()
+    // Task 2.11: o filtro virou um chip no header da própria lista — a barra full-width sumiu.
+    await page.getByRole('button', { name: /filtrar por status/i }).click()
+    await page.getByRole('menuitem', { name: 'Atenção' }).click()
 
     await expect(page.getByRole('button', { name: /ana fora da pagina/i })).toHaveCount(0)
     await expect(page.getByText(/em atenção fora do filtro atual/i)).toBeVisible()
