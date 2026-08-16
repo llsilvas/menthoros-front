@@ -299,7 +299,7 @@ function CoachInboxPage() {
           */}
           <Typography
             data-testid="inbox-titulo"
-            sx={{ fontSize: '1rem', fontWeight: 800, color: surface[50], lineHeight: 1.2, fontFamily: 'Syne, sans-serif' }}
+            sx={{ fontSize: '1rem', fontWeight: 800, color: surface[50], lineHeight: 1.2 }}
           >
             Fila, plano e calendário
           </Typography>

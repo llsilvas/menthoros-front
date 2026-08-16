@@ -292,7 +292,7 @@ export default function CoachInsightsPage() {
             <Box>
               <Typography
                 variant="h5"
-                sx={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, color: surface[50], lineHeight: 1.2 }}
+                sx={{ fontWeight: 800, color: surface[50], lineHeight: 1.2 }}
               >
                 Insights
               </Typography>
