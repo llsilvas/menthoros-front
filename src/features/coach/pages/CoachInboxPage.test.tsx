@@ -50,6 +50,7 @@ const makeProfile = (pmc: PmcPontoRaw[] = []): AtletaPerfilCoachDto => ({
 });
 
 const mockRefetchQueue = vi.fn();
+const mockFetchDashboard = vi.fn();
 const mockReviewFetchPendentes = vi.fn().mockResolvedValue(undefined);
 const mockReviewAprovar = vi.fn().mockResolvedValue({ ok: true });
 const mockReviewRejeitar = vi.fn().mockResolvedValue({ ok: true });
@@ -178,7 +179,7 @@ describe('CoachInboxPage', () => {
       dashboard: DASHBOARD_STUB,
       loading: false,
       error: null,
-      fetchDashboard: vi.fn(),
+      fetchDashboard: mockFetchDashboard,
     });
     vi.mocked(useAthleteProfile).mockReturnValue({
       profile: makeProfile(),
@@ -381,6 +382,97 @@ describe('CoachInboxPage', () => {
       const busca = screen.getByPlaceholderText(/buscar atleta/i);
       expect(busca).toBeInTheDocument();
       expect(busca.getAttribute('placeholder')).not.toMatch(/treino|prova/i);
+    });
+  });
+
+  describe('estados da coluna (task 2.6)', () => {
+    const comDashboard = (over: Record<string, unknown>) =>
+      vi.mocked(useCoachDashboard).mockReturnValue({
+        dashboard: DASHBOARD_STUB,
+        loading: false,
+        error: null,
+        fetchDashboard: mockFetchDashboard,
+        updatedAt: null,
+        ...over,
+      } as never);
+
+    /** Lista vazia durante o carregamento dizia "Nenhum atleta" — afirmava ausência sem saber. */
+    it('carregando não é o mesmo que vazio', () => {
+      comDashboard({ dashboard: null, loading: true });
+      renderPage();
+
+      expect(screen.getByText(/carregando atletas/i)).toBeInTheDocument();
+      expect(screen.queryByText(/nenhum atleta/i)).not.toBeInTheDocument();
+    });
+
+    /** Erro também não é vazio: dizer "nenhum atleta" quando a busca falhou é informação falsa. */
+    it('erro não é o mesmo que vazio, e oferece nova tentativa', async () => {
+      comDashboard({ dashboard: null, error: new Error('500') });
+      renderPage();
+
+      expect(screen.getByText(/não foi possível carregar a lista/i)).toBeInTheDocument();
+      expect(screen.queryByText(/nenhum atleta/i)).not.toBeInTheDocument();
+
+      // Uma ação de retry na tela, não duas para a mesma requisição.
+      const retry = screen.getAllByRole('button', { name: /tentar de novo/i });
+      expect(retry).toHaveLength(1);
+      await userEvent.click(retry[0]);
+      expect(mockFetchDashboard).toHaveBeenCalled();
+    });
+
+    /**
+     * Vazio por filtro e vazio de verdade pedem ações opostas: limpar o filtro ou cadastrar
+     * atleta. Uma mensagem só mandaria metade dos coaches para o caminho errado.
+     */
+    it('vazio por filtro sugere limpar o filtro', async () => {
+      comDashboard({
+        dashboard: { ...DASHBOARD_STUB, roster: { ...DASHBOARD_STUB.roster, items: [], totalElements: 0 }, attentionQueue: [] },
+      });
+      renderPage();
+
+      await userEvent.click(screen.getByRole('button', { name: /filtrar por status/i }));
+      await userEvent.click(screen.getByRole('menuitem', { name: 'Atenção' }));
+
+      expect(screen.getByText(/nenhum atleta com este filtro/i)).toBeInTheDocument();
+    });
+
+    it('vazio sem filtro fala de cadastrar atleta', () => {
+      comDashboard({
+        dashboard: { ...DASHBOARD_STUB, roster: { ...DASHBOARD_STUB.roster, items: [], totalElements: 0 }, attentionQueue: [] },
+      });
+      renderPage();
+
+      expect(screen.getByText(/nenhum atleta cadastrado/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('estados do painel de detalhe (task 2.6)', () => {
+    /**
+     * O painel monta com o resumo do roster e completa com o perfil. Enquanto ele carrega, a tela
+     * exibia os dados parciais sem sinalizar nada — e o coach não tinha como distinguir "—" de dado
+     * ausente e "—" de dado a caminho.
+     */
+    it('avisa enquanto o detalhe carrega, sem esconder o que já se sabe', () => {
+      vi.mocked(useAthleteProfile).mockReturnValue({
+        profile: null, isLoading: true, error: null, errorKind: null, fetchProfile: mockFetchProfile,
+      });
+      renderPage();
+
+      expect(screen.getByText(/carregando o detalhe do atleta/i)).toBeInTheDocument();
+      // O nome aparece na lista e no cabeçalho do painel: o aviso não substitui a tela.
+      expect(screen.getByTestId('inbox-nome-atleta')).toHaveTextContent('Ana Silva');
+    });
+
+    it('falha no detalhe é dita, com nova tentativa', async () => {
+      vi.mocked(useAthleteProfile).mockReturnValue({
+        profile: null, isLoading: false, error: new Error('500'), errorKind: 'server_error', fetchProfile: mockFetchProfile,
+      });
+      renderPage();
+
+      expect(screen.getByText(/não foi possível carregar o detalhe/i)).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', { name: /tentar de novo/i }));
+      expect(mockFetchProfile).toHaveBeenCalled();
     });
   });
 });
