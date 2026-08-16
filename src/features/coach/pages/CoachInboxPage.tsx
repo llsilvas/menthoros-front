@@ -56,6 +56,7 @@ import { buildPmcDataPoints } from '../../athlete/adapters/pmcAdapter';
 import { FAIXA_APRESENTACAO } from '../../../types/FaixaTsb';
 import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
 import type { CoachAtletaResumo } from '../../../types/Coach';
+import { ROUTES } from '../../../constants/routes';
 
 type TabKey = 'diagnosis' | 'plan' | 'races';
 
@@ -103,7 +104,12 @@ function CoachInboxPage() {
     fetchDashboard,
   } = useCoachDashboard();
   const dashboardRoster = dashboard?.roster.items ?? [];
-  const { profile: selectedProfile, fetchProfile: fetchSelectedProfile } = useAthleteProfile(selectedId ?? dashboardRoster[0]?.atletaId);
+  const {
+    profile: selectedProfile,
+    isLoading: profileLoading,
+    error: profileError,
+    fetchProfile: fetchSelectedProfile,
+  } = useAthleteProfile(selectedId ?? dashboardRoster[0]?.atletaId);
 
   // `?? []` cria um array novo a cada render, o que anularia os memos que dependem dele.
   const dashboardAttentionQueue = useMemo(() => dashboard?.attentionQueue ?? [], [dashboard?.attentionQueue]);
@@ -166,6 +172,17 @@ function CoachInboxPage() {
     ),
     [dashboardAttentionQueue, dashboardRosterPage, dashboardStatus, search],
   );
+
+  /**
+   * Estado da coluna da lista. Derivado, não inferido no JSX: "sem linhas" tem quatro causas com
+   * saídas diferentes, e um `length === 0` no meio da renderização colapsava todas numa só.
+   */
+  const estadoDaLista: 'carregando' | 'erro' | 'vazio-filtrado' | 'vazio' | 'conteudo' = (() => {
+    if (inboxQueue.rows.length > 0) return 'conteudo';
+    if (dashboardLoading) return 'carregando';
+    if (dashboardError) return 'erro';
+    return dashboardStatus !== 'all' || search.trim() ? 'vazio-filtrado' : 'vazio';
+  })();
 
   const nextRace = selected?.raceCalendar[0] ?? null;
   const isTargetRace = nextRace?.tag === 'ALVO';
@@ -522,9 +539,51 @@ function CoachInboxPage() {
                 {inboxQueue.hiddenAttentionCount !== 1 ? 's' : ''} em atenção fora do filtro atual
               </Typography>
             ) : null}
-            {inboxQueue.rows.length === 0 ? (
+            {/*
+              Cinco estados distintos, porque três deles produziam a MESMA tela antes: durante o
+              carregamento e depois de uma falha, a lista dizia "Nenhum atleta carregado" — afirmando
+              ausência sem saber. E vazio-por-filtro pedia ação oposta a vazio-de-verdade: limpar o
+              filtro vs. cadastrar atleta.
+            */}
+            {estadoDaLista === 'carregando' ? (
               <Box sx={{ p: 3, textAlign: 'center' }}>
-                <Typography sx={{ color: surface[400] }}>Nenhum atleta carregado do dashboard.</Typography>
+                <CircularProgress size={22} />
+                <Typography sx={{ color: surface[400], mt: 1.5, fontSize: '0.875rem' }}>
+                  Carregando atletas…
+                </Typography>
+              </Box>
+            ) : estadoDaLista === 'erro' ? (
+              <Box sx={{ p: 3, textAlign: 'center' }}>
+                {/*
+                  Sem botão de retry aqui: o alerta no topo da tela já oferece "Tentar de novo" para
+                  a mesma requisição. Dois botões idênticos fazem o coach se perguntar se fazem
+                  coisas diferentes.
+                */}
+                <Typography sx={{ color: surface[200], fontSize: '0.875rem' }}>
+                  Não foi possível carregar a lista de atletas.
+                </Typography>
+              </Box>
+            ) : estadoDaLista === 'vazio-filtrado' ? (
+              <Box sx={{ p: 3, textAlign: 'center' }}>
+                <Typography sx={{ color: surface[200], fontSize: '0.875rem' }}>
+                  Nenhum atleta com este filtro.
+                </Typography>
+                <Button size="small" onClick={resetFilters} sx={{ mt: 1, textTransform: 'none' }}>
+                  Limpar filtros
+                </Button>
+              </Box>
+            ) : estadoDaLista === 'vazio' ? (
+              <Box sx={{ p: 3, textAlign: 'center' }}>
+                <Typography sx={{ color: surface[200], fontSize: '0.875rem' }}>
+                  Nenhum atleta cadastrado ainda.
+                </Typography>
+                <Button
+                  size="small"
+                  onClick={() => navigate(ROUTES.COACH_ATHLETES)}
+                  sx={{ mt: 1, textTransform: 'none' }}
+                >
+                  Cadastrar atleta
+                </Button>
               </Box>
             ) : (
               inboxQueue.rows.map((linha) => (
@@ -776,6 +835,33 @@ function CoachInboxPage() {
                     onClose={() => setFeedback(null)}
                   >
                     {feedback}
+                  </Alert>
+                ) : null}
+
+                {/*
+                  O painel monta a partir do resumo do roster e completa com o perfil. Enquanto
+                  ele carrega — ou quando falha — a tela exibia os dados parciais sem dizer nada,
+                  e o coach não tinha como saber se "—" era ausência de dado ou dado ainda a
+                  caminho. A faixa avisa sem esconder o que já se sabe.
+                */}
+                {profileLoading ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.25 }}>
+                    <CircularProgress size={14} />
+                    <Typography sx={{ fontSize: '0.75rem', color: surface[400] }}>
+                      Carregando o detalhe do atleta…
+                    </Typography>
+                  </Box>
+                ) : profileError ? (
+                  <Alert
+                    severity="warning"
+                    sx={{ mb: 1.25, py: 0.25 }}
+                    action={
+                      <Button size="small" onClick={() => void fetchSelectedProfile()} sx={{ textTransform: 'none' }}>
+                        Tentar de novo
+                      </Button>
+                    }
+                  >
+                    Não foi possível carregar o detalhe deste atleta.
                   </Alert>
                 ) : null}
 
