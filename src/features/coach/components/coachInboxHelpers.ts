@@ -122,6 +122,21 @@ export function resolveActionAvailability(
   return 'ready';
 }
 
+/**
+ * Rótulo curto do motivo de atenção — o mesmo mapa estava copiado em três componentes
+ * (`QueueRow`, `AttentionOnlyRow`, `CoachAttentionQueuePage`). Três cópias de um enum-para-texto
+ * não permanecem iguais: basta o backend ganhar um motivo novo para uma delas passar a exibir
+ * `undefined` enquanto as outras funcionam.
+ */
+export const REASON_LABEL: Record<AttentionInfo['reason'], string> = {
+  FADIGA: 'Fadiga',
+  SOBRECARGA: 'Sobrecarga',
+  SEM_PLANO: 'Sem plano',
+  ADERENCIA: 'Aderência',
+  INATIVIDADE: 'Inatividade',
+  ZONAS_VENCIDAS: 'Zonas vencidas',
+};
+
 const MOTIVO_TEXTO: Record<AttentionInfo['reason'], string> = {
   FADIGA: 'sinais de fadiga acumulada',
   SOBRECARGA: 'carga acima do previsto',

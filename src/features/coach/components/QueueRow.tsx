@@ -4,7 +4,7 @@ import { content, primary, semantic, surface } from '../../../theme/tokens';
 import type { CoachAthleteRow } from '../types/CoachInbox';
 import type { AttentionInfo } from '../adapters/coachInboxAdapters';
 import { CoachAthleteAvatar } from './CoachAthleteAvatar';
-import { formatPercent, paletteForDecision } from './coachInboxHelpers';
+import { REASON_LABEL, formatPercent, paletteForDecision } from './coachInboxHelpers';
 
 interface QueueRowProps {
   athlete: CoachAthleteRow;
@@ -13,15 +13,6 @@ interface QueueRowProps {
   /** Sinal ativo do atleta, quando existe. Ausente = atleta sem nada pendente. */
   attention?: AttentionInfo | null;
 }
-
-const REASON_LABEL: Record<AttentionInfo['reason'], string> = {
-  FADIGA: 'Fadiga',
-  SOBRECARGA: 'Sobrecarga',
-  SEM_PLANO: 'Sem plano',
-  ADERENCIA: 'Aderência',
-  INATIVIDADE: 'Inatividade',
-  ZONAS_VENCIDAS: 'Zonas vencidas',
-};
 
 /**
  * `CRITICA` e `ALTA` colapsam em "Alerta" — a distinção entre elas é de ordenação, não de decisão:
