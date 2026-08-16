@@ -1,9 +1,10 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
+import type { ReviewActionResult } from '../../../hooks/useCoachPlanReview';
 
 interface UsePlanReviewParams {
   selectedPlanId: string | null;
-  reviewAprovar: (planId: string) => Promise<boolean>;
-  reviewRejeitar: (planId: string, reason: string) => Promise<boolean>;
+  reviewAprovar: (planId: string) => Promise<ReviewActionResult>;
+  reviewRejeitar: (planId: string, reason: string) => Promise<ReviewActionResult>;
   reviewFetchPendentes: () => Promise<void>;
   reloadDashboard: () => void;
   fetchSelectedProfile: () => Promise<void>;
@@ -17,16 +18,24 @@ export function usePlanReview({
   reloadDashboard,
   fetchSelectedProfile,
 }: UsePlanReviewParams) {
+  const emVoo = useRef(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('Ajustar carga antes da próxima revisão');
 
   const handleApprovePlan = useCallback(async () => {
-    if (!selectedPlanId) return;
-    const ok = await reviewAprovar(selectedPlanId);
-    if (!ok) return;
-    await reviewFetchPendentes();
-    reloadDashboard();
-    await fetchSelectedProfile();
+    // Trava local contra duplo clique: `isActing` só sobe depois do primeiro await, e dois cliques
+    // rápidos disparavam duas aprovações do mesmo plano.
+    if (!selectedPlanId || emVoo.current) return;
+    emVoo.current = true;
+    try {
+      const resultado = await reviewAprovar(selectedPlanId);
+      if (!resultado.ok) return;
+      await reviewFetchPendentes();
+      reloadDashboard();
+      await fetchSelectedProfile();
+    } finally {
+      emVoo.current = false;
+    }
   }, [fetchSelectedProfile, reloadDashboard, reviewAprovar, reviewFetchPendentes, selectedPlanId]);
 
   const openRejectDialog = useCallback(() => {
@@ -42,8 +51,8 @@ export function usePlanReview({
     if (!selectedPlanId) return;
     const normalizedReason = reason.trim();
     if (!normalizedReason) return;
-    const ok = await reviewRejeitar(selectedPlanId, normalizedReason);
-    if (!ok) return;
+    const resultado = await reviewRejeitar(selectedPlanId, normalizedReason);
+    if (!resultado.ok) return;
     setRejectDialogOpen(false);
     await reviewFetchPendentes();
     reloadDashboard();

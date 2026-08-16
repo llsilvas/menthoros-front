@@ -14,7 +14,7 @@ import { useCoachPlanReview } from '../../../hooks/useCoachPlanReview';
 import type { CoachAttentionItem } from '../../../types/Coach';
 import { resolveReviewStatus } from '../../../types/PlanoReview';
 import type { PlanoSemanalDto } from '../../../types/PlanoReview';
-import type { ReviewFilter } from '../../../hooks/useCoachPlanReview';
+import type { ReviewActionResult, ReviewFilter } from '../../../hooks/useCoachPlanReview';
 
 export interface CoachLayoutOutletContext {
   /**
@@ -35,11 +35,13 @@ export interface CoachLayoutOutletContext {
   reviewIsActing: boolean;
   reviewFetchError: Error | null;
   reviewActionError: Error | null;
+  /** Status HTTP da última falha de ação — distingue 409/422 (stale) de 403 (sem permissão). */
+  reviewActionStatus: number | null;
   reviewActiveFilter: ReviewFilter;
   reviewSetFilter: (f: ReviewFilter) => void;
   reviewFetchPendentes: () => Promise<void>;
-  reviewAprovar: (id: string) => Promise<boolean>;
-  reviewRejeitar: (id: string, motivo: string) => Promise<boolean>;
+  reviewAprovar: (id: string) => Promise<ReviewActionResult>;
+  reviewRejeitar: (id: string, motivo: string) => Promise<ReviewActionResult>;
 }
 
 const telaCheia = {
@@ -66,6 +68,7 @@ export default function CoachLayout() {
     isActing: reviewIsActing,
     fetchError: reviewFetchError,
     actionError: reviewActionError,
+    actionStatus: reviewActionStatus,
     fetchPendentes,
     aprovar,
     rejeitar,
@@ -178,6 +181,7 @@ export default function CoachLayout() {
     reviewIsActing,
     reviewFetchError,
     reviewActionError,
+    reviewActionStatus,
     reviewFetchPendentes: fetchPendentes,
     reviewAprovar: aprovar,
     reviewRejeitar: rejeitar,
