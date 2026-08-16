@@ -33,6 +33,7 @@ import { DashboardAttentionQueueRow } from '../components/DashboardAttentionQueu
 import { DashboardRosterPreviewRow } from '../components/DashboardRosterPreviewRow';
 import { MetricTile } from '../components/MetricTile';
 import { QueueRow } from '../components/QueueRow';
+import { AttentionOnlyRow } from '../components/AttentionOnlyRow';
 import { formatKm, formatPercent, paletteForDecision } from '../components/coachInboxHelpers';
 import { ACTION_BTN_START_ICON_SX, ACTION_BTN_END_ICON_SX } from '../../../shared/components/actionButtonSx';
 import { DiagnosisTabPanel } from '../components/panels/DiagnosisTabPanel';
@@ -46,10 +47,11 @@ import { ROSTER_PAGE_SIZE } from '../hooks/useDashboardFilters';
 import type { SortKey, DashboardStatusFilter } from '../hooks/useDashboardFilters';
 import { elevation } from '../../../shared/design-tokens';
 import { content, primary, semantic, surface } from '../../../theme/tokens';
-import { buildRosterRowFromSummary, buildSelectedAthleteFromDashboard, getAcwrZone } from '../adapters/coachInboxAdapters';
+import { buildInboxQueue, buildSelectedAthleteFromDashboard, getAcwrZone } from '../adapters/coachInboxAdapters';
 import { buildPmcDataPoints } from '../../athlete/adapters/pmcAdapter';
 import { FAIXA_APRESENTACAO } from '../../../types/FaixaTsb';
 import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
+import type { CoachAtletaResumo } from '../../../types/Coach';
 
 type TabKey = 'diagnosis' | 'plan' | 'races';
 
@@ -90,15 +92,31 @@ function CoachInboxPage() {
   const dashboardRoster = dashboard?.roster.items ?? [];
   const { profile: selectedProfile, fetchProfile: fetchSelectedProfile } = useAthleteProfile(selectedId ?? dashboardRoster[0]?.atletaId);
 
-  const dashboardAttentionQueue = dashboard?.attentionQueue ?? [];
+  // `?? []` cria um array novo a cada render, o que anularia os memos que dependem dele.
+  const dashboardAttentionQueue = useMemo(() => dashboard?.attentionQueue ?? [], [dashboard?.attentionQueue]);
   const rosterItems = dashboardRoster;
   const dashboardRosterPage = dashboard?.roster ?? null;
   const rosterTotal = dashboardRosterPage?.totalElements ?? 0;
   const rosterPageCount = dashboardRosterPage?.totalPages ?? 0;
-  const selectedRosterItem = useMemo(
-    () => rosterItems.find((athlete) => athlete.atletaId === selectedId) ?? rosterItems[0] ?? null,
-    [rosterItems, selectedId],
-  );
+  const selectedRosterItem = useMemo(() => {
+    const noRoster = rosterItems.find((athlete) => athlete.atletaId === selectedId);
+    if (noRoster) return noRoster;
+
+    // Atleta fixado pela fila de atenção: não está na página do roster, então não há resumo. O
+    // painel é montado a partir do perfil real (`useAthleteProfile` busca por `selectedId`), que é
+    // a fonte de tudo que ele exibe; este objeto só carrega identidade e severidade.
+    const emAtencao = dashboardAttentionQueue.find((item) => item.atletaId === selectedId);
+    if (emAtencao) {
+      return {
+        atletaId: emAtencao.atletaId,
+        nome: emAtencao.athleteName,
+        status: emAtencao.severity === 'MEDIA' ? 'warning' : 'danger',
+        weeklyVolume: 0,
+      } satisfies CoachAtletaResumo;
+    }
+
+    return rosterItems[0] ?? null;
+  }, [dashboardAttentionQueue, rosterItems, selectedId]);
   const selected = useMemo(() => {
     if (!selectedRosterItem) return null;
     return buildSelectedAthleteFromDashboard(selectedRosterItem, selectedProfile);
@@ -120,6 +138,22 @@ function CoachInboxPage() {
     resetFilters,
   } = useDashboardFilters({ fetchDashboard });
 
+  /**
+   * Lista principal = roster da página + atletas em atenção fixados no topo.
+   *
+   * O roster é paginado em 10 e a fila de atenção não; sem fixar, um atleta em alerta na página 2
+   * some da tela — que existe justamente para mostrar quem precisa de atenção. Ver
+   * `buildInboxQueue`, cujos testes cobrem paginação, filtro e deduplicação.
+   */
+  const inboxQueue = useMemo(
+    () => buildInboxQueue(
+      dashboardRosterPage ?? { items: [], page: 0, size: 0, totalElements: 0, totalPages: 0 },
+      dashboardAttentionQueue,
+      { status: dashboardStatus, search },
+    ),
+    [dashboardAttentionQueue, dashboardRosterPage, dashboardStatus, search],
+  );
+
   const nextRace = selected?.raceCalendar[0] ?? null;
   const isTargetRace = nextRace?.tag === 'ALVO';
 
@@ -129,15 +163,18 @@ function CoachInboxPage() {
   const currentFormDisplay = selected?.quickStats.statusForma ? FAIXA_APRESENTACAO[selected.quickStats.statusForma] : null;
   const acwrZone = getAcwrZone(selected?.quickStats.acwr ?? null);
 
+  // A seleção acompanha a lista COMPOSTA, não só o roster: um atleta fixado pela fila de atenção
+  // não está em `rosterItems`, e comparar com ele revertia a seleção para o primeiro do roster no
+  // mesmo clique — o coach clicava no atleta em alerta e abria o detalhe de outro.
   useEffect(() => {
-    if (rosterItems.length === 0) {
+    if (inboxQueue.rows.length === 0) {
       setSelectedId(null);
       return;
     }
-    if (!selectedId || !rosterItems.some((athlete) => athlete.atletaId === selectedId)) {
-      setSelectedId(rosterItems[0].atletaId);
+    if (!selectedId || !inboxQueue.rows.some((linha) => linha.atletaId === selectedId)) {
+      setSelectedId(inboxQueue.rows[0].atletaId);
     }
-  }, [rosterItems, selectedId]);
+  }, [inboxQueue.rows, selectedId]);
 
   useEffect(() => {
     const maxPage = Math.max(0, rosterPageCount - 1);
@@ -440,18 +477,37 @@ function CoachInboxPage() {
               gap: 1,
             }}
           >
-            {rosterItems.length === 0 ? (
+            {inboxQueue.hiddenAttentionCount > 0 ? (
+              <Typography
+                sx={{ fontSize: '0.72rem', color: semantic.warning[500], px: 0.5, pb: 0.5 }}
+              >
+                {inboxQueue.hiddenAttentionCount} atleta
+                {inboxQueue.hiddenAttentionCount !== 1 ? 's' : ''} em atenção fora do filtro atual
+              </Typography>
+            ) : null}
+            {inboxQueue.rows.length === 0 ? (
               <Box sx={{ p: 3, textAlign: 'center' }}>
                 <Typography sx={{ color: surface[400] }}>Nenhum atleta carregado do dashboard.</Typography>
               </Box>
             ) : (
-              rosterItems.map((athlete) => (
-                <QueueRow
-                  key={athlete.atletaId}
-                  athlete={buildRosterRowFromSummary(athlete)}
-                  selected={athlete.atletaId === selectedId}
-                  onClick={() => setSelectedId(athlete.atletaId)}
-                />
+              inboxQueue.rows.map((linha) => (
+                linha.source === 'attention-only' ? (
+                  <AttentionOnlyRow
+                    key={linha.atletaId}
+                    atletaId={linha.atletaId}
+                    athleteName={linha.athleteName}
+                    attention={linha.attention}
+                    selected={linha.atletaId === selectedId}
+                    onClick={() => setSelectedId(linha.atletaId)}
+                  />
+                ) : (
+                  <QueueRow
+                    key={linha.atletaId}
+                    athlete={linha.row}
+                    selected={linha.atletaId === selectedId}
+                    onClick={() => setSelectedId(linha.atletaId)}
+                  />
+                )
               ))
             )}
           </Box>

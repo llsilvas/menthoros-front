@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { calcularMonotonia, calcularLoadDelta, calcularAcwr, getAcwrZone, getAcuteLoadTone, getMonotonyTone, calcularStrain, getStrainZone, calcularPrevisaoForma, calcularDiasAteProva } from './coachInboxAdapters';
+import { buildInboxQueue, calcularMonotonia, calcularLoadDelta, calcularAcwr, getAcwrZone, getAcuteLoadTone, getMonotonyTone, calcularStrain, getStrainZone, calcularPrevisaoForma, calcularDiasAteProva } from './coachInboxAdapters';
 import type { PmcPontoRaw, AtletaPerfilCoachDto } from '../../../types/AtletaPerfilCoach';
 import type { Prova } from '../../../types/Prova';
+import type { CoachAtletaResumo, CoachAttentionItem, CoachDashboardRosterPage } from '../../../types/Coach';
 
 function pmc(over: Partial<PmcPontoRaw>): PmcPontoRaw {
   return { data: '2026-06-01', ctl: 50, atl: 55, tsb: -5, tss: 80, ...over };
@@ -243,5 +244,192 @@ describe('getStrainZone', () => {
   it('BVA: 600 → danger / Crítico', () => {
     expect(getStrainZone(599)).toEqual({ tone: 'warning', label: 'Alto' });
     expect(getStrainZone(600)).toEqual({ tone: 'danger', label: 'Crítico' });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// buildInboxQueue — gate da change refine-inbox-visual-hierarchy (task 1.1)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function atletaResumo(over: Partial<CoachAtletaResumo> & { atletaId: string; nome: string }): CoachAtletaResumo {
+  return { status: 'active', weeklyVolume: 30, ...over };
+}
+
+function pagina(items: CoachAtletaResumo[], over: Partial<CoachDashboardRosterPage> = {}): CoachDashboardRosterPage {
+  return { items, page: 0, size: 10, totalElements: items.length, totalPages: 1, ...over };
+}
+
+function alerta(over: Partial<CoachAttentionItem> & { atletaId: string; athleteName: string }): CoachAttentionItem {
+  return {
+    severity: 'ALTA',
+    priorityScore: 50,
+    primaryReason: 'INATIVIDADE',
+    suggestedAction: 'Entrar em contato',
+    generatedAt: '2026-08-10T12:00:00Z',
+    evidence: [],
+    ...over,
+  };
+}
+
+const SEM_FILTRO = { status: 'all' as const, search: '' };
+const HOJE = new Date('2026-08-16T12:00:00Z');
+
+describe('buildInboxQueue', () => {
+  /**
+   * O motivo do gate. A lista principal do inbox é o roster **paginado em 10**; a fila de atenção
+   * não é paginada. Sem fixar, um atleta em alerta que caia na página 2 some da tela — e mostrar
+   * quem precisa de atenção é justamente o job do inbox.
+   */
+  it('atleta em atenção fora do roster aparece fixado, mesmo na página 2', () => {
+    const roster = pagina([atletaResumo({ atletaId: 'r1', nome: 'Bruno' })], { page: 1, totalElements: 25, totalPages: 3 });
+
+    const { rows, pinnedCount } = buildInboxQueue(roster, [alerta({ atletaId: 'a1', athleteName: 'Ana' })], SEM_FILTRO, HOJE);
+
+    expect(pinnedCount).toBe(1);
+    expect(rows[0]).toMatchObject({ source: 'attention-only', atletaId: 'a1', athleteName: 'Ana' });
+    expect(rows.map((r) => r.atletaId)).toEqual(['a1', 'r1']);
+  });
+
+  /**
+   * `CoachAttentionItem` não tem as métricas que a linha de roster renderiza (aderência, volume,
+   * forma). Se as duas fontes virassem o mesmo tipo, a linha fixada exibiria zeros com cara de
+   * medição real — pior que não exibir.
+   */
+  it('linha attention-only não finge ter métricas de roster', () => {
+    const { rows } = buildInboxQueue(pagina([]), [alerta({ atletaId: 'a1', athleteName: 'Ana' })], SEM_FILTRO, HOJE);
+
+    expect(rows[0].source).toBe('attention-only');
+    expect(rows[0]).not.toHaveProperty('row');
+  });
+
+  it('atleta nas duas fontes aparece uma vez, com o motivo da fila de atenção', () => {
+    const roster = pagina([
+      atletaResumo({ atletaId: 'a1', nome: 'Ana' }),
+      atletaResumo({ atletaId: 'r1', nome: 'Bruno' }),
+    ]);
+
+    const { rows, pinnedCount } = buildInboxQueue(roster, [alerta({ atletaId: 'a1', athleteName: 'Ana' })], SEM_FILTRO, HOJE);
+
+    expect(rows.filter((r) => r.atletaId === 'a1')).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ source: 'roster', atletaId: 'a1' });
+    expect(rows[0].attention?.reason).toBe('INATIVIDADE');
+    expect(pinnedCount).toBe(1);
+  });
+
+  /**
+   * Fixar resolve paginação; filtro é outro mecanismo. Esconder em silêncio devolveria o defeito
+   * que a change existe para corrigir — por isso o contador, que a UI exibe.
+   */
+  it('item de atenção fora do filtro sai da lista mas é contado', () => {
+    const roster = pagina([atletaResumo({ atletaId: 'r1', nome: 'Bruno', status: 'active' })]);
+
+    const { rows, hiddenAttentionCount } = buildInboxQueue(
+      roster,
+      [alerta({ atletaId: 'a1', athleteName: 'Ana' })],
+      { status: 'warning', search: '' },
+      HOJE,
+    );
+
+    expect(rows.some((r) => r.atletaId === 'a1')).toBe(false);
+    expect(hiddenAttentionCount).toBe(1);
+  });
+
+  it('busca por nome também esconde e conta', () => {
+    const { rows, hiddenAttentionCount } = buildInboxQueue(
+      pagina([]),
+      [alerta({ atletaId: 'a1', athleteName: 'Ana' }), alerta({ atletaId: 'a2', athleteName: 'Carla' })],
+      { status: 'all', search: 'car' },
+      HOJE,
+    );
+
+    expect(rows.map((r) => r.atletaId)).toEqual(['a2']);
+    expect(hiddenAttentionCount).toBe(1);
+  });
+
+  it('ordena por severidade e depois por priorityScore', () => {
+    const attention = [
+      alerta({ atletaId: 'media', athleteName: 'Media', severity: 'MEDIA', priorityScore: 99 }),
+      alerta({ atletaId: 'alta', athleteName: 'Alta', severity: 'ALTA', priorityScore: 10 }),
+      alerta({ atletaId: 'critica2', athleteName: 'Critica2', severity: 'CRITICA', priorityScore: 20 }),
+      alerta({ atletaId: 'critica1', athleteName: 'Critica1', severity: 'CRITICA', priorityScore: 80 }),
+    ];
+
+    const { rows } = buildInboxQueue(pagina([]), attention, SEM_FILTRO, HOJE);
+
+    expect(rows.map((r) => r.atletaId)).toEqual(['critica1', 'critica2', 'alta', 'media']);
+  });
+
+  it('preserva a ordem que o backend devolveu para o roster', () => {
+    const roster = pagina([
+      atletaResumo({ atletaId: 'r1', nome: 'Bruno' }),
+      atletaResumo({ atletaId: 'r2', nome: 'Ana' }),
+      atletaResumo({ atletaId: 'r3', nome: 'Carla' }),
+    ]);
+
+    const { rows } = buildInboxQueue(roster, [], SEM_FILTRO, HOJE);
+
+    expect(rows.map((r) => r.atletaId)).toEqual(['r1', 'r2', 'r3']);
+  });
+
+  /**
+   * Os fixados são seção acima da página, não conteúdo dela: somá-los ao `count` do
+   * `TablePagination` faria "1 de N páginas" mentir e a última página vir curta.
+   */
+  it('não altera o total de elementos do roster', () => {
+    const roster = pagina([atletaResumo({ atletaId: 'r1', nome: 'Bruno' })], { totalElements: 25, totalPages: 3 });
+
+    const resultado = buildInboxQueue(roster, [alerta({ atletaId: 'a1', athleteName: 'Ana' })], SEM_FILTRO, HOJE);
+
+    expect(resultado.rosterTotalElements).toBe(25);
+  });
+
+  describe('recência', () => {
+    /** "Inatividade · 14d" tem de ser dias SEM TREINAR, não a idade do alerta. */
+    it('inatividade usa o último treino do roster', () => {
+      const roster = pagina([atletaResumo({ atletaId: 'a1', nome: 'Ana', lastActivity: '2026-08-02' })]);
+
+      const { rows } = buildInboxQueue(
+        roster,
+        [alerta({ atletaId: 'a1', athleteName: 'Ana', primaryReason: 'INATIVIDADE', generatedAt: '2026-08-15T12:00:00Z' })],
+        SEM_FILTRO,
+        HOJE,
+      );
+
+      expect(rows[0].attention?.recencyDays).toBe(14);
+    });
+
+    it('outros motivos usam a idade do alerta', () => {
+      const roster = pagina([atletaResumo({ atletaId: 'a1', nome: 'Ana', lastActivity: '2026-08-02' })]);
+
+      const { rows } = buildInboxQueue(
+        roster,
+        [alerta({ atletaId: 'a1', athleteName: 'Ana', primaryReason: 'SOBRECARGA', generatedAt: '2026-08-13T12:00:00Z' })],
+        SEM_FILTRO,
+        HOJE,
+      );
+
+      expect(rows[0].attention?.recencyDays).toBe(3);
+    });
+
+    it('sem dado de recência devolve null em vez de zero', () => {
+      const { rows } = buildInboxQueue(
+        pagina([]),
+        [alerta({ atletaId: 'a1', athleteName: 'Ana', primaryReason: 'INATIVIDADE', generatedAt: '' })],
+        SEM_FILTRO,
+        HOJE,
+      );
+
+      expect(rows[0].attention?.recencyDays).toBeNull();
+    });
+  });
+
+  it('sem fila de atenção, devolve só o roster', () => {
+    const roster = pagina([atletaResumo({ atletaId: 'r1', nome: 'Bruno' })]);
+
+    const { rows, pinnedCount, hiddenAttentionCount } = buildInboxQueue(roster, [], SEM_FILTRO, HOJE);
+
+    expect(rows).toHaveLength(1);
+    expect(pinnedCount).toBe(0);
+    expect(hiddenAttentionCount).toBe(0);
   });
 });

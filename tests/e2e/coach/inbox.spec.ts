@@ -1,0 +1,173 @@
+import { test, expect, type Page } from '@playwright/test'
+import { autenticarComPkce } from '../../fixtures/pkceAuth'
+
+/**
+ * Lista principal do inbox — cobertura do gate da change `refine-inbox-visual-hierarchy`.
+ *
+ * **Por que este arquivo existe.** A change remove os previews "Fila de atenção" e "Roster do
+ * dashboard". O risco não é o teste que quebra com a remoção — é o que continua **verde** enquanto
+ * a tela regride: `useCoachDashboard.test` e `coachInboxAdapters.test` passam com o inbox vazio, e
+ * os outros E2E de coach mockam a rota coringa de coach como lista vazia, então nunca renderizam
+ * a lista de verdade.
+ *
+ * O que só aqui se prova: com um dashboard **de verdade**, um atleta em atenção que não está na
+ * página corrente do roster continua alcançável — que é a função do módulo a ser removido.
+ */
+
+const INBOX_URL = '/#/coach/inbox'
+const ME_API = '**/api/v1/users/me**'
+const DASHBOARD_API = '**/api/v1/coach/dashboard*'
+
+const ME = {
+  id: 'coach-uuid',
+  nome: 'Coach Teste',
+  email: 'coach@teste.com',
+  avatarUrl: null,
+  assessoria: { id: 'tenant-uuid', nome: 'Corridas Serra' },
+  lgpdConsentGranted: true,
+  lgpdCurrentPolicyVersion: '2026-06-30',
+  lgpdCurrentTermsVersion: '2026-06-30',
+  lgpdAcceptedPolicyVersion: '2026-06-30',
+  lgpdAcceptedTermsVersion: '2026-06-30',
+  onboardingConcluido: true,
+}
+
+/** Atleta do roster: 10 por página, como o backend devolve. */
+function atletaRoster(i: number, over: Record<string, unknown> = {}) {
+  return {
+    atletaId: `roster-${i}`,
+    nome: `Atleta Roster ${i}`,
+    status: 'active',
+    weeklyVolume: 30 + i,
+    aderenciaPercentual: 80,
+    lastActivity: '2026-08-14',
+    ...over,
+  }
+}
+
+/**
+ * `attentionQueue` NÃO é paginada — é a lista completa. É essa assimetria com o roster (10 por
+ * página) que cria o risco que este spec cobre.
+ */
+const ANA_EM_ALERTA = {
+  atletaId: 'ana-alerta',
+  athleteName: 'Ana Fora da Pagina',
+  severity: 'CRITICA',
+  priorityScore: 90,
+  primaryReason: 'INATIVIDADE',
+  suggestedAction: 'Entrar em contato hoje',
+  generatedAt: '2026-08-15T12:00:00Z',
+  evidence: [],
+}
+
+async function mockarDashboard(
+  page: Page,
+  opcoes: { attentionQueue?: unknown[]; rosterExtra?: Record<string, unknown>[] } = {},
+) {
+  await page.route(ME_API, (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(ME) }),
+  )
+
+  await page.route(DASHBOARD_API, (route) => {
+    const url = new URL(route.request().url())
+    const pagina = Number.parseInt(url.searchParams.get('page') ?? '0', 10)
+    const status = url.searchParams.get('status')
+    const busca = (url.searchParams.get('q') ?? '').toLowerCase()
+
+    let todos = [
+      ...Array.from({ length: 10 }, (_, i) => atletaRoster(i + 1)),
+      ...(opcoes.rosterExtra ?? []),
+    ]
+    if (status) todos = todos.filter((a) => a.status === status)
+    if (busca) todos = todos.filter((a) => String(a.nome).toLowerCase().includes(busca))
+
+    const totalElements = todos.length
+    const items = todos.slice(pagina * 10, pagina * 10 + 10)
+
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        resumo: { totalAtletas: totalElements, ativos: totalElements, emAtencao: 1, treinosPlanejadosSemana: 12 },
+        roster: { items, page: pagina, size: 10, totalElements, totalPages: Math.ceil(totalElements / 10) },
+        attentionQueue: opcoes.attentionQueue ?? [ANA_EM_ALERTA],
+      }),
+    })
+  })
+
+  // Endpoints secundários do shell — silenciados para isolar o inbox.
+  await page.route('**/api/v1/coach/planos/**', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
+  )
+  await page.route('**/api/v1/atletas/**', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }),
+  )
+}
+
+test.describe('Coach — lista principal do inbox', () => {
+  test.beforeEach(async ({ page }) => {
+    await autenticarComPkce(page, { roles: ['PROPRIETARIO', 'TECNICO'] })
+  })
+
+  /** O cenário do gate: quem precisa de atenção não pode depender de estar na página certa. */
+  test('atleta em atenção fora do roster aparece com motivo e recência', async ({ page }) => {
+    await mockarDashboard(page)
+    await page.goto(INBOX_URL)
+
+    const linha = page.getByRole('button', { name: /ana fora da pagina/i })
+    await expect(linha).toBeVisible()
+    await expect(linha).toContainText(/inatividade/i)
+    await expect(linha).toContainText(/\d+d/)
+  })
+
+  test('navegar para a página 2 mantém o atleta em atenção e não altera o total', async ({ page }) => {
+    await mockarDashboard(page, {
+      rosterExtra: Array.from({ length: 5 }, (_, i) => atletaRoster(100 + i)),
+    })
+    await page.goto(INBOX_URL)
+
+    // O `TablePagination` não é localizado: o rótulo de linhas exibidas sai em inglês ("of 15").
+    const total = page.getByText(/of 15|de 15/i)
+    await expect(total).toBeVisible()
+    await expect(page.getByRole('button', { name: /ana fora da pagina/i })).toBeVisible()
+
+    await page.getByRole('button', { name: 'Go to next page' }).click()
+
+    // O fixado sobrevive à troca de página...
+    await expect(page.getByRole('button', { name: /ana fora da pagina/i })).toBeVisible()
+    // ...e não entra na contagem: somá-lo faria "of 15" virar "of 16" e a última página vir curta.
+    await expect(page.getByText(/of 15/i)).toBeVisible()
+  })
+
+  test('atleta em atenção fora do filtro ativo é contado, não sumido', async ({ page }) => {
+    await mockarDashboard(page)
+    await page.goto(INBOX_URL)
+    await expect(page.getByRole('button', { name: /ana fora da pagina/i })).toBeVisible()
+
+    // O `Select` de status não tem label associado (o texto "Status" é um Typography solto), então
+    // a busca é pelo combobox. Corrigir a a11y disso é escopo da fase 2, não deste gate.
+    await page.getByRole('combobox').filter({ hasText: 'Todos' }).click()
+    await page.getByRole('option', { name: 'Atenção', exact: true }).click()
+
+    await expect(page.getByRole('button', { name: /ana fora da pagina/i })).toHaveCount(0)
+    await expect(page.getByText(/em atenção fora do filtro atual/i)).toBeVisible()
+  })
+
+  test('atleta presente nas duas fontes não duplica', async ({ page }) => {
+    await mockarDashboard(page, {
+      attentionQueue: [{ ...ANA_EM_ALERTA, atletaId: 'roster-3', athleteName: 'Atleta Roster 3' }],
+    })
+    await page.goto(INBOX_URL)
+
+    await expect(page.getByRole('button', { name: /atleta roster 3/i })).toHaveCount(1)
+  })
+
+  test('clicar na linha de atenção abre o detalhe do atleta certo', async ({ page }) => {
+    await mockarDashboard(page)
+    await page.goto(INBOX_URL)
+
+    await page.getByRole('button', { name: /ana fora da pagina/i }).click()
+
+    await expect(page.getByRole('button', { name: /ana fora da pagina/i })).toHaveAttribute('aria-current', 'true')
+  })
+})

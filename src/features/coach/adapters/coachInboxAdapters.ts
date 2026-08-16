@@ -1,5 +1,13 @@
 import { formatWorkoutTypeLabel, statusLabel } from '../components/coachInboxHelpers';
-import type { CoachAtletaResumo, CoachAtletaStatus } from '../../../types/Coach';
+import type {
+  AttentionReason,
+  AttentionSeverity,
+  CoachAtletaResumo,
+  CoachAtletaStatus,
+  CoachAttentionItem,
+  CoachDashboardRosterPage,
+} from '../../../types/Coach';
+import type { DashboardStatusFilter } from '../hooks/useDashboardFilters';
 import type { AtletaPerfilCoachDto, PmcPontoRaw } from '../../../types/AtletaPerfilCoach';
 import type { Prova } from '../../../types/Prova';
 import type { CoachAthleteRow, RaceItem, SegmentFilter } from '../types/CoachInbox';
@@ -248,5 +256,134 @@ export function buildRosterRowFromSummary(roster: CoachAtletaResumo): CoachAthle
       recovery: 0,
     },
     racePrediction: null, // resumo não traz provas nem PMC
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Composição da lista do inbox (refine-inbox-visual-hierarchy, gate 1.1)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Motivo e severidade de um atleta que precisa de atenção, já resolvidos para exibição. */
+export interface AttentionInfo {
+  severity: AttentionSeverity;
+  reason: AttentionReason;
+  suggestedAction: string;
+  /** Dias sem treinar (inatividade) ou idade do alerta; `null` quando não há dado. */
+  recencyDays: number | null;
+}
+
+/**
+ * Linha da lista principal do inbox.
+ *
+ * A união é obrigatória, não estilística: `CoachAttentionItem` traz nome, severidade e motivo, mas
+ * **nenhuma** das métricas que a linha de roster exibe (aderência, volume, forma). Um tipo só
+ * forçaria preencher esses campos com zero para o atleta que veio só da fila de atenção — e zero
+ * com cara de medição real é pior do que ausência declarada.
+ */
+export type InboxQueueRow =
+  | { source: 'roster'; atletaId: string; row: CoachAthleteRow; attention: AttentionInfo | null }
+  | { source: 'attention-only'; atletaId: string; athleteName: string; attention: AttentionInfo };
+
+export interface InboxQueue {
+  rows: InboxQueueRow[];
+  /** Quantos itens estão fixados no topo (atenção), em qualquer página. */
+  pinnedCount: number;
+  /** Atletas em atenção que o filtro/busca ativo esconde — a UI precisa dizer que existem. */
+  hiddenAttentionCount: number;
+  /** Total do roster, **sem** os fixados: é o `count` do `TablePagination`. */
+  rosterTotalElements: number;
+}
+
+const ORDEM_SEVERIDADE: Record<AttentionSeverity, number> = { CRITICA: 0, ALTA: 1, MEDIA: 2 };
+
+function diasEntre(inicio: string | undefined, hoje: Date): number | null {
+  if (!inicio) return null;
+  const ms = Date.parse(inicio);
+  if (Number.isNaN(ms)) return null;
+  return Math.floor((hoje.getTime() - ms) / 86_400_000);
+}
+
+/**
+ * "Inatividade · 14d" só é verdade se o número forem dias **sem treinar**. Para os demais motivos
+ * não existe esse dado, e a idade do alerta é a informação honesta — usar `generatedAt` como se
+ * fosse inatividade produziria um número errado com aparência de certo.
+ */
+function resolverRecencia(item: CoachAttentionItem, resumo: CoachAtletaResumo | undefined, hoje: Date): number | null {
+  if (item.primaryReason === 'INATIVIDADE' && resumo?.lastActivity) {
+    return diasEntre(resumo.lastActivity, hoje);
+  }
+  return diasEntre(item.generatedAt, hoje);
+}
+
+/**
+ * Compõe a lista principal do inbox a partir do roster paginado e da fila de atenção.
+ *
+ * **O problema que isto resolve.** As duas listas vêm da mesma resposta (`GET /coach/dashboard`),
+ * mas o roster é paginado em 10 e a fila de atenção não. Um atleta em alerta que caia na página 2
+ * simplesmente não aparece — e mostrar quem precisa de atenção é o job da tela. Por isso os itens
+ * de atenção são **fixados acima da página**, em todas elas.
+ *
+ * **Fixar resolve paginação; filtro é outro mecanismo.** Item de atenção que o filtro ativo exclui
+ * não entra em `rows` — sai em `hiddenAttentionCount`, para a UI dizer que ele existe em vez de
+ * escondê-lo em silêncio. Filtro de status derruba todo item `attention-only`: o DTO da fila não
+ * carrega o status do atleta, então afirmar que ele casa com o filtro seria invenção.
+ */
+export function buildInboxQueue(
+  roster: CoachDashboardRosterPage,
+  attentionQueue: CoachAttentionItem[],
+  filters: { status: DashboardStatusFilter; search: string },
+  hoje: Date = new Date(),
+): InboxQueue {
+  const porId = new Map(roster.items.map((item) => [item.atletaId, item]));
+  const busca = filters.search.trim().toLowerCase();
+
+  const ordenados = [...attentionQueue].sort((a, b) =>
+    ORDEM_SEVERIDADE[a.severity] - ORDEM_SEVERIDADE[b.severity] || b.priorityScore - a.priorityScore);
+
+  const fixados: InboxQueueRow[] = [];
+  let hiddenAttentionCount = 0;
+
+  for (const item of ordenados) {
+    const resumo = porId.get(item.atletaId);
+    const nome = resumo?.nome ?? item.athleteName;
+
+    const passaBusca = busca.length === 0 || nome.toLowerCase().includes(busca);
+    // Sem `resumo` não há status para comparar — o DTO da fila de atenção não o traz.
+    const passaStatus = filters.status === 'all' || resumo?.status === filters.status;
+
+    if (!passaBusca || !passaStatus) {
+      hiddenAttentionCount += 1;
+      continue;
+    }
+
+    const attention: AttentionInfo = {
+      severity: item.severity,
+      reason: item.primaryReason,
+      suggestedAction: item.suggestedAction,
+      recencyDays: resolverRecencia(item, resumo, hoje),
+    };
+
+    fixados.push(resumo
+      ? { source: 'roster', atletaId: item.atletaId, row: buildRosterRowFromSummary(resumo), attention }
+      : { source: 'attention-only', atletaId: item.atletaId, athleteName: nome, attention });
+  }
+
+  const fixadosIds = new Set(fixados.map((r) => r.atletaId));
+  const restante: InboxQueueRow[] = roster.items
+    .filter((item) => !fixadosIds.has(item.atletaId))
+    .map((item) => ({
+      source: 'roster' as const,
+      atletaId: item.atletaId,
+      row: buildRosterRowFromSummary(item),
+      attention: null,
+    }));
+
+  return {
+    rows: [...fixados, ...restante],
+    pinnedCount: fixados.length,
+    hiddenAttentionCount,
+    // Deliberadamente sem somar os fixados: eles são seção acima da página, não conteúdo dela.
+    // Somá-los faria "1 de N páginas" mentir e a última página vir curta.
+    rosterTotalElements: roster.totalElements,
   };
 }
