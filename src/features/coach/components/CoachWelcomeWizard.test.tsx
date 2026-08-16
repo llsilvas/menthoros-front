@@ -4,10 +4,12 @@ import userEvent from '@testing-library/user-event';
 import { CoachWelcomeWizard } from './CoachWelcomeWizard';
 import { CoachOnboardingService } from '../../../api/services/CoachOnboardingService';
 import { AssessoriaSettingsService } from '../../../api/services/AssessoriaSettingsService';
+import { AtletasService } from '../../../api/services/AtletasService';
 import type { AssessoriaMe } from '../../../types/AssessoriaSettings';
 
 vi.mock('../../../api/services/CoachOnboardingService');
 vi.mock('../../../api/services/AssessoriaSettingsService');
+vi.mock('../../../api/services/AtletasService');
 
 const ASSESSORIA: AssessoriaMe = {
   id: 'a1',
@@ -43,7 +45,7 @@ describe('CoachWelcomeWizard', () => {
     vi.mocked(CoachOnboardingService.concluir).mockResolvedValue(undefined);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.mocked(CoachOnboardingService.criarPrimeiroAtleta).mockResolvedValue(ATLETA as any);
-    vi.mocked(CoachOnboardingService.convidarAtleta).mockResolvedValue(undefined);
+    vi.mocked(AtletasService.convidarAtleta).mockResolvedValue(undefined);
   });
 
   describe('estrutura', () => {
@@ -184,7 +186,7 @@ describe('CoachWelcomeWizard', () => {
 
       await waitFor(() => expect(screen.getByText(/convite enviado/i)).toBeInTheDocument());
       expect(botao).toBeDisabled();
-      expect(CoachOnboardingService.convidarAtleta).toHaveBeenCalledTimes(1);
+      expect(AtletasService.convidarAtleta).toHaveBeenCalledTimes(1);
     });
 
     /**

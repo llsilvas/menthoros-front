@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router';
 import CoachAthletesPage from './CoachAthletesPage';
@@ -197,5 +198,46 @@ describe('CoachAthletesPage — coluna de vencimento do plano', () => {
       dataVencimentoPlano: '2026-12-31', statusVencimentoPlano: 'EM_DIA',
     }]);
     expect(screen.getByTestId('cell-vencimentoPlano-a1')).toHaveTextContent('Em dia');
+  });
+
+  describe('convite de acesso', () => {
+    /**
+     * O convite existia no backend desde o onboarding de assessoria, mas **nenhuma tela do
+     * produto o expunha** — nem havia campo de e-mail no cadastro de atleta. Na prática, era
+     * impossível dar acesso a um atleta pela interface.
+     */
+    it('oferece a ação de enviar convite', () => {
+      render(<MemoryRouter><CoachAthletesPage /></MemoryRouter>);
+
+      expect(screen.getByRole('button', { name: /enviar convite/i })).toBeInTheDocument();
+    });
+
+    it('confirmar dispara o convite para o atleta da linha', async () => {
+      vi.mocked(AtletasService.convidarAtleta).mockResolvedValue(undefined);
+      render(<MemoryRouter><CoachAthletesPage /></MemoryRouter>);
+
+      await userEvent.click(screen.getByRole('button', { name: /enviar convite/i }));
+      await userEvent.click(await screen.findByRole('button', { name: /stub-confirm/i }));
+
+      await waitFor(() => expect(AtletasService.convidarAtleta).toHaveBeenCalledWith('a1'));
+      expect(await screen.findByText(/convite enviado para ana silva/i)).toBeInTheDocument();
+    });
+
+    /**
+     * Sem traduzir o 422, o coach via "não foi possível" e não tinha como saber que a saída era
+     * editar o atleta e preencher o e-mail — ele tentaria de novo, indefinidamente.
+     */
+    it('atleta sem e-mail: a mensagem diz o que fazer', async () => {
+      vi.mocked(AtletasService.convidarAtleta)
+        .mockRejectedValue(Object.assign(new Error('HTTP 422'), { status: 422 }));
+      render(<MemoryRouter><CoachAthletesPage /></MemoryRouter>);
+
+      await userEvent.click(screen.getByRole('button', { name: /enviar convite/i }));
+      await userEvent.click(await screen.findByRole('button', { name: /stub-confirm/i }));
+
+      const alerta = await screen.findByText(/não tem e-mail cadastrado/i);
+      expect(alerta).toBeInTheDocument();
+      expect(alerta.textContent).toMatch(/edite o atleta/i);
+    });
   });
 });

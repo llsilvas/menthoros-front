@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { AtletasService } from '../api/services/AtletasService';
 import { CoachOnboardingService } from '../api/services/CoachOnboardingService';
 import type { CriarAtletaMinimo } from '../types/CoachOnboarding';
 
@@ -40,7 +41,8 @@ export function useCoachOnboarding() {
         setSalvando(true);
         setErro(null);
         try {
-            await CoachOnboardingService.convidarAtleta(atletaId);
+            // O convite é operação de atleta, não do wizard — mora no AtletasService.
+            await AtletasService.convidarAtleta(atletaId);
             // Trava o reenvio: o endpoint reenvia a cada chamada e o atleta receberia dois e-mails.
             setConviteEnviado(true);
             return true;
