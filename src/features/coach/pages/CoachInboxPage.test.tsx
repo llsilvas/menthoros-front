@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as reactRouter from 'react-router';
 import { MemoryRouter, Route, Routes } from 'react-router';
@@ -337,6 +338,49 @@ describe('CoachInboxPage', () => {
       const cta = screen.getByTestId('inbox-cta-primario');
       expect(cta).toBeDisabled();
       expect(cta).toHaveTextContent(/enviando/i);
+    });
+  });
+
+  describe('filtros na coluna da lista (task 2.11)', () => {
+    /**
+     * Os filtros viviam numa barra full-width entre o cabeçalho e os KPIs, mas afetam **só** a
+     * lista de atletas. Controle longe do que ele afeta faz o coach duvidar do que está vendo — e
+     * a barra ainda ocupava uma faixa inteira da altura útil.
+     */
+    it('o header da lista traz status e ordenação, e a barra full-width sumiu', () => {
+      renderPage();
+
+      expect(screen.getByRole('button', { name: /filtrar por status/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /ordenar lista/i })).toBeInTheDocument();
+      // A barra antiga usava `Select` com rótulos soltos "Status" e "Ordenar".
+      expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    });
+
+    it('ordenar pelo chip aplica o sort', async () => {
+      renderPage();
+
+      await userEvent.click(screen.getByRole('button', { name: /ordenar lista/i }));
+      await userEvent.click(screen.getByRole('menuitem', { name: /aderência/i }));
+
+      expect(screen.getByRole('button', { name: /ordenar lista/i })).toHaveTextContent(/aderência/i);
+    });
+
+    it('filtrar por status pelo chip aplica o filtro', async () => {
+      renderPage();
+
+      await userEvent.click(screen.getByRole('button', { name: /filtrar por status/i }));
+      await userEvent.click(screen.getByRole('menuitem', { name: 'Atenção' }));
+
+      expect(screen.getByRole('button', { name: /filtrar por status/i })).toHaveTextContent(/atenção/i);
+    });
+
+    /** UX-007: o placeholder prometia busca por treino e prova; a query só filtra o roster. */
+    it('o placeholder da busca não promete o que a tela não faz', () => {
+      renderPage();
+
+      const busca = screen.getByPlaceholderText(/buscar atleta/i);
+      expect(busca).toBeInTheDocument();
+      expect(busca.getAttribute('placeholder')).not.toMatch(/treino|prova/i);
     });
   });
 });
