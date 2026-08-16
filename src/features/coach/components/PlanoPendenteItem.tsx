@@ -79,7 +79,6 @@ export function PlanoPendenteItem({ plano, selecionado, onSelect }: PlanoPendent
                     </Typography>
                     <Typography
                         sx={{
-                            fontFamily: 'Syne, sans-serif',
                             fontSize: '0.7rem',
                             fontWeight: 700,
                             color: accentColor,

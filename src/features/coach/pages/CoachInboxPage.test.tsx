@@ -50,8 +50,8 @@ const makeProfile = (pmc: PmcPontoRaw[] = []): AtletaPerfilCoachDto => ({
 
 const mockRefetchQueue = vi.fn();
 const mockReviewFetchPendentes = vi.fn().mockResolvedValue(undefined);
-const mockReviewAprovar = vi.fn().mockResolvedValue(true);
-const mockReviewRejeitar = vi.fn().mockResolvedValue(true);
+const mockReviewAprovar = vi.fn().mockResolvedValue({ ok: true });
+const mockReviewRejeitar = vi.fn().mockResolvedValue({ ok: true });
 const mockFetchProfile = vi.fn().mockResolvedValue(undefined);
 
 const DASHBOARD_STUB: CoachDashboard = {
@@ -166,6 +166,7 @@ describe('CoachInboxPage', () => {
       reviewIsActing: false,
       reviewFetchError: null,
       reviewActionError: null,
+      reviewActionStatus: null,
       reviewActiveFilter: 'AGUARDANDO_REVISAO',
       reviewSetFilter: vi.fn(),
       reviewFetchPendentes: mockReviewFetchPendentes,
@@ -187,11 +188,17 @@ describe('CoachInboxPage', () => {
     });
   });
 
-  it('mostra a fila de atenção do dashboard no resumo', () => {
+  /**
+   * Reescrito na task 1.5. Antes, este teste afirmava que existia um módulo "Fila de atenção"
+   * separado — um preview de 3 itens que repetia atletas já listados ao lado. O módulo saiu; o que
+   * precisa continuar verdadeiro é que **o sinal do atleta não se perdeu**: ele agora aparece no
+   * card da lista principal, com motivo.
+   */
+  it('o sinal do atleta aparece na lista principal, com motivo', () => {
     renderPage();
 
-    expect(screen.getByText(/Fila de atenção/i)).toBeInTheDocument();
-    expect(screen.getByText(/Reduzir o volume do próximo longão/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Fila de atenção/i)).not.toBeInTheDocument();
+    expect(screen.getByTestId('queue-row-motivo')).toHaveTextContent(/fadiga/i);
   });
 
   it('expõe exatamente 3 abas no drill-down do atleta', () => {
@@ -267,11 +274,15 @@ describe('CoachInboxPage', () => {
     expect(screen.queryByText(/Impacto da alteração/i)).not.toBeInTheDocument();
   });
 
+  /**
+   * Reescrito na task 1.3a. Rejeitar saiu do menu "Mais ações" e passou a renderizar ao lado do
+   * CTA: aprovar e rejeitar são as duas faces da mesma decisão, e esconder a que exige motivo
+   * escrito atrás de um menu enviesa a escolha para o "sim".
+   */
   it('abre diálogo de rejeição e chama o endpoint com motivo informado', async () => {
     renderPage();
 
-    fireEvent.click(screen.getByRole('button', { name: /Mais ações/i }));
-    fireEvent.click(screen.getByRole('menuitem', { name: /Rejeitar plano/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Rejeitar$/i }));
 
     expect(screen.getByRole('dialog', { name: /Rejeitar plano/i })).toBeInTheDocument();
 
@@ -281,5 +292,38 @@ describe('CoachInboxPage', () => {
     await waitFor(() => expect(mockReviewRejeitar).toHaveBeenCalledWith('plano-1', 'Carga alta na semana da prova'));
     await waitFor(() => expect(mockReviewFetchPendentes).toHaveBeenCalled());
     await waitFor(() => expect(mockFetchProfile).toHaveBeenCalled());
+  });
+
+  describe('CTA contextual', () => {
+    /** O defeito original: "Aprovar plano" cinza e morto ocupando o lugar da ação que existe. */
+    it('com plano aguardando revisão, o CTA primário é aprovar — e rejeitar está ao lado', () => {
+      renderPage();
+
+      const cta = screen.getByTestId('inbox-cta-primario');
+      expect(cta).toHaveTextContent(/aprovar plano/i);
+      expect(cta).toBeEnabled();
+      expect(screen.getByRole('button', { name: /^Rejeitar$/i })).toBeInTheDocument();
+    });
+
+    it('o CTA fica no cabeçalho, não no rodapé (sem botão morto)', () => {
+      renderPage();
+
+      // O antigo "Aprovar plano" do rodapé, que renderizava desabilitado no estado comum, sumiu.
+      const aprovar = screen.getAllByRole('button', { name: /aprovar plano/i });
+      expect(aprovar).toHaveLength(1);
+      expect(aprovar[0]).toHaveAttribute('data-testid', 'inbox-cta-primario');
+    });
+
+    it('mutação em voo bloqueia o CTA e mostra progresso', () => {
+      vi.mocked(reactRouter.useOutletContext).mockReturnValue({
+        ...(vi.mocked(reactRouter.useOutletContext).mock.results[0]?.value ?? {}),
+        reviewIsActing: true,
+      } as never);
+      renderPage();
+
+      const cta = screen.getByTestId('inbox-cta-primario');
+      expect(cta).toBeDisabled();
+      expect(cta).toHaveTextContent(/enviando/i);
+    });
   });
 });

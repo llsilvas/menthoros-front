@@ -237,7 +237,6 @@ export default function CoachPlanReviewPage() {
                 <Box sx={{ px: 2, py: 1.75, borderBottom: `1px solid ${content.divider}`, flexShrink: 0 }}>
                     <Typography
                         sx={{
-                            fontFamily: 'Syne, sans-serif',
                             fontSize: '0.65rem',
                             fontWeight: 700,
                             color: surface[500],

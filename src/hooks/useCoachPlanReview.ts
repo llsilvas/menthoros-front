@@ -5,6 +5,25 @@ import type { PlanoReviewStatus, PlanoSemanalDto } from '../types/PlanoReview';
 
 export type ReviewFilter = PlanoReviewStatus | 'all';
 
+/**
+ * Resultado de uma ação de revisão.
+ *
+ * Devolver `boolean` descartava o motivo da falha antes de chegar à tela: o componente sabia que
+ * "não deu", mas não se o plano já tinha sido processado por outra sessão (409/422) ou se faltava
+ * permissão (403) — dois casos com saídas opostas para o coach.
+ */
+export interface ReviewActionResult {
+    ok: boolean;
+    /** Status HTTP quando a falha veio do servidor; ausente em erro de rede. */
+    status?: number;
+}
+
+function statusDoErro(err: unknown): number | undefined {
+    return typeof err === 'object' && err !== null && 'status' in err
+        ? (err as { status?: number }).status
+        : undefined;
+}
+
 export const useCoachPlanReview = () => {
     const [allPlanos, setAllPlanos] = useState<PlanoSemanalDto[]>([]);
     const [activeFilter, setActiveFilter] = useState<ReviewFilter>('AGUARDANDO_REVISAO');
@@ -12,6 +31,7 @@ export const useCoachPlanReview = () => {
     const [isActing, setIsActing] = useState(false);
     const [fetchError, setFetchError] = useState<Error | null>(null);
     const [actionError, setActionError] = useState<Error | null>(null);
+    const [actionStatus, setActionStatus] = useState<number | null>(null);
 
     // Vista filtrada — derivada sem re-fetch
     const pendentes = useMemo(() =>
@@ -38,31 +58,37 @@ export const useCoachPlanReview = () => {
         }
     }, []);
 
-    const aprovar = useCallback(async (id: string): Promise<boolean> => {
+    const aprovar = useCallback(async (id: string): Promise<ReviewActionResult> => {
         try {
             setIsActing(true);
             setActionError(null);
+            setActionStatus(null);
             await CoachPlanoReviewService.aprovar(id);
             await fetchPendentes();
-            return true;
+            return { ok: true };
         } catch (err) {
+            const status = statusDoErro(err);
             setActionError(err instanceof Error ? err : new Error('Erro ao aprovar plano'));
-            return false;
+            setActionStatus(status ?? null);
+            return { ok: false, status };
         } finally {
             setIsActing(false);
         }
     }, [fetchPendentes]);
 
-    const rejeitar = useCallback(async (id: string, motivo: string): Promise<boolean> => {
+    const rejeitar = useCallback(async (id: string, motivo: string): Promise<ReviewActionResult> => {
         try {
             setIsActing(true);
             setActionError(null);
+            setActionStatus(null);
             await CoachPlanoReviewService.rejeitar(id, motivo);
             await fetchPendentes();
-            return true;
+            return { ok: true };
         } catch (err) {
+            const status = statusDoErro(err);
             setActionError(err instanceof Error ? err : new Error('Erro ao rejeitar plano'));
-            return false;
+            setActionStatus(status ?? null);
+            return { ok: false, status };
         } finally {
             setIsActing(false);
         }
@@ -77,6 +103,7 @@ export const useCoachPlanReview = () => {
         isActing,
         fetchError,
         actionError,
+        actionStatus,
         fetchPendentes,
         aprovar,
         rejeitar,

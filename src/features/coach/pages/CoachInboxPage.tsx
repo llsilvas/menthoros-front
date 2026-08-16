@@ -6,6 +6,11 @@ import {
   Box,
   Button,
   Chip,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   FormControl,
   InputAdornment,
   LinearProgress,
@@ -29,8 +34,6 @@ import {
 import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { DANGER_BTN_SX, GHOST_BTN_SX } from '../../../shared/components/actionButtonSx';
 import { CoachAthleteAvatar } from '../components/CoachAthleteAvatar';
-import { DashboardAttentionQueueRow } from '../components/DashboardAttentionQueueRow';
-import { DashboardRosterPreviewRow } from '../components/DashboardRosterPreviewRow';
 import { MetricTile } from '../components/MetricTile';
 import { QueueRow } from '../components/QueueRow';
 import { AttentionOnlyRow } from '../components/AttentionOnlyRow';
@@ -48,6 +51,9 @@ import type { SortKey, DashboardStatusFilter } from '../hooks/useDashboardFilter
 import { elevation } from '../../../shared/design-tokens';
 import { content, semantic, surface } from '../../../theme/tokens';
 import { buildInboxQueue, buildSelectedAthleteFromDashboard, getAcwrZone } from '../adapters/coachInboxAdapters';
+import { resolveReviewStatus } from '../../../types/PlanoReview';
+import { montarRascunhoContato, resolveActionAvailability, resolvePrimaryAction } from '../components/coachInboxHelpers';
+import { PRIMARY_BTN_SX } from '../../../shared/components/actionButtonSx';
 import { buildPmcDataPoints } from '../../athlete/adapters/pmcAdapter';
 import { FAIXA_APRESENTACAO } from '../../../types/FaixaTsb';
 import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
@@ -78,8 +84,15 @@ const TABS: Array<{ key: TabKey; label: string; icon: ReactElement }> = [
 
 function CoachInboxPage() {
   const navigate = useNavigate();
-  const { reviewAprovar, reviewRejeitar, reviewFetchPendentes } = useOutletContext<CoachLayoutOutletContext>();
+  const {
+    reviewAprovar, reviewRejeitar, reviewFetchPendentes,
+    // O inbox não consumia estes dois: sem eles, o CTA não sabia que havia mutação em voo nem por
+    // que a última ação falhou.
+    reviewIsActing, reviewActionStatus,
+  } = useOutletContext<CoachLayoutOutletContext>();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  /** Rascunho de contato exibido quando a área de transferência não está disponível. */
+  const [rascunhoContato, setRascunhoContato] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('diagnosis');
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -223,6 +236,45 @@ function CoachInboxPage() {
     openRejectDialogBase();
   }, [openRejectDialogBase]);
 
+  /** Sinal do atleta selecionado, se ele estiver na fila de atenção. */
+  const selectedAttention = useMemo(
+    () => inboxQueue.rows.find((linha) => linha.atletaId === selectedId)?.attention ?? null,
+    [inboxQueue.rows, selectedId],
+  );
+
+  const primaryAction = useMemo(
+    () => resolvePrimaryAction({
+      planReviewStatus: selectedReviewStatus ? resolveReviewStatus(selectedReviewStatus) : null,
+      planId: selectedPlanId,
+      attention: selectedAttention,
+    }),
+    [selectedAttention, selectedPlanId, selectedReviewStatus],
+  );
+
+  const actionAvailability = resolveActionAvailability({
+    acting: reviewIsActing,
+    lastErrorStatus: reviewActionStatus,
+  });
+
+  const acionarContato = useCallback(async () => {
+    if (!selected) return;
+    const rascunho = montarRascunhoContato(selected.name, selectedAttention);
+    try {
+      await navigator.clipboard.writeText(rascunho);
+      setFeedback('Rascunho copiado. Cole no seu canal de conversa com o atleta.');
+    } catch {
+      // Clipboard falha em contexto não-seguro e quando o usuário nega permissão. Sem este ramo, o
+      // botão trocaria um stub silencioso por outro.
+      setRascunhoContato(rascunho);
+    }
+  }, [selected, selectedAttention]);
+
+  const acionarCta = useCallback(() => {
+    if (primaryAction.kind === 'aprovar-plano') return void handleApprovePlan();
+    if (primaryAction.kind === 'contatar-atleta') return void acionarContato();
+    setActiveTab('plan');
+  }, [acionarContato, handleApprovePlan, primaryAction.kind]);
+
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: elevation.base }}>
       <Box
@@ -247,7 +299,7 @@ function CoachInboxPage() {
           */}
           <Typography
             data-testid="inbox-titulo"
-            sx={{ fontSize: '1rem', fontWeight: 800, color: surface[50], lineHeight: 1.2, fontFamily: 'Syne, sans-serif' }}
+            sx={{ fontSize: '1rem', fontWeight: 800, color: surface[50], lineHeight: 1.2 }}
           >
             Fila, plano e calendário
           </Typography>
@@ -338,6 +390,49 @@ function CoachInboxPage() {
         </Box>
       </Box>
 
+      {/*
+        Loading e erro do dashboard viviam dentro do card removido. Sem eles, uma falha de carga
+        deixaria a tela com números velhos e nenhuma indicação — pior que a coluna que saiu.
+      */}
+      {dashboardError ? (
+        <Alert
+          severity="warning"
+          sx={{ mb: 1, color: surface[50], '& .MuiAlert-icon': { color: semantic.warning[500] } }}
+          action={
+            <Button size="small" onClick={reloadDashboard} sx={{ textTransform: 'none' }}>
+              Tentar de novo
+            </Button>
+          }
+        >
+          Não foi possível carregar o dashboard agregado. Mantendo a tela funcional com os dados locais.
+        </Alert>
+      ) : null}
+      {dashboardLoading ? <LinearProgress sx={{ mb: 1 }} /> : null}
+
+      {/*
+        "Resumo rápido" era um card ocupando uma coluna inteira, ao lado de dois previews que
+        repetiam atletas já listados na coluna seguinte. Os previews saem — a lista principal agora
+        carrega motivo e recência e fixa quem está em atenção (gate 1.1) — e os KPIs viram faixa.
+      */}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', md: 'repeat(4, minmax(0, 1fr))' },
+          gap: 1,
+          mb: { xs: 1, lg: 1.25 },
+        }}
+      >
+        <MetricTile compact label="Atletas ativos" value={String(summary.ativos)} delta={`${summary.totalAtletas} no total`} tone="success" />
+        <MetricTile compact label="Treinos planejados" value={String(summary.treinosPlanejadosSemana)} delta="na semana" />
+        <MetricTile compact label="Em atenção" value={String(summary.emAtencao)} delta={`${summary.itensFilaAtencao} na fila`} tone="warning" />
+        <MetricTile compact label="Atletas exibidos" value={String(summary.atletasExibidos)} />
+      </Box>
+      {dashboardUpdatedAt ? (
+        <Typography sx={{ fontSize: '0.7rem', color: surface[500], mb: { xs: 1, lg: 1.25 }, mt: -0.5 }}>
+          Atualizado em {dashboardUpdatedAt}
+        </Typography>
+      ) : null}
+
       <Box
         sx={{
           flex: 1,
@@ -345,99 +440,18 @@ function CoachInboxPage() {
           display: 'grid',
           gridTemplateColumns: {
             xs: '1fr',
-            lg: 'minmax(240px, 280px) minmax(260px, 300px) minmax(0, 1fr)',
-            xl: 'minmax(280px, 340px) minmax(310px, 380px) minmax(0, 1fr)',
+            // Duas colunas: lista + detalhe. A terceira existia para os previews removidos, e
+            // devolvê-la ao painel do atleta é o ponto — ele é o conteúdo, o resto era chrome.
+            lg: 'minmax(300px, 360px) minmax(0, 1fr)',
+            xl: 'minmax(340px, 400px) minmax(0, 1fr)',
           },
           '@media (min-width: 1800px)': {
-            gridTemplateColumns: 'minmax(320px, 400px) minmax(360px, 440px) minmax(0, 1fr)',
+            gridTemplateColumns: 'minmax(380px, 440px) minmax(0, 1fr)',
           },
           overflowX: 'auto',
           overflowY: 'hidden',
         }}
       >
-        <Box
-          sx={{
-            minHeight: 0,
-            minWidth: 0,
-            borderRight: { lg: `1px solid ${content.divider}` },
-            overflow: 'auto',
-            p: { xs: 1.25, lg: 1.1 },
-          }}
-        >
-          <Box
-            sx={{
-              mt: 0,
-              p: { xs: 1.1, lg: 0.95 },
-              borderRadius: 2,
-              border: `1px solid ${content.cardBorder}`,
-              backgroundColor: `${surface[0]}05`,
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 1 }}>
-              <Typography sx={{ fontSize: '0.7rem', color: surface[400], textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Resumo rápido
-              </Typography>
-              <Typography sx={{ fontSize: '0.68rem', color: surface[500], textAlign: 'right' }}>
-                {dashboardLoading
-                  ? 'Atualizando dashboard agregado...'
-                  : dashboardUpdatedAt
-                    ? `Atualizado em ${dashboardUpdatedAt}`
-                    : 'Resumo local temporário'}
-              </Typography>
-            </Box>
-            {dashboardError ? (
-              <Alert
-                severity="warning"
-                sx={{
-                  mb: 1.5,
-                  bgcolor: `${semantic.warning[500]}10`,
-                  border: `1px solid ${semantic.warning[500]}33`,
-                  color: surface[50],
-                  '& .MuiAlert-icon': { color: semantic.warning[500] },
-                }}
-              >
-                Não foi possível carregar o dashboard agregado. Mantendo a tela funcional com os dados locais.
-              </Alert>
-            ) : null}
-            {dashboardLoading ? <LinearProgress sx={{ mb: 1.5 }} /> : null}
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 0.9, mt: 1.1 }}>
-              <MetricTile compact label="Atletas ativos" value={String(summary.ativos)} delta={`${summary.totalAtletas} no total`} tone="success" />
-              <MetricTile compact label="Treinos planejados" value={String(summary.treinosPlanejadosSemana)} delta="na semana" />
-              <MetricTile compact label="Em atenção" value={String(summary.emAtencao)} delta={`${summary.itensFilaAtencao} na fila`} tone="warning" />
-              <MetricTile compact label="Atletas exibidos" value={String(summary.atletasExibidos)} />
-            </Box>
-            {dashboardAttentionQueue.length > 0 ? (
-              <Box sx={{ mt: 1.25 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 1 }}>
-                  <Typography sx={{ fontSize: '0.68rem', color: surface[400], textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                    Fila de atenção
-                  </Typography>
-                  <Button size="small" sx={{ textTransform: 'none', color: surface[400] }} onClick={() => navigate('/coach/insights')}>
-                    Ver insights
-                  </Button>
-                </Box>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.7 }}>
-                  {dashboardAttentionQueue.slice(0, 3).map((item) => (
-                    <DashboardAttentionQueueRow key={item.atletaId} item={item} />
-                  ))}
-                </Box>
-              </Box>
-            ) : null}
-            {dashboardRoster.length > 0 ? (
-              <Box sx={{ mt: 1.25 }}>
-                <Typography sx={{ fontSize: '0.68rem', color: surface[400], textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1 }}>
-                  Roster do dashboard
-                </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.7 }}>
-                  {dashboardRoster.slice(0, 3).map((athlete) => (
-                    <DashboardRosterPreviewRow key={athlete.atletaId} athlete={athlete} />
-                  ))}
-                </Box>
-              </Box>
-            ) : null}
-          </Box>
-        </Box>
-
         <Box
           sx={{
             minHeight: 0,
@@ -610,6 +624,59 @@ function CoachInboxPage() {
                   </Box>
                 </Box>
 
+                {/*
+                  Ação primária no CABEÇALHO, não no rodapé. A auditoria mediu o antigo "Aprovar
+                  plano" a y=863 — na borda da dobra, 28px de altura, e cinza no estado comum. Aqui
+                  ele fica ao lado do nome do atleta, com altura e fonte legíveis, e **troca** de
+                  ação conforme o estado em vez de aparecer morto.
+                */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                  <Button
+                    data-testid="inbox-cta-primario"
+                    variant={primaryAction.primary ? 'contained' : 'outlined'}
+                    onClick={acionarCta}
+                    disabled={actionAvailability === 'loading' || actionAvailability === 'forbidden'}
+                    startIcon={actionAvailability === 'loading' ? <CircularProgress size={16} color="inherit" /> : undefined}
+                    sx={{
+                      minHeight: 40,
+                      fontSize: '0.875rem',
+                      textTransform: 'none',
+                      fontWeight: 700,
+                      px: 2,
+                      // Lime é ação primária; navegação ("Abrir plano") sai em neutro de propósito.
+                      ...(primaryAction.primary ? PRIMARY_BTN_SX : {}),
+                    }}
+                  >
+                    {actionAvailability === 'loading' ? 'Enviando…' : primaryAction.label}
+                  </Button>
+
+                  {/*
+                    Rejeitar sai do menu "Mais ações" e fica ao lado de aprovar: são as duas faces
+                    da mesma decisão, e esconder a que exige motivo escrito enviesa a escolha.
+                  */}
+                  {primaryAction.kind === 'aprovar-plano' ? (
+                    <Button
+                      variant="outlined"
+                      onClick={openRejectDialog}
+                      disabled={actionAvailability === 'loading' || actionAvailability === 'forbidden'}
+                      sx={{ minHeight: 40, fontSize: '0.875rem', textTransform: 'none', color: surface[200], borderColor: content.cardBorder }}
+                    >
+                      Rejeitar
+                    </Button>
+                  ) : null}
+
+                  {actionAvailability === 'stale' ? (
+                    <Typography sx={{ fontSize: '0.75rem', color: semantic.warning[500] }}>
+                      O plano mudou em outra sessão. Recarregue para ver o estado atual.
+                    </Typography>
+                  ) : null}
+                  {actionAvailability === 'forbidden' ? (
+                    <Typography sx={{ fontSize: '0.75rem', color: semantic.warning[500] }}>
+                      Você não tem permissão para esta ação.
+                    </Typography>
+                  ) : null}
+                </Box>
+
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 1.05, lg: 1.45, xl: 2 }, flexWrap: 'wrap' }}>
                   <Box>
                     <Typography sx={{ fontSize: { xs: '0.56rem', sm: '0.6rem', lg: '0.63rem', xl: '0.68rem' }, color: surface[500], textTransform: 'uppercase', letterSpacing: '0.06em' }}>Aderência geral</Typography>
@@ -757,24 +824,6 @@ function CoachInboxPage() {
                 </Button>
                 <Button
                   size="small"
-                  variant="contained"
-                  onClick={handleApprovePlan}
-                  disabled={!selectedPlanId || selectedReviewStatus !== 'AGUARDANDO_REVISAO' || selected.decision !== 'PENDING'}
-                  sx={{
-                    bgcolor: semantic.success[500],
-                    color: surface[0],
-                    textTransform: 'none',
-                    minWidth: { xs: 112, xl: 150 },
-                    fontSize: { xs: '0.72rem', xl: '0.8125rem' },
-                    px: { xs: 1, xl: 1.5 },
-                    '&:hover': { bgcolor: semantic.success[700] },
-                    '&.Mui-disabled': { bgcolor: surface[700], color: surface[500] },
-                  }}
-                >
-                  Aprovar plano
-                </Button>
-                <Button
-                  size="small"
                   variant="outlined"
                   onClick={(event) => setMenuAnchor(event.currentTarget)}
                   endIcon={<MoreHorizIcon />}
@@ -790,12 +839,6 @@ function CoachInboxPage() {
                     }}
                   >
                     Marcar como prioridade
-                  </MenuItem>
-                  <MenuItem
-                    onClick={openRejectDialog}
-                    disabled={!selectedPlanId || selectedReviewStatus !== 'AGUARDANDO_REVISAO' || selected.decision !== 'PENDING'}
-                  >
-                    Rejeitar plano
                   </MenuItem>
                   <MenuItem
                     onClick={() => {
@@ -852,6 +895,30 @@ function CoachInboxPage() {
           )}
         </Box>
       </Box>
+
+      {/*
+        Fallback do "Contato assistido": `navigator.clipboard` falha em contexto não-seguro e quando
+        a permissão é negada. Sem este dialog, o botão trocaria o toast vazio antigo por um silêncio
+        novo — o coach clicaria e nada aconteceria, de novo.
+      */}
+      <Dialog open={rascunhoContato != null} onClose={() => setRascunhoContato(null)} maxWidth="sm" fullWidth>
+        <DialogTitle>Rascunho da mensagem</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ fontSize: '0.8rem', color: surface[400], mb: 1.5 }}>
+            Não foi possível copiar automaticamente. Selecione o texto abaixo e copie.
+          </Typography>
+          <TextField
+            multiline
+            fullWidth
+            minRows={6}
+            value={rascunhoContato ?? ''}
+            slotProps={{ input: { readOnly: true } }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRascunhoContato(null)}>Fechar</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

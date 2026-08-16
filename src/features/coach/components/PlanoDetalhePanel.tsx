@@ -328,7 +328,6 @@ function EstadoVazio() {
         >
             <Typography
                 sx={{
-                    fontFamily: 'Syne, sans-serif',
                     fontSize: '0.8rem',
                     fontWeight: 600,
                     color: surface[500],
@@ -469,7 +468,6 @@ export function PlanoDetalhePanel({
                 {/* Nome do atleta */}
                 <Typography
                     sx={{
-                        fontFamily: 'Syne, sans-serif',
                         fontSize: '1.35rem',
                         fontWeight: 800,
                         color: surface[50],
@@ -483,7 +481,6 @@ export function PlanoDetalhePanel({
 
                 <Typography
                     sx={{
-                        fontFamily: 'Syne, sans-serif',
                         fontSize: '0.80rem',
                         fontWeight: 300,
                         color: surface[50],

@@ -580,7 +580,7 @@ export default function CoachAthletesPage() {
           <Box>
             <Typography
               variant="h5"
-              sx={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, color: surface[50], lineHeight: 1.1 }}
+              sx={{ fontWeight: 800, color: surface[50], lineHeight: 1.1 }}
             >
               Atletas{' '}
               <Typography component="span" sx={{ fontWeight: 400, color: surface[500], fontSize: '1rem' }}>

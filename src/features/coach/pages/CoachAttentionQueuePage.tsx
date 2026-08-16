@@ -177,7 +177,6 @@ function EmptyState() {
           fontSize: '1.25rem',
           fontWeight: 700,
           color: surface[50],
-          fontFamily: 'Syne, sans-serif',
         }}
       >
         Todos os atletas em dia!

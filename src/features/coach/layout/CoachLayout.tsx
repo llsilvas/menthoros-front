@@ -10,11 +10,13 @@ import { UsuarioService } from '../../../api/services/UsuarioService';
 import { useCurrentUser } from '../../../hooks/useCurrentUser';
 import type { CurrentCoach, CurrentConsent } from '../../../hooks/useCurrentUser';
 import { useAttentionQueue } from '../../../hooks/useAttentionQueue';
+import { ThemeProvider } from '@mui/material/styles';
+import { coachTheme } from '../theme/coachTheme';
 import { useCoachPlanReview } from '../../../hooks/useCoachPlanReview';
 import type { CoachAttentionItem } from '../../../types/Coach';
 import { resolveReviewStatus } from '../../../types/PlanoReview';
 import type { PlanoSemanalDto } from '../../../types/PlanoReview';
-import type { ReviewFilter } from '../../../hooks/useCoachPlanReview';
+import type { ReviewActionResult, ReviewFilter } from '../../../hooks/useCoachPlanReview';
 
 export interface CoachLayoutOutletContext {
   /**
@@ -35,11 +37,13 @@ export interface CoachLayoutOutletContext {
   reviewIsActing: boolean;
   reviewFetchError: Error | null;
   reviewActionError: Error | null;
+  /** Status HTTP da última falha de ação — distingue 409/422 (stale) de 403 (sem permissão). */
+  reviewActionStatus: number | null;
   reviewActiveFilter: ReviewFilter;
   reviewSetFilter: (f: ReviewFilter) => void;
   reviewFetchPendentes: () => Promise<void>;
-  reviewAprovar: (id: string) => Promise<boolean>;
-  reviewRejeitar: (id: string, motivo: string) => Promise<boolean>;
+  reviewAprovar: (id: string) => Promise<ReviewActionResult>;
+  reviewRejeitar: (id: string, motivo: string) => Promise<ReviewActionResult>;
 }
 
 const telaCheia = {
@@ -66,6 +70,7 @@ export default function CoachLayout() {
     isActing: reviewIsActing,
     fetchError: reviewFetchError,
     actionError: reviewActionError,
+    actionStatus: reviewActionStatus,
     fetchPendentes,
     aprovar,
     rejeitar,
@@ -178,32 +183,41 @@ export default function CoachLayout() {
     reviewIsActing,
     reviewFetchError,
     reviewActionError,
+    reviewActionStatus,
     reviewFetchPendentes: fetchPendentes,
     reviewAprovar: aprovar,
     reviewRejeitar: rejeitar,
   };
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        height: '100vh',
-        bgcolor: elevation.base,
-        overflow: 'hidden',
-      }}
-    >
-      <CoachSidebar
-        activeRoute={activeRoute}
-        coach={coach}
-        currentTenant={tenant}
-        inboxBadgeCount={queue.length}
-        reviewBadgeCount={reviewBadgeCount}
-        onNavigate={handleNavigate}
-      />
-      <Box sx={{ flex: 1, overflow: 'auto' }}>
-        <Outlet context={outletContext} />
+    /*
+      Tipografia do coach vive num ThemeProvider ANINHADO. O provider de `App.tsx` envolve todas as
+      rotas e declara Syne como família padrão; `AthleteLayout` não tem provider próprio, então
+      mexer no tema global mudaria as telas do atleta — o que o Non-Goal da change proíbe. Aninhar
+      herda paleta, shape e overrides, e sobrepõe só a tipografia.
+    */
+    <ThemeProvider theme={coachTheme}>
+      <Box
+        sx={{
+          display: 'flex',
+          height: '100vh',
+          bgcolor: elevation.base,
+          overflow: 'hidden',
+        }}
+      >
+        <CoachSidebar
+          activeRoute={activeRoute}
+          coach={coach}
+          currentTenant={tenant}
+          inboxBadgeCount={queue.length}
+          reviewBadgeCount={reviewBadgeCount}
+          onNavigate={handleNavigate}
+        />
+        <Box sx={{ flex: 1, overflow: 'auto' }}>
+          <Outlet context={outletContext} />
+        </Box>
       </Box>
-    </Box>
+    </ThemeProvider>
   );
 }
 
