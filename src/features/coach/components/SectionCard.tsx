@@ -32,7 +32,7 @@ export function SectionCard({ title, action, children }: SectionCardProps) {
       >
         <Typography
           sx={{
-            fontSize: { xs: '0.62rem', xl: '0.68rem' },
+            fontSize: { xs: '0.6875rem', xl: '0.6875rem' },
             textTransform: 'uppercase',
             letterSpacing: '0.08em',
             fontWeight: 700,

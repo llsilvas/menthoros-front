@@ -87,7 +87,9 @@ export function CoachAthleteAvatar({
         sx={{
           width:      diameter,
           height:     diameter,
-          fontSize:   diameter * 0.38,
+          // Piso de 11px: as iniciais são texto e seguem a mesma regra do resto do shell — em
+          // avatares pequenos, 0.38 do diâmetro dava 9px.
+          fontSize:   Math.max(11, diameter * 0.38),
           fontWeight: 600,
           bgcolor:    surface[700],
           color:      surface[50],

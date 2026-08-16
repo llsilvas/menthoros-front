@@ -27,7 +27,7 @@ export function MetricTile({ label, value, delta, tone = 'neutral', compact = fa
         minWidth: 0,
       }}
     >
-      <Typography noWrap sx={{ fontSize: compact ? { xs: '0.45rem', xl: '0.64rem' } : '0.68rem', color: surface[400], textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+      <Typography noWrap sx={{ fontSize: compact ? { xs: '0.6875rem', xl: '0.6875rem' } : '0.6875rem', color: surface[400], textTransform: 'uppercase', letterSpacing: '0.06em' }}>
         {label}
       </Typography>
       <Typography
@@ -47,7 +47,7 @@ export function MetricTile({ label, value, delta, tone = 'neutral', compact = fa
         {value}
       </Typography>
       {delta ? (
-        <Typography noWrap sx={{ mt: compact ? 0.35 : 0.5, fontSize: compact ? { xs: '0.62rem', xl: '0.7rem' } : '0.75rem', color: surface[400], lineHeight: 1.2 }}>{delta}</Typography>
+        <Typography noWrap sx={{ mt: compact ? 0.35 : 0.5, fontSize: compact ? { xs: '0.6875rem', xl: '0.7rem' } : '0.75rem', color: surface[400], lineHeight: 1.2 }}>{delta}</Typography>
       ) : null}
     </Box>
   );

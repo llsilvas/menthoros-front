@@ -100,7 +100,7 @@ function InboxBadge({
           borderRadius: '50%',
           bgcolor: semantic.danger[500],
           color: surface[50],
-          fontSize: '0.6rem',
+          fontSize: '0.6875rem',
           fontWeight: 700,
           display: 'flex',
           alignItems: 'center',
@@ -124,7 +124,7 @@ function InboxBadge({
         borderRadius: '50%',
         bgcolor: semantic.danger[500],
         color: surface[50],
-        fontSize: '0.65rem',
+        fontSize: '0.6875rem',
         fontWeight: 700,
         display: 'flex',
         alignItems: 'center',
@@ -230,7 +230,7 @@ function TenantSwitcher({
             </Typography>
             <Typography
               noWrap
-              sx={{ fontSize: '0.65rem', color: surface[500], lineHeight: 1.2, mt: 0.25 }}
+              sx={{ fontSize: '0.6875rem', color: surface[500], lineHeight: 1.2, mt: 0.25 }}
             >
               {currentTenant.athleteCount} atleta
               {currentTenant.athleteCount !== 1 ? 's' : ''}
@@ -292,7 +292,7 @@ function TenantSwitcher({
               <Typography sx={{ fontSize: '0.8rem', fontWeight: 600 }}>
                 {t.name}
               </Typography>
-              <Typography sx={{ fontSize: '0.65rem', color: surface[400] }}>
+              <Typography sx={{ fontSize: '0.6875rem', color: surface[400] }}>
                 {t.athleteCount} atleta{t.athleteCount !== 1 ? 's' : ''}
               </Typography>
             </Box>

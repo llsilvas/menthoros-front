@@ -341,7 +341,7 @@ function CoachInboxPage() {
           }}
         >
           <FormControl size="small" fullWidth>
-            <Typography sx={{ fontSize: '0.68rem', color: surface[400], textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.75 }}>
+            <Typography sx={{ fontSize: '0.6875rem', color: surface[400], textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.75 }}>
               Status
             </Typography>
             <Select
@@ -362,7 +362,7 @@ function CoachInboxPage() {
           </FormControl>
 
           <FormControl size="small" fullWidth>
-            <Typography sx={{ fontSize: '0.68rem', color: surface[400], textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.75 }}>
+            <Typography sx={{ fontSize: '0.6875rem', color: surface[400], textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.75 }}>
               Ordenar
             </Typography>
             <Select
@@ -596,7 +596,7 @@ function CoachInboxPage() {
                         size="small"
                         label={selected.statusLabel}
                         sx={{
-                          fontSize: { xs: '0.58rem', sm: '0.62rem', lg: '0.64rem', xl: '0.68rem' },
+                          fontSize: { xs: '0.6875rem', sm: '0.6875rem', lg: '0.6875rem', xl: '0.6875rem' },
                           fontWeight: 700,
                           color: selectedPalette.fg,
                           bgcolor: selectedPalette.bg,
@@ -606,19 +606,19 @@ function CoachInboxPage() {
                     </Box>
                     {selected.nivelExperiencia ? (
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap', mt: 0.15 }}>
-                        <Typography component="span" sx={{ fontSize: { xs: '0.60rem', sm: '0.68rem', lg: '0.76rem', xl: '0.8rem' }, color: surface[400] }}>
+                        <Typography component="span" sx={{ fontSize: { xs: '0.6875rem', sm: '0.6875rem', lg: '0.76rem', xl: '0.8rem' }, color: surface[400] }}>
                           {selected.nivelExperiencia}
                         </Typography>
                         {selected.age > 0 ? (
                           <Chip
                             size="small"
                             label={`${selected.age} anos`}
-                            sx={{ height: 18, fontSize: '0.6rem', bgcolor: `${surface[500]}20`, color: surface[200] }}
+                            sx={{ height: 18, fontSize: '0.6875rem', bgcolor: `${surface[500]}20`, color: surface[200] }}
                           />
                         ) : null}
                       </Box>
                     ) : null}
-                    <Typography sx={{ fontSize: { xs: '0.30rem', sm: '0.45rem', lg: '0.65rem', xl: '0.8rem' }, color: surface[400], mt: 0.2 }}>
+                    <Typography sx={{ fontSize: { xs: '0.6875rem', sm: '0.6875rem', lg: '0.6875rem', xl: '0.8rem' }, color: surface[400], mt: 0.2 }}>
                       {selected.discipline}
                     </Typography>
                   </Box>
@@ -679,17 +679,17 @@ function CoachInboxPage() {
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 1.05, lg: 1.45, xl: 2 }, flexWrap: 'wrap' }}>
                   <Box>
-                    <Typography sx={{ fontSize: { xs: '0.56rem', sm: '0.6rem', lg: '0.63rem', xl: '0.68rem' }, color: surface[500], textTransform: 'uppercase', letterSpacing: '0.06em' }}>Aderência geral</Typography>
+                    <Typography sx={{ fontSize: { xs: '0.6875rem', sm: '0.6875rem', lg: '0.6875rem', xl: '0.6875rem' }, color: surface[500], textTransform: 'uppercase', letterSpacing: '0.06em' }}>Aderência geral</Typography>
                     <Typography sx={{ fontSize: { xs: '1.08rem', sm: '1.18rem', lg: '1.28rem', xl: '1.5rem' }, fontWeight: 800, color: selected.adherence >= 85 ? semantic.success[500] : selected.adherence >= 70 ? surface[50] : semantic.warning[500] }}>
                       {formatPercent(selected.adherence)}
                     </Typography>
                   </Box>
                   <Box>
-                    <Typography sx={{ fontSize: { xs: '0.56rem', sm: '0.6rem', lg: '0.63rem', xl: '0.68rem' }, color: surface[500], textTransform: 'uppercase', letterSpacing: '0.06em' }}>Carga semanal</Typography>
+                    <Typography sx={{ fontSize: { xs: '0.6875rem', sm: '0.6875rem', lg: '0.6875rem', xl: '0.6875rem' }, color: surface[500], textTransform: 'uppercase', letterSpacing: '0.06em' }}>Carga semanal</Typography>
                     <Typography sx={{ fontSize: { xs: '1.08rem', sm: '1.18rem', lg: '1.28rem', xl: '1.5rem' }, fontWeight: 800, color: surface[50] }}>
                       {formatKm(selected.load7d)}
                     </Typography>
-                    <Typography sx={{ fontSize: { xs: '0.66rem', sm: '0.7rem', lg: '0.74rem', xl: '0.78rem' }, color: selected.loadDelta >= 0 ? semantic.success[500] : semantic.danger[500] }}>
+                    <Typography sx={{ fontSize: { xs: '0.6875rem', sm: '0.7rem', lg: '0.74rem', xl: '0.78rem' }, color: selected.loadDelta >= 0 ? semantic.success[500] : semantic.danger[500] }}>
                       {selected.loadDelta >= 0 ? '+' : ''}
                       {selected.loadDelta}% vs. ant.
                     </Typography>

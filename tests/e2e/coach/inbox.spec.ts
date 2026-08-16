@@ -239,4 +239,46 @@ test.describe('Coach — lista principal do inbox', () => {
     const cta = page.getByTestId('inbox-cta-primario')
     await expect(cta).toBeInViewport()
   })
+
+  /**
+   * Task 2.3 — fonte mínima. A auditoria reportou 7,2px como o menor texto; o código real tinha
+   * **4,8px** (`0.30rem`). Abaixo de 11px o texto não é lido, é adivinhado.
+   *
+   * O teste percorre os nós de texto VISÍVEIS do inbox em vez de conferir alguns elementos
+   * escolhidos a dedo — que é como uma regressão passa despercebida.
+   */
+  test('nenhum texto visível do inbox fica abaixo de 11px', async ({ page }) => {
+    await mockarDashboard(page)
+    await page.goto(INBOX_URL)
+    await page.getByTestId('inbox-cta-primario').waitFor()
+
+    const pequenos = await page.evaluate(() => {
+      const fora: Array<{ texto: string; px: number }> = []
+      for (const el of Array.from(document.querySelectorAll('body *'))) {
+        const proprio = Array.from(el.childNodes)
+          .filter((n) => n.nodeType === Node.TEXT_NODE)
+          .map((n) => n.textContent?.trim() ?? '')
+          .join('')
+        if (!proprio) continue
+        const estilo = getComputedStyle(el)
+        if (estilo.visibility === 'hidden' || estilo.display === 'none') continue
+        const px = Number.parseFloat(estilo.fontSize)
+        if (px < 11) fora.push({ texto: proprio.slice(0, 40), px })
+      }
+      return fora
+    })
+
+    expect(pequenos, `textos abaixo de 11px: ${JSON.stringify(pequenos)}`).toEqual([])
+  })
+
+  test('o inbox não rola horizontalmente em 1440x900', async ({ page }) => {
+    await mockarDashboard(page)
+    await page.goto(INBOX_URL)
+    await page.getByTestId('inbox-cta-primario').waitFor()
+
+    const estoura = await page.evaluate(() =>
+      document.documentElement.scrollWidth > document.documentElement.clientWidth)
+
+    expect(estoura).toBe(false)
+  })
 })
