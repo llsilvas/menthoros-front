@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { QueueRow } from './QueueRow';
 import type { AttentionInfo } from '../adapters/coachInboxAdapters';
 import type { CoachAthleteRow } from '../types/CoachInbox';
+import { semantic } from '../../../theme/tokens';
 
 function atleta(over: Partial<CoachAthleteRow> = {}): CoachAthleteRow {
   return {
@@ -17,6 +18,7 @@ function atleta(over: Partial<CoachAthleteRow> = {}): CoachAthleteRow {
     segment: 'stable',
     planStatus: 'NO_PRAZO',
     trainingType: 'Corrida',
+    status: 'active',
     statusLabel: 'No prazo',
     decision: 'PENDING',
     adherence: 80,
@@ -104,4 +106,46 @@ describe('QueueRow', () => {
       expect(px).toBeGreaterThanOrEqual(11);
     });
   });
+
+  describe('cor do chip de status', () => {
+    /**
+     * O chip misturava duas fontes: o RÓTULO vinha do status do atleta ("Ativo") e a COR vinha da
+     * decisão do plano — que no roster é `'PENDING'` fixo. Resultado: todo card saía âmbar, mesmo
+     * o do atleta ativo. Âmbar num atleta sem pendência diz "observe este" sem motivo, que é ruído
+     * onde a tela deveria estar silenciosa.
+     */
+    const corDoChip = (status: CoachAthleteRow['status']) => {
+      const { unmount } = render(
+        <QueueRow athlete={atleta({ status, statusLabel: 'X' })} selected={false} onClick={vi.fn()} />,
+      );
+      const chip = screen.getByText('X').closest('.MuiChip-root') as HTMLElement;
+      const cor = getComputedStyle(chip).color;
+      unmount();
+      return cor;
+    };
+
+    it('ativo, atenção e alerta têm cores distintas entre si', () => {
+      const ativo = corDoChip('active');
+      const atencao = corDoChip('warning');
+      const alerta = corDoChip('danger');
+
+      expect(new Set([ativo, atencao, alerta]).size).toBe(3);
+    });
+
+    it('o atleta ativo usa a cor de sucesso, não a de atenção', () => {
+      expect(corDoChip('active')).toBe(hexParaRgb(semantic.success[500]));
+      expect(corDoChip('active')).not.toBe(hexParaRgb(semantic.warning[500]));
+    });
+
+    it('atenção usa âmbar e alerta usa vermelho', () => {
+      expect(corDoChip('warning')).toBe(hexParaRgb(semantic.warning[500]));
+      expect(corDoChip('danger')).toBe(hexParaRgb(semantic.danger[500]));
+    });
+  });
 });
+
+/** jsdom devolve `rgb(...)`; os tokens são hex. */
+function hexParaRgb(hex: string): string {
+  const n = Number.parseInt(hex.replace('#', ''), 16);
+  return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`;
+}
