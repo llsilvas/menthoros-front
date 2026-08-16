@@ -1,5 +1,6 @@
 import { Box, Typography } from '@mui/material';
 import { content, semantic, surface } from '../../../theme/tokens';
+import { marcadorDe } from './toneMarker';
 
 interface MetricTileProps {
   label: string;
@@ -13,6 +14,7 @@ interface MetricTileProps {
 export function MetricTile({ label, value, delta, tone = 'neutral', compact = false, highlight = false }: MetricTileProps) {
   const color =
     tone === 'success' ? semantic.success[500] : tone === 'warning' ? semantic.warning[500] : tone === 'danger' ? semantic.danger[500] : surface[50];
+  const marcador = marcadorDe(tone);
 
   return (
     <Box
@@ -44,6 +46,12 @@ export function MetricTile({ label, value, delta, tone = 'neutral', compact = fa
           overflowWrap: 'break-word',
         }}
       >
+        {marcador ? (
+          <marcador.Icone
+            titleAccess={marcador.rotulo}
+            sx={{ fontSize: '0.95em', mr: 0.5, verticalAlign: '-0.12em', color }}
+          />
+        ) : null}
         {value}
       </Typography>
       {delta ? (
