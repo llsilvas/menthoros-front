@@ -11,12 +11,10 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  FormControl,
   InputAdornment,
   LinearProgress,
   Menu,
   MenuItem,
-  Select,
   Tab,
   Tabs,
   TablePagination,
@@ -93,6 +91,8 @@ function CoachInboxPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   /** Rascunho de contato exibido quando a área de transferência não está disponível. */
   const [rascunhoContato, setRascunhoContato] = useState<string | null>(null);
+  const [statusMenuAnchor, setStatusMenuAnchor] = useState<null | HTMLElement>(null);
+  const [sortMenuAnchor, setSortMenuAnchor] = useState<null | HTMLElement>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('diagnosis');
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -312,7 +312,9 @@ function CoachInboxPage() {
           size="small"
           value={search}
           onChange={handleSearchChange}
-          placeholder="Buscar atleta, treino ou prova..."
+          // A busca vai para `q` do dashboard, que filtra o roster por nome — prometer treino e
+          // prova era contrato que a tela não cumpre.
+          placeholder="Buscar atleta..."
           sx={{ minWidth: { xs: '100%', md: 320 }, flex: '0 1 360px' }}
           InputProps={{
             startAdornment: (
@@ -322,72 +324,6 @@ function CoachInboxPage() {
             ),
           }}
         />
-      </Box>
-
-      <Box
-        sx={{
-          px: { xs: 2, md: 3 },
-          py: 1.5,
-          borderBottom: `1px solid ${content.divider}`,
-          backgroundColor: `${surface[0]}04`,
-        }}
-      >
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', md: '220px 220px auto' },
-            gap: 1,
-            alignItems: 'end',
-          }}
-        >
-          <FormControl size="small" fullWidth>
-            <Typography sx={{ fontSize: '0.6875rem', color: surface[400], textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.75 }}>
-              Status
-            </Typography>
-            <Select
-              value={dashboardStatus}
-              onChange={handleDashboardStatusChange}
-              sx={{
-                fontSize: '0.8rem',
-                color: surface[200],
-                '& .MuiOutlinedInput-notchedOutline': { borderColor: content.cardBorder },
-              }}
-            >
-              {DASHBOARD_STATUS_OPTIONS.map((option) => (
-                <MenuItem key={option.key} value={option.key}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <FormControl size="small" fullWidth>
-            <Typography sx={{ fontSize: '0.6875rem', color: surface[400], textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.75 }}>
-              Ordenar
-            </Typography>
-            <Select
-              value={sortBy}
-              onChange={handleSortChange}
-              sx={{
-                fontSize: '0.8rem',
-                color: surface[200],
-                '& .MuiOutlinedInput-notchedOutline': { borderColor: content.cardBorder },
-              }}
-            >
-              {SORT_OPTIONS.map((option) => (
-                <MenuItem key={option.key} value={option.key}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <Box sx={{ display: 'flex', alignItems: 'end', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
-            <Button size="small" onClick={resetFilters} sx={{ textTransform: 'none', color: surface[400], minWidth: 0, px: 1 }}>
-              Limpar filtros
-            </Button>
-          </Box>
-        </Box>
       </Box>
 
       {/*
@@ -474,20 +410,92 @@ function CoachInboxPage() {
               gap: 1,
             }}
           >
-            <Box>
+            <Box sx={{ minWidth: 0 }}>
+              {/*
+                "Fila de revisão" era rótulo errado: esta coluna lista o ROSTER paginado, e a fila
+                de revisão de planos é outra tela (/coach/planos/revisao). O nome enganoso foi o que
+                levou a spec desta change a descrever um módulo que não existe aqui.
+              */}
               <Typography sx={{ fontSize: '0.78rem', color: surface[400], fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                Fila de revisão
+                Atletas
               </Typography>
-              <Typography sx={{ fontSize: '0.88rem', color: surface[500] }}>
-                {rosterItems.length} atleta{rosterItems.length !== 1 ? 's' : ''} · página {rosterHeaderLabel}
+              <Typography sx={{ fontSize: '0.88rem', color: surface[500] }} noWrap>
+                {rosterItems.length} de {rosterTotal} · página {rosterHeaderLabel}
               </Typography>
             </Box>
-            <Chip
-              size="small"
-              label={currentSortLabel}
-              // Chip informativo (ordenação atual) não é ação: sai do accent.
-              sx={{ bgcolor: `${surface[0]}10`, color: surface[300], border: `1px solid ${content.cardBorder}`, fontWeight: 700 }}
-            />
+
+            {/*
+              Filtros vivem AQUI, não numa barra full-width acima dos KPIs: eles filtram só esta
+              coluna, e um controle longe do que ele afeta faz o coach duvidar do que está vendo.
+              A coluna tem ~300px, então são dois chips que abrem menu — dois `Select` não caberiam.
+            */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
+              <Chip
+                size="small"
+                clickable
+                label={DASHBOARD_STATUS_OPTIONS.find((o) => o.key === dashboardStatus)?.label ?? 'Todos'}
+                onClick={(e) => setStatusMenuAnchor(e.currentTarget)}
+                aria-label="Filtrar por status"
+                sx={{
+                  bgcolor: dashboardStatus === 'all' ? `${surface[0]}10` : `${semantic.warning[500]}1F`,
+                  color: dashboardStatus === 'all' ? surface[300] : semantic.warning[500],
+                  border: `1px solid ${dashboardStatus === 'all' ? content.cardBorder : `${semantic.warning[500]}55`}`,
+                  fontWeight: 700,
+                }}
+              />
+              {/*
+                Ordenação era um `Select` na barra e um `Chip` no header — controle e display
+                separados, mostrando a mesma coisa em dois lugares. Agora é um só.
+              */}
+              <Chip
+                size="small"
+                clickable
+                label={currentSortLabel}
+                onClick={(e) => setSortMenuAnchor(e.currentTarget)}
+                aria-label="Ordenar lista"
+                sx={{ bgcolor: `${surface[0]}10`, color: surface[300], border: `1px solid ${content.cardBorder}`, fontWeight: 700 }}
+              />
+            </Box>
+
+            <Menu anchorEl={statusMenuAnchor} open={Boolean(statusMenuAnchor)} onClose={() => setStatusMenuAnchor(null)}>
+              {DASHBOARD_STATUS_OPTIONS.map((option) => (
+                <MenuItem
+                  key={option.key}
+                  selected={option.key === dashboardStatus}
+                  onClick={() => {
+                    handleDashboardStatusChange({ target: { value: option.key } });
+                    setStatusMenuAnchor(null);
+                  }}
+                >
+                  {option.label}
+                </MenuItem>
+              ))}
+            </Menu>
+
+            <Menu anchorEl={sortMenuAnchor} open={Boolean(sortMenuAnchor)} onClose={() => setSortMenuAnchor(null)}>
+              {SORT_OPTIONS.map((option) => (
+                <MenuItem
+                  key={option.key}
+                  selected={option.key === sortBy}
+                  onClick={() => {
+                    handleSortChange({ target: { value: option.key } });
+                    setSortMenuAnchor(null);
+                  }}
+                >
+                  {option.label}
+                </MenuItem>
+              ))}
+              {dashboardStatus !== 'all' || search ? (
+                <MenuItem
+                  onClick={() => {
+                    resetFilters();
+                    setSortMenuAnchor(null);
+                  }}
+                >
+                  Limpar filtros
+                </MenuItem>
+              ) : null}
+            </Menu>
           </Box>
 
           <Box
