@@ -162,6 +162,21 @@ test.describe('Coach — lista principal do inbox', () => {
     await expect(page.getByRole('button', { name: /atleta roster 3/i })).toHaveCount(1)
   })
 
+  /**
+   * Task 1.4: o card do roster passa a carregar o motivo. Antes, o coach via o estado ("Alerta")
+   * sem o porquê e tinha de abrir cada atleta para descobrir — numa tela cujo job é triagem.
+   */
+  test('atleta do roster com sinal mostra o motivo no próprio card', async ({ page }) => {
+    await mockarDashboard(page, {
+      attentionQueue: [{ ...ANA_EM_ALERTA, atletaId: 'roster-3', athleteName: 'Atleta Roster 3', primaryReason: 'ADERENCIA' }],
+    })
+    await page.goto(INBOX_URL)
+
+    const card = page.getByRole('button', { name: /atleta roster 3/i })
+    await expect(card).toContainText(/alerta/i)
+    await expect(card).toContainText(/aderência/i)
+  })
+
   test('clicar na linha de atenção abre o detalhe do atleta certo', async ({ page }) => {
     await mockarDashboard(page)
     await page.goto(INBOX_URL)

@@ -504,6 +504,7 @@ function CoachInboxPage() {
                   <QueueRow
                     key={linha.atletaId}
                     athlete={linha.row}
+                    attention={linha.attention}
                     selected={linha.atletaId === selectedId}
                     onClick={() => setSelectedId(linha.atletaId)}
                   />
