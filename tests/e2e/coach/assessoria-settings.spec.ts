@@ -14,6 +14,12 @@ const SETTINGS_URL = '/#/coach/settings'
 const ASSESSORIA_URL = '/#/coach/settings/assessoria'
 
 const ME_API = '**/api/v1/users/me**'
+
+/** PNG 1x1 transparente — conteúdo mínimo válido para o navegador aceitar como imagem. */
+const PNG_1X1 = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+  'base64',
+)
 const ASSESSORIA_API = '**/api/v1/assessorias/me'
 const LOGO_API = '**/api/v1/assessorias/me/logo**'
 
@@ -238,16 +244,14 @@ test.describe('Coach — técnico contratado', () => {
   })
 
   /**
-   * O bug que a change `fix-assessoria-logo-shell` corrige: o upload funcionava e persistia, mas a
-   * shell continuava com iniciais e a marca Menthoros — o `me` não expunha a logo e nada avisava a
-   * sidebar quando ela mudava.
+   * O bug inteiro numa jornada: enviar a logo na settings e vê-la na sidebar, sem reload.
    *
-   * Este é o único teste que percorre as duas metades: enviar na settings e ver na sidebar.
+   * Duas causas tinham de cair juntas — o `me` não expunha a logo, e a rota exige JWT enquanto
+   * `<img src>` não envia `Authorization`. Corrigir só uma delas mantinha o sintoma idêntico.
    */
   test('logo enviada aparece na sidebar sem reload', async ({ page }) => {
     let temLogo = false
 
-    // O `me` responde conforme o estado — é ele que a sidebar lê.
     await page.route(ME_API, (route) =>
       route.fulfill({
         status: 200,
@@ -273,39 +277,25 @@ test.describe('Coach — técnico contratado', () => {
     await page.route(LOGO_API, async (route) => {
       if (route.request().method() === 'POST') {
         temLogo = true
-        return route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({ ...ASSESSORIA, temLogo: true, logoUrl: '/api/v1/assessorias/me/logo', version: 4 }),
-        })
+        return route.fulfill({ status: 204, body: '' })
       }
-      // GET da imagem: 1x1 PNG transparente.
-      return route.fulfill({
-        status: 200,
-        contentType: 'image/png',
-        body: Buffer.from(
-          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
-          'base64',
-        ),
-      })
+      // A imagem só é servida a quem manda o token — como o produto faz.
+      if (!route.request().headers()['authorization']) {
+        return route.fulfill({ status: 403, body: '' })
+      }
+      return route.fulfill({ status: 200, contentType: 'image/png', body: PNG_1X1 })
     })
 
     await page.goto(ASSESSORIA_URL)
     await expect(page.getByLabel(/nome da assessoria/i)).toHaveValue('Corridas Serra')
-
-    // Antes do upload: a sidebar mostra as iniciais do tenant, não uma imagem da assessoria.
     await expect(page.getByAltText('Corridas Serra')).toHaveCount(0)
 
     await page.getByLabel(/selecionar imagem da logo/i).setInputFiles({
-      name: 'logo.png',
-      mimeType: 'image/png',
-      buffer: Buffer.from(
-        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
-        'base64',
-      ),
+      name: 'logo.png', mimeType: 'image/png', buffer: PNG_1X1,
     })
 
-    // Sem reload: a revalidação do `me` é que faz a sidebar acompanhar.
-    await expect(page.getByAltText('Corridas Serra').first()).toBeVisible()
+    const logo = page.getByAltText('Corridas Serra').first()
+    await expect(logo).toBeVisible()
+    await expect(logo).toHaveAttribute('src', /^blob:/)
   })
 })

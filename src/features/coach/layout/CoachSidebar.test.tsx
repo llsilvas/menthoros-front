@@ -2,6 +2,15 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import CoachSidebar from './CoachSidebar';
 
+/*
+  A logo é buscada com o token e servida como `blob:` — a rota exige JWT e `<img src>` não envia
+  `Authorization`. Aqui o hook é mockado: o que este teste cobre é a decisão de exibir logo ou
+  fallback; a busca autenticada e o cache-bust têm teste próprio em `useLogoAssessoria.test.ts`.
+*/
+vi.mock('../../../hooks/useLogoAssessoria', () => ({
+  useLogoAssessoria: (rota: string | null | undefined) => (rota ? 'blob:logo-de-teste' : null),
+}));
+
 // O `LogoutButton` da sidebar consome o AuthProvider; este teste é sobre a logo, não sobre sessão.
 vi.mock('../../../shared/components/LogoutButton', () => ({
   LogoutButton: () => <button type="button">sair</button>,
@@ -32,12 +41,13 @@ describe('CoachSidebar — logo da assessoria', () => {
     expect(logos.length).toBeGreaterThan(0);
   });
 
-  /** A URL da logo é fixa; sem cache-bust o navegador serve a imagem antiga após a troca. */
-  it('a URL da logo carrega a versão como cache-bust', () => {
+  /** O `src` é um object URL, não a rota: apontar direto para ela resultaria em 403. */
+  it('a imagem usa o object URL produzido pela busca autenticada', () => {
     montar({ logoUrl: '/api/v1/assessorias/me/logo', version: 3 });
 
     const logo = screen.getAllByAltText(/corridas serra/i)[0];
-    expect(logo.getAttribute('src')).toMatch(/\/api\/v1\/assessorias\/me\/logo\?v=3$/);
+    expect(logo.getAttribute('src')).toBe('blob:logo-de-teste');
+    expect(logo.getAttribute('src')).not.toContain('/api/v1/');
   });
 
   it('sem logo, mantém as iniciais do tenant', () => {

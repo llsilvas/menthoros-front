@@ -14,7 +14,7 @@ import {
   Typography,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { OpenAPI } from '../../../api/core/OpenAPI';
+import { useLogoAssessoria } from '../../../hooks/useLogoAssessoria';
 import { ROUTES } from '../../../constants/routes';
 import { useAssessoriaSettings } from '../../../hooks/useAssessoriaSettings';
 import {
@@ -53,6 +53,13 @@ export function CoachAssessoriaSettingsPage() {
 
   // A logo enviada aqui aparece na sidebar, que vive no layout e lê o `me`.
   const { refetchCurrentUser } = useOutletContext<CoachLayoutOutletContext>();
+
+  // A rota da logo exige JWT e `<img src>` NÃO envia `Authorization`. Este preview nunca chegou a
+  // exibir a imagem — o que se via era o fallback de iniciais. O hook busca com o token.
+  const logoCarregada = useLogoAssessoria(
+    assessoria?.temLogo ? assessoria.logoUrl : null,
+    assessoria?.version,
+  );
 
   // `null` = ainda não carregado; string vazia = o coach apagou o campo de propósito.
   const [nome, setNome] = useState<string | null>(null);
@@ -175,9 +182,7 @@ export function CoachAssessoriaSettingsPage() {
 
   if (!assessoria) return null;
 
-  const logoSrc = assessoria.temLogo && assessoria.logoUrl
-    ? `${OpenAPI.BASE}${assessoria.logoUrl}?v=${assessoria.version}`
-    : undefined;
+  const logoSrc = logoCarregada ?? undefined;
 
   return (
     <Stack spacing={2.5} sx={{ maxWidth: 720 }}>
