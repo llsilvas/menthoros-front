@@ -93,6 +93,23 @@ export function DiagnosisTabPanel({ selected, limiareisInferidos, pmc, onOpenPla
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 0.9, sm: 1.05, lg: 1.25, xl: 1.5 } }}>
+      {/*
+        O insight vem PRIMEIRO. A auditoria (UX-002) encontrou o diagnóstico enterrado abaixo de
+        todas as métricas e gráficos: o coach decide pelo "porquê", e o número é evidência do
+        insight — não o contrário. A ordem está travada por teste.
+      */}
+      <SectionCard title="Sinais de atenção">
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <Typography sx={{ fontSize: { xs: '0.78rem', lg: '0.85rem', xl: '0.9rem' }, color: surface[100], lineHeight: 1.45 }}>{selected.notes}</Typography>
+          {selected.suggestedActions.map((action) => (
+            <Box key={`${selected.id}-${action}`} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <CheckCircleIcon sx={{ fontSize: 16, color: semantic.success[500] }} />
+              <Typography sx={{ fontSize: '0.84rem', color: surface[200] }}>{action}</Typography>
+            </Box>
+          ))}
+        </Box>
+      </SectionCard>
+
       <SectionCard
         title="Próximo treino"
         action={
@@ -186,17 +203,6 @@ export function DiagnosisTabPanel({ selected, limiareisInferidos, pmc, onOpenPla
 
       {limiareisInferidos && <LimiareisCard limiares={limiareisInferidos} />}
 
-      <SectionCard title="Sinais de atenção">
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <Typography sx={{ fontSize: { xs: '0.78rem', lg: '0.85rem', xl: '0.9rem' }, color: surface[100], lineHeight: 1.45 }}>{selected.notes}</Typography>
-          {selected.suggestedActions.map((action) => (
-            <Box key={`${selected.id}-${action}`} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <CheckCircleIcon sx={{ fontSize: 16, color: semantic.success[500] }} />
-              <Typography sx={{ fontSize: '0.84rem', color: surface[200] }}>{action}</Typography>
-            </Box>
-          ))}
-        </Box>
-      </SectionCard>
     </Box>
   );
 }

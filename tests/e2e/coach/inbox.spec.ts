@@ -185,4 +185,28 @@ test.describe('Coach — lista principal do inbox', () => {
 
     await expect(page.getByRole('button', { name: /ana fora da pagina/i })).toHaveAttribute('aria-current', 'true')
   })
+
+  /**
+   * Task 1.6 — inversão chrome/conteúdo. A auditoria mediu o título estático da página como o maior
+   * texto da tela (23,2px), acima de qualquer dado do atleta. Numa tela de triagem, quem tem de
+   * dominar é o nome de quem está sendo triado.
+   *
+   * Esta é a parte **mecânica** do critério 5; a contagem de elementos em accent continua sendo
+   * inspeção visual, porque `primary[500]` aparece em usos legítimos e ilegítimos no mesmo arquivo.
+   */
+  test('o nome do atleta é maior que o título da página', async ({ page }) => {
+    await mockarDashboard(page)
+    await page.goto(INBOX_URL)
+
+    const tamanho = async (testId: string) => {
+      const px = await page.getByTestId(testId).evaluate((el) => getComputedStyle(el).fontSize)
+      return Number.parseFloat(px)
+    }
+
+    const titulo = await tamanho('inbox-titulo')
+    const nome = await tamanho('inbox-nome-atleta')
+
+    expect(nome).toBeGreaterThan(titulo)
+    expect(titulo).toBeLessThanOrEqual(17)
+  })
 })

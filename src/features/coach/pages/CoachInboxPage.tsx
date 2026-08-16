@@ -46,7 +46,7 @@ import { usePlanReview } from '../hooks/usePlanReview';
 import { ROSTER_PAGE_SIZE } from '../hooks/useDashboardFilters';
 import type { SortKey, DashboardStatusFilter } from '../hooks/useDashboardFilters';
 import { elevation } from '../../../shared/design-tokens';
-import { content, primary, semantic, surface } from '../../../theme/tokens';
+import { content, semantic, surface } from '../../../theme/tokens';
 import { buildInboxQueue, buildSelectedAthleteFromDashboard, getAcwrZone } from '../adapters/coachInboxAdapters';
 import { buildPmcDataPoints } from '../../athlete/adapters/pmcAdapter';
 import { FAIXA_APRESENTACAO } from '../../../types/FaixaTsb';
@@ -237,10 +237,18 @@ function CoachInboxPage() {
         }}
       >
         <Box sx={{ minWidth: 0, flex: '1 1 260px' }}>
-          <Typography sx={{ fontSize: '0.82rem', color: primary[500], fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+          {/* Eyebrow em neutro: accent significa ação, e um rótulo estático não é acionável. */}
+          <Typography sx={{ fontSize: '0.75rem', color: surface[400], fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             Assistente do Treinador
           </Typography>
-          <Typography sx={{ fontSize: { xs: '1.2rem', md: '1.45rem' }, fontWeight: 800, color: surface[50], lineHeight: 1.05, fontFamily: 'Syne, sans-serif' }}>
+          {/*
+            Título estático em 16px. Ele era o MAIOR texto da tela (23,2px) — chrome ganhando de
+            conteúdo. Quem tem de dominar a tela é o nome do atleta selecionado, logo abaixo.
+          */}
+          <Typography
+            data-testid="inbox-titulo"
+            sx={{ fontSize: '1rem', fontWeight: 800, color: surface[50], lineHeight: 1.2, fontFamily: 'Syne, sans-serif' }}
+          >
             Fila, plano e calendário
           </Typography>
           <Typography sx={{ fontSize: '0.86rem', color: surface[400], mt: 0.3 }}>
@@ -463,7 +471,8 @@ function CoachInboxPage() {
             <Chip
               size="small"
               label={currentSortLabel}
-              sx={{ bgcolor: `${primary[500]}14`, color: primary[500], border: `1px solid ${primary[500]}44`, fontWeight: 700 }}
+              // Chip informativo (ordenação atual) não é ação: sai do accent.
+              sx={{ bgcolor: `${surface[0]}10`, color: surface[300], border: `1px solid ${content.cardBorder}`, fontWeight: 700 }}
             />
           </Box>
 
@@ -566,7 +575,7 @@ function CoachInboxPage() {
                   <CoachAthleteAvatar athlete={{ id: selected.id, name: selected.name }} size="md" status={selected.segment === 'drop' ? 'alert' : selected.segment === 'attention' ? 'warning' : 'synced'} />
                   <Box sx={{ minWidth: 0 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                      <Typography sx={{ fontSize: { xs: '1.06rem', sm: '1.16rem', lg: '1.3rem', xl: '1.55rem' }, fontWeight: 800, color: surface[50], lineHeight: 1.05, fontFamily: 'Syne, sans-serif' }}>
+                      <Typography data-testid="inbox-nome-atleta" sx={{ fontSize: { xs: '1.25rem', sm: '1.4rem', lg: '1.5rem', xl: '1.55rem' }, fontWeight: 800, color: surface[50], lineHeight: 1.05, fontFamily: 'Syne, sans-serif' }}>
                         {selected.name}
                       </Typography>
                       <Chip
@@ -604,7 +613,7 @@ function CoachInboxPage() {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 1.05, lg: 1.45, xl: 2 }, flexWrap: 'wrap' }}>
                   <Box>
                     <Typography sx={{ fontSize: { xs: '0.56rem', sm: '0.6rem', lg: '0.63rem', xl: '0.68rem' }, color: surface[500], textTransform: 'uppercase', letterSpacing: '0.06em' }}>Aderência geral</Typography>
-                    <Typography sx={{ fontSize: { xs: '1.08rem', sm: '1.18rem', lg: '1.28rem', xl: '1.5rem' }, fontWeight: 800, color: selected.adherence >= 85 ? semantic.success[500] : selected.adherence >= 70 ? primary[500] : semantic.warning[500] }}>
+                    <Typography sx={{ fontSize: { xs: '1.08rem', sm: '1.18rem', lg: '1.28rem', xl: '1.5rem' }, fontWeight: 800, color: selected.adherence >= 85 ? semantic.success[500] : selected.adherence >= 70 ? surface[50] : semantic.warning[500] }}>
                       {formatPercent(selected.adherence)}
                     </Typography>
                   </Box>
@@ -667,8 +676,9 @@ function CoachInboxPage() {
                       color: surface[400],
                       '& .MuiSvgIcon-root': { fontSize: { xs: 16, xl: 20 } },
                     },
-                    '& .Mui-selected': { color: primary[500] },
-                    '& .MuiTabs-indicator': { backgroundColor: primary[500] },
+                    // Tabs são navegação interna do painel, não ação primária — neutro alto contraste.
+                    '& .Mui-selected': { color: surface[50] },
+                    '& .MuiTabs-indicator': { backgroundColor: surface[50] },
                   }}
                 >
                   {TABS.map((tab) => (
