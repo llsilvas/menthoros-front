@@ -24,7 +24,7 @@ import type { CoachRoute } from '../../../constants/routes';
 import { content, gradients, semantic, surface } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import { activeTheme } from '../../../theme/activeTheme';
-import { OpenAPI } from '../../../api/core/OpenAPI';
+import { useLogoAssessoria } from '../../../hooks/useLogoAssessoria';
 import menthorosMark from '../../../assets/icons/menthoros_mark.png';
 
 const { primary, sidebar, overlayBlack } = activeTheme;
@@ -41,16 +41,12 @@ interface TenantInfo {
   version?: number;
 }
 
-/**
- * URL da logo com cache-bust.
- *
- * A rota é fixa (`/api/v1/assessorias/me/logo`), então trocar a imagem não muda o endereço: sem o
- * `?v=`, o navegador continuaria servindo a logo antiga do cache. Mesma convenção da tela de
- * configurações da assessoria.
- */
-function urlDaLogo(tenant: TenantInfo): string | null {
-  return tenant.logoUrl ? `${OpenAPI.BASE}${tenant.logoUrl}?v=${tenant.version ?? 0}` : null;
-}
+/*
+  A logo não é carregada apontando o `src` para a rota: ela exige JWT, e o navegador não envia
+  `Authorization` em requisição de imagem — o `<img>` sairia sem credencial e receberia 403.
+  `useLogoAssessoria` busca os bytes com o token e devolve um `blob:` utilizável, com cache-bust
+  pela versão da assessoria.
+*/
 
 interface CoachInfo {
   id: string;
@@ -172,7 +168,7 @@ function TenantSwitcher({
 }: TenantSwitcherProps) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [logoFalhou, setLogoFalhou] = useState(false);
-  const logoSrc = urlDaLogo(currentTenant);
+  const logoSrc = useLogoAssessoria(currentTenant.logoUrl, currentTenant.version);
   const open = Boolean(anchorEl);
 
   const hasOptions =
@@ -349,7 +345,8 @@ export default function CoachSidebar({
     () => localStorage.getItem(LS_KEY) === 'true',
   );
   const [logoHeaderFalhou, setLogoHeaderFalhou] = useState(false);
-  const logoDoHeader = logoHeaderFalhou ? null : urlDaLogo(currentTenant);
+  const logoCarregada = useLogoAssessoria(currentTenant.logoUrl, currentTenant.version);
+  const logoDoHeader = logoHeaderFalhou ? null : logoCarregada;
 
   const toggleRef = useRef(collapsed);
   toggleRef.current = collapsed;
