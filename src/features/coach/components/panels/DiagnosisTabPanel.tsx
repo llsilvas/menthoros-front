@@ -7,6 +7,8 @@ import { DetailMetric } from '../DetailMetric';
 import { TrendCard } from '../TrendCard';
 import { SectionCard } from '../SectionCard';
 import { EmptyMetricState } from '../EmptyMetricState';
+import { AIInsightCard } from '../AIInsightCard';
+import type { CoachAttentionItem } from '../../../../types/Coach';
 import { formatKm, formatPercent } from '../coachInboxHelpers';
 import { ACTION_BTN_END_ICON_SX } from '../../../../shared/components/actionButtonSx';
 import { getAcuteLoadTone, getMonotonyTone, getStrainZone } from '../../adapters/coachInboxAdapters';
@@ -81,17 +83,31 @@ const PLAN_STATUS_COLOR: Record<CoachAthleteRow['planStatus'], string> = {
 
 interface DiagnosisTabPanelProps {
   selected: CoachAthleteRow;
+  /** Item bruto da fila de atenção do atleta, quando ele está nela. */
+  attentionItem?: CoachAttentionItem | null;
+  /** Dias sem treinar (inatividade) ou idade do alerta. */
+  attentionRecencyDays?: number | null;
   limiareisInferidos?: LimiareisInferidosDto | null;
   /** Série PMC (CTL/ATL/TSB) do atleta selecionado, já mapeada do perfil. */
   pmc: PMCDataPoint[];
   onOpenPlan: () => void;
 }
 
-export function DiagnosisTabPanel({ selected, limiareisInferidos, pmc, onOpenPlan }: DiagnosisTabPanelProps) {
+export function DiagnosisTabPanel({ selected, attentionItem, attentionRecencyDays = null, limiareisInferidos, pmc, onOpenPlan }: DiagnosisTabPanelProps) {
   const strainZone = getStrainZone(selected.quickStats.strain);
   const statusColor = PLAN_STATUS_COLOR[selected.planStatus];
   const [pmcRange, setPmcRange] = useState<PMCRange>('12w');
 
+  /*
+    Ordem: situação → evidência → explicação → ação → detalhe.
+      1. Sinais de atenção  — o porquê, que é como o coach decide
+      2. Métricas           — evidência imediata
+      3. Adesão             — evidência dos motivos de engajamento (ADERENCIA/INATIVIDADE), os mais
+                              comuns na fila; estava em 6º, atrás de dois charts de carga
+      4-5. Tendências       — evidência de médio prazo
+      6. Próximo treino     — ação/contexto, depois da evidência que a justifica
+      7. Limiares           — detalhe de referência
+  */
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 0.9, sm: 1.05, lg: 1.25, xl: 1.5 } }}>
       {/*
@@ -100,39 +116,28 @@ export function DiagnosisTabPanel({ selected, limiareisInferidos, pmc, onOpenPla
         insight — não o contrário. A ordem está travada por teste.
       */}
       <SectionCard title="Sinais de atenção">
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <Typography sx={{ fontSize: { xs: '0.78rem', lg: '0.85rem', xl: '0.9rem' }, color: surface[100], lineHeight: 1.45 }}>{selected.notes}</Typography>
-          {selected.suggestedActions.map((action) => (
-            <Box key={`${selected.id}-${action}`} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <CheckCircleIcon sx={{ fontSize: 16, color: semantic.success[500] }} />
-              <Typography sx={{ fontSize: '0.84rem', color: surface[200] }}>{action}</Typography>
-            </Box>
-          ))}
-        </Box>
+        {attentionItem ? (
+          /*
+            Com item da fila de atenção, o insight vem ESTRUTURADO. O DTO já trazia motivo,
+            evidência, `rationale` e `sourceRules`; nada disso era renderizado separado — chegava
+            amassado no `notes`, um texto livre concatenado dos avisos do perfil.
+          */
+          <AIInsightCard item={attentionItem} recencyDays={attentionRecencyDays} />
+        ) : (
+          // Sem sinal ativo não há o que estruturar: cai no resumo do perfil.
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Typography sx={{ fontSize: { xs: '0.78rem', lg: '0.85rem', xl: '0.9rem' }, color: surface[100], lineHeight: 1.45 }}>{selected.notes}</Typography>
+            {selected.suggestedActions.map((action) => (
+              <Box key={`${selected.id}-${action}`} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CheckCircleIcon sx={{ fontSize: 16, color: semantic.success[500] }} />
+                <Typography sx={{ fontSize: '0.84rem', color: surface[200] }}>{action}</Typography>
+              </Box>
+            ))}
+          </Box>
+        )}
       </SectionCard>
 
-      <SectionCard
-        title="Próximo treino"
-        action={
-          <Button size="small" endIcon={<ArrowForwardIcon fontSize="small" />} sx={{ ...ACTION_BTN_END_ICON_SX, px: { xs: 0.75, xl: 1 } }} onClick={onOpenPlan}>
-            Abrir plano
-          </Button>
-        }
-      >
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2 }}>
-          <Box>
-            <Typography sx={{ fontSize: { xs: '0.92rem', lg: '1rem', xl: '1.1rem' }, fontWeight: 700, color: surface[50] }}>{selected.nextWorkout.title}</Typography>
-            <Typography sx={{ fontSize: { xs: '0.7rem', lg: '0.8rem', xl: '0.86rem' }, color: surface[400], mt: 0.2 }}>
-              {selected.nextWorkout.when} · {selected.nextWorkout.duration} - {selected.nextWorkout.distance}
-            </Typography>
-          </Box>
-          <Chip
-            size="small"
-            label={PLAN_STATUS_LABEL[selected.planStatus]}
-            sx={{ bgcolor: `${statusColor}16`, color: statusColor, border: `1px solid ${statusColor}44`, fontWeight: 700 }}
-          />
-        </Box>
-      </SectionCard>
+
 
       {selected.quickStats.hasWindowData ? (
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: { xs: 0.9, sm: 1.05, lg: 1.25, xl: 1.5 } }}>
@@ -172,33 +177,6 @@ export function DiagnosisTabPanel({ selected, limiareisInferidos, pmc, onOpenPla
         />
       )}
 
-      <SectionCard title="Tendência de carga">
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', mb: 1 }}>
-          <Typography sx={{ fontSize: '0.8rem', color: selected.loadDelta >= 0 ? semantic.success[500] : semantic.danger[500], fontWeight: 700 }}>
-            {selected.loadDelta >= 0 ? '+' : ''}{selected.loadDelta}% vs semana anterior
-          </Typography>
-        </Box>
-        <TrendCard data={selected.loadTrend} />
-      </SectionCard>
-
-      <SectionCard title="Tendência de forma (PMC)">
-        {pmc.length === 0 ? (
-          <Typography sx={{ fontSize: '0.82rem', color: surface[400] }}>
-            Sem histórico de PMC para exibir ainda.
-          </Typography>
-        ) : (
-          <Suspense
-            fallback={
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                <CircularProgress size={24} />
-              </Box>
-            }
-          >
-            <PMCChart data={pmc} range={pmcRange} defaultMode="advanced" onRangeChange={setPmcRange} />
-          </Suspense>
-        )}
-      </SectionCard>
-
       <SectionCard title="Adesão nas últimas semanas">
         {selected.adherenceTrend.length === 0 ? (
           <Typography sx={{ fontSize: '0.82rem', color: surface[400] }}>Sem dados de adesão.</Typography>
@@ -226,6 +204,58 @@ export function DiagnosisTabPanel({ selected, limiareisInferidos, pmc, onOpenPla
             ))}
           </Box>
         )}
+      </SectionCard>
+
+      <SectionCard title="Tendência de carga">
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', mb: 1 }}>
+          <Typography sx={{ fontSize: '0.8rem', color: selected.loadDelta >= 0 ? semantic.success[500] : semantic.danger[500], fontWeight: 700 }}>
+            {selected.loadDelta >= 0 ? '+' : ''}{selected.loadDelta}% vs semana anterior
+          </Typography>
+        </Box>
+        <TrendCard data={selected.loadTrend} />
+      </SectionCard>
+
+      <SectionCard title="Tendência de forma (PMC)">
+        {pmc.length === 0 ? (
+          <Typography sx={{ fontSize: '0.82rem', color: surface[400] }}>
+            Sem histórico de PMC para exibir ainda.
+          </Typography>
+        ) : (
+          <Suspense
+            fallback={
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress size={24} />
+              </Box>
+            }
+          >
+            <PMCChart data={pmc} range={pmcRange} defaultMode="advanced" onRangeChange={setPmcRange} />
+          </Suspense>
+        )}
+      </SectionCard>
+
+
+
+      <SectionCard
+        title="Próximo treino"
+        action={
+          <Button size="small" endIcon={<ArrowForwardIcon fontSize="small" />} sx={{ ...ACTION_BTN_END_ICON_SX, px: { xs: 0.75, xl: 1 } }} onClick={onOpenPlan}>
+            Abrir plano
+          </Button>
+        }
+      >
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2 }}>
+          <Box>
+            <Typography sx={{ fontSize: { xs: '0.92rem', lg: '1rem', xl: '1.1rem' }, fontWeight: 700, color: surface[50] }}>{selected.nextWorkout.title}</Typography>
+            <Typography sx={{ fontSize: { xs: '0.7rem', lg: '0.8rem', xl: '0.86rem' }, color: surface[400], mt: 0.2 }}>
+              {selected.nextWorkout.when} · {selected.nextWorkout.duration} - {selected.nextWorkout.distance}
+            </Typography>
+          </Box>
+          <Chip
+            size="small"
+            label={PLAN_STATUS_LABEL[selected.planStatus]}
+            sx={{ bgcolor: `${statusColor}16`, color: statusColor, border: `1px solid ${statusColor}44`, fontWeight: 700 }}
+          />
+        </Box>
       </SectionCard>
 
       {limiareisInferidos && <LimiareisCard limiares={limiareisInferidos} />}

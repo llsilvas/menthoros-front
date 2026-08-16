@@ -281,4 +281,31 @@ test.describe('Coach — lista principal do inbox', () => {
 
     expect(estoura).toBe(false)
   })
+
+  /**
+   * Task 2.7 — o insight estruturado no detalhe. O DTO da fila já trazia motivo, evidência,
+   * `rationale` e `sourceRules`; a tela renderizava tudo isso amassado num texto livre.
+   */
+  test('o detalhe do atleta em atenção mostra o insight em seções', async ({ page }) => {
+    await mockarDashboard(page, {
+      attentionQueue: [{
+        ...ANA_EM_ALERTA,
+        primaryReason: 'ADERENCIA',
+        evidence: [{ label: 'Aderência 4s', value: '62%' }],
+        explanation: {
+          rationale: 'Três treinos perdidos seguidos após aumento de carga.',
+          sourceRules: ['adherence_drop'],
+          confidence: 'HIGH',
+        },
+      }],
+    })
+    await page.goto(INBOX_URL)
+
+    await page.getByRole('button', { name: /ana fora da pagina/i }).click()
+
+    await expect(page.getByText(/por que importa/i)).toBeVisible()
+    await expect(page.getByText(/três treinos perdidos/i)).toBeVisible()
+    await expect(page.getByText('Aderência 4s')).toBeVisible()
+    await expect(page.getByText(/adherence_drop/)).toBeVisible()
+  })
 })
