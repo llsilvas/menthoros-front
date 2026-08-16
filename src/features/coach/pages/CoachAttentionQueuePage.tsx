@@ -4,8 +4,9 @@ import { useOutletContext } from 'react-router';
 import { CoachAthleteAvatar } from '../components/CoachAthleteAvatar';
 import { elevation } from '../../../shared/design-tokens';
 import { content, semantic, surface } from '../../../theme/tokens';
-import type { AttentionReason, AttentionSeverity, CoachAttentionItem } from '../../../types/Coach';
+import type { AttentionSeverity, CoachAttentionItem } from '../../../types/Coach';
 import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
+import { REASON_LABEL } from '../components/coachInboxHelpers';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -13,15 +14,6 @@ const SEVERITY_CONFIG: Record<AttentionSeverity, { color: string; label: string 
   CRITICA: { color: semantic.danger[500],  label: 'Crítica' },
   ALTA:    { color: semantic.warning[500], label: 'Alta'    },
   MEDIA:   { color: semantic.info[500],    label: 'Média'   },
-};
-
-const REASON_LABEL: Record<AttentionReason, string> = {
-  FADIGA:        'Fadiga',
-  SOBRECARGA:    'Sobrecarga',
-  SEM_PLANO:     'Sem plano',
-  ADERENCIA:     'Aderência',
-  INATIVIDADE:   'Inatividade',
-  ZONAS_VENCIDAS:'Zonas vencidas',
 };
 
 // ── Sub-componentes ───────────────────────────────────────────────────────────

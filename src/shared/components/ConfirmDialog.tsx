@@ -1,5 +1,6 @@
 import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
-import { primary, semantic, surface } from '../../theme/tokens';
+import { surface } from '../../theme/tokens';
+import { DANGER_BTN_SX, PRIMARY_BTN_SX } from './actionButtonSx';
 
 type ConfirmSeverity = 'default' | 'danger';
 
@@ -26,10 +27,10 @@ export function ConfirmDialog({
     onClose,
     onConfirm,
 }: ConfirmDialogProps) {
-    const isDanger = severity === 'danger';
-    const confirmSx = isDanger
-        ? { bgcolor: semantic.danger[500], color: surface[50], '&:hover': { bgcolor: semantic.danger[700] } }
-        : { bgcolor: primary[500], color: surface[900], fontWeight: 700, '&:hover': { bgcolor: primary[600] } };
+    // Papéis de botão vêm de `actionButtonSx`, não de cor inline. A reimplementação anterior tinha
+    // divergido do canônico no hover (`primary[600]` aqui vs `primary[400]` lá) — dois botões
+    // primários do mesmo produto reagindo diferente ao mouse.
+    const confirmSx = severity === 'danger' ? DANGER_BTN_SX : PRIMARY_BTN_SX;
 
     return (
         <Dialog open={open} onClose={loading ? undefined : onClose} maxWidth="xs" fullWidth>

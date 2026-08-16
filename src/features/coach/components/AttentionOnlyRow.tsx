@@ -3,15 +3,7 @@ import { Box, Typography } from '@mui/material';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import type { AttentionInfo } from '../adapters/coachInboxAdapters';
 import { content, semantic, surface } from '../../../theme/tokens';
-
-const REASON_LABEL: Record<AttentionInfo['reason'], string> = {
-  FADIGA: 'Fadiga',
-  SOBRECARGA: 'Sobrecarga',
-  SEM_PLANO: 'Sem plano',
-  ADERENCIA: 'Aderência',
-  INATIVIDADE: 'Inatividade',
-  ZONAS_VENCIDAS: 'Zonas vencidas',
-};
+import { REASON_LABEL } from './coachInboxHelpers';
 
 export interface AttentionOnlyRowProps {
   atletaId: string;
