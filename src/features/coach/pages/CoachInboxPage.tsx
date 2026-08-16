@@ -237,6 +237,12 @@ function CoachInboxPage() {
   }, [openRejectDialogBase]);
 
   /** Sinal do atleta selecionado, se ele estiver na fila de atenção. */
+  /** Item bruto da fila de atenção do selecionado — o painel precisa de `evidence`/`explanation`. */
+  const selectedAttentionItem = useMemo(
+    () => dashboardAttentionQueue.find((item) => item.atletaId === selectedId) ?? null,
+    [dashboardAttentionQueue, selectedId],
+  );
+
   const selectedAttention = useMemo(
     () => inboxQueue.rows.find((linha) => linha.atletaId === selectedId)?.attention ?? null,
     [inboxQueue.rows, selectedId],
@@ -768,6 +774,8 @@ function CoachInboxPage() {
                 {activeTab === 'diagnosis' ? (
                   <DiagnosisTabPanel
                     selected={selected}
+                    attentionItem={selectedAttentionItem}
+                    attentionRecencyDays={selectedAttention?.recencyDays ?? null}
                     limiareisInferidos={selectedProfile?.limiareisInferidos ?? null}
                     pmc={selectedPmc}
                     onOpenPlan={() => setActiveTab('plan')}

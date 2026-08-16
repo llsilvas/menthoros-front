@@ -46,6 +46,14 @@ const posicaoDe = (texto: RegExp) => {
   return Array.from(document.querySelectorAll('*')).indexOf(elemento);
 };
 
+const LIMIARES = {
+  fcLimiarEstimado: 168,
+  paceLimiarEstimadoFormatado: '4:35/km',
+  confiancaInferenciaFc: 'ALTA',
+  confiancaInferenciaPace: 'MEDIA',
+  dataInferenciaLimiar: '2026-08-01',
+} as const;
+
 describe('DiagnosisTabPanel', () => {
   /**
    * UX-002 da auditoria: o insight da IA — o *porquê* — ficava no fim do painel, depois de todas as
@@ -137,6 +145,43 @@ describe('DiagnosisTabPanel', () => {
 
       expect(screen.getByText(/carga aguda/i)).toBeInTheDocument();
       expect(screen.queryByText(/sem treinos registrados/i)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('ordem das seções (task 2.12)', () => {
+    /**
+     * A sequência é situação → evidência → explicação → ação → detalhe. "Adesão" estava em 6º,
+     * atrás de dois charts de carga — sendo que ela é **a evidência** dos motivos de engajamento
+     * (`ADERENCIA`, `INATIVIDADE`), que são os mais comuns na fila. O coach lia o motivo no topo e
+     * precisava rolar até o fim para ver o número que o sustenta.
+     */
+    it('adesão vem antes das tendências de carga', () => {
+      render(<DiagnosisTabPanel selected={atleta()} pmc={[]} onOpenPlan={vi.fn()} />);
+
+      expect(posicaoDe(/adesão nas últimas semanas/i)).toBeLessThan(posicaoDe(/tendência de carga/i));
+    });
+
+    /** "Próximo treino" é ação/contexto: vem depois da evidência, não antes dela. */
+    it('próximo treino vem depois da adesão', () => {
+      render(<DiagnosisTabPanel selected={atleta()} pmc={[]} onOpenPlan={vi.fn()} />);
+
+      expect(posicaoDe(/adesão nas últimas semanas/i)).toBeLessThan(posicaoDe(/próximo treino/i));
+    });
+
+    it('a ordem completa é situação → evidência → ação → detalhe', () => {
+      render(<DiagnosisTabPanel selected={atleta()} limiareisInferidos={LIMIARES} pmc={[]} onOpenPlan={vi.fn()} />);
+
+      const ordem = [
+        posicaoDe(/sinais de atenção/i),
+        posicaoDe(/carga aguda/i),
+        posicaoDe(/adesão nas últimas semanas/i),
+        posicaoDe(/tendência de carga/i),
+        posicaoDe(/tendência de forma/i),
+        posicaoDe(/próximo treino/i),
+        posicaoDe(/limiares inferidos/i),
+      ];
+
+      expect(ordem).toEqual([...ordem].sort((a, b) => a - b));
     });
   });
 });
