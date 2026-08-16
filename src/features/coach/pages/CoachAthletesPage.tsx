@@ -26,6 +26,7 @@ import {
   Sync as SyncIcon,
   EditOutlined as EditIcon,
   DeleteOutline as DeleteIcon,
+  MailOutline as MailOutlineIcon,
   EventBusy as EventBusyIcon,
   AutoAwesome as AutoAwesomeIcon,
 } from '@mui/icons-material';
@@ -214,7 +215,7 @@ function BulkBar({ count }: { count: number }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 /** Ação por-atleta acionada pelo menu da grade. */
-type RosterActionType = 'plano' | 'projecao' | 'strava' | 'atleta-new' | 'atleta-edit' | 'atleta-delete';
+type RosterActionType = 'plano' | 'projecao' | 'strava' | 'atleta-new' | 'atleta-edit' | 'atleta-delete' | 'atleta-convite';
 
 export default function CoachAthletesPage() {
   const navigate = useNavigate();
@@ -229,6 +230,7 @@ export default function CoachAthletesPage() {
   const [atletaParaEditar, setAtletaParaEditar] = useState<Atleta | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [erroAcao, setErroAcao] = useState<string | null>(null);
+  const [avisoAcao, setAvisoAcao] = useState<string | null>(null);
   const closeAction = useCallback(() => { setAction(null); setActionTarget(null); setAtletaParaEditar(null); }, []);
 
   const search = useDebounce(searchRaw, 300);
@@ -255,6 +257,34 @@ export default function CoachAthletesPage() {
       setErroAcao('Não foi possível carregar os dados do atleta para edição.');
     }
   }, [closeAction]);
+
+  const [convidando, setConvidando] = useState(false);
+
+  /**
+   * Envia o convite de acesso.
+   *
+   * O endpoint recusa atleta sem e-mail (422). Traduzir esse caso é o que evita a mensagem
+   * genérica "não foi possível": o coach precisa saber que a saída é editar o atleta e preencher
+   * o e-mail, não tentar de novo.
+   */
+  const confirmarConvite = async () => {
+    if (!actionTarget) return;
+    setConvidando(true);
+    setErroAcao(null);
+    try {
+      await AtletasService.convidarAtleta(actionTarget.atletaId);
+      setAvisoAcao(`Convite enviado para ${actionTarget.nome}.`);
+      closeAction();
+    } catch (err) {
+      const status = (err as { status?: number } | null)?.status;
+      setErroAcao(status === 422
+        ? `${actionTarget.nome} não tem e-mail cadastrado. Edite o atleta, informe o e-mail e envie o convite de novo.`
+        : 'Não foi possível enviar o convite.');
+      closeAction();
+    } finally {
+      setConvidando(false);
+    }
+  };
 
   const salvarAtleta = async (dados: CreateAtleta | UpdateAtleta) => {
     if (action === 'atleta-edit' && atletaParaEditar) {
@@ -507,6 +537,7 @@ export default function CoachAthletesPage() {
           <GridActionsCellItem key="strava" icon={<SyncIcon />} label="Sincronizar Strava" showInMenu onClick={open('strava')} />,
           <GridActionsCellItem key="projecao" icon={<TrendingUpIcon />} label="Projeção de prova" showInMenu onClick={open('projecao')} />,
           <GridActionsCellItem key="editar" icon={<EditIcon />} label="Editar" showInMenu onClick={() => { void abrirEdicaoAtleta(target.atletaId, target.nome); }} />,
+          <GridActionsCellItem key="convite" icon={<MailOutlineIcon />} label="Enviar convite" showInMenu onClick={open('atleta-convite')} />,
           <GridActionsCellItem key="excluir" icon={<DeleteIcon />} label="Excluir" showInMenu onClick={open('atleta-delete')} />,
         ];
       },
@@ -795,6 +826,15 @@ export default function CoachAthletesPage() {
             </Box>
           </CoachDialog>
           <ConfirmDialog
+            open={action === 'atleta-convite'}
+            title="Enviar convite"
+            message={`Enviar o convite de acesso para ${actionTarget.nome}? Ele receberá um e-mail para criar a conta. Reenviar dispara outro e-mail.`}
+            confirmLabel="Enviar"
+            loading={convidando}
+            onClose={closeAction}
+            onConfirm={confirmarConvite}
+          />
+          <ConfirmDialog
             open={action === 'atleta-delete'}
             title="Excluir atleta"
             message={`Excluir ${actionTarget.nome}? Esta ação não pode ser desfeita.`}
@@ -833,6 +873,17 @@ export default function CoachAthletesPage() {
         }}
         resolveNomeAtleta={(id) => roster.find((a) => a.atletaId === id)?.nome ?? id}
       />
+
+      <Snackbar
+        open={avisoAcao !== null}
+        autoHideDuration={6000}
+        onClose={() => setAvisoAcao(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="success" variant="filled" onClose={() => setAvisoAcao(null)}>
+          {avisoAcao}
+        </Alert>
+      </Snackbar>
 
       <Snackbar
         open={erroAcao !== null}

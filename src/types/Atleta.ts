@@ -1,6 +1,8 @@
 export interface Atleta {
     id:string;
     nome:string;
+    /** Usado pelo convite de acesso; pode estar ausente em atletas cadastrados antes do campo existir. */
+    email?:string;
     dataNascimento: string;
     sexo: Sexo;
     pesoKg:number;
@@ -19,6 +21,11 @@ export interface Atleta {
 
 export interface CreateAtleta {
     nome:string;
+    /**
+     * Opcional para criar, **obrigatório para convidar**: `gerarConvite` recusa atleta sem e-mail.
+     * Sem este campo no formulário, o convite de acesso era inalcançável pela interface.
+     */
+    email?:string;
     dataNascimento: string;
     sexo: Sexo;
     pesoKg:number;

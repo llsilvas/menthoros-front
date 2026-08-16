@@ -11,6 +11,7 @@ import type { Atleta, CreateAtleta, UpdateAtleta, AtletaDialogProps, diaSemana, 
 
 interface FormErrors {
     nome?: string;
+    email?: string;
     dataNascimento?: string;
     pesoKg?: string;
     alturaCm?: string;
@@ -75,6 +76,7 @@ const getInitialFormData = (atleta?: Atleta): CreateAtleta | UpdateAtleta => {
 
     const baseData = {
         nome: typeof atleta?.nome === 'string' ? atleta.nome : "",
+        email: typeof atleta?.email === 'string' ? atleta.email : "",
         dataNascimento: typeof atleta?.dataNascimento === 'string' ? atleta.dataNascimento : "",
         sexo: (atleta?.sexo as Sexo) ?? 'MASCULINO',
         pesoKg: typeof atleta?.pesoKg === 'number' ? atleta.pesoKg : 0,
@@ -273,6 +275,19 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                             helperText={errors.nome}
                             fullWidth
                             required
+                            size="small"
+                        />
+                            </Grid>
+                            <Grid size={6}>
+                        <TextField
+                            label="E-mail"
+                            name="email"
+                            type="email"
+                            value={formData.email ?? ''}
+                            onChange={handleChange}
+                            error={Boolean(errors.email)}
+                            helperText={errors.email ?? 'Necessário para enviar o convite de acesso'}
+                            fullWidth
                             size="small"
                         />
                             </Grid>

@@ -138,4 +138,27 @@ export class AtletasService {
             },
         });
     }
+
+    /**
+     * Envia (ou reenvia) o convite de acesso ao atleta.
+     *
+     * **NÃO é idempotente**: `AtletaServiceImpl` documenta que cada chamada reenvia o convite —
+     * efeito externo observável. Quem chama precisa evitar o segundo disparo; um clique a mais
+     * manda outro e-mail para o atleta, que não tem como saber que foi engano.
+     *
+     * @throws ApiError 422 quando o atleta não tem e-mail cadastrado, ou a assessoria não tem
+     *         organização no Keycloak
+     */
+    public static convidarAtleta(atletaId: string): CancelablePromise<void> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/atletas/{id}/convite',
+            path: { id: atletaId },
+            errors: {
+                403: 'Acesso negado',
+                404: 'Atleta não encontrado',
+                422: 'Atleta sem e-mail ou assessoria sem organização no Keycloak',
+            },
+        });
+    }
 }

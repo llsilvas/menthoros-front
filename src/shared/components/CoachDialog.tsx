@@ -162,6 +162,10 @@ export function CoachDialog({
           {chip ? <Box sx={{ mb: 1 }}>{chip}</Box> : null}
           <Typography
             id={titleId}
+            // `component="h2"` dá ao título o role de heading: sem ele, nenhum dialog do coach
+            // expõe cabeçalho para leitor de tela, e num dialog bloqueante — consentimento,
+            // wizard — a AT não anuncia onde o usuário está. Não muda nada visualmente.
+            component="h2"
             sx={{
               fontFamily: 'Syne, sans-serif',
               fontWeight: 800,
