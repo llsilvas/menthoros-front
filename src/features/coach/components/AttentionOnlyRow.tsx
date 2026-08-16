@@ -70,7 +70,7 @@ export const AttentionOnlyRow = memo(function AttentionOnlyRow({
           {attention.suggestedAction}
         </Typography>
         {/* Diz o que a linha NÃO tem. Sem isso, a ausência das métricas parece bug de carregamento. */}
-        <Typography sx={{ fontSize: '0.68rem', color: surface[500], borderTop: `1px dashed ${content.divider}`, mt: 0.5, pt: 0.5 }}>
+        <Typography sx={{ fontSize: '0.6875rem', color: surface[500], borderTop: `1px dashed ${content.divider}`, mt: 0.5, pt: 0.5 }}>
           Fora da página atual da lista — abra para ver o detalhe completo.
         </Typography>
       </Box>

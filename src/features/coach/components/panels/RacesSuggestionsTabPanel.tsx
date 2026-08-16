@@ -62,7 +62,7 @@ export function RacesSuggestionsTabPanel({ selected, selectedProfile, onOpenCale
                   <Typography sx={{ fontSize: { xs: '0.74rem', sm: '0.8rem', lg: '0.84rem', xl: '0.9rem' }, fontWeight: 700, color: surface[50] }} noWrap>
                     {race.label}
                   </Typography>
-                  <Typography sx={{ fontSize: { xs: '0.62rem', sm: '0.68rem', lg: '0.72rem', xl: '0.78rem' }, color: surface[400] }}>Prova {race.tag.toLowerCase()}</Typography>
+                  <Typography sx={{ fontSize: { xs: '0.6875rem', sm: '0.6875rem', lg: '0.72rem', xl: '0.78rem' }, color: surface[400] }}>Prova {race.tag.toLowerCase()}</Typography>
                 </Box>
                 <Chip
                   size="small"
@@ -79,7 +79,7 @@ export function RacesSuggestionsTabPanel({ selected, selectedProfile, onOpenCale
 
         {selected.racePrediction && (
           <Box sx={{ mt: 1.5, p: 1.5, border: `1px solid ${content.cardBorder}`, borderRadius: 2, backgroundColor: `${surface[0]}06` }}>
-            <Typography sx={{ fontSize: '0.68rem', color: surface[400], textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.75 }}>
+            <Typography sx={{ fontSize: '0.6875rem', color: surface[400], textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.75 }}>
               Previsão de forma · em {selected.racePrediction.diasAteProva} dias
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, flexWrap: 'wrap' }}>
@@ -90,7 +90,7 @@ export function RacesSuggestionsTabPanel({ selected, selectedProfile, onOpenCale
                 TSB previsto: {selected.racePrediction.tsbPrevisto >= 0 ? '+' : ''}{selected.racePrediction.tsbPrevisto}
               </Typography>
             </Box>
-            <Typography sx={{ fontSize: '0.68rem', color: surface[500], mt: 0.5 }}>
+            <Typography sx={{ fontSize: '0.6875rem', color: surface[500], mt: 0.5 }}>
               Estimativa com taper completo (sem carga)
             </Typography>
           </Box>

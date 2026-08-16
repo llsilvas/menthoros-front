@@ -97,7 +97,7 @@ export const QueueRow = memo(function QueueRow({ athlete, selected, onClick, att
             label={athlete.statusLabel}
             sx={{
               height: { xs: 20, xl: 24 },
-              fontSize: { xs: '0.6rem', sm: '0.62rem', xl: '0.68rem' },
+              fontSize: { xs: '0.6875rem', sm: '0.6875rem', xl: '0.6875rem' },
               fontWeight: 700,
               color: decision.fg,
               bgcolor: decision.bg,
@@ -105,7 +105,7 @@ export const QueueRow = memo(function QueueRow({ athlete, selected, onClick, att
               '& .MuiChip-label': { px: { xs: 0.7, sm: 0.8, xl: 1 } },
             }}
           />
-          <Typography sx={{ fontSize: { xs: '0.62rem', sm: '0.66rem', xl: '0.72rem' }, color: surface[400] }}>
+          <Typography sx={{ fontSize: { xs: '0.6875rem', sm: '0.6875rem', xl: '0.72rem' }, color: surface[400] }}>
             {formatPercent(athlete.adherence)}
           </Typography>
         </Box>
@@ -129,7 +129,7 @@ export const QueueRow = memo(function QueueRow({ athlete, selected, onClick, att
         <Typography sx={{ fontSize: '0.72rem', color: surface[300], lineHeight: 1.3 }}>
           Próximo: {athlete.nextWorkout.title}
         </Typography>
-        <Typography sx={{ fontSize: '0.68rem', color: surface[500] }}>
+        <Typography sx={{ fontSize: '0.6875rem', color: surface[500] }}>
           {athlete.delay > 0 ? `${athlete.delay} treino${athlete.delay > 1 ? 's' : ''}` : '0 atraso'}
         </Typography>
       </Box>

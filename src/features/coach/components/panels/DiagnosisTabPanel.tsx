@@ -42,7 +42,7 @@ function LimiareisCard({ limiares }: { limiares: LimiareisInferidosDto }) {
               {limiares.fcLimiarEstimado} bpm
             </Typography>
             {limiares.confiancaInferenciaFc && (
-              <Typography sx={{ fontSize: '0.68rem', color: CONFIANCA_COLOR[limiares.confiancaInferenciaFc] }}>
+              <Typography sx={{ fontSize: '0.6875rem', color: CONFIANCA_COLOR[limiares.confiancaInferenciaFc] }}>
                 {CONFIANCA_LABEL[limiares.confiancaInferenciaFc]}
               </Typography>
             )}
@@ -55,7 +55,7 @@ function LimiareisCard({ limiares }: { limiares: LimiareisInferidosDto }) {
               {limiares.paceLimiarEstimadoFormatado} /km
             </Typography>
             {limiares.confiancaInferenciaPace && (
-              <Typography sx={{ fontSize: '0.68rem', color: CONFIANCA_COLOR[limiares.confiancaInferenciaPace] }}>
+              <Typography sx={{ fontSize: '0.6875rem', color: CONFIANCA_COLOR[limiares.confiancaInferenciaPace] }}>
                 {CONFIANCA_LABEL[limiares.confiancaInferenciaPace]}
               </Typography>
             )}
@@ -179,7 +179,7 @@ export function DiagnosisTabPanel({ selected, limiareisInferidos, pmc, onOpenPla
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 0.75, sm: 0.85, lg: 1, xl: 1.2 } }}>
             {selected.adherenceTrend.map((value, index) => (
               <Box key={`${selected.id}-adherence-${index}`} sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-                <Typography sx={{ width: 40, fontSize: '0.64rem', color: surface[400] }}>S{index + 1}</Typography>
+                <Typography sx={{ width: 40, fontSize: '0.6875rem', color: surface[400] }}>S{index + 1}</Typography>
                 <LinearProgress
                   variant="determinate"
                   value={value}
@@ -194,7 +194,7 @@ export function DiagnosisTabPanel({ selected, limiareisInferidos, pmc, onOpenPla
                     },
                   }}
                 />
-                <Typography sx={{ width: 36, textAlign: 'right', fontSize: '0.64rem', color: surface[200], fontWeight: 700 }}>{value}%</Typography>
+                <Typography sx={{ width: 36, textAlign: 'right', fontSize: '0.6875rem', color: surface[200], fontWeight: 700 }}>{value}%</Typography>
               </Box>
             ))}
           </Box>
