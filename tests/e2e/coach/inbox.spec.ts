@@ -209,4 +209,34 @@ test.describe('Coach — lista principal do inbox', () => {
     expect(nome).toBeGreaterThan(titulo)
     expect(titulo).toBeLessThanOrEqual(17)
   })
+
+  /**
+   * Tasks 1.2/1.3 — o CTA troca de ação conforme o estado, em vez de aparecer morto. Aqui o atleta
+   * selecionado não tem plano em revisão (as rotas de plano devolvem vazio) mas tem sinal de
+   * inatividade, então a ação primária tem de ser contatar — não um "Aprovar plano" cinza.
+   */
+  test('sem plano pendente e com inatividade, o CTA é contatar o atleta', async ({ page }) => {
+    await mockarDashboard(page)
+    await page.goto(INBOX_URL)
+
+    await page.getByRole('button', { name: /ana fora da pagina/i }).click()
+
+    const cta = page.getByTestId('inbox-cta-primario')
+    await expect(cta).toBeVisible()
+    await expect(cta).toHaveText(/contatar atleta/i)
+
+    // Altura e fonte legíveis: o CTA antigo tinha 28px e 11,5px, no limite da dobra.
+    const caixa = await cta.boundingBox()
+    expect(caixa!.height).toBeGreaterThanOrEqual(40)
+    const fonte = await cta.evaluate((el) => Number.parseFloat(getComputedStyle(el).fontSize))
+    expect(fonte).toBeGreaterThanOrEqual(14)
+  })
+
+  test('o CTA fica visível sem rolar a página', async ({ page }) => {
+    await mockarDashboard(page)
+    await page.goto(INBOX_URL)
+
+    const cta = page.getByTestId('inbox-cta-primario')
+    await expect(cta).toBeInViewport()
+  })
 })

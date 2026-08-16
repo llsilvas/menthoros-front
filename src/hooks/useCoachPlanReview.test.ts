@@ -125,7 +125,7 @@ describe('useCoachPlanReview', () => {
         const { result } = renderHook(() => useCoachPlanReview());
         await act(async () => { await result.current.fetchPendentes(); });
 
-        let pending!: Promise<boolean>;
+        let pending!: Promise<{ ok: boolean; status?: number }>;
         act(() => { pending = result.current.aprovar('plano-1'); });
         expect(result.current.isActing).toBe(true);
         await act(async () => { await pending; });
