@@ -4,6 +4,12 @@ export interface UsuarioAssessoria {
     id: string;
     nome: string;
     dominio?: string;
+    /** Há logo cadastrada? A logo é um BLOB servido por rota própria, não uma URL guardada. */
+    temLogo?: boolean;
+    /** Rota que serve a logo (`/api/v1/assessorias/me/logo`); ausente quando não há. */
+    logoUrl?: string | null;
+    /** Versão da assessoria — usada como cache-bust da logo, cuja URL é fixa. */
+    version?: number;
 }
 
 export interface UsuarioMeOutputDto {

@@ -236,4 +236,76 @@ test.describe('Coach — técnico contratado', () => {
 
     await expect(page.getByText(/não foi possível salvar/i)).toBeVisible()
   })
+
+  /**
+   * O bug que a change `fix-assessoria-logo-shell` corrige: o upload funcionava e persistia, mas a
+   * shell continuava com iniciais e a marca Menthoros — o `me` não expunha a logo e nada avisava a
+   * sidebar quando ela mudava.
+   *
+   * Este é o único teste que percorre as duas metades: enviar na settings e ver na sidebar.
+   */
+  test('logo enviada aparece na sidebar sem reload', async ({ page }) => {
+    let temLogo = false
+
+    // O `me` responde conforme o estado — é ele que a sidebar lê.
+    await page.route(ME_API, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ...COACH_ME,
+          assessoria: {
+            ...COACH_ME.assessoria,
+            temLogo,
+            logoUrl: temLogo ? '/api/v1/assessorias/me/logo' : null,
+            version: temLogo ? 4 : 3,
+          },
+        }),
+      }),
+    )
+    await page.route(ASSESSORIA_API, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ ...ASSESSORIA, temLogo, logoUrl: temLogo ? '/api/v1/assessorias/me/logo' : null }),
+      }),
+    )
+    await page.route(LOGO_API, async (route) => {
+      if (route.request().method() === 'POST') {
+        temLogo = true
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ ...ASSESSORIA, temLogo: true, logoUrl: '/api/v1/assessorias/me/logo', version: 4 }),
+        })
+      }
+      // GET da imagem: 1x1 PNG transparente.
+      return route.fulfill({
+        status: 200,
+        contentType: 'image/png',
+        body: Buffer.from(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+          'base64',
+        ),
+      })
+    })
+
+    await page.goto(ASSESSORIA_URL)
+    await expect(page.getByLabel(/nome da assessoria/i)).toHaveValue('Corridas Serra')
+
+    // Antes do upload: a sidebar mostra as iniciais do tenant, não uma imagem da assessoria.
+    await expect(page.getByAltText('Corridas Serra')).toHaveCount(0)
+
+    await page.getByLabel(/selecionar imagem da logo/i).setInputFiles({
+      name: 'logo.png',
+      mimeType: 'image/png',
+      buffer: Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+        'base64',
+      ),
+    })
+
+    // Sem reload: a revalidação do `me` é que faz a sidebar acompanhar.
+    await expect(page.getByAltText('Corridas Serra').first()).toBeVisible()
+  })
 })

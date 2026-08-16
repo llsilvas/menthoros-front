@@ -163,6 +163,7 @@ describe('CoachInboxPage', () => {
       queueLoading: false,
       queueError: null,
       refetchQueue: mockRefetchQueue,
+      refetchCurrentUser: vi.fn().mockResolvedValue(undefined),
       reviewPendentes: [],
       reviewIsFetching: false,
       reviewIsActing: false,

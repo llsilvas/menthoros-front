@@ -24,6 +24,8 @@ import {
 } from '../../../types/AssessoriaSettings';
 import { SectionCard } from '../components/SectionCard';
 import { content, text } from '../../../theme/tokens';
+import { useOutletContext } from 'react-router';
+import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
 
 const NOME_MAXIMO = 200;
 
@@ -48,6 +50,9 @@ export function CoachAssessoriaSettingsPage() {
     enviarLogo,
     removerLogo,
   } = useAssessoriaSettings();
+
+  // A logo enviada aqui aparece na sidebar, que vive no layout e lê o `me`.
+  const { refetchCurrentUser } = useOutletContext<CoachLayoutOutletContext>();
 
   // `null` = ainda não carregado; string vazia = o coach apagou o campo de propósito.
   const [nome, setNome] = useState<string | null>(null);
@@ -132,6 +137,9 @@ export function CoachAssessoriaSettingsPage() {
     if (await enviarLogo(arquivo, assessoria.version)) {
       setAviso('Logo atualizada.');
       registrarDuracao('logo');
+      // A sidebar lê a logo do `me`, carregado uma vez pelo layout. Sem revalidar, a logo nova só
+      // apareceria no próximo reload — que é como o bug original se manifestava para o coach.
+      await refetchCurrentUser();
     }
   };
 
@@ -140,6 +148,7 @@ export function CoachAssessoriaSettingsPage() {
     setErroLocal(null);
     if (await removerLogo(assessoria.version)) {
       setAviso('Logo removida.');
+      await refetchCurrentUser();
     }
   };
 
