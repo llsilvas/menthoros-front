@@ -1,5 +1,6 @@
 import { Box, Typography } from '@mui/material';
 import { content, semantic, surface } from '../../../theme/tokens';
+import { marcadorDe } from './toneMarker';
 
 interface DetailMetricProps {
   label: string;
@@ -11,6 +12,7 @@ interface DetailMetricProps {
 export function DetailMetric({ label, value, subtitle, tone = 'neutral' }: DetailMetricProps) {
   const color =
     tone === 'success' ? semantic.success[500] : tone === 'warning' ? semantic.warning[500] : tone === 'danger' ? semantic.danger[500] : surface[50];
+  const marcador = marcadorDe(tone);
 
   return (
     <Box
@@ -26,6 +28,9 @@ export function DetailMetric({ label, value, subtitle, tone = 'neutral' }: Detai
         {label}
       </Typography>
       <Typography sx={{ mt: 0.5, fontSize: { xs: '0.95rem', xl: '1.1rem' }, fontWeight: 700, color, lineHeight: 1.1 }}>
+        {marcador ? (
+          <marcador.Icone titleAccess={marcador.rotulo} sx={{ fontSize: '0.95em', mr: 0.5, verticalAlign: '-0.12em', color }} />
+        ) : null}
         {value}
       </Typography>
       {subtitle ? (
