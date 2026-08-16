@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { Box, ButtonBase, Chip, LinearProgress, Typography } from '@mui/material';
 import { content, primary, semantic, surface } from '../../../theme/tokens';
 import type { CoachAthleteRow } from '../types/CoachInbox';
+import type { AttentionInfo } from '../adapters/coachInboxAdapters';
 import { CoachAthleteAvatar } from './CoachAthleteAvatar';
 import { formatPercent, paletteForDecision } from './coachInboxHelpers';
 
@@ -9,10 +10,33 @@ interface QueueRowProps {
   athlete: CoachAthleteRow;
   selected: boolean;
   onClick: () => void;
+  /** Sinal ativo do atleta, quando existe. Ausente = atleta sem nada pendente. */
+  attention?: AttentionInfo | null;
 }
 
-export const QueueRow = memo(function QueueRow({ athlete, selected, onClick }: QueueRowProps) {
+const REASON_LABEL: Record<AttentionInfo['reason'], string> = {
+  FADIGA: 'Fadiga',
+  SOBRECARGA: 'Sobrecarga',
+  SEM_PLANO: 'Sem plano',
+  ADERENCIA: 'Aderência',
+  INATIVIDADE: 'Inatividade',
+  ZONAS_VENCIDAS: 'Zonas vencidas',
+};
+
+/**
+ * `CRITICA` e `ALTA` colapsam em "Alerta" — a distinção entre elas é de ordenação, não de decisão:
+ * as duas significam "agir agora", e três rótulos numa lista de triagem custam leitura sem mudar o
+ * que o coach faz.
+ */
+function severidadeVisual(severity: AttentionInfo['severity']) {
+  return severity === 'MEDIA'
+    ? { rotulo: 'Atenção', cor: semantic.warning[500] }
+    : { rotulo: 'Alerta', cor: semantic.danger[500] };
+}
+
+export const QueueRow = memo(function QueueRow({ athlete, selected, onClick, attention }: QueueRowProps) {
   const decision = paletteForDecision(athlete.decision);
+  const sinal = attention ? severidadeVisual(attention.severity) : null;
 
   return (
     <ButtonBase
@@ -22,8 +46,12 @@ export const QueueRow = memo(function QueueRow({ athlete, selected, onClick }: Q
         textAlign: 'left',
         display: 'block',
         borderRadius: 1.5,
-        border: `1px solid ${selected ? primary[500] : content.cardBorder}`,
-        backgroundColor: selected ? `${primary[500]}10` : `${surface[0]}06`,
+        // O sinal domina a moldura do card: numa tela de triagem, quem precisa de ação tem de se
+        // destacar antes de qualquer leitura. A seleção continua visível pela borda mais forte.
+        border: `1px solid ${selected ? primary[500] : sinal ? `${sinal.cor}66` : content.cardBorder}`,
+        backgroundColor: selected
+          ? `${primary[500]}10`
+          : sinal ? `${sinal.cor}14` : `${surface[0]}06`,
         px: { xs: 1, sm: 1.1, xl: 1.35 },
         py: { xs: 0.82, sm: 0.9, xl: 1.15 },
         transition: 'background-color 150ms ease, border-color 150ms ease',
@@ -44,9 +72,23 @@ export const QueueRow = memo(function QueueRow({ athlete, selected, onClick }: Q
             <Typography sx={{ fontSize: { xs: '0.78rem', sm: '0.82rem', xl: '0.86rem' }, fontWeight: 700, color: surface[50], lineHeight: 1.15 }} noWrap>
               {athlete.name}
             </Typography>
-            <Typography sx={{ display: { xs: 'none', xl: 'block' }, fontSize: '0.72rem', color: surface[400] }} noWrap>
-              {athlete.discipline} · {athlete.weeksOnPlan} semanas
-            </Typography>
+            {sinal && attention ? (
+              // Motivo e recência ficam JUNTO do nome, não escondidos atrás do badge: era o achado
+              // nº 2 da auditoria — o coach via "Alerta" sem saber por quê e tinha de abrir cada
+              // atleta para descobrir.
+              <Typography
+                data-testid="queue-row-motivo"
+                sx={{ fontSize: '0.72rem', fontWeight: 600, color: sinal.cor, lineHeight: 1.3 }}
+                noWrap
+              >
+                {sinal.rotulo} · {REASON_LABEL[attention.reason]}
+                {attention.recencyDays != null ? ` · ${attention.recencyDays}d` : ''}
+              </Typography>
+            ) : (
+              <Typography sx={{ display: { xs: 'none', xl: 'block' }, fontSize: '0.72rem', color: surface[400] }} noWrap>
+                {athlete.discipline} · {athlete.weeksOnPlan} semanas
+              </Typography>
+            )}
           </Box>
         </Box>
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.25, flexShrink: 0 }}>
