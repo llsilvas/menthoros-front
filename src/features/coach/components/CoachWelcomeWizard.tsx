@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router';
 import {
   Alert,
   Box,
   Button,
-  Chip,
   CircularProgress,
-  MenuItem,
   Stack,
   Step,
   StepLabel,
@@ -15,16 +14,13 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { useAssessoriaSettings } from '../../../hooks/useAssessoriaSettings';
 import { useCoachOnboarding } from '../../../hooks/useCoachOnboarding';
-import { DIA_SEMANA_LABELS, NIVEL_EXPERIENCIA_LABELS } from '../../../types/Atleta';
-import type { diaSemana, nivelExperiencia } from '../../../types/Atleta';
+import { ROUTES } from '../../../constants/routes';
 import { text } from '../../../theme/tokens';
 
-const TITULOS = ['Sua assessoria', 'Primeiro atleta', 'Convite'];
-const DIAS: diaSemana[] = ['SEGUNDA', 'TERCA', 'QUARTA', 'QUINTA', 'SEXTA', 'SABADO', 'DOMINGO'];
+const TITULOS = ['Sua assessoria', 'Tudo pronto'];
 
 export interface CoachWelcomeWizardProps {
   /** Chamado após a conclusão ser registrada no servidor — o layout revalida o `me` e libera. */
@@ -38,12 +34,20 @@ export interface CoachWelcomeWizardProps {
  * role `PROPRIETARIO`. Técnico convidado nasce com o onboarding concluído e vai direto ao
  * dashboard — decisão de produto, não limitação técnica.
  *
+ * <p><b>Não cadastra atleta.</b> A versão anterior pedia nome, e-mail, objetivo e dias do primeiro
+ * atleta aqui dentro. São dados de <i>outra pessoa</i>, pedidos no primeiro minuto de uso, quando o
+ * coach ainda está aprendendo a interface e pode nem tê-los à mão — e o cadastro errado feito nesse
+ * estado vira um registro difícil de remover. O wizard confirma o que é do próprio coach e aponta o
+ * caminho; o cadastro acontece na tela de Atletas, que tem o formulário completo, validação e o
+ * convite de acesso.
+ *
  * <p>Não fecha por Escape nem por clique fora: é um gate, e sair dele por acidente devolveria o
  * coach a um dashboard vazio sem explicação. A saída deliberada é "Pular por agora".
  */
 export function CoachWelcomeWizard({ onConcluido }: CoachWelcomeWizardProps) {
   const theme = useTheme();
   const mobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const navigate = useNavigate();
 
   const [etapa, setEtapa] = useState(0);
   const {
@@ -52,32 +56,25 @@ export function CoachWelcomeWizard({ onConcluido }: CoachWelcomeWizardProps) {
     erro: erroAssessoria,
     conflito: conflitoAssessoria,
   } = useAssessoriaSettings();
-  const {
-    atletaId, conviteEnviado, salvando: salvandoOnboarding, erro,
-    criarAtleta, convidar, concluir,
-  } = useCoachOnboarding();
+  const { salvando: salvandoOnboarding, erro, concluir } = useCoachOnboarding();
 
   const [nomeAssessoria, setNomeAssessoria] = useState('');
-  const [atleta, setAtleta] = useState({
-    nome: '',
-    email: '',
-    objetivo: '',
-    nivelExperiencia: 'INICIANTE' as nivelExperiencia,
-    diasDisponiveis: [] as diaSemana[],
-  });
 
   const salvando = salvandoAssessoria || salvandoOnboarding;
-  /** Sem e-mail o convite é recusado pelo servidor; melhor explicar do que deixar tentar e falhar. */
-  const atletaSemEmail = atleta.email.trim().length === 0;
 
   useEffect(() => {
     void carregar();
   }, [carregar]);
 
-  const finalizar = async () => {
-    if (await concluir()) {
-      await onConcluido();
-    }
+  /**
+   * `destino` é opcional de propósito: a conclusão precisa ser registrada no servidor **antes** de
+   * navegar. O gate do layout só abre quando o `me` volta com o onboarding concluído — navegar
+   * primeiro traria o wizard de volta por cima da tela de destino.
+   */
+  const finalizar = async (destino?: string) => {
+    if (!(await concluir())) return;
+    await onConcluido();
+    if (destino) navigate(destino);
   };
 
   const avancarAssessoria = async () => {
@@ -88,31 +85,6 @@ export function CoachWelcomeWizard({ onConcluido }: CoachWelcomeWizardProps) {
       if (!(await salvarNome(limpo, assessoria.version))) return;
     }
     setEtapa(1);
-  };
-
-  const avancarAtleta = async () => {
-    if (atleta.nome.trim().length === 0) return;
-    const email = atleta.email.trim();
-    if (await criarAtleta({
-      nome: atleta.nome.trim(),
-      // Sem e-mail o atleta é criado, mas não pode ser convidado — e o convite é a etapa
-      // seguinte. Enviar vazio como `undefined` evita gravar string vazia no banco.
-      email: email.length > 0 ? email : undefined,
-      objetivo: atleta.objetivo.trim() || 'Melhorar condicionamento',
-      nivelExperiencia: atleta.nivelExperiencia,
-      diasDisponiveis: atleta.diasDisponiveis,
-    })) {
-      setEtapa(2);
-    }
-  };
-
-  const alternarDia = (dia: diaSemana) => {
-    setAtleta((atual) => ({
-      ...atual,
-      diasDisponiveis: atual.diasDisponiveis.includes(dia)
-        ? atual.diasDisponiveis.filter((d) => d !== dia)
-        : [...atual.diasDisponiveis, dia],
-    }));
   };
 
   const acoes = (
@@ -130,18 +102,16 @@ export function CoachWelcomeWizard({ onConcluido }: CoachWelcomeWizardProps) {
         </Button>
       )}
       {etapa === 1 && (
-        <Button
-          variant="contained"
-          onClick={() => void avancarAtleta()}
-          disabled={salvando || atleta.nome.trim().length === 0}
-        >
-          Cadastrar atleta
-        </Button>
-      )}
-      {etapa === 2 && (
-        <Button variant="contained" onClick={() => void finalizar()} disabled={salvando}>
-          Concluir
-        </Button>
+        <>
+          <Button onClick={() => void finalizar()} disabled={salvando}>Fazer depois</Button>
+          <Button
+            variant="contained"
+            onClick={() => void finalizar(ROUTES.COACH_ATHLETES)}
+            disabled={salvando}
+          >
+            Cadastrar meu primeiro atleta
+          </Button>
+        </>
       )}
     </>
   );
@@ -156,7 +126,7 @@ export function CoachWelcomeWizard({ onConcluido }: CoachWelcomeWizardProps) {
       onClose={() => { /* bloqueante: a saída é "Pular por agora" */ }}
       showClose={false}
       title="Bem-vindo à Menthoros"
-      subtitle="Três passos rápidos para começar. Você pode pular e fazer depois."
+      subtitle="Dois passos rápidos para começar. Você pode pular e fazer depois."
       maxWidth="sm"
       actions={acoes}
     >
@@ -215,87 +185,14 @@ export function CoachWelcomeWizard({ onConcluido }: CoachWelcomeWizardProps) {
 
         {etapa === 1 && (
           <Stack spacing={2}>
+            <Typography variant="h6">Tudo pronto</Typography>
             <Typography variant="body2" sx={{ color: text.secondary }}>
-              Cadastre seu primeiro atleta. Só o essencial agora — o resto entra depois.
+              O próximo passo é cadastrar seus atletas. Na tela de Atletas você informa os dados,
+              envia o convite de acesso e a plataforma começa a montar os planos.
             </Typography>
-            <TextField
-              label="Nome do atleta"
-              value={atleta.nome}
-              onChange={(e) => setAtleta({ ...atleta, nome: e.target.value })}
-              fullWidth size="small" disabled={salvando} required
-            />
-            <TextField
-              label="E-mail do atleta"
-              type="email"
-              value={atleta.email}
-              onChange={(e) => setAtleta({ ...atleta, email: e.target.value })}
-              helperText="Necessário para enviar o convite de acesso. Você pode preencher depois."
-              fullWidth size="small" disabled={salvando}
-            />
-            <TextField
-              label="Objetivo"
-              value={atleta.objetivo}
-              onChange={(e) => setAtleta({ ...atleta, objetivo: e.target.value })}
-              placeholder="Ex.: correr 10 km em 50 minutos"
-              fullWidth size="small" disabled={salvando}
-            />
-            <TextField
-              select
-              label="Nível de experiência"
-              value={atleta.nivelExperiencia}
-              onChange={(e) => setAtleta({ ...atleta, nivelExperiencia: e.target.value as nivelExperiencia })}
-              fullWidth size="small" disabled={salvando}
-            >
-              {Object.entries(NIVEL_EXPERIENCIA_LABELS).map(([valor, rotulo]) => (
-                <MenuItem key={valor} value={valor}>{rotulo}</MenuItem>
-              ))}
-            </TextField>
-            <Box>
-              <Typography variant="body2" sx={{ color: text.secondary, mb: 1 }}>
-                Dias disponíveis para treinar
-              </Typography>
-              <Stack direction="row" flexWrap="wrap" gap={1}>
-                {DIAS.map((dia) => (
-                  <Chip
-                    key={dia}
-                    label={DIA_SEMANA_LABELS[dia]}
-                    onClick={() => alternarDia(dia)}
-                    // Chip como toggle: sem `aria-pressed` o leitor de tela não anuncia se o dia
-                    // está selecionado, e o dialog é bloqueante e navegável só por teclado/AT.
-                    aria-pressed={atleta.diasDisponiveis.includes(dia)}
-                    color={atleta.diasDisponiveis.includes(dia) ? 'primary' : 'default'}
-                    variant={atleta.diasDisponiveis.includes(dia) ? 'filled' : 'outlined'}
-                    disabled={salvando}
-                  />
-                ))}
-              </Stack>
-            </Box>
-          </Stack>
-        )}
-
-        {etapa === 2 && (
-          <Stack spacing={2}>
             <Typography variant="body2" sx={{ color: text.secondary }}>
-              {!atletaId
-                ? 'Nenhum atleta foi criado nesta sessão. Você pode convidar depois, na tela de Atletas.'
-                : atletaSemEmail
-                  ? 'O atleta foi criado sem e-mail, então ainda não dá para convidá-lo. Adicione o e-mail na tela de Atletas para enviar o convite.'
-                  : 'Envie o convite de acesso para o atleta criar a conta dele.'}
+              Sem pressa: dá para fazer isso quando estiver com os dados em mãos.
             </Typography>
-            {conviteEnviado && (
-              <Alert severity="success" icon={<CheckCircleIcon fontSize="inherit" />}>
-                Convite enviado. Para reenviar, use a tela de Atletas.
-              </Alert>
-            )}
-            <Button
-              variant="outlined"
-              onClick={() => void convidar()}
-              // Desabilitado após o primeiro sucesso: o endpoint REENVIA a cada chamada, e um
-              // segundo clique manda outro e-mail ao atleta.
-              disabled={!atletaId || atletaSemEmail || conviteEnviado || salvando}
-            >
-              Enviar convite
-            </Button>
           </Stack>
         )}
       </>

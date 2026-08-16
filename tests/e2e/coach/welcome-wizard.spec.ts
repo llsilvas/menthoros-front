@@ -65,12 +65,10 @@ async function mockarBackend(page: Page, opcoes: { onboardingConcluido: boolean 
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(ASSESSORIA) }),
   )
 
+  // A tela de atletas é o destino do wizard: sem a lista mockada, ela renderiza o estado de erro e
+  // o teste provaria apenas que a rota existe, não que ela funciona.
   await page.route(ATLETAS_API, (route) =>
-    route.fulfill({
-      status: 201,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'atleta-1', nome: 'Ana Corredora' }),
-    }),
+    route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
   )
 
   await page.route('**/api/v1/coach/**', (route) =>
@@ -93,26 +91,42 @@ test.describe('Coach — wizard de boas-vindas', () => {
     await expect(page.getByRole('navigation')).toHaveCount(0)
   })
 
-  test('percorre as três etapas e chega ao dashboard', async ({ page }) => {
+  /**
+   * O wizard **não pede cadastro de atleta** — pedir dados de outra pessoa no primeiro minuto é
+   * atrito, e o cadastro errado feito ali vira registro difícil de remover. Ele confirma o que é do
+   * próprio coach e entrega o caminho.
+   */
+  test('duas etapas: confirma a assessoria e sai para a tela de atletas', async ({ page }) => {
     await mockarBackend(page, { onboardingConcluido: false })
     await page.goto(INBOX_URL)
 
     await expect(page.getByLabel(/nome da assessoria/i)).toHaveValue('Corridas Serra')
+    await expect(page.getByLabel(/nome do atleta/i)).toHaveCount(0)
     await page.getByRole('button', { name: /continuar/i }).click()
 
-    await page.getByLabel(/nome do atleta/i).fill('Ana Corredora')
-    // O e-mail é o que habilita o convite na etapa seguinte: sem ele o servidor recusa com
-    // "Atleta sem email não pode ser convidado", e o wizard desabilita o botão em vez de deixar
-    // o coach descobrir isso por um erro.
-    await page.getByLabel(/e-mail do atleta/i).fill('ana@exemplo.com')
-    await page.getByRole('button', { name: /cadastrar atleta/i }).click()
+    await expect(page.getByRole('heading', { name: /tudo pronto/i })).toBeVisible()
+    await expect(page.getByLabel(/nome do atleta/i)).toHaveCount(0)
 
-    await expect(page.getByRole('button', { name: /enviar convite/i })).toBeEnabled()
-    await page.getByRole('button', { name: /concluir/i }).click()
+    await page.getByRole('button', { name: /cadastrar meu primeiro atleta/i }).click()
+
+    // Só o E2E prova isto: a rota do botão existe de verdade e a tela de destino monta. O teste de
+    // componente mocka `useNavigate` e só consegue afirmar o argumento.
+    await expect(page).toHaveURL(/#\/coach\/athletes/)
+    await expect(page.getByRole('navigation')).toBeVisible()
+    await expect(page.getByRole('heading', { name: /bem-vindo à menthoros/i })).toHaveCount(0)
+  })
+
+  test('"fazer depois" fecha o wizard e libera o dashboard', async ({ page }) => {
+    await mockarBackend(page, { onboardingConcluido: false })
+    await page.goto(INBOX_URL)
+
+    await page.getByRole('button', { name: /continuar/i }).click()
+    await page.getByRole('button', { name: /fazer depois/i }).click()
 
     // O wizard some e o shell aparece: é o `me` revalidado que libera, não estado local.
     await expect(page.getByRole('heading', { name: /bem-vindo à menthoros/i })).toHaveCount(0)
     await expect(page.getByRole('navigation')).toBeVisible()
+    await expect(page).toHaveURL(/#\/coach\/inbox/)
   })
 
   /**

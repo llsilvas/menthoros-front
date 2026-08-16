@@ -1,15 +1,32 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router';
 import { CoachWelcomeWizard } from './CoachWelcomeWizard';
 import { CoachOnboardingService } from '../../../api/services/CoachOnboardingService';
 import { AssessoriaSettingsService } from '../../../api/services/AssessoriaSettingsService';
-import { AtletasService } from '../../../api/services/AtletasService';
+import { ROUTES } from '../../../constants/routes';
 import type { AssessoriaMe } from '../../../types/AssessoriaSettings';
+
+const navigateMock = vi.fn();
+/**
+ * `useNavigate` mockado — padrão já estabelecido no módulo (`ManualTrainingFormPage.test.tsx`).
+ *
+ * Não é preferência de estilo: sob jsdom, **nenhum** router deste projeto executa navegação
+ * programática. Verificado com um caso mínimo — botão + `useNavigate`, sem nada deste componente —
+ * que fica parado em `/` tanto com `createHashRouter` quanto com `createMemoryRouter`. Um teste
+ * baseado em rota renderizada falharia sempre, mesmo com o código correto.
+ *
+ * O que fica de fora: que `/coach/athletes` realmente resolve para a tela de atletas. Isso é
+ * cobertura de E2E, e o teste abaixo ancora o destino em `ROUTES` em vez de repetir a string.
+ */
+vi.mock('react-router', async () => {
+  const actual = await vi.importActual<typeof import('react-router')>('react-router');
+  return { ...actual, useNavigate: () => navigateMock };
+});
 
 vi.mock('../../../api/services/CoachOnboardingService');
 vi.mock('../../../api/services/AssessoriaSettingsService');
-vi.mock('../../../api/services/AtletasService');
 
 const ASSESSORIA: AssessoriaMe = {
   id: 'a1',
@@ -21,19 +38,13 @@ const ASSESSORIA: AssessoriaMe = {
   version: 1,
 };
 
-const ATLETA = { id: 'atleta-1', nome: 'Ana Corredora' };
-
-function apiError(status: number) {
-  return Object.assign(new Error(`HTTP ${status}`), { status });
-}
-
 const montar = (onConcluido = vi.fn()) => {
-  render(<CoachWelcomeWizard onConcluido={onConcluido} />);
+  render(<MemoryRouter><CoachWelcomeWizard onConcluido={onConcluido} /></MemoryRouter>);
   return onConcluido;
 };
 
-/** Avança da etapa 1 para a de atleta, sem alterar o nome da assessoria. */
-async function irParaEtapaAtleta() {
+/** Avança da etapa da assessoria para a final, sem alterar o nome. */
+async function irParaEtapaFinal() {
   await screen.findByLabelText(/nome da assessoria/i);
   await userEvent.click(screen.getByRole('button', { name: /continuar/i }));
 }
@@ -41,11 +52,9 @@ async function irParaEtapaAtleta() {
 describe('CoachWelcomeWizard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    navigateMock.mockClear();
     vi.mocked(AssessoriaSettingsService.buscarMinhaAssessoria).mockResolvedValue({ ...ASSESSORIA });
     vi.mocked(CoachOnboardingService.concluir).mockResolvedValue(undefined);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vi.mocked(CoachOnboardingService.criarPrimeiroAtleta).mockResolvedValue(ATLETA as any);
-    vi.mocked(AtletasService.convidarAtleta).mockResolvedValue(undefined);
   });
 
   describe('estrutura', () => {
@@ -64,6 +73,22 @@ describe('CoachWelcomeWizard', () => {
       expect(screen.queryByRole('button', { name: /^fechar$/i })).not.toBeInTheDocument();
     });
 
+    /**
+     * O wizard **não cadastra atleta**. Pedir os dados de outra pessoa no primeiro minuto de uso é
+     * atrito no pior momento possível: o coach ainda está aprendendo a interface, pode não ter os
+     * dados à mão, e o cadastro errado feito aqui vira lixo difícil de remover.
+     */
+    it('não pede cadastro de atleta em nenhuma etapa', async () => {
+      montar();
+      await screen.findByLabelText(/nome da assessoria/i);
+      expect(screen.queryByLabelText(/nome do atleta/i)).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', { name: /continuar/i }));
+
+      expect(screen.queryByLabelText(/nome do atleta/i)).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /cadastrar atleta$/i })).not.toBeInTheDocument();
+    });
+
     it('permite pular tudo, concluindo no servidor', async () => {
       const onConcluido = montar();
       await screen.findByLabelText(/nome da assessoria/i);
@@ -78,10 +103,10 @@ describe('CoachWelcomeWizard', () => {
   describe('etapa da assessoria', () => {
     it('não chama o PATCH quando o nome não muda', async () => {
       montar();
-      await irParaEtapaAtleta();
+      await irParaEtapaFinal();
 
       expect(AssessoriaSettingsService.atualizar).not.toHaveBeenCalled();
-      expect(screen.getByLabelText(/nome do atleta/i)).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /tudo pronto/i })).toBeInTheDocument();
     });
 
     it('salva o nome novo com a versão lida', async () => {
@@ -99,130 +124,45 @@ describe('CoachWelcomeWizard', () => {
     });
   });
 
-  describe('etapa do atleta', () => {
-    it('envia apenas os campos que o servidor exige', async () => {
-      montar();
-      await irParaEtapaAtleta();
-
-      await userEvent.type(screen.getByLabelText(/nome do atleta/i), 'Ana Corredora');
-      await userEvent.click(screen.getByRole('button', { name: /cadastrar atleta/i }));
-
-      await waitFor(() => expect(CoachOnboardingService.criarPrimeiroAtleta)
-        .toHaveBeenCalledWith(expect.objectContaining({ nome: 'Ana Corredora' })));
-    });
-
+  describe('etapa final', () => {
     /**
-     * O bug que o teste manual encontrou: o wizard criava o atleta sem e-mail e oferecia, na etapa
-     * seguinte, um convite que o servidor recusa com "Atleta sem email não pode ser convidado".
+     * O gate do layout continua fechado até o servidor registrar a conclusão. Navegar antes traria
+     * o wizard de volta por cima da tela de atletas — por isso conclui primeiro, navega depois.
      */
-    it('envia o e-mail digitado, porque o convite depende dele', async () => {
-      montar();
-      await irParaEtapaAtleta();
-
-      await userEvent.type(screen.getByLabelText(/nome do atleta/i), 'Ana Corredora');
-      await userEvent.type(screen.getByLabelText(/e-mail do atleta/i), 'ana@exemplo.com');
-      await userEvent.click(screen.getByRole('button', { name: /cadastrar atleta/i }));
-
-      await waitFor(() => expect(CoachOnboardingService.criarPrimeiroAtleta)
-        .toHaveBeenCalledWith(expect.objectContaining({ email: 'ana@exemplo.com' })));
-    });
-
-    it('sem e-mail, envia undefined em vez de string vazia', async () => {
-      montar();
-      await irParaEtapaAtleta();
-
-      await userEvent.type(screen.getByLabelText(/nome do atleta/i), 'Ana Corredora');
-      await userEvent.click(screen.getByRole('button', { name: /cadastrar atleta/i }));
-
-      await waitFor(() => expect(CoachOnboardingService.criarPrimeiroAtleta)
-        .toHaveBeenCalledWith(expect.objectContaining({ email: undefined })));
-    });
-
-    it('sem nome, o botão fica desabilitado', async () => {
-      montar();
-      await irParaEtapaAtleta();
-
-      expect(screen.getByRole('button', { name: /cadastrar atleta/i })).toBeDisabled();
-    });
-
-    /**
-     * A unicidade de e-mail é global, não por tenant — a mensagem não pode afirmar que o atleta
-     * está na assessoria de quem está vendo.
-     */
-    it('conflito mostra mensagem neutra e não avança', async () => {
-      vi.mocked(CoachOnboardingService.criarPrimeiroAtleta).mockRejectedValue(apiError(409));
-      montar();
-      await irParaEtapaAtleta();
-
-      await userEvent.type(screen.getByLabelText(/nome do atleta/i), 'Ana Corredora');
-      await userEvent.click(screen.getByRole('button', { name: /cadastrar atleta/i }));
-
-      const alerta = await screen.findByText(/já existe um atleta cadastrado/i);
-      expect(alerta).toBeInTheDocument();
-      expect(alerta.textContent).not.toMatch(/sua assessoria/i);
-      expect(screen.getByLabelText(/nome do atleta/i)).toBeInTheDocument();
-    });
-  });
-
-  describe('etapa do convite', () => {
-    async function chegarNoConvite() {
-      await irParaEtapaAtleta();
-      await userEvent.type(screen.getByLabelText(/nome do atleta/i), 'Ana Corredora');
-      await userEvent.type(screen.getByLabelText(/e-mail do atleta/i), 'ana@exemplo.com');
-      await userEvent.click(screen.getByRole('button', { name: /cadastrar atleta/i }));
-      await screen.findByRole('button', { name: /enviar convite/i });
-    }
-
-    /**
-     * O endpoint REENVIA a cada chamada. Um segundo clique manda outro e-mail ao atleta, que não
-     * tem como saber que foi engano — por isso o botão trava depois do primeiro sucesso.
-     */
-    it('o convite não pode ser enviado duas vezes', async () => {
-      montar();
-      await chegarNoConvite();
-
-      const botao = screen.getByRole('button', { name: /enviar convite/i });
-      await userEvent.click(botao);
-
-      await waitFor(() => expect(screen.getByText(/convite enviado/i)).toBeInTheDocument());
-      expect(botao).toBeDisabled();
-      expect(AtletasService.convidarAtleta).toHaveBeenCalledTimes(1);
-    });
-
-    /**
-     * Deixar o botão habilitado faria o coach clicar e receber um erro do servidor que ele não tem
-     * como resolver dali — o campo de e-mail está na etapa anterior, já passada.
-     */
-    it('atleta sem e-mail: convite indisponível, com explicação', async () => {
-      montar();
-      await irParaEtapaAtleta();
-      await userEvent.type(screen.getByLabelText(/nome do atleta/i), 'Ana Corredora');
-      await userEvent.click(screen.getByRole('button', { name: /cadastrar atleta/i }));
-
-      const botao = await screen.findByRole('button', { name: /enviar convite/i });
-      expect(botao).toBeDisabled();
-      expect(screen.getByText(/criado sem e-mail/i)).toBeInTheDocument();
-    });
-
-    it('conclui chamando o servidor e avisando o layout', async () => {
+    it('conclui no servidor ANTES de levar para a tela de atletas', async () => {
       const onConcluido = montar();
-      await chegarNoConvite();
+      await irParaEtapaFinal();
 
-      await userEvent.click(screen.getByRole('button', { name: /concluir/i }));
+      await userEvent.click(screen.getByRole('button', { name: /cadastrar meu primeiro atleta/i }));
 
-      await waitFor(() => expect(CoachOnboardingService.concluir).toHaveBeenCalled());
+      await waitFor(() => expect(navigateMock).toHaveBeenCalledWith(ROUTES.COACH_ATHLETES));
+      expect(CoachOnboardingService.concluir).toHaveBeenCalled();
       expect(onConcluido).toHaveBeenCalled();
+      // A ordem é o ponto do teste: navegar antes de concluir traria o wizard de volta por cima.
+      expect(vi.mocked(CoachOnboardingService.concluir).mock.invocationCallOrder[0])
+        .toBeLessThan(navigateMock.mock.invocationCallOrder[0]);
     });
 
-    it('falha ao concluir não libera o dashboard', async () => {
+    it('falha ao concluir não navega nem libera o dashboard', async () => {
       vi.mocked(CoachOnboardingService.concluir).mockRejectedValue(new Error('rede caiu'));
       const onConcluido = montar();
-      await chegarNoConvite();
+      await irParaEtapaFinal();
 
-      await userEvent.click(screen.getByRole('button', { name: /concluir/i }));
+      await userEvent.click(screen.getByRole('button', { name: /cadastrar meu primeiro atleta/i }));
 
       expect(await screen.findByText(/não foi possível concluir/i)).toBeInTheDocument();
       expect(onConcluido).not.toHaveBeenCalled();
+      expect(navigateMock).not.toHaveBeenCalled();
+    });
+
+    it('"fazer depois" conclui sem navegar', async () => {
+      const onConcluido = montar();
+      await irParaEtapaFinal();
+
+      await userEvent.click(screen.getByRole('button', { name: /fazer depois/i }));
+
+      await waitFor(() => expect(onConcluido).toHaveBeenCalled());
+      expect(navigateMock).not.toHaveBeenCalled();
     });
   });
 });
