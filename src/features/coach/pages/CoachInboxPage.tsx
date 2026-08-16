@@ -29,8 +29,6 @@ import {
 import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { DANGER_BTN_SX, GHOST_BTN_SX } from '../../../shared/components/actionButtonSx';
 import { CoachAthleteAvatar } from '../components/CoachAthleteAvatar';
-import { DashboardAttentionQueueRow } from '../components/DashboardAttentionQueueRow';
-import { DashboardRosterPreviewRow } from '../components/DashboardRosterPreviewRow';
 import { MetricTile } from '../components/MetricTile';
 import { QueueRow } from '../components/QueueRow';
 import { AttentionOnlyRow } from '../components/AttentionOnlyRow';
@@ -338,6 +336,49 @@ function CoachInboxPage() {
         </Box>
       </Box>
 
+      {/*
+        Loading e erro do dashboard viviam dentro do card removido. Sem eles, uma falha de carga
+        deixaria a tela com números velhos e nenhuma indicação — pior que a coluna que saiu.
+      */}
+      {dashboardError ? (
+        <Alert
+          severity="warning"
+          sx={{ mb: 1, color: surface[50], '& .MuiAlert-icon': { color: semantic.warning[500] } }}
+          action={
+            <Button size="small" onClick={reloadDashboard} sx={{ textTransform: 'none' }}>
+              Tentar de novo
+            </Button>
+          }
+        >
+          Não foi possível carregar o dashboard agregado. Mantendo a tela funcional com os dados locais.
+        </Alert>
+      ) : null}
+      {dashboardLoading ? <LinearProgress sx={{ mb: 1 }} /> : null}
+
+      {/*
+        "Resumo rápido" era um card ocupando uma coluna inteira, ao lado de dois previews que
+        repetiam atletas já listados na coluna seguinte. Os previews saem — a lista principal agora
+        carrega motivo e recência e fixa quem está em atenção (gate 1.1) — e os KPIs viram faixa.
+      */}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', md: 'repeat(4, minmax(0, 1fr))' },
+          gap: 1,
+          mb: { xs: 1, lg: 1.25 },
+        }}
+      >
+        <MetricTile compact label="Atletas ativos" value={String(summary.ativos)} delta={`${summary.totalAtletas} no total`} tone="success" />
+        <MetricTile compact label="Treinos planejados" value={String(summary.treinosPlanejadosSemana)} delta="na semana" />
+        <MetricTile compact label="Em atenção" value={String(summary.emAtencao)} delta={`${summary.itensFilaAtencao} na fila`} tone="warning" />
+        <MetricTile compact label="Atletas exibidos" value={String(summary.atletasExibidos)} />
+      </Box>
+      {dashboardUpdatedAt ? (
+        <Typography sx={{ fontSize: '0.7rem', color: surface[500], mb: { xs: 1, lg: 1.25 }, mt: -0.5 }}>
+          Atualizado em {dashboardUpdatedAt}
+        </Typography>
+      ) : null}
+
       <Box
         sx={{
           flex: 1,
@@ -345,99 +386,18 @@ function CoachInboxPage() {
           display: 'grid',
           gridTemplateColumns: {
             xs: '1fr',
-            lg: 'minmax(240px, 280px) minmax(260px, 300px) minmax(0, 1fr)',
-            xl: 'minmax(280px, 340px) minmax(310px, 380px) minmax(0, 1fr)',
+            // Duas colunas: lista + detalhe. A terceira existia para os previews removidos, e
+            // devolvê-la ao painel do atleta é o ponto — ele é o conteúdo, o resto era chrome.
+            lg: 'minmax(300px, 360px) minmax(0, 1fr)',
+            xl: 'minmax(340px, 400px) minmax(0, 1fr)',
           },
           '@media (min-width: 1800px)': {
-            gridTemplateColumns: 'minmax(320px, 400px) minmax(360px, 440px) minmax(0, 1fr)',
+            gridTemplateColumns: 'minmax(380px, 440px) minmax(0, 1fr)',
           },
           overflowX: 'auto',
           overflowY: 'hidden',
         }}
       >
-        <Box
-          sx={{
-            minHeight: 0,
-            minWidth: 0,
-            borderRight: { lg: `1px solid ${content.divider}` },
-            overflow: 'auto',
-            p: { xs: 1.25, lg: 1.1 },
-          }}
-        >
-          <Box
-            sx={{
-              mt: 0,
-              p: { xs: 1.1, lg: 0.95 },
-              borderRadius: 2,
-              border: `1px solid ${content.cardBorder}`,
-              backgroundColor: `${surface[0]}05`,
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 1 }}>
-              <Typography sx={{ fontSize: '0.7rem', color: surface[400], textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Resumo rápido
-              </Typography>
-              <Typography sx={{ fontSize: '0.68rem', color: surface[500], textAlign: 'right' }}>
-                {dashboardLoading
-                  ? 'Atualizando dashboard agregado...'
-                  : dashboardUpdatedAt
-                    ? `Atualizado em ${dashboardUpdatedAt}`
-                    : 'Resumo local temporário'}
-              </Typography>
-            </Box>
-            {dashboardError ? (
-              <Alert
-                severity="warning"
-                sx={{
-                  mb: 1.5,
-                  bgcolor: `${semantic.warning[500]}10`,
-                  border: `1px solid ${semantic.warning[500]}33`,
-                  color: surface[50],
-                  '& .MuiAlert-icon': { color: semantic.warning[500] },
-                }}
-              >
-                Não foi possível carregar o dashboard agregado. Mantendo a tela funcional com os dados locais.
-              </Alert>
-            ) : null}
-            {dashboardLoading ? <LinearProgress sx={{ mb: 1.5 }} /> : null}
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 0.9, mt: 1.1 }}>
-              <MetricTile compact label="Atletas ativos" value={String(summary.ativos)} delta={`${summary.totalAtletas} no total`} tone="success" />
-              <MetricTile compact label="Treinos planejados" value={String(summary.treinosPlanejadosSemana)} delta="na semana" />
-              <MetricTile compact label="Em atenção" value={String(summary.emAtencao)} delta={`${summary.itensFilaAtencao} na fila`} tone="warning" />
-              <MetricTile compact label="Atletas exibidos" value={String(summary.atletasExibidos)} />
-            </Box>
-            {dashboardAttentionQueue.length > 0 ? (
-              <Box sx={{ mt: 1.25 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 1 }}>
-                  <Typography sx={{ fontSize: '0.68rem', color: surface[400], textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                    Fila de atenção
-                  </Typography>
-                  <Button size="small" sx={{ textTransform: 'none', color: surface[400] }} onClick={() => navigate('/coach/insights')}>
-                    Ver insights
-                  </Button>
-                </Box>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.7 }}>
-                  {dashboardAttentionQueue.slice(0, 3).map((item) => (
-                    <DashboardAttentionQueueRow key={item.atletaId} item={item} />
-                  ))}
-                </Box>
-              </Box>
-            ) : null}
-            {dashboardRoster.length > 0 ? (
-              <Box sx={{ mt: 1.25 }}>
-                <Typography sx={{ fontSize: '0.68rem', color: surface[400], textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1 }}>
-                  Roster do dashboard
-                </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.7 }}>
-                  {dashboardRoster.slice(0, 3).map((athlete) => (
-                    <DashboardRosterPreviewRow key={athlete.atletaId} athlete={athlete} />
-                  ))}
-                </Box>
-              </Box>
-            ) : null}
-          </Box>
-        </Box>
-
         <Box
           sx={{
             minHeight: 0,
