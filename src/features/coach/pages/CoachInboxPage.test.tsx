@@ -187,11 +187,17 @@ describe('CoachInboxPage', () => {
     });
   });
 
-  it('mostra a fila de atenção do dashboard no resumo', () => {
+  /**
+   * Reescrito na task 1.5. Antes, este teste afirmava que existia um módulo "Fila de atenção"
+   * separado — um preview de 3 itens que repetia atletas já listados ao lado. O módulo saiu; o que
+   * precisa continuar verdadeiro é que **o sinal do atleta não se perdeu**: ele agora aparece no
+   * card da lista principal, com motivo.
+   */
+  it('o sinal do atleta aparece na lista principal, com motivo', () => {
     renderPage();
 
-    expect(screen.getByText(/Fila de atenção/i)).toBeInTheDocument();
-    expect(screen.getByText(/Reduzir o volume do próximo longão/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Fila de atenção/i)).not.toBeInTheDocument();
+    expect(screen.getByTestId('queue-row-motivo')).toHaveTextContent(/fadiga/i);
   });
 
   it('expõe exatamente 3 abas no drill-down do atleta', () => {
