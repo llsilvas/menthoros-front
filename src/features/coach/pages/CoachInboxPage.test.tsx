@@ -215,6 +215,19 @@ describe('CoachInboxPage', () => {
   });
 
   it('mostra o diagnóstico do ATLETA na aba Diagnóstico (não insights globais)', () => {
+    // Perfil COM série na janela: sem PMC, o painel passa a exibir o estado vazio em vez da grade
+    // de métricas (task 2.5) — que é o comportamento correto, e não o que este teste verifica.
+    vi.mocked(useAthleteProfile).mockReturnValue({
+      profile: makeProfile([
+        { data: '2026-06-20', ctl: 48, atl: 52, tsb: -4, tss: 70 },
+        { data: '2026-06-21', ctl: 49, atl: 54, tsb: -5, tss: 85 },
+        { data: '2026-06-22', ctl: 50, atl: 55, tsb: -5, tss: 90 },
+      ]),
+      isLoading: false,
+      error: null,
+      errorKind: null,
+      fetchProfile: mockFetchProfile,
+    });
     renderPage();
 
     // aba default é Diagnóstico

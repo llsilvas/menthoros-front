@@ -28,6 +28,7 @@ function atleta(over: Partial<CoachAthleteRow> = {}): CoachAthleteRow {
     notes: 'Aderência caiu 20% nas últimas duas semanas.',
     suggestedActions: ['Reduzir volume', 'Conversar sobre a rotina'],
     quickStats: {
+      hasWindowData: true,
       acuteLoad: 120,
       monotony: 1.4,
       strain: 200,
@@ -68,5 +69,74 @@ describe('DiagnosisTabPanel', () => {
 
     expect(screen.getByText(/aderência caiu 20%/i)).toBeInTheDocument();
     expect(screen.getByText(/reduzir volume/i)).toBeInTheDocument();
+  });
+
+  describe('faixas de referência', () => {
+    /**
+     * UX-005: "Ideal: 110-150 km" e "Ideal: < 2.0" eram fixos e iguais para todo mundo — o mesmo
+     * intervalo para um iniciante de 20 km/semana e para um maratonista. Uma referência que não
+     * considera o atleta não é referência, é ruído com aparência de precisão.
+     *
+     * Decisão do founder: remover, em vez de derivar um número que pareceria mais preciso do que é.
+     */
+    it('não exibe faixas "ideais" fixas', () => {
+      render(<DiagnosisTabPanel selected={atleta()} pmc={[]} onOpenPlan={vi.fn()} />);
+
+      expect(screen.queryByText(/ideal:/i)).not.toBeInTheDocument();
+    });
+
+    /** Pior que o "ideal" fixo: o subtítulo da recuperação dizia "Boa" mesmo quando era ruim. */
+    it('não afirma que a recuperação é boa quando ela está baixa', () => {
+      render(
+        <DiagnosisTabPanel
+          selected={atleta({ quickStats: { ...atleta().quickStats, recovery: 55 } })}
+          pmc={[]}
+          onOpenPlan={vi.fn()}
+        />,
+      );
+
+      expect(screen.queryByText(/^Boa$/)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('sem dados na janela', () => {
+    /**
+     * Sem série PMC, o adapter preenche carga com 0 e monotonia com 1.00 — e ambos caem em tone
+     * "adequado". O coach lia "carga 0 km, monotonia 1.00, tudo verde" para um atleta que nunca
+     * sincronizou nada. Zero por ausência de dado não é zero medido.
+     */
+    it('substitui a grade de métricas por uma mensagem', () => {
+      render(
+        <DiagnosisTabPanel
+          selected={atleta({ quickStats: { ...atleta().quickStats, hasWindowData: false } })}
+          pmc={[]}
+          onOpenPlan={vi.fn()}
+        />,
+      );
+
+      expect(screen.getByText(/sem treinos registrados/i)).toBeInTheDocument();
+      expect(screen.queryByText(/carga aguda/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/monotonia/i)).not.toBeInTheDocument();
+    });
+
+    /** O insight continua visível: é o que resta de útil quando não há número. */
+    it('mantém os sinais de atenção visíveis', () => {
+      render(
+        <DiagnosisTabPanel
+          selected={atleta({ quickStats: { ...atleta().quickStats, hasWindowData: false } })}
+          pmc={[]}
+          onOpenPlan={vi.fn()}
+        />,
+      );
+
+      expect(screen.getByText(/sinais de atenção/i)).toBeInTheDocument();
+    });
+
+    it('com dados, a grade aparece normalmente', () => {
+      render(<DiagnosisTabPanel selected={atleta()} pmc={[]} onOpenPlan={vi.fn()} />);
+
+      expect(screen.getByText(/carga aguda/i)).toBeInTheDocument();
+      expect(screen.queryByText(/sem treinos registrados/i)).not.toBeInTheDocument();
+    });
   });
 });

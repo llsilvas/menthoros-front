@@ -6,6 +6,7 @@ import { primary, semantic, surface } from '../../../../theme/tokens';
 import { DetailMetric } from '../DetailMetric';
 import { TrendCard } from '../TrendCard';
 import { SectionCard } from '../SectionCard';
+import { EmptyMetricState } from '../EmptyMetricState';
 import { formatKm, formatPercent } from '../coachInboxHelpers';
 import { ACTION_BTN_END_ICON_SX } from '../../../../shared/components/actionButtonSx';
 import { getAcuteLoadTone, getMonotonyTone, getStrainZone } from '../../adapters/coachInboxAdapters';
@@ -133,17 +134,43 @@ export function DiagnosisTabPanel({ selected, limiareisInferidos, pmc, onOpenPla
         </Box>
       </SectionCard>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: { xs: 0.9, sm: 1.05, lg: 1.25, xl: 1.5 } }}>
-        <DetailMetric label="Carga aguda" value={formatKm(selected.quickStats.acuteLoad)} subtitle="Ideal: 110-150 km" tone={getAcuteLoadTone(selected.quickStats.acuteLoad)} />
-        <DetailMetric label="Monotonia" value={selected.quickStats.monotony.toFixed(2)} subtitle="Ideal: < 2.0" tone={getMonotonyTone(selected.quickStats.monotony)} />
-        <DetailMetric
-          label="Strain"
-          value={selected.quickStats.strain != null ? String(selected.quickStats.strain) : '—'}
-          subtitle={strainZone.label}
-          tone={strainZone.tone}
+      {selected.quickStats.hasWindowData ? (
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: { xs: 0.9, sm: 1.05, lg: 1.25, xl: 1.5 } }}>
+          {/*
+            Sem faixa "ideal" (UX-005). "Ideal: 110-150 km" e "Ideal: < 2.0" eram fixos e iguais para
+            todo atleta — o mesmo intervalo para um iniciante de 20 km/semana e para um maratonista.
+            Referência que ignora o atleta não é referência: é ruído com aparência de precisão. O
+            `tone` continua sinalizando o estado, agora também por ícone (task 2.4).
+          */}
+          <DetailMetric label="Carga aguda" value={formatKm(selected.quickStats.acuteLoad)} tone={getAcuteLoadTone(selected.quickStats.acuteLoad)} />
+          <DetailMetric label="Monotonia" value={selected.quickStats.monotony.toFixed(2)} tone={getMonotonyTone(selected.quickStats.monotony)} />
+          <DetailMetric
+            label="Strain"
+            value={selected.quickStats.strain != null ? String(selected.quickStats.strain) : '—'}
+            subtitle={strainZone.label}
+            tone={strainZone.tone}
+          />
+          {/*
+            O subtítulo era a string fixa "Boa" — afirmada inclusive quando o próprio `tone` marcava
+            atenção. Um rótulo que contradiz o dado ao lado é pior que rótulo nenhum.
+          */}
+          <DetailMetric
+            label="Recuperação"
+            value={formatPercent(selected.quickStats.recovery)}
+            tone={selected.quickStats.recovery < 80 ? 'warning' : 'success'}
+          />
+        </Box>
+      ) : (
+        /*
+          Sem série na janela, os números desta grade são fallback: carga cai para 0 e monotonia
+          para 1.00, ambos em faixa "adequada". Exibi-los seria afirmar que o atleta está bem
+          quando o que se sabe é que não há dado nenhum.
+        */
+        <EmptyMetricState
+          mensagem="Sem treinos registrados na janela analisada — os indicadores aparecem com o primeiro treino sincronizado."
+          proximoPasso="Confira a integração do atleta ou registre um treino manualmente."
         />
-        <DetailMetric label="Recuperação" value={formatPercent(selected.quickStats.recovery)} subtitle="Boa" tone={selected.quickStats.recovery < 80 ? 'warning' : 'success'} />
-      </Box>
+      )}
 
       <SectionCard title="Tendência de carga">
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', mb: 1 }}>
