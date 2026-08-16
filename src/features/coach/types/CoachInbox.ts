@@ -43,6 +43,12 @@ export interface CoachAthleteRow {
   notes: string;
   suggestedActions: string[];
   quickStats: {
+    /**
+     * `false` quando não há série PMC na janela: as métricas abaixo são preenchidas com fallbacks
+     * (0 km, monotonia 1.00) que a UI **não pode** exibir como medição — sem esta flag, um atleta
+     * que nunca sincronizou aparece com carga "adequada".
+     */
+    hasWindowData: boolean;
     acuteLoad: number;
     monotony: number;
     tsb: number | null;

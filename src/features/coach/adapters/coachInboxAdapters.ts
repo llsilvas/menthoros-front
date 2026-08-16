@@ -202,6 +202,10 @@ export function buildSelectedAthleteFromDashboard(
       ? profile.sinaisRecentes.map((s) => s.acaoSugerida).slice(0, 3)
       : ['Abrir o perfil do atleta para detalhes completos'],
     quickStats: {
+      // Distingue "zero legítimo" (treinou 0 km esta semana) de "sem dado na janela" (nunca
+      // sincronizou). Os campos abaixo têm fallback numérico, e número com fallback é
+      // indistinguível de medição real depois que sai do adapter.
+      hasWindowData: pmcPoints.length > 0,
       acuteLoad: latestPmc?.atl ?? roster.weeklyVolume,
       monotony: calcularMonotonia(pmcPoints),
       tsb: latestPmc?.tsb ?? null,
@@ -247,6 +251,9 @@ export function buildRosterRowFromSummary(roster: CoachAtletaResumo): CoachAthle
     notes: 'Resumo agregado carregado do dashboard.',
     suggestedActions: ['Abrir o perfil do atleta'],
     quickStats: {
+      // Linha do roster: o dashboard não traz série PMC, então nunca há dados de janela aqui — o
+      // painel completo vem do perfil, buscado à parte.
+      hasWindowData: false,
       acuteLoad: roster.weeklyVolume,
       monotony: 1,
       tsb: null,
