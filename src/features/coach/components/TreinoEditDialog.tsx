@@ -340,36 +340,43 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
         pushBloco(aquecimento, 'warmup', 'Aquecimento', 'AQ');
 
         if (isIntervalado) {
-            const rep = Math.max(1, repeticoes);
-            const durEsforco = (parseInt(principal.duracaoMin, 10) || 0) * rep;
-            const durRec     = (parseInt(recuperacao.duracaoMin, 10) || 0) * rep;
-            if (durEsforco > 0) {
-                const zone = zoneFromString(principal.zonaAlvo);
-                blocks.push({
-                    id:          'interval',
-                    label:       `Esforço ×${rep}`,
-                    shortLabel:  `${rep}×`,
-                    durationMin: durEsforco,
-                    zone,
-                    zoneKey:     `Z${zone}` as ZoneKey,
-                    blockType:   'interval',
-                    description: principal.zonaAlvo || undefined,
-                    icon:        'main',
-                });
-            }
-            if (durRec > 0) {
-                const zone = zoneFromString(recuperacao.zonaAlvo);
-                blocks.push({
-                    id:          'recovery',
-                    label:       `Rec ×${rep}`,
-                    shortLabel:  'REC',
-                    durationMin: durRec,
-                    zone,
-                    zoneKey:     `Z${zone}` as ZoneKey,
-                    blockType:   'recovery',
-                    description: recuperacao.zonaAlvo || undefined,
-                    icon:        'main',
-                });
+            // Uma repetição por bloco, alternando esforço e recuperação — mesma leitura do
+            // DetalheTreinoDialog, que desenha as etapas já expandidas. Agregar a série em um bloco
+            // de `duração × repetições` escondia a estrutura justamente na tela onde o treinador
+            // decide se ela está certa.
+            const rep       = Math.max(1, repeticoes);
+            const durEsf    = parseInt(principal.duracaoMin, 10) || 0;
+            const durRec    = parseInt(recuperacao.duracaoMin, 10) || 0;
+            const zoneEsf   = zoneFromString(principal.zonaAlvo);
+            const zoneRec   = zoneFromString(recuperacao.zonaAlvo);
+
+            for (let i = 1; i <= rep; i++) {
+                if (durEsf > 0) {
+                    blocks.push({
+                        id:          `interval-${i}`,
+                        label:       `Esforço ${i}/${rep}`,
+                        shortLabel:  rep > 1 ? `${i}/${rep}` : 'ESF',
+                        durationMin: durEsf,
+                        zone:        zoneEsf,
+                        zoneKey:     `Z${zoneEsf}` as ZoneKey,
+                        blockType:   'interval',
+                        description: principal.zonaAlvo || undefined,
+                        icon:        'main',
+                    });
+                }
+                if (durRec > 0) {
+                    blocks.push({
+                        id:          `recovery-${i}`,
+                        label:       `Recuperação ${i}/${rep}`,
+                        shortLabel:  'REC',
+                        durationMin: durRec,
+                        zone:        zoneRec,
+                        zoneKey:     `Z${zoneRec}` as ZoneKey,
+                        blockType:   'recovery',
+                        description: recuperacao.zonaAlvo || undefined,
+                        icon:        'main',
+                    });
+                }
             }
         } else {
             pushBloco(principal, 'main', 'Treino', 'TR');

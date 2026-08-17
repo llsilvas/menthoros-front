@@ -227,6 +227,51 @@ describe('TreinoEditDialog — modo intervalado', () => {
         expect(screen.getByText('Desaquecimento')).toBeInTheDocument();
     });
 
+    it('timeline desenha uma barra por repetição, não um bloco agregado', () => {
+        // Fartlek já expandido pelo backend: 4 pares esforço/recuperação. A timeline da revisão
+        // agregava tudo em um bloco rotulado "4×", escondendo a estrutura justamente na tela onde
+        // o treinador decide se ela está certa. Deve ler igual ao DetalheTreinoDialog.
+        // Durações escolhidas para que cada barra passe do limiar `widthPct > 5` do
+        // WorkoutTimelineChart — abaixo dele a barra é desenhada sem rótulo, e o teste não
+        // conseguiria distinguir "expandiu" de "agregou".
+        const fartlek: TreinoPlanejadoDto = {
+            ...TREINO_INTERVALADO,
+            tipoTreino: 'FARTLEK',
+            etapas: [
+                { ordem: 1, tipoEtapa: 'AQUECIMENTO',   duracaoMin: 5, fcAlvoEtapa: 'Z2' },
+                { ordem: 2, tipoEtapa: 'INTERVALADO',   duracaoMin: 3, fcAlvoEtapa: 'Z4' },
+                { ordem: 3, tipoEtapa: 'RECUPERACAO',   duracaoMin: 2, fcAlvoEtapa: 'Z1' },
+                { ordem: 4, tipoEtapa: 'INTERVALADO',   duracaoMin: 3, fcAlvoEtapa: 'Z4' },
+                { ordem: 5, tipoEtapa: 'RECUPERACAO',   duracaoMin: 2, fcAlvoEtapa: 'Z1' },
+                { ordem: 6, tipoEtapa: 'INTERVALADO',   duracaoMin: 3, fcAlvoEtapa: 'Z4' },
+                { ordem: 7, tipoEtapa: 'RECUPERACAO',   duracaoMin: 2, fcAlvoEtapa: 'Z1' },
+                { ordem: 8, tipoEtapa: 'INTERVALADO',   duracaoMin: 3, fcAlvoEtapa: 'Z4' },
+                { ordem: 9, tipoEtapa: 'RECUPERACAO',   duracaoMin: 2, fcAlvoEtapa: 'Z1' },
+                { ordem: 10, tipoEtapa: 'DESAQUECIMENTO', duracaoMin: 5, fcAlvoEtapa: 'Z1' },
+            ],
+        };
+
+        render(
+            <TreinoEditDialog
+                open
+                treino={fartlek}
+                isSaving={false}
+                onClose={onClose}
+                onSave={onSave}
+            />,
+        );
+
+        // Uma barra por repetição, numerada, alternando com a recuperação. O "4×" do stepper da
+        // série continua existindo e é legítimo — o que não pode voltar é a barra única de
+        // esforço somando as 4 repetições.
+        ['1/4', '2/4', '3/4', '4/4'].forEach(label =>
+            expect(screen.getByText(label)).toBeInTheDocument(),
+        );
+        expect(screen.getAllByText('REC')).toHaveLength(4);
+        // duração por barra é a de UMA repetição (3 min), não o agregado (12 min)
+        expect(screen.getAllByText('3 min')).toHaveLength(4);
+    });
+
     it.each(['TIRO', 'SUBIDA'] as const)(
         'exibe container de série para tipoTreino=%s (fisiologicamente intervalado)',
         (tipoTreino) => {
