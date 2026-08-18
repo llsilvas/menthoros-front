@@ -167,11 +167,53 @@ describe('selectWorkoutProfile — modo degradado (§6.4)', () => {
     expect(p.degraded).toBe(true);
   });
 
-  it('a altura passa a codificar o papel do bloco, em três níveis declarados', () => {
+  it('a altura passa a codificar o papel do bloco', () => {
     const alturas = Object.fromEntries(p.blocks.map((b) => [b.kind, b.intensityNormalized]));
-    expect(alturas.warmup).toBeCloseTo(0.50, 3);
-    expect(alturas.work).toBeCloseTo(0.85, 3);
-    expect(alturas.recovery).toBeCloseTo(0.25, 3);
+    expect(alturas.work).toBeGreaterThan(alturas.warmup);
+    expect(alturas.warmup).toBeGreaterThan(alturas.recovery);
+  });
+
+  // A spec dava o mesmo nível a aquecimento, principal e desaquecimento, e o
+  // resultado na tela era um perfil chapado justamente no treino mais comum —
+  // o defeito D2 de volta pelo caminho degradado.
+  it('aquecimento, corpo e desaquecimento não saem todos na mesma altura', () => {
+    const semZonaComPrincipal = selectWorkoutProfile([
+      etapa({ tipo: 'AQUECIMENTO', duracaoMin: 10 }),
+      etapa({ tipo: 'PRINCIPAL', duracaoMin: 30 }),
+      etapa({ tipo: 'DESAQUECIMENTO', duracaoMin: 10 }),
+    ], ctx);
+
+    const alturas = semZonaComPrincipal.blocks.map((b) => b.intensityNormalized);
+    expect(new Set(alturas).size, `alturas: ${alturas.join(', ')}`).toBe(3);
+    // E a ordem é a do esforço: corpo > aquecimento > desaquecimento.
+    expect(alturas[1]).toBeGreaterThan(alturas[0]);
+    expect(alturas[0]).toBeGreaterThan(alturas[2]);
+  });
+
+  // Único dado real de intensidade quando a etapa não traz o seu.
+  it('a zona-alvo do treino levanta o corpo, sem tocar no aquecimento', () => {
+    const semZona = [
+      etapa({ tipo: 'AQUECIMENTO', duracaoMin: 10 }),
+      etapa({ tipo: 'PRINCIPAL', duracaoMin: 30 }),
+    ];
+    const semAlvo = selectWorkoutProfile(semZona, ctx);
+    const comAlvo = selectWorkoutProfile(semZona, { ...ctx, zonaAlvoTreino: 'Z4' });
+
+    expect(comAlvo.blocks[1].intensityNormalized).toBeGreaterThan(semAlvo.blocks[1].intensityNormalized);
+    expect(comAlvo.blocks[0].intensityNormalized).toBe(semAlvo.blocks[0].intensityNormalized);
+    // Continua declarado como estimativa — a zona do treino não é a da etapa.
+    expect(comAlvo.degraded).toBe(true);
+  });
+
+  // Três blocos iguais SÃO iguais: inventar variação aqui seria mentir sobre o
+  // treino para deixar o gráfico bonito.
+  it('não fabrica variação quando as etapas são de fato idênticas', () => {
+    const iguais = selectWorkoutProfile(
+      [etapa({ tipo: 'PRINCIPAL', duracaoMin: 20 }), etapa({ tipo: 'PRINCIPAL', duracaoMin: 20 })],
+      ctx,
+    );
+    const [a, b] = iguais.blocks.map((x) => x.intensityNormalized);
+    expect(a).toBe(b);
   });
 
   it('não elege zona-alvo — seria afirmar o que não se sabe', () => {

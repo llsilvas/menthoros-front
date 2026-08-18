@@ -27,6 +27,15 @@ export interface ProfileContext {
   thresholds?: AthleteThresholds;
   tss?: number | null;
   if?: number | null;
+  /**
+   * Zona-alvo declarada no **treino** (`TreinoPlanejadoDto.zonaAlvo`), quando as
+   * etapas não trazem zona própria.
+   *
+   * Usada só no corpo do treino (`work`/`steady`) e só no modo degradado:
+   * "este treino é Z4" fala do miolo, não do aquecimento. Aplicá-la a todas as
+   * etapas achataria o perfil de novo e ainda mentiria sobre o aquecimento.
+   */
+  zonaAlvoTreino?: string | null;
 }
 
 const ZONAS: ZoneKey[] = ['Z1', 'Z2', 'Z3', 'Z4', 'Z5'];
@@ -35,16 +44,24 @@ const ZONAS: ZoneKey[] = ['Z1', 'Z2', 'Z3', 'Z4', 'Z5'];
 const SHARE_MINIMO_ALVO = 0.15;
 
 /**
- * Alturas do modo degradado (spec §6.4). Três níveis discretos e declarados,
- * porque codificar uma intensidade contínua que não temos seria desenhar uma
- * precisão inexistente.
+ * Alturas do modo degradado (spec §6.4). Codificam o **papel** do bloco, porque
+ * a intensidade contínua não existe sem DEP-1/DEP-2 — desenhá-la seria fingir
+ * uma precisão que não temos.
+ *
+ * A spec dava três níveis, com `warmup`, `cooldown` e `steady` no mesmo 0.50. O
+ * efeito na tela era um perfil **chapado** justamente no treino mais comum
+ * (aquecimento + principal + desaquecimento, sem zona por etapa): todas as
+ * barras da mesma altura — que é o defeito D2 de volta, agora pelo caminho
+ * degradado. Os níveis abaixo separam os três, e a ordem não é arbitrária: um
+ * aquecimento é mais leve que o corpo do treino, e um desaquecimento é mais
+ * leve que o aquecimento. Isso é ordenação de esforço óbvia, não estimativa.
  */
 const ALTURA_POR_PAPEL: Record<BlockKind, number> = {
-  rest:     0.25,
-  recovery: 0.25,
-  warmup:   0.50,
-  cooldown: 0.50,
-  steady:   0.50,
+  rest:     0.22,
+  recovery: 0.28,
+  cooldown: 0.38,
+  warmup:   0.46,
+  steady:   0.58,
   work:     0.85,
 };
 
@@ -138,6 +155,7 @@ function construirBlocos(
   resolvidas: BlocoResolvido[],
   scale: IntensityScale,
   degraded: boolean,
+  zonaDoTreino: ZoneKey | null,
 ): ProfileBlock[] {
   const blocos: ProfileBlock[] = [];
 
@@ -152,8 +170,16 @@ function construirBlocos(
     // No modo degradado a altura codifica o papel; fora dele, o ponto médio da
     // faixa da zona. Zona desconhecida fica no meio da escala, hachurada pelo
     // componente — escolher Z1 seria afirmar que o trecho é leve.
+    // No corpo do treino, a zona-alvo declarada no treino vale mais que o nível
+    // genérico do papel — é o único dado real de intensidade que sobra quando a
+    // etapa não traz o seu. Fora do miolo ela não se aplica.
+    const miolo = papel === 'work' || papel === 'steady';
+    const alturaDegradada = miolo && zonaDoTreino
+      ? midpointOf(zonaDoTreino, scale)
+      : ALTURA_POR_PAPEL[papel];
+
     const intensityNormalized = degraded
-      ? ALTURA_POR_PAPEL[papel]
+      ? alturaDegradada
       : zone
         ? midpointOf(zone, scale)
         : 0.45;
@@ -288,7 +314,8 @@ export function selectWorkoutProfile(
   const degraded = utilizaveis.length > 0
     && resolvidas.some((r) => r.confidence !== 'prescribed');
 
-  const blocks = construirBlocos(utilizaveis, resolvidas, scale, degraded);
+  const zonaDoTreino = zonaDeclarada(context.zonaAlvoTreino ?? undefined);
+  const blocks = construirBlocos(utilizaveis, resolvidas, scale, degraded, zonaDoTreino);
   const totalDurationSec = blocks.reduce((s, b) => s + b.durationSec, 0);
 
   const distribution = distribuirPorZona(blocks, totalDurationSec);

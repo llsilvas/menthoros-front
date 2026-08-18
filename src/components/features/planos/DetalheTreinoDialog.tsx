@@ -223,6 +223,7 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
         sport: 'run',
         tss: dados.tssPlanejado ?? null,
         if: dados.intensidadePlanejada ?? null,
+        zonaAlvoTreino: dados.fcAlvo ?? null,
     });
     const blocks = profile.blocks;
     const totalDuration = getNumericValue(dados.duracaoMin) ?? Math.round(profile.metrics.totalDurationSec / 60);

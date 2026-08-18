@@ -379,8 +379,9 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
             // treino é normalizado na escala de corrida, inclusive bike e natação.
             sport: 'run',
             tss: treino.tssPlanejado ?? null,
+            zonaAlvoTreino: treino.zonaAlvo ?? null,
         }),
-        [itens, treino.tssPlanejado],
+        [itens, treino.tssPlanejado, treino.zonaAlvo],
     );
 
     /** Tipos que o treino tinha e deixou de ter — base do aviso antes de salvar. */
