@@ -3,7 +3,9 @@ import {
     Box,
     Button,
     CircularProgress,
+    FormControl,
     IconButton,
+    InputLabel,
     MenuItem,
     Select,
     TextField,
@@ -12,37 +14,31 @@ import {
 import { alpha } from '@mui/material/styles';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
+import RepeatIcon from '@mui/icons-material/Repeat';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { primary, surface } from '../../../theme/tokens';
 import { overlayWhite } from '../../../theme/overlays';
 import { elevation } from '../../../shared/design-tokens';
 import { GHOST_BTN_SX, PRIMARY_BTN_SX } from '../../../shared/components/actionButtonSx';
 import { activeTheme } from '../../../theme/activeTheme';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
-import type { TreinoPlanejadoDto, TreinoPlanejadoPatch, EtapaTreinoDto } from '../../../types/PlanoReview';
+import type { TreinoPlanejadoDto, TreinoPlanejadoPatch } from '../../../types/PlanoReview';
+import {
+    emptyStep,
+    emptyBlock,
+    emptySubStep,
+    itensFromEtapas,
+    serializarItens,
+    type EtapaItem,
+} from './etapas/etapaItem';
 import { WorkoutTimelineChart } from '../../../components/features/planos/WorkoutTimelineChart/WorkoutTimelineChart';
 import type { WorkoutBlock, BlockType } from '../../../components/features/planos/WorkoutTimelineChart/types';
 import type { ZoneKey } from '../../../theme/tokens';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function parseDuracaoMinutos(iso?: string): string {
-    if (!iso) return '';
-    const isoMatch = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
-    if (isoMatch) {
-        const h = parseInt(isoMatch[1] ?? '0', 10);
-        const m = parseInt(isoMatch[2] ?? '0', 10);
-        const total = h * 60 + m;
-        return total > 0 ? String(total) : '';
-    }
-    // Legado HH:MM:SS ou MM:SS
-    const hmsMatch = iso.match(/^(?:(\d+):)?(\d{1,2}):(\d{2})$/);
-    if (hmsMatch) {
-        const h = parseInt(hmsMatch[1] ?? '0', 10);
-        const m = parseInt(hmsMatch[2], 10);
-        return String(h * 60 + m);
-    }
-    return '';
-}
 
 function toIso8601(minutos: string): string | undefined {
     const n = parseInt(minutos, 10);
@@ -64,7 +60,6 @@ const TIPOS_TREINO = [
     { value: 'PROVA',        label: 'Prova'        },
 ];
 
-const TIPOS_INTERVALADOS = new Set(['INTERVALADO', 'FARTLEK', 'TIRO', 'SUBIDA']);
 
 const ACCENT = activeTheme.trainingStage;
 
@@ -88,25 +83,8 @@ interface BlocoState {
     rpe: string;
 }
 
-const BLOCO_VAZIO: BlocoState = { distanciaKm: '', duracaoMin: '', zonaAlvo: '', rpe: '' };
 
-function blocoFromTreino(t: TreinoPlanejadoDto): BlocoState {
-    return {
-        distanciaKm: t.distanciaKm != null ? String(t.distanciaKm) : '',
-        duracaoMin:  parseDuracaoMinutos(t.duracaoMin),
-        zonaAlvo:    t.zonaAlvo ?? '',
-        rpe:         t.percepcaoEsforcoEsperada != null ? String(t.percepcaoEsforcoEsperada) : '',
-    };
-}
 
-function blocoFromEtapa(e: EtapaTreinoDto): BlocoState {
-    return {
-        distanciaKm: e.distanciaKm != null ? String(e.distanciaKm) : '',
-        duracaoMin:  e.duracaoMin != null ? String(e.duracaoMin) : '',
-        zonaAlvo:    e.fcAlvoEtapa ?? '',
-        rpe:         '',
-    };
-}
 
 // ── BlocoCard ─────────────────────────────────────────────────────────────────
 
@@ -128,6 +106,92 @@ function fieldSx(accent: string) {
     } as const;
 }
 
+
+/** BlocoCard fala em BlocoState; o modelo de itens fala em tipoEtapa/fcAlvoEtapa. */
+function blocoStateDe(e: { duracaoMin: string; distanciaKm: string; fcAlvoEtapa: string }): BlocoState {
+    return { distanciaKm: e.distanciaKm, duracaoMin: e.duracaoMin, zonaAlvo: e.fcAlvoEtapa, rpe: '' };
+}
+
+function camposDe(b: BlocoState): { duracaoMin: string; distanciaKm: string; fcAlvoEtapa: string } {
+    return { duracaoMin: b.duracaoMin, distanciaKm: b.distanciaKm, fcAlvoEtapa: b.zonaAlvo };
+}
+
+function accentDe(tipoEtapa: string): string {
+    switch (tipoEtapa?.toUpperCase()) {
+        case 'AQUECIMENTO':    return ACCENT.aquecimento;
+        case 'DESAQUECIMENTO': return ACCENT.desaquecimento;
+        case 'RECUPERACAO':    return ACCENT.recuperacao;
+        case 'INTERVALADO':    return ACCENT.esforco;
+        default:               return ACCENT.principal;
+    }
+}
+
+interface ItemActionsProps {
+    idx: number;
+    total: number;
+    /** "etapa" ou "série" — o rótulo do leitor de tela precisa dizer o que está sendo movido. */
+    nome?: string;
+    disabled?: boolean;
+    onMover: (idx: number, delta: number) => void;
+    onRemover: (idx: number) => void;
+}
+
+function ItemActions({ idx, total, disabled, onMover, onRemover, nome = 'etapa' }: ItemActionsProps) {
+    return (
+        <Box sx={{ display: 'flex', gap: 0.25 }}>
+            <IconButton size="small" aria-label={`Mover ${nome} ${idx + 1} para cima`}
+                disabled={disabled || idx === 0} onClick={() => onMover(idx, -1)}>
+                <ArrowUpwardIcon sx={{ fontSize: 14 }} />
+            </IconButton>
+            <IconButton size="small" aria-label={`Mover ${nome} ${idx + 1} para baixo`}
+                disabled={disabled || idx === total - 1} onClick={() => onMover(idx, 1)}>
+                <ArrowDownwardIcon sx={{ fontSize: 14 }} />
+            </IconButton>
+            <IconButton size="small" aria-label={`Remover ${nome} ${idx + 1}`}
+                disabled={disabled} onClick={() => onRemover(idx)}>
+                <DeleteOutlineIcon sx={{ fontSize: 15 }} />
+            </IconButton>
+        </Box>
+    );
+}
+
+
+/**
+ * Itens iniciais do editor. Um treino sem etapas detalhadas — só distância/duração no nível do
+ * treino — vira uma etapa PRINCIPAL sintética, senão não haveria o que editar: era o que o dialog
+ * antigo fazia com `blocoFromTreino`.
+ */
+function itensIniciais(treino: TreinoPlanejadoDto): EtapaItem[] {
+    const itens = itensFromEtapas(treino.etapas);
+    if (itens.length > 0) return itens;
+
+    const duracaoMin = parseDuracaoMinutos(treino.duracaoMin);
+    const distanciaKm = treino.distanciaKm != null ? String(treino.distanciaKm) : '';
+    if (!duracaoMin && !distanciaKm) return [];
+
+    return [{
+        id: crypto.randomUUID(),
+        kind: 'step',
+        tipoEtapa: 'PRINCIPAL',
+        duracaoMin,
+        distanciaKm,
+        fcAlvoEtapa: treino.zonaAlvo ?? '',
+    }];
+}
+
+/** "PT90M" → "90". O contrato usa ISO-8601; o formulário, minutos. */
+function parseDuracaoMinutos(iso: string | undefined): string {
+    if (!iso) return '';
+    const m = /^PT(?:(\d+)H)?(?:(\d+)M)?$/.exec(iso);
+    if (!m) return '';
+    const horas = m[1] ? parseInt(m[1], 10) : 0;
+    const min   = m[2] ? parseInt(m[2], 10) : 0;
+    const total = horas * 60 + min;
+    return total > 0 ? String(total) : '';
+}
+
+const TIPOS_ETAPA = ['AQUECIMENTO', 'PRINCIPAL', 'INTERVALADO', 'RECUPERACAO', 'DESAQUECIMENTO'] as const;
+
 interface BlocoCardProps {
     label: string;
     accent: string;
@@ -135,9 +199,15 @@ interface BlocoCardProps {
     onChange: (b: BlocoState) => void;
     disabled?: boolean;
     actions?: React.ReactNode;
+    /** Quando presente, o card deixa o coach escolher o tipo — etapa sem tipo não é persistida. */
+    tipoEtapa?: string;
+    onTipoChange?: (tipo: string) => void;
+    tipoAriaLabel?: string;
 }
 
-function BlocoCard({ label, accent, bloco, onChange, disabled, actions }: BlocoCardProps) {
+function BlocoCard({
+    label, accent, bloco, onChange, disabled, actions, tipoEtapa, onTipoChange, tipoAriaLabel,
+}: BlocoCardProps) {
     return (
         <Box
             sx={{
@@ -169,6 +239,22 @@ function BlocoCard({ label, accent, bloco, onChange, disabled, actions }: BlocoC
                 >
                     {label}
                 </Box>
+                {onTipoChange && (
+                    <FormControl size="small" sx={{ minWidth: 150, ...fieldSx(accent) }}>
+                        <InputLabel shrink>Tipo</InputLabel>
+                        <Select
+                            native
+                            label="Tipo"
+                            value={tipoEtapa ?? ''}
+                            onChange={e => onTipoChange(e.target.value as string)}
+                            disabled={disabled}
+                            inputProps={{ 'aria-label': tipoAriaLabel ?? 'Tipo da etapa' }}
+                        >
+                            <option value="" disabled />
+                            {TIPOS_ETAPA.map(t => <option key={t} value={t}>{t}</option>)}
+                        </Select>
+                    </FormControl>
+                )}
                 {actions && <Box sx={{ ml: 'auto' }}>{actions}</Box>}
             </Box>
 
@@ -239,171 +325,208 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
     const [tss, setTss]                       = useState(treino.tssPlanejado != null ? String(treino.tssPlanejado) : '');
     const [observacao, setObservacao]         = useState(treino.observacao ?? '');
 
-    // Bloco principal (simples) / bloco de esforço (intervalado)
-    const [principal, setPrincipal]           = useState<BlocoState>(blocoFromTreino(treino));
-    // Bloco de recuperação — apenas modo intervalado
-    const [recuperacao, setRecuperacao]       = useState<BlocoState>(BLOCO_VAZIO);
-    // Repetições da série
-    const [repeticoes, setRepeticoes]         = useState(1);
-    // Blocos obrigatórios em todos os tipos de treino
-    const [aquecimento, setAquecimento]       = useState<BlocoState>(BLOCO_VAZIO);
-    const [desaquecimento, setDesaquecimento] = useState<BlocoState>(BLOCO_VAZIO);
-    // Rastreia se o usuário alterou algum bloco — evita incluir etapas em patches sem mudança
+    // O treino é editado como lista de itens — etapas avulsas e blocos repetidos —, o mesmo modelo
+    // do TreinoAddDialog. Antes eram quatro campos fixos, e qualquer série heterogênea era achatada
+    // no primeiro par ao abrir e replicada ao salvar.
+    const [itens, setItens]                   = useState<EtapaItem[]>(() => itensIniciais(treino));
+    // RPE é do treino, não da etapa: o dialog antigo mostrava um campo por bloco, mas só o do
+    // principal era lido — os outros três eram inertes.
+    const [rpe, setRpe]                       = useState(
+        treino.percepcaoEsforcoEsperada != null ? String(treino.percepcaoEsforcoEsperada) : '');
+    const [zonaAlvo, setZonaAlvo]             = useState(treino.zonaAlvo ?? '');
+    // Rastreia se o usuário alterou as etapas — evita incluir etapas em patches sem mudança.
+    // Sem esta guarda, mudar só o TSS regravaria a estrutura inteira do treino.
     const [blocosMudados, setBlocosMudados]   = useState(false);
-
-    const isIntervalado = TIPOS_INTERVALADOS.has(tipoTreino);
+    // Aviso de remoção de aquecimento/desaquecimento, com o patch retido até a confirmação
+    const [avisoRemocao, setAvisoRemocao]     = useState<string[] | null>(null);
+    const [pendente, setPendente]             = useState<TreinoPlanejadoPatch | null>(null);
 
     useEffect(() => {
-        const etapas = treino.etapas;
-        if (etapas?.length) {
-            const aq        = etapas.find(e => e.tipoEtapa === 'AQUECIMENTO');
-            const desaq     = etapas.find(e => e.tipoEtapa === 'DESAQUECIMENTO');
-            const intervalados = etapas.filter(e => e.tipoEtapa === 'INTERVALADO');
-            const esf       = intervalados[0] ?? etapas.find(e => e.tipoEtapa === 'PRINCIPAL');
-            const rec       = etapas.find(e => e.tipoEtapa === 'RECUPERACAO');
-
-            setAquecimento(aq   ? blocoFromEtapa(aq)   : BLOCO_VAZIO);
-            setDesaquecimento(desaq ? blocoFromEtapa(desaq) : BLOCO_VAZIO);
-            setPrincipal(esf   ? blocoFromEtapa(esf)   : blocoFromTreino(treino));
-            setRecuperacao(rec ? blocoFromEtapa(rec)   : BLOCO_VAZIO);
-            // IA gera N etapas individuais (repeticoes=1 cada) → conta etapas
-            // Coach salva 1 etapa com repeticoes=N → usa o campo
-            const rep = intervalados.length > 1
-                ? intervalados.length
-                : (esf?.repeticoes ?? 1);
-            setRepeticoes(rep);
-        } else {
-            setAquecimento(BLOCO_VAZIO);
-            setDesaquecimento(BLOCO_VAZIO);
-            setPrincipal(blocoFromTreino(treino));
-            setRecuperacao(BLOCO_VAZIO);
-            setRepeticoes(1);
-        }
+        setItens(itensIniciais(treino));
         setTipoTreino(treino.tipoTreino ?? '');
+        setZonaAlvo(treino.zonaAlvo ?? '');
+        setRpe(treino.percepcaoEsforcoEsperada != null ? String(treino.percepcaoEsforcoEsperada) : '');
         setTss(treino.tssPlanejado != null ? String(treino.tssPlanejado) : '');
         setObservacao(treino.observacao ?? '');
         setBlocosMudados(false);
     }, [treino]);
 
-    const marcaBlocoMudado = () => setBlocosMudados(true);
 
-    // Totais calculados em tempo real somando todos os blocos (aquecimento + principal + desaquecimento)
+    /** Um item rende N cópias das suas sub-etapas; uma etapa avulsa rende ela mesma. */
+    const etapasDoItem = (item: EtapaItem): { duracaoMin: string; distanciaKm: string; fcAlvoEtapa: string; tipoEtapa: string }[] => {
+        if (item.kind === 'step') return [item];
+        const reps = Math.max(1, parseInt(item.repeticoes, 10) || 1);
+        return Array.from({ length: reps }, () => item.steps).flat();
+    };
+
+    // Totais em tempo real: soma o treino inteiro já expandido
     const { totalKm, totalMin } = useMemo(() => {
         let km = 0;
         let min = 0;
-
-        const soma = (b: BlocoState) => {
-            km  += parseFloat(b.distanciaKm) || 0;
-            min += parseInt(b.duracaoMin, 10) || 0;
-        };
-
-        soma(aquecimento);
-        if (isIntervalado) {
-            const rep = Math.max(1, repeticoes);
-            km  += ((parseFloat(principal.distanciaKm) || 0) + (parseFloat(recuperacao.distanciaKm) || 0)) * rep;
-            min += ((parseInt(principal.duracaoMin, 10) || 0) + (parseInt(recuperacao.duracaoMin, 10) || 0)) * rep;
-        } else {
-            soma(principal);
+        for (const item of itens) {
+            for (const e of etapasDoItem(item)) {
+                km  += parseFloat(e.distanciaKm) || 0;
+                min += parseInt(e.duracaoMin, 10) || 0;
+            }
         }
-        soma(desaquecimento);
-
         return {
-            totalKm:  km  > 0 ? km.toFixed(1)  : null,
-            totalMin: min > 0 ? String(min)     : null,
+            totalKm:  km  > 0 ? km.toFixed(1) : null,
+            totalMin: min > 0 ? String(min)   : null,
         };
-    }, [isIntervalado, principal, recuperacao, repeticoes, aquecimento, desaquecimento]);
+    }, [itens]);
 
-    // Blocos derivados do estado ao vivo — gráfico atualiza a cada edição
+    // Blocos derivados do estado ao vivo — gráfico atualiza a cada edição.
+    // A expansão deixou de ser caso especial do intervalado: é a leitura natural da lista.
     const liveBlocks = useMemo((): WorkoutBlock[] => {
         const blocks: WorkoutBlock[] = [];
 
+        const blockTypeDe = (tipoEtapa: string): BlockType => {
+            switch (tipoEtapa?.toUpperCase()) {
+                case 'AQUECIMENTO':    return 'warmup';
+                case 'DESAQUECIMENTO': return 'cooldown';
+                case 'INTERVALADO':    return 'interval';
+                case 'RECUPERACAO':    return 'recovery';
+                default:               return 'main';
+            }
+        };
         const iconHint = (bt: BlockType) =>
             bt === 'warmup' ? 'warmup' : bt === 'cooldown' ? 'cooldown' : 'main';
 
-        const pushBloco = (bloco: BlocoState, blockType: BlockType, label: string, shortLabel: string) => {
-            const durationMin = parseInt(bloco.duracaoMin, 10) || 0;
-            if (durationMin <= 0) return;
-            const zone = zoneFromString(bloco.zonaAlvo);
-            blocks.push({
-                id: blockType,
-                label,
-                shortLabel,
-                durationMin,
-                zone,
-                zoneKey: `Z${zone}` as ZoneKey,
-                blockType,
-                description: bloco.zonaAlvo || undefined,
-                icon: iconHint(blockType),
-            });
-        };
-
-        pushBloco(aquecimento, 'warmup', 'Aquecimento', 'AQ');
-
-        if (isIntervalado) {
-            // Uma repetição por bloco, alternando esforço e recuperação — mesma leitura do
-            // DetalheTreinoDialog, que desenha as etapas já expandidas. Agregar a série em um bloco
-            // de `duração × repetições` escondia a estrutura justamente na tela onde o treinador
-            // decide se ela está certa.
-            const rep       = Math.max(1, repeticoes);
-            const durEsf    = parseInt(principal.duracaoMin, 10) || 0;
-            const durRec    = parseInt(recuperacao.duracaoMin, 10) || 0;
-            const zoneEsf   = zoneFromString(principal.zonaAlvo);
-            const zoneRec   = zoneFromString(recuperacao.zonaAlvo);
-
-            for (let i = 1; i <= rep; i++) {
-                if (durEsf > 0) {
-                    blocks.push({
-                        id:          `interval-${i}`,
-                        label:       `Esforço ${i}/${rep}`,
-                        shortLabel:  rep > 1 ? `${i}/${rep}` : 'ESF',
-                        durationMin: durEsf,
-                        zone:        zoneEsf,
-                        zoneKey:     `Z${zoneEsf}` as ZoneKey,
-                        blockType:   'interval',
-                        description: principal.zonaAlvo || undefined,
-                        icon:        'main',
-                    });
-                }
-                if (durRec > 0) {
-                    blocks.push({
-                        id:          `recovery-${i}`,
-                        label:       `Recuperação ${i}/${rep}`,
-                        shortLabel:  'REC',
-                        durationMin: durRec,
-                        zone:        zoneRec,
-                        zoneKey:     `Z${zoneRec}` as ZoneKey,
-                        blockType:   'recovery',
-                        description: recuperacao.zonaAlvo || undefined,
-                        icon:        'main',
-                    });
-                }
+        itens.forEach((item, idx) => {
+            if (item.kind === 'step') {
+                const durationMin = parseInt(item.duracaoMin, 10) || 0;
+                if (durationMin <= 0) return;
+                const zone = zoneFromString(item.fcAlvoEtapa);
+                const blockType = blockTypeDe(item.tipoEtapa);
+                blocks.push({
+                    id: `step-${item.id}`,
+                    label: item.tipoEtapa || 'Etapa',
+                    shortLabel: (item.tipoEtapa || 'ETAPA').slice(0, 5),
+                    durationMin,
+                    zone,
+                    zoneKey: `Z${zone}` as ZoneKey,
+                    blockType,
+                    description: item.fcAlvoEtapa || undefined,
+                    icon: iconHint(blockType),
+                });
+                return;
             }
-        } else {
-            pushBloco(principal, 'main', 'Treino', 'TR');
-        }
 
-        pushBloco(desaquecimento, 'cooldown', 'Desaquecimento', 'DQ');
+            const reps = Math.max(1, parseInt(item.repeticoes, 10) || 1);
+            for (let r = 1; r <= reps; r++) {
+                item.steps.forEach((sub, si) => {
+                    const durationMin = parseInt(sub.duracaoMin, 10) || 0;
+                    if (durationMin <= 0) return;
+                    const zone = zoneFromString(sub.fcAlvoEtapa);
+                    const blockType = blockTypeDe(sub.tipoEtapa);
+                    blocks.push({
+                        id: `bloco-${idx}-${r}-${si}`,
+                        label: `${sub.tipoEtapa || 'Etapa'} ${r}/${reps}`,
+                        // Só a primeira etapa da repetição leva o contador; as demais mostram o
+                        // tipo, senão a série inteira vira uma fileira de "1/4" repetidos.
+                        shortLabel: reps > 1 && si === 0
+                            ? `${r}/${reps}`
+                            : (sub.tipoEtapa || 'ETAPA').slice(0, 5),
+                        durationMin,
+                        zone,
+                        zoneKey: `Z${zone}` as ZoneKey,
+                        blockType,
+                        description: sub.fcAlvoEtapa || undefined,
+                        icon: iconHint(blockType),
+                    });
+                });
+            }
+        });
 
         return blocks;
-    }, [aquecimento, principal, recuperacao, desaquecimento, isIntervalado, repeticoes]);
+    }, [itens]);
 
-    const handleSalvar = () => {
+    /** Tipos que o treino tinha e deixou de ter — base do aviso antes de salvar. */
+    const etapasRemovidas = (): string[] => {
+        const tinha = new Set((treino.etapas ?? []).map(e => e.tipoEtapa?.toUpperCase()));
+        const tem = new Set(
+            itens.flatMap(i => i.kind === 'step' ? [i.tipoEtapa] : i.steps.map(s => s.tipoEtapa))
+                 .map(t => t?.toUpperCase()),
+        );
+        return ['AQUECIMENTO', 'DESAQUECIMENTO'].filter(t => tinha.has(t) && !tem.has(t));
+    };
+
+    // ── Manipulação da lista de itens ────────────────────────────────────────
+
+    const mudou = (fn: (prev: EtapaItem[]) => EtapaItem[]) => {
+        setItens(fn);
+        setBlocosMudados(true);
+    };
+
+    const atualizaStep = (idx: number, b: BlocoState) =>
+        mudou(prev => prev.map((it, i) =>
+            i !== idx || it.kind !== 'step' ? it : { ...it, ...camposDe(b) }));
+
+    const atualizaSubStep = (idx: number, si: number, b: BlocoState) =>
+        mudou(prev => prev.map((it, i) =>
+            i !== idx || it.kind !== 'block' ? it
+                : { ...it, steps: it.steps.map((s, y) => y !== si ? s : { ...s, ...camposDe(b) }) }));
+
+    const atualizaTipoStep = (idx: number, tipo: string) =>
+        mudou(prev => prev.map((it, i) =>
+            i !== idx || it.kind !== 'step' ? it : { ...it, tipoEtapa: tipo }));
+
+    const atualizaTipoSubStep = (idx: number, si: number, tipo: string) =>
+        mudou(prev => prev.map((it, i) =>
+            i !== idx || it.kind !== 'block' ? it
+                : { ...it, steps: it.steps.map((s, y) => y !== si ? s : { ...s, tipoEtapa: tipo }) }));
+
+    const atualizaReps = (idx: number, delta: number) =>
+        mudou(prev => prev.map((it, i) => {
+            if (i !== idx || it.kind !== 'block') return it;
+            const atual = parseInt(it.repeticoes, 10) || 1;
+            return { ...it, repeticoes: String(Math.min(20, Math.max(1, atual + delta))) };
+        }));
+
+    const adicionarStep = () => mudou(prev => [...prev, emptyStep()]);
+    const adicionarBloco = () => mudou(prev => [...prev, emptyBlock()]);
+
+    const adicionarSubStep = (idx: number) =>
+        mudou(prev => prev.map((it, i) =>
+            i !== idx || it.kind !== 'block' ? it : { ...it, steps: [...it.steps, emptySubStep()] }));
+
+    const removerSubStep = (idx: number, si: number) =>
+        mudou(prev => prev.map((it, i) =>
+            i !== idx || it.kind !== 'block' ? it : { ...it, steps: it.steps.filter((_, y) => y !== si) }));
+
+    const removerItem = (idx: number) => mudou(prev => prev.filter((_, i) => i !== idx));
+
+    const moverItem = (idx: number, delta: number) =>
+        mudou(prev => {
+            const destino = idx + delta;
+            if (destino < 0 || destino >= prev.length) return prev;
+            const copia = [...prev];
+            [copia[idx], copia[destino]] = [copia[destino], copia[idx]];
+            return copia;
+        });
+
+    const montarPatch = (): TreinoPlanejadoPatch => {
         const patch: TreinoPlanejadoPatch = {};
 
         if (tipoTreino && tipoTreino !== treino.tipoTreino) patch.tipoTreino = tipoTreino;
 
-        // Totals always include aquecimento + main block(s) + desaquecimento
-        const distNum = totalKm ? parseFloat(totalKm) : NaN;
-        const durMin  = totalMin ? parseInt(totalMin, 10) : NaN;
+        // Distância e duração são DERIVADAS das etapas, então também ficam atrás da guarda. Sem
+        // isso a promessa do CA7 valeria só para `etapas`: um treino cujo total no cabeçalho não
+        // bate com a soma das etapas (arredondamento, ou o campo gravado antes de as etapas
+        // existirem) teria os dois campos reescritos ao mudar apenas o TSS.
+        if (blocosMudados) {
+            const distNum = totalKm ? parseFloat(totalKm) : NaN;
+            const durMin  = totalMin ? parseInt(totalMin, 10) : NaN;
 
-        if (!isNaN(distNum) && distNum !== treino.distanciaKm) patch.distanciaKm = distNum;
+            if (!isNaN(distNum) && distNum !== treino.distanciaKm) patch.distanciaKm = distNum;
 
-        const duracaoIso = toIso8601(String(durMin));
-        if (duracaoIso && duracaoIso !== treino.duracaoMin) patch.duracaoMin = duracaoIso;
+            const duracaoIso = toIso8601(String(durMin));
+            if (duracaoIso && duracaoIso !== treino.duracaoMin) patch.duracaoMin = duracaoIso;
+        }
 
-        if (principal.zonaAlvo && principal.zonaAlvo !== treino.zonaAlvo) patch.zonaAlvo = principal.zonaAlvo;
+        if (zonaAlvo && zonaAlvo !== treino.zonaAlvo) patch.zonaAlvo = zonaAlvo;
 
-        const rpeNum = parseInt(principal.rpe, 10);
+        const rpeNum = parseInt(rpe, 10);
         if (!isNaN(rpeNum) && rpeNum !== treino.percepcaoEsforcoEsperada) patch.percepcaoEsforcoEsperada = rpeNum;
 
         const tssNum = parseInt(tss, 10);
@@ -411,57 +534,42 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
 
         if (observacao !== treino.observacao) patch.observacao = observacao || undefined;
 
-        // Inclui etapas no patch apenas se o usuário alterou algum bloco
+        // Etapas só entram no patch se o treinador mexeu nelas. Sem esta guarda, mudar apenas o TSS
+        // regravaria a estrutura inteira — a hidratação infere blocos e a serialização os reexpande,
+        // e o backend limpa e recria. O treino "não mudou" e mesmo assim foi reescrito.
         if (blocosMudados) {
-            const etapasPatch: EtapaTreinoDto[] = [];
-            let ordem = 1;
-
-            const distAq = parseFloat(aquecimento.distanciaKm) || undefined;
-            const durAq  = parseInt(aquecimento.duracaoMin, 10) || undefined;
-            if (distAq || durAq) {
-                etapasPatch.push({ ordem: ordem++, tipoEtapa: 'AQUECIMENTO',
-                    distanciaKm: distAq, duracaoMin: durAq, fcAlvoEtapa: aquecimento.zonaAlvo || undefined });
-            }
-
-            if (isIntervalado) {
-                const rep    = Math.max(1, repeticoes);
-                const distPr = parseFloat(principal.distanciaKm) || undefined;
-                const durPr  = parseInt(principal.duracaoMin, 10) || undefined;
-                if (distPr || durPr) {
-                    etapasPatch.push({ ordem: ordem++, tipoEtapa: 'INTERVALADO', repeticoes: rep,
-                        distanciaKm: distPr, duracaoMin: durPr, fcAlvoEtapa: principal.zonaAlvo || undefined });
-                }
-                const distRec = parseFloat(recuperacao.distanciaKm) || undefined;
-                const durRec  = parseInt(recuperacao.duracaoMin, 10) || undefined;
-                if (distRec || durRec) {
-                    etapasPatch.push({ ordem: ordem++, tipoEtapa: 'RECUPERACAO', repeticoes: rep,
-                        distanciaKm: distRec, duracaoMin: durRec, fcAlvoEtapa: recuperacao.zonaAlvo || undefined });
-                }
-            } else {
-                const distPr = parseFloat(principal.distanciaKm) || undefined;
-                const durPr  = parseInt(principal.duracaoMin, 10) || undefined;
-                if (distPr || durPr) {
-                    etapasPatch.push({ ordem: ordem++, tipoEtapa: 'PRINCIPAL',
-                        distanciaKm: distPr, duracaoMin: durPr, fcAlvoEtapa: principal.zonaAlvo || undefined });
-                }
-            }
-
-            const distDq = parseFloat(desaquecimento.distanciaKm) || undefined;
-            const durDq  = parseInt(desaquecimento.duracaoMin, 10) || undefined;
-            if (distDq || durDq) {
-                etapasPatch.push({ ordem: ordem++, tipoEtapa: 'DESAQUECIMENTO',
-                    distanciaKm: distDq, duracaoMin: durDq, fcAlvoEtapa: desaquecimento.zonaAlvo || undefined });
-            }
-
+            const etapasPatch = serializarItens(itens);
             if (etapasPatch.length > 0) patch.etapas = etapasPatch;
         }
+
+        return patch;
+    };
+
+    const handleSalvar = () => {
+        const patch = montarPatch();
 
         if (Object.keys(patch).length === 0) {
             onClose();
             return;
         }
 
+        // Aviso, não bloqueio: o treinador decide a estrutura. O que se evita é a remoção acidental
+        // durante uma edição rápida — um intervalado sem aquecimento manda o atleta direto para Z5.
+        const removidas = blocosMudados ? etapasRemovidas() : [];
+        if (removidas.length > 0) {
+            setPendente(patch);
+            setAvisoRemocao(removidas);
+            return;
+        }
+
         onSave(patch);
+    };
+
+    const confirmarRemocao = () => {
+        const patch = pendente;
+        setAvisoRemocao(null);
+        setPendente(null);
+        if (patch) onSave(patch);
     };
 
     const diaSemana = typeof treino.diaSemana === 'string'
@@ -610,116 +718,176 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
 
                 <WorkoutTimelineChart blocks={liveBlocks} />
 
-                {/* ── Aquecimento — presente em todos os tipos ── */}
-                <BlocoCard
-                    label="Aquecimento"
-                    accent={ACCENT.aquecimento}
-                    bloco={aquecimento}
-                    onChange={b => { setAquecimento(b); marcaBlocoMudado(); }}
-                    disabled={isSaving}
-                />
+                {/* ── Lista de etapas: avulsas e blocos repetidos ── */}
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {itens.length === 0 && (
+                        <Box sx={{ py: 2, textAlign: 'center', color: surface[500], fontSize: '0.8rem' }}>
+                            Nenhuma etapa. Use os botões abaixo para montar o treino.
+                        </Box>
+                    )}
 
-                {isIntervalado ? (
-                    /* ── Série (Intervalado / Fartlek) ── */
-                    // flexShrink: 0 evita que o flex column do DialogContent colapse este bloco a
-                    // ~0px: overflow:'hidden' zera o min-height automático do item flex, tornando-o
-                    // o único candidato a encolher quando o conteúdo total excede a altura do dialog.
-                    <Box sx={{ border: `1px solid ${overlayWhite[10]}`, borderRadius: '10px', overflow: 'hidden', flexShrink: 0 }}>
+                    {itens.map((item, idx) => item.kind === 'step' ? (
+                        <BlocoCard
+                            key={item.id}
+                            label={item.tipoEtapa || 'Etapa'}
+                            accent={accentDe(item.tipoEtapa)}
+                            bloco={blocoStateDe(item)}
+                            onChange={b => atualizaStep(idx, b)}
+                            disabled={isSaving}
+                            tipoEtapa={item.tipoEtapa}
+                            onTipoChange={t => atualizaTipoStep(idx, t)}
+                            tipoAriaLabel={`Tipo da etapa ${idx + 1}`}
+                            actions={
+                                <ItemActions
+                                    idx={idx}
+                                    total={itens.length}
+                                    disabled={isSaving}
+                                    onMover={moverItem}
+                                    onRemover={removerItem}
+                                />
+                            }
+                        />
+                    ) : (
                         <Box
+                            key={item.id}
                             sx={{
-                                px: 1.5,
-                                py: 0.85,
-                                bgcolor: alpha(surface[0], 0.035),
-                                borderBottom: `1px solid ${overlayWhite[7]}`,
+                                border: `1px solid ${overlayWhite[7]}`,
+                                borderRadius: '8px',
+                                p: 1,
                                 display: 'flex',
-                                alignItems: 'center',
+                                flexDirection: 'column',
+                                gap: 0.75,
                             }}
                         >
-                            <Typography
-                                sx={{
-                                    fontSize: '0.62rem',
-                                    fontWeight: 700,
-                                    color: surface[500],
-                                    letterSpacing: '0.08em',
-                                    textTransform: 'uppercase',
-                                    fontFamily: 'monospace',
-                                }}
-                            >
-                                Série
-                            </Typography>
-
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, ml: 'auto' }}>
-                                <IconButton
-                                    size="small"
-                                    onClick={() => { setRepeticoes(r => Math.max(1, r - 1)); marcaBlocoMudado(); }}
-                                    disabled={isSaving || repeticoes <= 1}
-                                    aria-label="Diminuir repetições"
-                                    sx={{ p: 0.3, color: surface[500], '&:hover': { color: surface[100] } }}
-                                >
-                                    <RemoveIcon sx={{ fontSize: 13 }} />
-                                </IconButton>
-                                <Box
-                                    data-testid="repeticoes-display"
-                                    sx={{
-                                        minWidth: 44,
-                                        textAlign: 'center',
-                                        fontSize: '1rem',
-                                        fontWeight: 800,
-                                        color: primary[500],
-                                        fontFamily: 'monospace',
-                                        letterSpacing: '-0.02em',
-                                    }}
-                                >
-                                    {repeticoes}×
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 0.5 }}>
+                                <Box sx={{ fontSize: '0.7rem', letterSpacing: '0.08em', color: surface[400] }}>
+                                    SÉRIE
                                 </Box>
-                                <IconButton
-                                    size="small"
-                                    onClick={() => { setRepeticoes(r => Math.min(20, r + 1)); marcaBlocoMudado(); }}
-                                    disabled={isSaving || repeticoes >= 20}
-                                    aria-label="Aumentar repetições"
-                                    sx={{ p: 0.3, color: surface[500], '&:hover': { color: surface[100] } }}
-                                >
-                                    <AddIcon sx={{ fontSize: 13 }} />
-                                </IconButton>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 'auto' }}>
+                                    <IconButton
+                                        size="small"
+                                        aria-label={`Diminuir repetições da série ${idx + 1}`}
+                                        disabled={isSaving || (parseInt(item.repeticoes, 10) || 1) <= 1}
+                                        onClick={() => atualizaReps(idx, -1)}
+                                    >
+                                        <RemoveIcon sx={{ fontSize: 15 }} />
+                                    </IconButton>
+                                    <Box
+                                        data-testid={`repeticoes-display-${idx}`}
+                                        sx={{ minWidth: 28, textAlign: 'center', fontWeight: 700, color: primary[400] }}
+                                    >
+                                        {item.repeticoes}×
+                                    </Box>
+                                    <IconButton
+                                        size="small"
+                                        aria-label={`Aumentar repetições da série ${idx + 1}`}
+                                        disabled={isSaving || (parseInt(item.repeticoes, 10) || 1) >= 20}
+                                        onClick={() => atualizaReps(idx, 1)}
+                                    >
+                                        <AddIcon sx={{ fontSize: 15 }} />
+                                    </IconButton>
+                                    <ItemActions
+                                        idx={idx}
+                                        total={itens.length}
+                                        disabled={isSaving}
+                                        onMover={moverItem}
+                                        onRemover={removerItem}
+                                        nome="série"
+                                    />
+                                </Box>
                             </Box>
-                        </Box>
 
-                        <Box sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
-                            <BlocoCard
-                                label="Esforço"
-                                accent={ACCENT.esforco}
-                                bloco={principal}
-                                onChange={b => { setPrincipal(b); marcaBlocoMudado(); }}
+                            {item.steps.map((sub, si) => (
+                                <BlocoCard
+                                    key={sub.id}
+                                    label={sub.tipoEtapa || 'Etapa'}
+                                    accent={accentDe(sub.tipoEtapa)}
+                                    bloco={blocoStateDe(sub)}
+                                    onChange={b => atualizaSubStep(idx, si, b)}
+                                    disabled={isSaving}
+                                    tipoEtapa={sub.tipoEtapa}
+                                    onTipoChange={t => atualizaTipoSubStep(idx, si, t)}
+                                    tipoAriaLabel={`Tipo da etapa ${si + 1} da série ${idx + 1}`}
+                                    actions={
+                                        <IconButton
+                                            size="small"
+                                            aria-label={`Remover etapa ${si + 1} da série ${idx + 1}`}
+                                            disabled={isSaving || item.steps.length <= 1}
+                                            onClick={() => removerSubStep(idx, si)}
+                                        >
+                                            <RemoveIcon sx={{ fontSize: 15 }} />
+                                        </IconButton>
+                                    }
+                                />
+                            ))}
+
+                            <Button
+                                size="small"
+                                startIcon={<AddIcon />}
+                                onClick={() => adicionarSubStep(idx)}
                                 disabled={isSaving}
-                            />
-                            <BlocoCard
-                                label="Recuperação"
-                                accent={ACCENT.recuperacao}
-                                bloco={recuperacao}
-                                onChange={b => { setRecuperacao(b); marcaBlocoMudado(); }}
-                                disabled={isSaving}
-                            />
+                                sx={{ ...GHOST_BTN_SX, alignSelf: 'flex-start' }}
+                            >
+                                Etapa na série
+                            </Button>
+                        </Box>
+                    ))}
+
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Button
+                            size="small"
+                            startIcon={<AddIcon />}
+                            onClick={adicionarStep}
+                            disabled={isSaving}
+                            sx={GHOST_BTN_SX}
+                        >
+                            Etapa
+                        </Button>
+                        <Button
+                            size="small"
+                            startIcon={<RepeatIcon />}
+                            onClick={adicionarBloco}
+                            disabled={isSaving}
+                            sx={GHOST_BTN_SX}
+                        >
+                            Série
+                        </Button>
+                    </Box>
+                </Box>
+
+                {avisoRemocao && (
+                    <Box
+                        // role="alert" e não "alertdialog": é uma faixa inline, sem captura de
+                        // foco nem Escape. Prometer modalidade que não existe confunde o leitor de
+                        // tela mais do que ajuda.
+                        role="alert"
+                        aria-label="Confirmar remoção de etapa"
+                        sx={{
+                            border: `1px solid ${alpha(primary[500], 0.4)}`,
+                            borderRadius: '8px',
+                            p: 1.5,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 1,
+                        }}
+                    >
+                        <Box sx={{ fontSize: '0.82rem', color: surface[200] }}>
+                            {avisoRemocao.length === 1
+                                ? `Este treino ficará sem ${avisoRemocao[0].toLowerCase()}.`
+                                : 'Este treino ficará sem aquecimento e sem desaquecimento.'}
+                            {' '}Confirmar mesmo assim?
+                        </Box>
+                        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                            <Button size="small" sx={GHOST_BTN_SX}
+                                onClick={() => { setAvisoRemocao(null); setPendente(null); }}>
+                                Voltar
+                            </Button>
+                            <Button size="small" sx={PRIMARY_BTN_SX} onClick={confirmarRemocao}>
+                                Salvar assim
+                            </Button>
                         </Box>
                     </Box>
-                ) : (
-                    /* ── Bloco principal (tipos simples) ── */
-                    <BlocoCard
-                        label="Treino"
-                        accent={ACCENT.principal}
-                        bloco={principal}
-                        onChange={b => { setPrincipal(b); marcaBlocoMudado(); }}
-                        disabled={isSaving}
-                    />
                 )}
-
-                {/* ── Desaquecimento — presente em todos os tipos ── */}
-                <BlocoCard
-                    label="Desaquecimento"
-                    accent={ACCENT.desaquecimento}
-                    bloco={desaquecimento}
-                    onChange={b => { setDesaquecimento(b); marcaBlocoMudado(); }}
-                    disabled={isSaving}
-                />
 
                 {/* ── Campos globais ── */}
                 <Box
@@ -732,6 +900,28 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
                         gap: 1.25,
                     }}
                 >
+                    <Box sx={{ display: 'flex', gap: 1.25 }}>
+                        <TextField
+                            label="Zona alvo"
+                            value={zonaAlvo}
+                            onChange={e => setZonaAlvo(e.target.value)}
+                            disabled={isSaving}
+                            size="small"
+                            fullWidth
+                            sx={footerFieldSx}
+                        />
+                        <TextField
+                            label="RPE (1–10)"
+                            type="number"
+                            value={rpe}
+                            onChange={e => setRpe(e.target.value)}
+                            disabled={isSaving}
+                            size="small"
+                            fullWidth
+                            inputProps={{ min: 1, max: 10, step: 1 }}
+                            sx={footerFieldSx}
+                        />
+                    </Box>
                     <TextField
                         label="TSS planejado (opcional)"
                         placeholder="Calculado automaticamente"
