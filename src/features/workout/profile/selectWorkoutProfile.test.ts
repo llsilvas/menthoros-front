@@ -1,0 +1,218 @@
+import { describe, it, expect } from 'vitest';
+import { selectWorkoutProfile } from './selectWorkoutProfile';
+import type { ProfileEtapaInput } from './input';
+
+const etapa = (over: Partial<ProfileEtapaInput> = {}): ProfileEtapaInput => ({
+  tipo: 'PRINCIPAL',
+  duracaoMin: 10,
+  ...over,
+});
+
+const ctx = { sport: 'run' as const };
+
+describe('selectWorkoutProfile — zona', () => {
+  it('lê a zona declarada pelo treinador no alvo da etapa', () => {
+    const [b] = selectWorkoutProfile([etapa({ fcAlvo: 'Z4' })], ctx).blocks;
+    expect(b.zone).toBe('Z4');
+    expect(b.confidence).toBe('prescribed');
+  });
+
+  it('infere do tipo da etapa quando não há zona declarada, e marca como estimativa', () => {
+    const [b] = selectWorkoutProfile([etapa({ tipo: 'AQUECIMENTO' })], ctx).blocks;
+    expect(b.zone).toBe('Z1');
+    expect(b.confidence).toBe('derived');
+  });
+
+  // O `toWorkoutBlocks` fazia `return 1` quando não sabia. Uma barra Z1 é uma
+  // afirmação — "este trecho é leve" — e era falsa metade das vezes.
+  it('não inventa Z1 quando não há base nenhuma', () => {
+    const [b] = selectWorkoutProfile([etapa({ tipo: 'XPTO' })], ctx).blocks;
+    expect(b.confidence).toBe('unknown');
+  });
+
+  it('desaquecimento não é lido como aquecimento', () => {
+    const [b] = selectWorkoutProfile([etapa({ tipo: 'DESAQUECIMENTO' })], ctx).blocks;
+    expect(b.kind).toBe('cooldown');
+  });
+});
+
+describe('selectWorkoutProfile — etapas sem duração', () => {
+  // O componente antigo desenhava barra de largura zero: some da tela sem
+  // avisar, e o treinador aprova um treino com uma etapa que não existe.
+  it('descarta a etapa do eixo e conta o descarte', () => {
+    const p = selectWorkoutProfile(
+      [etapa({ fcAlvo: 'Z2' }), etapa({ duracaoMin: undefined }), etapa({ duracaoMin: 0 })],
+      ctx,
+    );
+    expect(p.blocks).toHaveLength(1);
+    expect(p.droppedBlocks).toBe(2);
+  });
+
+  it('todas sem duração cai no estado vazio, não num gráfico de nada', () => {
+    const p = selectWorkoutProfile([etapa({ duracaoMin: undefined })], ctx);
+    expect(p.blocks).toHaveLength(0);
+    expect(p.metrics.totalDurationSec).toBe(0);
+    expect(p.metrics.targetZone).toBeNull();
+  });
+
+  it('reindexa `order` densamente após os descartes', () => {
+    const p = selectWorkoutProfile(
+      [etapa({ fcAlvo: 'Z1' }), etapa({ duracaoMin: 0 }), etapa({ fcAlvo: 'Z3' })],
+      ctx,
+    );
+    expect(p.blocks.map((b) => b.order)).toEqual([0, 1]);
+  });
+});
+
+// O exemplo trabalhado da spec §2.6: 40min, 12 blocos, 5×(3' limiar + 2' trote),
+// aquecimento de 10' e desaquecimento de 5'.
+describe('selectWorkoutProfile — métricas sobre o exemplo da spec §2.6', () => {
+  const cincoVezesTres: ProfileEtapaInput[] = [
+    etapa({ tipo: 'AQUECIMENTO', duracaoMin: 10, fcAlvo: 'Z2' }),
+    ...Array.from({ length: 5 }, (_, i) => [
+      etapa({ tipo: 'INTERVALADO', duracaoMin: 3, fcAlvo: 'Z4', blocoId: 'g1', blocoRepeticoes: 5, blocoRepeticaoIndex: i + 1 }),
+      etapa({ tipo: 'RECUPERACAO', duracaoMin: 2, fcAlvo: 'Z1', blocoId: 'g1', blocoRepeticoes: 5, blocoRepeticaoIndex: i + 1 }),
+    ]).flat(),
+    etapa({ tipo: 'DESAQUECIMENTO', duracaoMin: 5, fcAlvo: 'Z2' }),
+  ];
+
+  const p = selectWorkoutProfile(cincoVezesTres, { sport: 'run', tss: 62 });
+
+  it('conta 12 blocos e 40 minutos', () => {
+    expect(p.metrics.blockCount).toBe(12);
+    expect(p.metrics.totalDurationSec).toBe(2400);
+  });
+
+  it('distribui exatamente como a spec: Z1 25%, Z2 37,5%, Z4 37,5%', () => {
+    const porZona = Object.fromEntries(p.metrics.distribution.map((d) => [d.zone, d]));
+    expect(porZona.Z1.seconds).toBe(600);
+    expect(porZona.Z2.seconds).toBe(900);
+    expect(porZona.Z4.seconds).toBe(900);
+    expect(porZona.Z1.share).toBeCloseTo(0.25, 3);
+    expect(porZona.Z2.share).toBeCloseTo(0.375, 3);
+    expect(porZona.Z4.share).toBeCloseTo(0.375, 3);
+  });
+
+  it('elege Z4 como zona-alvo — a maior acima de 15%', () => {
+    expect(p.metrics.targetZone).toBe('Z4');
+    expect(p.metrics.targetZoneSeconds).toBe(900);
+  });
+
+  it('mede o maior bloco contínuo de trabalho em 3 minutos', () => {
+    expect(p.metrics.longestWorkBlockSec).toBe(180);
+  });
+
+  // 3:2 é como o treinador enuncia o treino. A razão global de um longo com
+  // sprint final não diria nada — por isso é medida DENTRO da série.
+  it('calcula trabalho:recuperação dentro da série, não global', () => {
+    expect(p.metrics.workToRecoveryRatio).toBeCloseTo(1.5, 3);
+  });
+
+  it('repassa TSS do consumidor e deixa IF nulo quando não vem', () => {
+    expect(p.metrics.tss).toBe(62);
+    expect(p.metrics.intensityFactor).toBeNull();
+  });
+
+  it('marca as dez repetições com groupId, index e total', () => {
+    const series = p.blocks.filter((b) => b.repeat);
+    expect(series).toHaveLength(10);
+    expect(series.map((b) => b.repeat!.index)).toEqual([1, 1, 2, 2, 3, 3, 4, 4, 5, 5]);
+    expect(series.every((b) => b.repeat!.total === 5)).toBe(true);
+  });
+
+  it('não está degradado — todas as zonas foram declaradas', () => {
+    expect(p.degraded).toBe(false);
+  });
+});
+
+describe('selectWorkoutProfile — zona-alvo', () => {
+  it('ignora o pico incidental: um sprint curto não faz o treino ser Z5', () => {
+    const longoComSprint = [
+      etapa({ duracaoMin: 118, fcAlvo: 'Z2' }),
+      etapa({ duracaoMin: 2, fcAlvo: 'Z5' }),
+    ];
+    expect(selectWorkoutProfile(longoComSprint, ctx).metrics.targetZone).toBe('Z2');
+  });
+
+  it('sem nenhuma zona acima de 15%, não inventa um alvo', () => {
+    const picotado = [
+      etapa({ duracaoMin: 60, fcAlvo: 'Z1' }),
+      etapa({ duracaoMin: 8, fcAlvo: 'Z2' }),
+      etapa({ duracaoMin: 8, fcAlvo: 'Z3' }),
+      etapa({ duracaoMin: 8, fcAlvo: 'Z4' }),
+    ];
+    const p = selectWorkoutProfile(picotado, ctx);
+    expect(p.metrics.distribution.find((d) => d.zone === 'Z1')!.share).toBeGreaterThan(0.15);
+    expect(p.metrics.targetZone).toBe('Z1');
+  });
+
+  it('entre duas zonas acima de 15%, escolhe a mais alta', () => {
+    const p = selectWorkoutProfile(
+      [etapa({ duracaoMin: 30, fcAlvo: 'Z2' }), etapa({ duracaoMin: 30, fcAlvo: 'Z4' })],
+      ctx,
+    );
+    expect(p.metrics.targetZone).toBe('Z4');
+  });
+});
+
+describe('selectWorkoutProfile — modo degradado (§6.4)', () => {
+  const semZona = [
+    etapa({ tipo: 'AQUECIMENTO', duracaoMin: 10 }),
+    etapa({ tipo: 'INTERVALADO', duracaoMin: 20 }),
+    etapa({ tipo: 'RECUPERACAO', duracaoMin: 10 }),
+  ];
+  const p = selectWorkoutProfile(semZona, ctx);
+
+  it('marca o perfil como degradado quando nenhuma zona foi declarada', () => {
+    expect(p.degraded).toBe(true);
+  });
+
+  it('a altura passa a codificar o papel do bloco, em três níveis declarados', () => {
+    const alturas = Object.fromEntries(p.blocks.map((b) => [b.kind, b.intensityNormalized]));
+    expect(alturas.warmup).toBeCloseTo(0.50, 3);
+    expect(alturas.work).toBeCloseTo(0.85, 3);
+    expect(alturas.recovery).toBeCloseTo(0.25, 3);
+  });
+
+  it('não elege zona-alvo — seria afirmar o que não se sabe', () => {
+    expect(p.metrics.targetZone).toBeNull();
+  });
+
+  it('distribui por papel, não por zona', () => {
+    expect(p.metrics.kindDistribution).toBeDefined();
+    const soma = p.metrics.kindDistribution!.reduce((s, k) => s + k.share, 0);
+    expect(soma).toBeCloseTo(1, 3);
+  });
+});
+
+describe('selectWorkoutProfile — invariantes do AC-6', () => {
+  const casos: Array<[string, ProfileEtapaInput[]]> = [
+    ['série clássica', [
+      etapa({ duracaoMin: 10, fcAlvo: 'Z2' }),
+      etapa({ duracaoMin: 15, fcAlvo: 'Z4' }),
+      etapa({ duracaoMin: 5, fcAlvo: 'Z1' }),
+    ]],
+    ['tudo numa zona só', [etapa({ duracaoMin: 45, fcAlvo: 'Z3' })]],
+    ['picotado sem dominante', [
+      etapa({ duracaoMin: 60, fcAlvo: 'Z1' }),
+      etapa({ duracaoMin: 5, fcAlvo: 'Z5' }),
+    ]],
+    ['degradado', [etapa({ duracaoMin: 30 }), etapa({ tipo: 'XPTO', duracaoMin: 30 })]],
+    ['com descartes', [etapa({ duracaoMin: 20, fcAlvo: 'Z2' }), etapa({ duracaoMin: 0 })]],
+  ];
+
+  it.each(casos)('%s: a distribuição soma 100%%', (_nome, etapas) => {
+    const soma = selectWorkoutProfile(etapas, ctx).metrics.distribution.reduce((s, d) => s + d.share, 0);
+    expect(Math.abs(soma - 1)).toBeLessThanOrEqual(0.005);
+  });
+
+  // A regressão exata do briefing: badge "Z1 100%" sobre blocos laranja. Só é
+  // impossível porque badge e distribuição saem do mesmo retorno.
+  it.each(casos)('%s: a zona da badge existe na distribuição com share ≥ 15%%', (_nome, etapas) => {
+    const { metrics } = selectWorkoutProfile(etapas, ctx);
+    if (metrics.targetZone === null) return;
+    const fatia = metrics.distribution.find((d) => d.zone === metrics.targetZone);
+    expect(fatia, `targetZone ${metrics.targetZone} ausente da distribuição`).toBeDefined();
+    expect(fatia!.share).toBeGreaterThanOrEqual(0.15);
+  });
+});
