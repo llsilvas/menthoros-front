@@ -177,7 +177,10 @@ export function ProfilePlot({ profile, variant, activeBlockId, onActivate, onSel
                   // enquanto o treinador passa o mouse.
                   opacity: ativo ? 1 : fill.inactiveAlpha,
                   display: 'flex',
-                  alignItems: 'flex-start',
+                  // Num bloco com rampa o topo é justamente onde o trapézio não
+                  // existe: um rótulo ancorado ali é decepado pelo `clip-path` —
+                  // "AQUECIMENTO" vira "TO". Na base o recorte é sempre cheio.
+                  alignItems: bloco.ramp ? 'flex-end' : 'flex-start',
                   justifyContent: 'center',
                   overflow: 'hidden',
                   '@media (prefers-reduced-motion: no-preference)': {
@@ -196,7 +199,7 @@ export function ProfilePlot({ profile, variant, activeBlockId, onActivate, onSel
                     component="span"
                     data-testid="block-label"
                     sx={{
-                      mt: '4px',
+                      ...(bloco.ramp ? { mb: '4px' } : { mt: '4px' }),
                       px: '2px',
                       color: activeTheme.surface[900],
                       fontFamily: type.blockLabel.family,

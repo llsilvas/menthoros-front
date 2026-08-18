@@ -191,6 +191,42 @@ test.describe('perfil do treino — geometria', () => {
     }
   })
 
+  /**
+   * Regressão visual: o rótulo das rampas ficava ancorado no topo do bloco —
+   * justamente onde o trapézio não existe —, e o `clip-path` decepava o texto.
+   * "AQUECIMENTO" aparecia como "TO" na tela.
+   *
+   * O AC-7 não pegava: ele procura o caractere `…` e `text-overflow: ellipsis`,
+   * e aqui o corte vinha do recorte geométrico. Um rótulo decepado informa menos
+   * que nenhum, que é exatamente o que aquele critério existe para impedir.
+   */
+  test('o rótulo de uma rampa fica na parte sólida do trapézio', async ({ page }) => {
+    await abrirPerfil(page)
+
+    const rampas = page.getByTestId('workout-block').filter({ has: page.locator('[data-testid="block-label"]') })
+    const medidas = await rampas.evaluateAll(els =>
+      els
+        .filter(el => el.getAttribute('data-ramp'))
+        .map(el => {
+          const bloco = el.getBoundingClientRect()
+          const rotulo = el.querySelector('[data-testid="block-label"]')!.getBoundingClientRect()
+          return {
+            texto: el.textContent ?? '',
+            centroRotulo: rotulo.top + rotulo.height / 2,
+            meioBloco: bloco.top + bloco.height / 2,
+            baseBloco: bloco.bottom,
+          }
+        }),
+    )
+
+    expect(medidas.length, 'o treino precisa ter rampas rotuladas').toBeGreaterThan(0)
+    for (const m of medidas) {
+      expect(m.centroRotulo, `"${m.texto}" está na metade de cima da rampa, onde o recorte corta`)
+        .toBeGreaterThan(m.meioBloco)
+      expect(m.centroRotulo).toBeLessThan(m.baseBloco)
+    }
+  })
+
   test('AC-8: uma superfície com borda e um único elemento caixa-alta', async ({ page }) => {
     await abrirPerfil(page)
 
