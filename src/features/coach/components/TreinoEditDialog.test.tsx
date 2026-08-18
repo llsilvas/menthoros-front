@@ -179,14 +179,30 @@ describe('TreinoEditDialog — série', () => {
         expect(screen.getByTestId('repeticoes-display-1')).toHaveTextContent('4×');
     });
 
-    it('timeline desenha uma barra por repetição, não um bloco agregado', () => {
+    // A intenção do teste não mudou: o eixo tem que mostrar UMA barra por
+    // repetição, não um retângulo agregado que mentiria sobre o tempo. O que
+    // mudou é onde a numeração aparece — ela saiu do rótulo de cada barra (que
+    // virava uma fileira de "1/4" repetidos) e foi para o bracket e o tooltip.
+    it('perfil desenha uma barra por repetição, não um bloco agregado', () => {
         renderFartlek();
 
-        ['1/4', '2/4', '3/4', '4/4'].forEach(label =>
-            expect(screen.getByText(label)).toBeInTheDocument(),
-        );
+        // 10 etapas expandidas: aquecimento + 4×(esforço+recuperação) + desaquecimento
+        expect(screen.getAllByTestId('workout-block')).toHaveLength(10);
+
+        const brackets = screen.getAllByTestId('repeat-bracket');
+        expect(brackets).toHaveLength(1);
+        expect(brackets[0]).toHaveTextContent('4×');
+    });
+
+    it('o equivalente textual nomeia cada repetição da série', () => {
+        renderFartlek();
+
+        const linhas = screen.getAllByTestId('profile-table-row').map(l => l.textContent ?? '');
+        for (const n of [1, 2, 3, 4]) {
+            expect(linhas.some(l => l.includes(`repetição ${n} de 4`)), `repetição ${n}`).toBe(true);
+        }
         // duração por barra é a de UMA repetição (3 min), não o agregado
-        expect(screen.getAllByText('3 min')).toHaveLength(4);
+        expect(linhas.filter(l => l.includes('3 min'))).toHaveLength(4);
     });
 
     it('salvar sem alterar não envia etapas — edição administrativa não regrava a série', () => {

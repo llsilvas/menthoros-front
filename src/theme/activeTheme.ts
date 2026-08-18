@@ -108,6 +108,12 @@ export const activeTheme = {
 // mantendo o uso `zones[zoneKey]`.
 export const zones = activeTheme.zones;
 
+// Rampa do perfil de treino. Re-exportada no mesmo padrão de `zones` para quem
+// desenha zona fora do componente — não substitui `zones`, que segue servindo os
+// demais gráficos.
+export const workoutZone = activeTheme.workoutZone;
+export const workoutZoneLabel = activeTheme.workoutZoneLabel;
+
 // Resolve a cor do tipo de treino pela superfície única (`activeTheme`),
 // normalizando caixa e caindo no neutro DEFAULT.
 export function workoutTypeColor(tipo?: string): string {

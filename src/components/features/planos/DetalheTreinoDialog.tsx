@@ -27,9 +27,12 @@ import { TreinoService } from '../../../api/services/TreinoService';
 import type { TreinoPlanejado, EtapaTreino } from '../../../types/TreinoPlanejado';
 import { getSafeValue, getSafeNumber, getSafeLabel, getSafeColor } from '../../../utils/safeValues';
 import { glass, text, primary, surface, semantic, categorical, content, external } from '../../../theme/tokens';
-import { zones } from '../../../theme/activeTheme';
+// A lista de blocos e a distribuição derivam do MESMO perfil que desenha o
+// gráfico, então usam a paleta dele — duas paletas para a mesma zona no mesmo
+// diálogo seria a divergência de volta, agora dentro de uma tela só.
+import { workoutZone, workoutZoneLabel } from '../../../theme/activeTheme';
 import { elevation } from '../../../shared/design-tokens';
-import { WorkoutTimelineChart, toWorkoutBlocks } from './WorkoutTimelineChart';
+import { WorkoutProfile, selectWorkoutProfile, fromEtapaTreino } from '../../../features/workout/profile';
 import DecouplingBadge from './DecouplingBadge';
 import { useDecouplingRealizado } from './useDecouplingRealizado';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
@@ -210,12 +213,17 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
     const intensidadePercent = dados.intensidadePlanejada
         ? `${Math.round(dados.intensidadePlanejada * 100)}%`
         : 'N/A';
-    const blocks = toWorkoutBlocks(etapasOrdenadas);
-    const totalDuration = getNumericValue(dados.duracaoMin) ?? blocks.reduce((total, block) => total + block.durationMin, 0);
-    const dominantZoneKey = blocks.reduce<keyof typeof zones | null>((current, block) => {
-        if (!current) return block.zoneKey;
-        return block.zone > Number(current.replace('Z', '')) ? block.zoneKey : current;
-    }, null);
+    // Perfil único: zona, altura, distribuição e zona-alvo saem todos daqui.
+    // Antes, o chip de zona dominante, a timeline e a distribuição derivavam
+    // cada um a sua zona, e nada os obrigava a concordar.
+    const profile = selectWorkoutProfile(etapasOrdenadas.map(fromEtapaTreino), {
+        sport: 'run',
+        tss: dados.tssPlanejado ?? null,
+        if: dados.intensidadePlanejada ?? null,
+    });
+    const blocks = profile.blocks;
+    const totalDuration = getNumericValue(dados.duracaoMin) ?? Math.round(profile.metrics.totalDurationSec / 60);
+    const dominantZoneKey = profile.degraded ? null : profile.metrics.targetZone;
     const dateLabel = formatDate(dados.dataTreino);
     const observacaoPrincipal = dados.observacao || dados.descricao;
 
@@ -232,12 +240,12 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
             />
             {dominantZoneKey && (
                 <Chip
-                    label={`${dominantZoneKey} • ${zones[dominantZoneKey].label}`}
+                    label={`${dominantZoneKey} • ${workoutZoneLabel[dominantZoneKey]}`}
                     size="small"
                     sx={{
-                        bgcolor: alpha(zones[dominantZoneKey].border, 0.14),
+                        bgcolor: alpha(workoutZone[dominantZoneKey], 0.14),
                         color: surface[200],
-                        border: `1px solid ${alpha(zones[dominantZoneKey].border, 0.28)}`,
+                        border: `1px solid ${alpha(workoutZone[dominantZoneKey], 0.28)}`,
                         fontWeight: 700,
                     }}
                 />
@@ -484,110 +492,12 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                         </Card>
                                     )}
 
-                                    {blocks.length > 0 && (
-                                        <Card
-                                            variant="outlined"
-                                            sx={{
-                                                borderRadius: 1,
-                                                borderColor: content.cardBorder,
-                                                bgcolor: elevation.card,
-                                                overflow: 'hidden',
-                                                boxShadow: 'none',
-                                            }}
-                                        >
-                                            <CardContent sx={{ p: { xs: 1.5, md: 2 } }}>
-                                                <Box sx={{ mb: 1.5 }}>
-                                                    <Typography
-                                                        sx={{
-                                                            fontSize: '0.75rem',
-                                                            fontWeight: 800,
-                                                            textTransform: 'uppercase',
-                                                            letterSpacing: '0.08em',
-                                                            color: surface[400],
-                                                            mb: 0.5,
-                                                        }}
-                                                    >
-                                                        Visual principal
-                                                    </Typography>
-                                                    <Typography
-                                                        sx={{
-                                                            fontFamily: 'Syne, sans-serif',
-                                                            fontSize: '1.05rem',
-                                                            fontWeight: 800,
-                                                            color: surface[50],
-                                                        }}
-                                                    >
-                                                        Timeline do treino
-                                                    </Typography>
-                                                </Box>
 
-                                                <WorkoutTimelineChart
-                                                    blocks={blocks}
-                                                    title="Etapas por duração e zona"
-                                                />
-
-                                                <Grid container spacing={1.5} sx={{ mt: 1.5 }}>
-                                                    <Grid size={{ xs: 12, md: 6 }}>
-                                                        <Box
-                                                            sx={{
-                                                                borderRadius: 1,
-                                                                border: `1px solid ${content.cardBorder}`,
-                                                                bgcolor: elevation.panel,
-                                                                p: 1.5,
-                                                            }}
-                                                        >
-                                                            <Typography
-                                                                sx={{
-                                                                    fontSize: '0.72rem',
-                                                                    fontWeight: 800,
-                                                                    textTransform: 'uppercase',
-                                                                    letterSpacing: '0.05em',
-                                                                    color: surface[400],
-                                                                    mb: 0.75,
-                                                                }}
-                                                            >
-                                                                Leitura rápida
-                                                            </Typography>
-                                                            <Typography variant="body2" sx={{ color: surface[50], lineHeight: 1.6 }}>
-                                                                A composição destaca a progressão do treino e facilita comparar
-                                                                duração entre aquecimento, bloco principal e encerramento.
-                                                            </Typography>
-                                                        </Box>
-                                                    </Grid>
-                                                    <Grid size={{ xs: 12, md: 6 }}>
-                                                        <Box
-                                                            sx={{
-                                                                borderRadius: 1,
-                                                                border: `1px solid ${content.cardBorder}`,
-                                                                bgcolor: elevation.panel,
-                                                                p: 1.5,
-                                                            }}
-                                                        >
-                                                            <Typography
-                                                                sx={{
-                                                                    fontSize: '0.72rem',
-                                                                    fontWeight: 800,
-                                                                    textTransform: 'uppercase',
-                                                                    letterSpacing: '0.05em',
-                                                                    color: surface[400],
-                                                                    mb: 0.75,
-                                                                }}
-                                                            >
-                                                                Resumo estrutural
-                                                            </Typography>
-                                                            <Typography variant="body2" sx={{ color: surface[50], lineHeight: 1.6 }}>
-                                                                {blocks.length} bloco(s) planejado(s) com duração total de{' '}
-                                                                <Box component="span" sx={{ fontWeight: 800, color: primary[500] }}>
-                                                                    {formatDuration(totalDuration)}
-                                                                </Box>
-                                                                .
-                                                            </Typography>
-                                                        </Box>
-                                                    </Grid>
-                                                </Grid>
-                                            </CardContent>
-                                        </Card>
-                                    )}
+                                    {/* Uma superfície, um header. Saíram daqui o eyebrow "Timeline do
+                                        treino", a prop `title` duplicada e os cards "Leitura rápida" e
+                                        "Resumo estrutural": quatro rótulos caixa-alta e três cards
+                                        aninhados para dizer o que o gráfico já diz. */}
+                                    {blocks.length > 0 && <WorkoutProfile profile={profile} />}
 
                                     {observacaoPrincipal && (
                                         <Card
@@ -690,7 +600,7 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                                         {etapasOrdenadas.map((etapa, index) => {
                                                             const block = blocks[index];
                                                             const metric = resolveStageMetric(etapa);
-                                                            const stageColor = block ? zones[block.zoneKey].border : getSafeColor(etapa.tipoEtapa, categorical.cat1);
+                                                            const stageColor = block ? workoutZone[block.zone] : getSafeColor(etapa.tipoEtapa, categorical.cat1);
 
                                                             return (
                                                                 <Box
@@ -775,8 +685,10 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
 
                                                     <Stack spacing={1.2}>
                                                         {blocks.map((block) => {
-                                                            const pct = totalDuration > 0 ? Math.round((block.durationMin / totalDuration) * 100) : 0;
-                                                            const zoneColor = zones[block.zoneKey].border;
+                                                            const pct = profile.metrics.totalDurationSec > 0
+                                                                ? Math.round((block.durationSec / profile.metrics.totalDurationSec) * 100)
+                                                                : 0;
+                                                            const zoneColor = workoutZone[block.zone];
 
                                                             return (
                                                                 <Box key={`distribution-${block.id}`}>

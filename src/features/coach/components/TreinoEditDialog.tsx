@@ -33,9 +33,7 @@ import {
     serializarItens,
     type EtapaItem,
 } from './etapas/etapaItem';
-import { WorkoutTimelineChart } from '../../../components/features/planos/WorkoutTimelineChart/WorkoutTimelineChart';
-import type { WorkoutBlock, BlockType } from '../../../components/features/planos/WorkoutTimelineChart/types';
-import type { ZoneKey } from '../../../theme/tokens';
+import { WorkoutProfile, selectWorkoutProfile, fromEtapaItens } from '../../workout/profile';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -63,16 +61,9 @@ const TIPOS_TREINO = [
 
 const ACCENT = activeTheme.trainingStage;
 
-// ── Zone inference ────────────────────────────────────────────────────────────
-
-function zoneFromString(s: string): 1 | 2 | 3 | 4 | 5 {
-    const match = s.toUpperCase().match(/Z(\d)/);
-    if (match) {
-        const z = parseInt(match[1], 10);
-        if (z >= 1 && z <= 5) return z as 1 | 2 | 3 | 4 | 5;
-    }
-    return 1;
-}
+// A inferência de zona vivia aqui, numa segunda derivação independente da do
+// detalhe do treino — o mesmo treino podia sair com zonas diferentes em cada
+// tela. Agora existe uma só, em `selectWorkoutProfile`.
 
 // ── Estado de bloco ───────────────────────────────────────────────────────────
 
@@ -375,71 +366,19 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
         };
     }, [itens]);
 
-    // Blocos derivados do estado ao vivo — gráfico atualiza a cada edição.
-    // A expansão deixou de ser caso especial do intervalado: é a leitura natural da lista.
-    const liveBlocks = useMemo((): WorkoutBlock[] => {
-        const blocks: WorkoutBlock[] = [];
+    /** Bloco destacado no gráfico — segue o campo em foco, ou o hover no próprio plot. */
+    const [blocoDestacado, setBlocoDestacado] = useState<string | null>(null);
 
-        const blockTypeDe = (tipoEtapa: string): BlockType => {
-            switch (tipoEtapa?.toUpperCase()) {
-                case 'AQUECIMENTO':    return 'warmup';
-                case 'DESAQUECIMENTO': return 'cooldown';
-                case 'INTERVALADO':    return 'interval';
-                case 'RECUPERACAO':    return 'recovery';
-                default:               return 'main';
-            }
-        };
-        const iconHint = (bt: BlockType) =>
-            bt === 'warmup' ? 'warmup' : bt === 'cooldown' ? 'cooldown' : 'main';
-
-        itens.forEach((item, idx) => {
-            if (item.kind === 'step') {
-                const durationMin = parseInt(item.duracaoMin, 10) || 0;
-                if (durationMin <= 0) return;
-                const zone = zoneFromString(item.fcAlvoEtapa);
-                const blockType = blockTypeDe(item.tipoEtapa);
-                blocks.push({
-                    id: `step-${item.id}`,
-                    label: item.tipoEtapa || 'Etapa',
-                    shortLabel: (item.tipoEtapa || 'ETAPA').slice(0, 5),
-                    durationMin,
-                    zone,
-                    zoneKey: `Z${zone}` as ZoneKey,
-                    blockType,
-                    description: item.fcAlvoEtapa || undefined,
-                    icon: iconHint(blockType),
-                });
-                return;
-            }
-
-            const reps = Math.max(1, parseInt(item.repeticoes, 10) || 1);
-            for (let r = 1; r <= reps; r++) {
-                item.steps.forEach((sub, si) => {
-                    const durationMin = parseInt(sub.duracaoMin, 10) || 0;
-                    if (durationMin <= 0) return;
-                    const zone = zoneFromString(sub.fcAlvoEtapa);
-                    const blockType = blockTypeDe(sub.tipoEtapa);
-                    blocks.push({
-                        id: `bloco-${idx}-${r}-${si}`,
-                        label: `${sub.tipoEtapa || 'Etapa'} ${r}/${reps}`,
-                        // Só a primeira etapa da repetição leva o contador; as demais mostram o
-                        // tipo, senão a série inteira vira uma fileira de "1/4" repetidos.
-                        shortLabel: reps > 1 && si === 0
-                            ? `${r}/${reps}`
-                            : (sub.tipoEtapa || 'ETAPA').slice(0, 5),
-                        durationMin,
-                        zone,
-                        zoneKey: `Z${zone}` as ZoneKey,
-                        blockType,
-                        description: sub.fcAlvoEtapa || undefined,
-                        icon: iconHint(blockType),
-                    });
-                });
-            }
-        });
-
-        return blocks;
-    }, [itens]);
+    // Perfil derivado do estado ao vivo: o gráfico atualiza a cada edição, e é
+    // por isso que adapta de `EtapaItem[]` e não do DTO salvo — do DTO ele
+    // desenharia o treino gravado, não o que o treinador está montando.
+    const profile = useMemo(
+        () => selectWorkoutProfile(fromEtapaItens(itens), {
+            sport: 'run',
+            tss: treino.tssPlanejado ?? null,
+        }),
+        [itens, treino.tssPlanejado],
+    );
 
     /** Tipos que o treino tinha e deixou de ter — base do aviso antes de salvar. */
     const etapasRemovidas = (): string[] => {
@@ -716,7 +655,13 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
             }
         >
 
-                <WorkoutTimelineChart blocks={liveBlocks} />
+                {/* O bloco destacado segue a linha em edição — ganho direto do
+                    modelo de lista: o treinador vê no gráfico o que está mexendo. */}
+                <WorkoutProfile
+                    profile={profile}
+                    activeBlockId={blocoDestacado}
+                    onActiveBlockChange={setBlocoDestacado}
+                />
 
                 {/* ── Lista de etapas: avulsas e blocos repetidos ── */}
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
