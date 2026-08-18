@@ -13,6 +13,7 @@ import type {
   KindShare,
   ProfileBlock,
   ProfileMetrics,
+  RampSpec,
   Sport,
   WorkoutProfile,
   ZoneKey,
@@ -150,6 +151,8 @@ function construirBlocos(
         ? midpointOf(zone, scale)
         : 0.45;
 
+    const rampa = rampaDe(papel, intensityNormalized);
+
     blocos.push({
       id:    e.id ?? `etapa-${order}`,
       order,
@@ -161,6 +164,7 @@ function construirBlocos(
       intensityNormalized,
       zone: zone ?? zoneOf(intensityNormalized, scale),
       confidence,
+      ...(rampa ? { ramp: rampa } : {}),
       ...(e.blocoId && e.blocoRepeticoes && e.blocoRepeticoes > 1
         ? {
             repeat: {
@@ -175,6 +179,25 @@ function construirBlocos(
   }
 
   return blocos;
+}
+
+/** Quanto a rampa se abre para cada lado do valor nominal. */
+const ABERTURA_RAMPA = 0.33;
+
+/**
+ * Aquecimento e desaquecimento são trajetórias, não patamares — e é a **forma**
+ * que passa a comunicar o papel estrutural, agora que a cor pertence à zona.
+ * A altura nominal continua sendo o ponto médio; a rampa só governa a geometria.
+ */
+function rampaDe(papel: BlockKind, nominal: number): RampSpec | null {
+  if (papel !== 'warmup' && papel !== 'cooldown') return null;
+
+  const piso = Math.max(0.12, nominal * (1 - ABERTURA_RAMPA));
+  const teto = Math.min(1, nominal * (1 + ABERTURA_RAMPA));
+
+  return papel === 'warmup'
+    ? { fromNormalized: piso, toNormalized: teto }
+    : { fromNormalized: teto, toNormalized: piso };
 }
 
 function distribuirPorZona(blocos: ProfileBlock[], total: number): ZoneShare[] {
