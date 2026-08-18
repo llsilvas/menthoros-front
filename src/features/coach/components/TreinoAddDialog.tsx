@@ -17,7 +17,15 @@ import { primary, surface, semantic, categorical } from '../../../theme/tokens';
 import { useTreinoPlanejado } from '../../../hooks/useTreinoPlanejado';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { GHOST_BTN_SX, PRIMARY_BTN_SX } from '../../../shared/components/actionButtonSx';
-import type { TreinoPlanejadoDto, TreinoPlanejadoAddPayload, EtapaInputPayload } from '../../../types/PlanoReview';
+import type { TreinoPlanejadoDto, TreinoPlanejadoAddPayload } from '../../../types/PlanoReview';
+import {
+    emptyStep,
+    emptySubStep,
+    serializarItens,
+    type EtapaItem,
+    type StepRow,
+    type SubStep,
+} from './etapas/etapaItem';
 
 // ── Paleta metabólica ─────────────────────────────────────────────────────────
 
@@ -52,31 +60,6 @@ const DIAS_PT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 // ── Tipos internos ────────────────────────────────────────────────────────────
 
-interface StepRow {
-    id: string;
-    kind: 'step';
-    tipoEtapa: string;
-    duracaoMin: string;
-    distanciaKm: string;
-    fcAlvoEtapa: string;
-}
-
-interface SubStep {
-    id: string;
-    tipoEtapa: string;
-    duracaoMin: string;
-    distanciaKm: string;
-    fcAlvoEtapa: string;
-}
-
-interface BlockRow {
-    id: string;
-    kind: 'block';
-    repeticoes: string;
-    steps: SubStep[];
-}
-
-type EtapaItem = StepRow | BlockRow;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -92,38 +75,6 @@ function gerarDatas(semanaInicio: string, semanaFim: string): string[] {
 function formatarDataLabel(iso: string): string {
     const d = new Date(`${iso}T00:00:00`);
     return `${DIAS_PT[d.getDay()]} ${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
-}
-
-function emptyStep(): StepRow {
-    return { id: crypto.randomUUID(), kind: 'step', tipoEtapa: '', duracaoMin: '', distanciaKm: '', fcAlvoEtapa: '' };
-}
-
-function emptySubStep(): SubStep {
-    return { id: crypto.randomUUID(), tipoEtapa: '', duracaoMin: '', distanciaKm: '', fcAlvoEtapa: '' };
-}
-
-function serializarItens(itens: EtapaItem[]): EtapaInputPayload[] {
-    return itens.map((item): EtapaInputPayload | null => {
-        if (item.kind === 'block') {
-            const subEtapas = item.steps
-                .filter(s => s.tipoEtapa)
-                .map(s => ({
-                    tipoEtapa:   s.tipoEtapa,
-                    duracaoMin:  s.duracaoMin  ? parseInt(s.duracaoMin, 10)  : undefined,
-                    distanciaKm: s.distanciaKm ? parseFloat(s.distanciaKm)  : undefined,
-                    fcAlvoEtapa: s.fcAlvoEtapa || undefined,
-                }));
-            if (!subEtapas.length) return null;
-            return { tipoEtapa: 'BLOCO', blocoRepeticoes: parseInt(item.repeticoes, 10) || 1, subEtapas };
-        }
-        if (!item.tipoEtapa) return null;
-        return {
-            tipoEtapa:   item.tipoEtapa,
-            duracaoMin:  item.duracaoMin  ? parseInt(item.duracaoMin, 10)  : undefined,
-            distanciaKm: item.distanciaKm ? parseFloat(item.distanciaKm)  : undefined,
-            fcAlvoEtapa: item.fcAlvoEtapa || undefined,
-        };
-    }).filter((e): e is EtapaInputPayload => e !== null);
 }
 
 // ── Props ─────────────────────────────────────────────────────────────────────

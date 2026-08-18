@@ -94,7 +94,13 @@ export interface TreinoPlanejadoPatch {
     tssPlanejado?: number;
     percepcaoEsforcoEsperada?: number;
     observacao?: string;
-    etapas?: EtapaTreinoDto[];
+    /**
+     * Mesmo tipo do payload de criação: aceita etapas avulsas e `tipoEtapa: 'BLOCO'` com
+     * `subEtapas`. Era `EtapaTreinoDto[]`, que não tem `subEtapas` — mais estreito que o contrato
+     * real (`TreinoPlanejadoPatchDto.etapas` é `List<EtapaInputDto>` no backend, e já passa por
+     * `expandirBloco`). Resquício do cliente curado à mão, não limitação da API.
+     */
+    etapas?: EtapaInputPayload[];
 }
 
 /**
