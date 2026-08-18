@@ -3,7 +3,9 @@ import {
     Box,
     Button,
     CircularProgress,
+    FormControl,
     IconButton,
+    InputLabel,
     MenuItem,
     Select,
     TextField,
@@ -127,23 +129,25 @@ function accentDe(tipoEtapa: string): string {
 interface ItemActionsProps {
     idx: number;
     total: number;
+    /** "etapa" ou "série" — o rótulo do leitor de tela precisa dizer o que está sendo movido. */
+    nome?: string;
     disabled?: boolean;
     onMover: (idx: number, delta: number) => void;
     onRemover: (idx: number) => void;
 }
 
-function ItemActions({ idx, total, disabled, onMover, onRemover }: ItemActionsProps) {
+function ItemActions({ idx, total, disabled, onMover, onRemover, nome = 'etapa' }: ItemActionsProps) {
     return (
         <Box sx={{ display: 'flex', gap: 0.25 }}>
-            <IconButton size="small" aria-label={`Mover etapa ${idx + 1} para cima`}
+            <IconButton size="small" aria-label={`Mover ${nome} ${idx + 1} para cima`}
                 disabled={disabled || idx === 0} onClick={() => onMover(idx, -1)}>
                 <ArrowUpwardIcon sx={{ fontSize: 14 }} />
             </IconButton>
-            <IconButton size="small" aria-label={`Mover etapa ${idx + 1} para baixo`}
+            <IconButton size="small" aria-label={`Mover ${nome} ${idx + 1} para baixo`}
                 disabled={disabled || idx === total - 1} onClick={() => onMover(idx, 1)}>
                 <ArrowDownwardIcon sx={{ fontSize: 14 }} />
             </IconButton>
-            <IconButton size="small" aria-label={`Remover etapa ${idx + 1}`}
+            <IconButton size="small" aria-label={`Remover ${nome} ${idx + 1}`}
                 disabled={disabled} onClick={() => onRemover(idx)}>
                 <DeleteOutlineIcon sx={{ fontSize: 15 }} />
             </IconButton>
@@ -186,6 +190,8 @@ function parseDuracaoMinutos(iso: string | undefined): string {
     return total > 0 ? String(total) : '';
 }
 
+const TIPOS_ETAPA = ['AQUECIMENTO', 'PRINCIPAL', 'INTERVALADO', 'RECUPERACAO', 'DESAQUECIMENTO'] as const;
+
 interface BlocoCardProps {
     label: string;
     accent: string;
@@ -193,9 +199,15 @@ interface BlocoCardProps {
     onChange: (b: BlocoState) => void;
     disabled?: boolean;
     actions?: React.ReactNode;
+    /** Quando presente, o card deixa o coach escolher o tipo — etapa sem tipo não é persistida. */
+    tipoEtapa?: string;
+    onTipoChange?: (tipo: string) => void;
+    tipoAriaLabel?: string;
 }
 
-function BlocoCard({ label, accent, bloco, onChange, disabled, actions }: BlocoCardProps) {
+function BlocoCard({
+    label, accent, bloco, onChange, disabled, actions, tipoEtapa, onTipoChange, tipoAriaLabel,
+}: BlocoCardProps) {
     return (
         <Box
             sx={{
@@ -227,6 +239,22 @@ function BlocoCard({ label, accent, bloco, onChange, disabled, actions }: BlocoC
                 >
                     {label}
                 </Box>
+                {onTipoChange && (
+                    <FormControl size="small" sx={{ minWidth: 150, ...fieldSx(accent) }}>
+                        <InputLabel shrink>Tipo</InputLabel>
+                        <Select
+                            native
+                            label="Tipo"
+                            value={tipoEtapa ?? ''}
+                            onChange={e => onTipoChange(e.target.value as string)}
+                            disabled={disabled}
+                            inputProps={{ 'aria-label': tipoAriaLabel ?? 'Tipo da etapa' }}
+                        >
+                            <option value="" disabled />
+                            {TIPOS_ETAPA.map(t => <option key={t} value={t}>{t}</option>)}
+                        </Select>
+                    </FormControl>
+                )}
                 {actions && <Box sx={{ ml: 'auto' }}>{actions}</Box>}
             </Box>
 
@@ -439,6 +467,15 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
             i !== idx || it.kind !== 'block' ? it
                 : { ...it, steps: it.steps.map((s, y) => y !== si ? s : { ...s, ...camposDe(b) }) }));
 
+    const atualizaTipoStep = (idx: number, tipo: string) =>
+        mudou(prev => prev.map((it, i) =>
+            i !== idx || it.kind !== 'step' ? it : { ...it, tipoEtapa: tipo }));
+
+    const atualizaTipoSubStep = (idx: number, si: number, tipo: string) =>
+        mudou(prev => prev.map((it, i) =>
+            i !== idx || it.kind !== 'block' ? it
+                : { ...it, steps: it.steps.map((s, y) => y !== si ? s : { ...s, tipoEtapa: tipo }) }));
+
     const atualizaReps = (idx: number, delta: number) =>
         mudou(prev => prev.map((it, i) => {
             if (i !== idx || it.kind !== 'block') return it;
@@ -473,13 +510,19 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
 
         if (tipoTreino && tipoTreino !== treino.tipoTreino) patch.tipoTreino = tipoTreino;
 
-        const distNum = totalKm ? parseFloat(totalKm) : NaN;
-        const durMin  = totalMin ? parseInt(totalMin, 10) : NaN;
+        // Distância e duração são DERIVADAS das etapas, então também ficam atrás da guarda. Sem
+        // isso a promessa do CA7 valeria só para `etapas`: um treino cujo total no cabeçalho não
+        // bate com a soma das etapas (arredondamento, ou o campo gravado antes de as etapas
+        // existirem) teria os dois campos reescritos ao mudar apenas o TSS.
+        if (blocosMudados) {
+            const distNum = totalKm ? parseFloat(totalKm) : NaN;
+            const durMin  = totalMin ? parseInt(totalMin, 10) : NaN;
 
-        if (!isNaN(distNum) && distNum !== treino.distanciaKm) patch.distanciaKm = distNum;
+            if (!isNaN(distNum) && distNum !== treino.distanciaKm) patch.distanciaKm = distNum;
 
-        const duracaoIso = toIso8601(String(durMin));
-        if (duracaoIso && duracaoIso !== treino.duracaoMin) patch.duracaoMin = duracaoIso;
+            const duracaoIso = toIso8601(String(durMin));
+            if (duracaoIso && duracaoIso !== treino.duracaoMin) patch.duracaoMin = duracaoIso;
+        }
 
         if (zonaAlvo && zonaAlvo !== treino.zonaAlvo) patch.zonaAlvo = zonaAlvo;
 
@@ -691,6 +734,9 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
                             bloco={blocoStateDe(item)}
                             onChange={b => atualizaStep(idx, b)}
                             disabled={isSaving}
+                            tipoEtapa={item.tipoEtapa}
+                            onTipoChange={t => atualizaTipoStep(idx, t)}
+                            tipoAriaLabel={`Tipo da etapa ${idx + 1}`}
                             actions={
                                 <ItemActions
                                     idx={idx}
@@ -746,6 +792,7 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
                                         disabled={isSaving}
                                         onMover={moverItem}
                                         onRemover={removerItem}
+                                        nome="série"
                                     />
                                 </Box>
                             </Box>
@@ -758,6 +805,9 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
                                     bloco={blocoStateDe(sub)}
                                     onChange={b => atualizaSubStep(idx, si, b)}
                                     disabled={isSaving}
+                                    tipoEtapa={sub.tipoEtapa}
+                                    onTipoChange={t => atualizaTipoSubStep(idx, si, t)}
+                                    tipoAriaLabel={`Tipo da etapa ${si + 1} da série ${idx + 1}`}
                                     actions={
                                         <IconButton
                                             size="small"
@@ -807,7 +857,10 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
 
                 {avisoRemocao && (
                     <Box
-                        role="alertdialog"
+                        // role="alert" e não "alertdialog": é uma faixa inline, sem captura de
+                        // foco nem Escape. Prometer modalidade que não existe confunde o leitor de
+                        // tela mais do que ajuda.
+                        role="alert"
                         aria-label="Confirmar remoção de etapa"
                         sx={{
                             border: `1px solid ${alpha(primary[500], 0.4)}`,

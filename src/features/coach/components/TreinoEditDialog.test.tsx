@@ -45,7 +45,8 @@ describe('TreinoEditDialog', () => {
 
         expect(screen.getByDisplayValue('10')).toBeInTheDocument(); // distanciaKm
         expect(screen.getByDisplayValue('60')).toBeInTheDocument(); // duracaoMin em minutos
-        expect(screen.getByText('PRINCIPAL')).toBeInTheDocument();
+        // o tipo aparece no badge e como opção do select — basta existir o seletor com o valor
+        expect(screen.getByLabelText('Tipo da etapa 1')).toHaveValue('PRINCIPAL');
     });
 
     it('botão Salvar chama onSave com patch correto incluindo duração ISO-8601', () => {
@@ -93,13 +94,31 @@ describe('TreinoEditDialog', () => {
         expect(screen.queryByDisplayValue('10')).not.toBeInTheDocument();
     });
 
-    it('permite adicionar etapa e série à lista', () => {
+    it('etapa adicionada é persistida — exige escolher o tipo', () => {
+        // Sem seletor de tipo, a etapa nova nascia com tipoEtapa vazio e `serializarItens` a
+        // descartava em silêncio: o coach preenchia os campos e nada era gravado.
         renderDialog();
 
         fireEvent.click(screen.getByRole('button', { name: /^etapa$/i }));
+
+        fireEvent.change(screen.getByLabelText('Tipo da etapa 2'), { target: { value: 'RECUPERACAO' } });
+        const duracoes = screen.getAllByLabelText(/Duração \(min\)/i);
+        fireEvent.change(duracoes[duracoes.length - 1], { target: { value: '7' } });
+
+        fireEvent.click(screen.getByRole('button', { name: /salvar/i }));
+
+        const patch: TreinoPlanejadoPatch = onSave.mock.calls[0][0];
+        expect(patch.etapas).toContainEqual(
+            expect.objectContaining({ tipoEtapa: 'RECUPERACAO', duracaoMin: 7 }),
+        );
+    });
+
+    it('série adicionada aparece com o contador de repetições', () => {
+        renderDialog();
+
         fireEvent.click(screen.getByRole('button', { name: /^série$/i }));
 
-        expect(screen.getByTestId('repeticoes-display-2')).toHaveTextContent('3×');
+        expect(screen.getByTestId('repeticoes-display-1')).toHaveTextContent('3×');
     });
 });
 
@@ -146,8 +165,8 @@ describe('TreinoEditDialog — série', () => {
 
         expect(screen.getByText('SÉRIE')).toBeInTheDocument();
         expect(screen.getByTestId('repeticoes-display-1')).toHaveTextContent('4×');
-        expect(screen.getByText('AQUECIMENTO')).toBeInTheDocument();
-        expect(screen.getByText('DESAQUECIMENTO')).toBeInTheDocument();
+        expect(screen.getByLabelText('Tipo da etapa 1')).toHaveValue('AQUECIMENTO');
+        expect(screen.getByLabelText('Tipo da etapa 3')).toHaveValue('DESAQUECIMENTO');
     });
 
     it('stepper altera as repetições da série dentro do limite 1–20', () => {
@@ -181,6 +200,27 @@ describe('TreinoEditDialog — série', () => {
         const patch: TreinoPlanejadoPatch = onSave.mock.calls[0][0];
         expect(patch.tssPlanejado).toBe(85);
         expect(patch.etapas).toBeUndefined();
+        // Distância e duração são derivadas das etapas: se escaparem da guarda, uma edição
+        // administrativa reescreve o cabeçalho do treino. O fixture tem duracaoMin PT30M no treino
+        // e etapas que somam 30min — mas o campo do treino pode divergir da soma, e é aí que o
+        // vazamento aparecia.
+        expect(patch.duracaoMin).toBeUndefined();
+        expect(patch.distanciaKm).toBeUndefined();
+    });
+
+    it('não reescreve duração quando o total do treino diverge da soma das etapas', () => {
+        // Cenário que expunha o vazamento: cabeçalho diz 50min, etapas somam 30min.
+        const divergente = { ...FARTLEK, duracaoMin: 'PT50M' };
+        render(
+            <TreinoEditDialog open treino={divergente} isSaving={false} onClose={onClose} onSave={onSave} />,
+        );
+
+        fireEvent.change(screen.getByDisplayValue('90'), { target: { value: '85' } });
+        fireEvent.click(screen.getByRole('button', { name: /salvar/i }));
+
+        const patch: TreinoPlanejadoPatch = onSave.mock.calls[0][0];
+        expect(patch.duracaoMin).toBeUndefined();
+        expect(patch.etapas).toBeUndefined();
     });
 
     it('alterar a série envia etapas com o bloco preservado', () => {
@@ -205,7 +245,7 @@ describe('TreinoEditDialog — série', () => {
 
         // não salva ainda — pede confirmação
         expect(onSave).not.toHaveBeenCalled();
-        expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+        expect(screen.getByRole('alert')).toBeInTheDocument();
 
         fireEvent.click(screen.getByRole('button', { name: /salvar assim/i }));
         expect(onSave).toHaveBeenCalledOnce();
