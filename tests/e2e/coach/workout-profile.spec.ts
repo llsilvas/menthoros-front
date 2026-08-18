@@ -255,7 +255,14 @@ test.describe('perfil do treino — geometria', () => {
     expect(new Set(alturasCinza).size, 'as alturas precisam variar para haver o que ordenar')
       .toBeGreaterThan(1)
 
-    // A zona continua nomeada em texto para cada bloco, e não só pela cor.
+    // Os rótulos de zona do eixo Y continuam legíveis: é o terceiro canal, o que
+    // permite nomear a intensidade sem depender nem de cor nem de comparação.
+    const eixo = page.getByTestId('zone-axis')
+    for (const z of ['Z1', 'Z2', 'Z3', 'Z4', 'Z5']) {
+      await expect(eixo.getByText(z, { exact: true })).toBeVisible()
+    }
+
+    // E a zona segue nomeada em texto para cada bloco, no equivalente textual.
     const zonasNaTabela = await page.getByTestId('profile-table-row').evaluateAll(els =>
       els.map(el => el.textContent ?? ''),
     )
@@ -263,23 +270,26 @@ test.describe('perfil do treino — geometria', () => {
   })
 
   /**
-   * O diálogo de edição dá ~526px de caixa de conteúdo ao perfil, abaixo do
-   * limiar de 560px da spec — então a tela onde o treinador decide renderiza a
-   * variante `compact`: sem título, sem eixo Y e com dois chips.
+   * O diálogo de edição dá ~558px de largura ao perfil — acima do limiar de
+   * 536px (560 menos a histerese), então a tela onde o treinador decide recebe
+   * a variante `full`: com título, eixo Y de zonas e o conjunto de métricas.
    *
-   * Isto está registrado como teste, e não como comentário, porque é uma
-   * consequência de produto: se um dia a decisão for dar `full` a esta tela, é
-   * aqui que a mudança aparece, em vez de passar despercebida.
+   * Isto está como teste, e não como comentário, porque é a variante da tela de
+   * decisão: se um dia ela cair para `compact`, o treinador perde o eixo de
+   * zonas e a razão trabalho:recuperação, e a perda aparece aqui.
    */
-  test('na revisão o perfil resolve para a variante compact', async ({ page }) => {
+  test('na revisão o perfil resolve para a variante full', async ({ page }) => {
     await abrirPerfil(page)
 
-    await expect(page.getByTestId('zone-axis')).toHaveCount(0)
-    await expect(page.getByTestId('workout-profile').getByRole('heading')).toHaveCount(0)
-    await expect(page.getByTestId('header-chip')).toHaveCount(2)
-    // O que a variante compact preserva é o essencial da decisão: a badge de
-    // zona-alvo, a forma do treino e o bracket da série.
+    await expect(page.getByTestId('zone-axis')).toBeVisible()
+    await expect(page.getByTestId('workout-profile').getByRole('heading')).toHaveText('Perfil do treino')
     await expect(page.getByTestId('target-zone-badge')).toBeVisible()
+
+    // E cabe: nada do perfil pode vazar a caixa do card.
+    const vazou = await page.getByTestId('workout-profile').evaluate(el =>
+      el.scrollWidth > el.clientWidth,
+    )
+    expect(vazou, 'o perfil não pode rolar horizontalmente dentro do card').toBe(false)
   })
 })
 
@@ -319,5 +329,33 @@ test.describe('perfil do treino — leitura do treinador', () => {
 
     await expect(page.getByTestId('workout-block')).toHaveCount(antes + 2)
     await expect(page.getByTestId('repeat-bracket').first()).toHaveText('6×')
+  })
+
+  /**
+   * Regressão: a geometria já foi calculada contra uma largura fixa de 600px
+   * enquanto o plot media 532. A soma das larguras estourava o container, o
+   * último bloco vazava 22px e era cortado pelo `overflow: hidden` — o
+   * desaquecimento sumia da tela e o eixo de tempo mentia, sem nada acusar.
+   */
+  test('os blocos cabem exatamente na largura medida do plot', async ({ page }) => {
+    await abrirPerfil(page)
+
+    const { larguraPlot, somaBlocos, folgaDireita, scrollX } = await page
+      .getByTestId('workout-plot')
+      .evaluate(el => {
+        const plot = el.getBoundingClientRect()
+        const blocos = Array.from(el.querySelectorAll('[data-testid="workout-block"]'))
+          .map(b => b.getBoundingClientRect())
+        return {
+          larguraPlot: plot.width,
+          somaBlocos: blocos.reduce((s, b) => s + b.width, 0),
+          folgaDireita: plot.right - blocos[blocos.length - 1].right,
+          scrollX: el.scrollWidth - el.clientWidth,
+        }
+      })
+
+    expect(somaBlocos).toBeCloseTo(larguraPlot, 0)
+    expect(folgaDireita, 'o último bloco não pode vazar nem sobrar').toBeCloseTo(0, 0)
+    expect(scrollX, 'o plot não pode rolar horizontalmente').toBe(0)
   })
 })

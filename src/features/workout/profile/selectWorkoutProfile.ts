@@ -79,7 +79,13 @@ function papelDe(tipo: string): BlockKind {
   return 'steady';
 }
 
-/** Zona declarada explicitamente pelo treinador: "Z4", "zona 4". */
+/**
+ * Zona declarada explicitamente no alvo da etapa: "Z4", "zona 4".
+ *
+ * Vale como `prescribed` (ver `IntensityConfidence`): alguém escreveu aquela
+ * zona, então ela é dado, não palpite. O que continua estimado é a altura
+ * dentro da faixa — e é por isso que a spec chama o teto de escala de fixo.
+ */
 function zonaDeclarada(...textos: Array<string | undefined>): ZoneKey | null {
   for (const texto of textos) {
     if (!texto) continue;
@@ -129,17 +135,18 @@ function resolverZona(e: ProfileEtapaInput): BlocoResolvido {
 
 function construirBlocos(
   etapas: ProfileEtapaInput[],
+  resolvidas: BlocoResolvido[],
   scale: IntensityScale,
   degraded: boolean,
 ): ProfileBlock[] {
   const blocos: ProfileBlock[] = [];
 
-  for (const e of etapas) {
+  for (const [i, e] of etapas.entries()) {
     const minutos = e.duracaoMin;
     if (!minutos || minutos <= 0) continue;
 
     const papel = papelDe(e.tipo);
-    const { zone, confidence } = resolverZona(e);
+    const { zone, confidence } = resolvidas[i];
     const order = blocos.length;
 
     // No modo degradado a altura codifica o papel; fora dele, o ponto médio da
@@ -275,10 +282,13 @@ export function selectWorkoutProfile(
   // Degradado = alguma etapa sem zona confiável. Enquanto o backend não expuser
   // intensidade estruturada (DEP-1), o caminho normal é este — e o header diz
   // isso ao treinador, em vez de deixá-lo ler estimativa como medição.
+  // Resolvidas uma vez: a heurística é string matching por etapa, e chamá-la de
+  // novo dentro da construção dos blocos repetiria o mesmo trabalho.
+  const resolvidas = utilizaveis.map(resolverZona);
   const degraded = utilizaveis.length > 0
-    && utilizaveis.some((e) => resolverZona(e).confidence !== 'prescribed');
+    && resolvidas.some((r) => r.confidence !== 'prescribed');
 
-  const blocks = construirBlocos(utilizaveis, scale, degraded);
+  const blocks = construirBlocos(utilizaveis, resolvidas, scale, degraded);
   const totalDurationSec = blocks.reduce((s, b) => s + b.durationSec, 0);
 
   const distribution = distribuirPorZona(blocks, totalDurationSec);

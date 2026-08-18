@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { categorical, surface, surfaceShift } from './theme.premium';
+// A mesma aritmética que o runtime usa para verificar a rampa `workoutZone`.
+// Reimplementá-la aqui daria um teste de contraste que passa mesmo se a função
+// de produção estiver errada.
+import { contrastRatio } from './colorMath';
 
 // CA (refactor-color-system-premium-v2, task 2.8): matriz de contraste WCAG
 // dos categóricos v2.0 contra os 4 fundos de elevação. Texto ≥4.5:1 (AA);
@@ -10,26 +14,6 @@ import { categorical, surface, surfaceShift } from './theme.premium';
 //
 // `injuryResponse` fica de fora: é alias declarado de `semantic.danger`
 // (âncora estável, inalterada por esta change — não é um "novo categórico").
-
-function hexToRgb(hex: string): [number, number, number] {
-  const h = hex.replace('#', '');
-  return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)) as [number, number, number];
-}
-
-function relativeLuminance([r, g, b]: [number, number, number]): number {
-  const f = (c: number) => {
-    const s = c / 255;
-    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
-  };
-  return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
-}
-
-function contrastRatio(hexA: string, hexB: string): number {
-  const lA = relativeLuminance(hexToRgb(hexA));
-  const lB = relativeLuminance(hexToRgb(hexB));
-  const [lighter, darker] = lA > lB ? [lA, lB] : [lB, lA];
-  return (lighter + 0.05) / (darker + 0.05);
-}
 
 const NEW_CATEGORICALS: Record<string, string> = {
   slate: categorical.slate,

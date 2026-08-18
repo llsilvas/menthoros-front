@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export type ProfileVariant = 'full' | 'compact' | 'sparkline';
 export type VariantProp = 'auto' | ProfileVariant;
@@ -31,20 +31,40 @@ function variantePara(largura: number, atual: ProfileVariant): ProfileVariant {
  * de 240px numa tela de 1440px.
  */
 export function useResolvedVariant(prop: VariantProp = 'auto') {
-  const ref = useRef<HTMLDivElement | null>(null);
+  const elemento = useRef<HTMLDivElement | null>(null);
   const [resolvida, setResolvida] = useState<ProfileVariant>(prop === 'auto' ? 'full' : prop);
   const [largura, setLargura] = useState(0);
+
+  // Mede já no callback do ref, antes do primeiro paint. Sem isto o componente
+  // nasce `full` e corrige na primeira entrega do observer — um flash de layout
+  // errado em qualquer container estreito.
+  const ref = useCallback((node: HTMLDivElement | null) => {
+    elemento.current = node;
+    if (!node) return;
+    const w = node.getBoundingClientRect().width;
+    if (w > 0) {
+      setLargura(w);
+      setResolvida((atual) => variantePara(w, atual));
+    }
+  }, []);
 
   useEffect(() => {
     if (prop !== 'auto') {
       setResolvida(prop);
       return;
     }
-    const el = ref.current;
+    const el = elemento.current;
     if (!el || typeof ResizeObserver === 'undefined') return;
 
     const observer = new ResizeObserver((entradas) => {
-      const w = entradas[0]?.contentRect.width ?? 0;
+      // `borderBoxSize`, e não `contentRect`: o `ref` está no card, cujo padding
+      // MUDA com a variante (16px em `full`, 12px em `compact`). Medir o content
+      // box faria o limiar se deslocar conforme o próprio estado que ele decide
+      // — um limiar auto-referente, que oscila justo perto da fronteira.
+      const entrada = entradas[0];
+      const w = entrada?.borderBoxSize?.[0]?.inlineSize
+        ?? entrada?.target.getBoundingClientRect().width
+        ?? 0;
       setLargura(w);
       setResolvida((atual) => variantePara(w, atual));
     });

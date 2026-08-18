@@ -33,10 +33,23 @@ export type BlockTarget =
   | { kind: 'rpe';     value: number }
   | { kind: 'none' };
 
-/** Confiança na zona. Governa se o bloco pode ser desenhado com altura real. */
+/**
+ * Confiança na zona. Governa se o bloco pode ser desenhado com altura real e se
+ * o perfil inteiro entra em modo degradado.
+ *
+ * `prescribed` significa **zona declarada por quem prescreveu** — hoje, o token
+ * `Z1`–`Z5` escrito no alvo da etapa. Não é "alvo numérico + limiar do atleta",
+ * como esta linha dizia até 2026-08-18: esse dado não existe no contrato
+ * (DEP-1/DEP-2), e exigi-lo aqui deixaria todo treino permanentemente degradado,
+ * com a badge e a cor de zona sem uso.
+ *
+ * A distinção que importa para o treinador continua de pé: em `prescribed` a
+ * **zona** é fato — alguém a escreveu —, e o que segue estimado é a posição
+ * dentro da faixa. Em `derived` a própria zona é palpite sobre prosa.
+ */
 export type IntensityConfidence =
-  | 'prescribed'  // alvo numérico + limiar do atleta
-  | 'derived'     // inferido de tipoEtapa/texto — heurística, e declarada como tal
+  | 'prescribed'  // zona declarada no alvo da etapa ("Z4")
+  | 'derived'     // inferida de tipoEtapa/texto — heurística, e declarada como tal
   | 'unknown';    // sem base; altura neutra e hachurada
 
 export interface RampSpec {

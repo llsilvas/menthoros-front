@@ -374,6 +374,9 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
     // desenharia o treino gravado, não o que o treinador está montando.
     const profile = useMemo(
         () => selectWorkoutProfile(fromEtapaItens(itens), {
+            // TODO(DEP-3): o esporte não existe no contrato — nem `TreinoPlanejado`
+            // nem `TreinoPlanejadoDto` carregam modalidade. Enquanto isso, todo
+            // treino é normalizado na escala de corrida, inclusive bike e natação.
             sport: 'run',
             tss: treino.tssPlanejado ?? null,
         }),

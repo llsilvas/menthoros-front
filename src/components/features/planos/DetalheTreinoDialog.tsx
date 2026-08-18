@@ -217,6 +217,9 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
     // Antes, o chip de zona dominante, a timeline e a distribuição derivavam
     // cada um a sua zona, e nada os obrigava a concordar.
     const profile = selectWorkoutProfile(etapasOrdenadas.map(fromEtapaTreino), {
+        // TODO(DEP-3): o esporte não existe no contrato — nem `TreinoPlanejado`
+        // nem `TreinoPlanejadoDto` carregam modalidade. Enquanto isso, todo
+        // treino é normalizado na escala de corrida, inclusive bike e natação.
         sport: 'run',
         tss: dados.tssPlanejado ?? null,
         if: dados.intensidadePlanejada ?? null,

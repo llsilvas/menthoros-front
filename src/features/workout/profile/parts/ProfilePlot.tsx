@@ -5,6 +5,7 @@ import { layoutBlocks, heightOf } from '../geometry';
 import { xAxisTicks, zoneBands } from '../axis';
 import type { ProfileBlock, WorkoutProfile } from '../types';
 import type { ProfileVariant } from '../useResolvedVariant';
+import { usePlotWidth } from '../usePlotWidth';
 
 const { workoutZone, workoutProfileFill: fill, workoutProfileChrome: chrome, workoutProfileType: type, workoutProfileSpace: space } = activeTheme;
 
@@ -16,12 +17,13 @@ interface ProfilePlotProps {
   onSelect?: (block: ProfileBlock) => void;
 }
 
-/** Largura de referência do plot em jsdom, onde nada tem layout. */
-const LARGURA_PADRAO = 600;
-
 export function ProfilePlot({ profile, variant, activeBlockId, onActivate, onSelect }: ProfilePlotProps) {
   const plotHeight = space.plotHeight[variant];
-  const { blocks, overflowCompressed } = layoutBlocks(profile.blocks, LARGURA_PADRAO);
+  // A geometria é calculada contra a largura MEDIDA do plot. Com uma largura
+  // fixa, a soma das larguras não bate com o container: os blocos do fim vazam
+  // e são cortados pelo `overflow: hidden`, e o eixo de tempo mente em silêncio.
+  const { ref: plotRef, width: plotWidth } = usePlotWidth();
+  const { blocks, overflowCompressed } = layoutBlocks(profile.blocks, plotWidth);
   const ticks = variant === 'sparkline' ? [] : xAxisTicks(profile.metrics.totalDurationSec);
   const bands = variant === 'full' ? zoneBands(profile.scale) : [];
   const grupos = variant === 'sparkline' ? [] : gruposDeRepeticao(profile.blocks);
@@ -31,7 +33,15 @@ export function ProfilePlot({ profile, variant, activeBlockId, onActivate, onSel
       {grupos.length > 0 && (
         <Box
           data-testid="bracket-lane"
-          sx={{ position: 'relative', height: `${space.bracketLane[variant]}px`, mb: `${space.bracketToPlot}px` }}
+          // Deslocada pela goteira do eixo Y, senão o bracket fica fora de
+          // registro com os blocos que ele agrupa — as pernas cairiam ao lado
+          // da série, e não sobre ela.
+          sx={{
+            position: 'relative',
+            height: `${space.bracketLane[variant]}px`,
+            mb: `${space.bracketToPlot}px`,
+            ml: variant === 'full' ? `${space.yAxisWidth.full}px` : 0,
+          }}
         >
           {grupos.map((g) => {
             const de = blocks[g.primeiroIndice];
@@ -43,8 +53,8 @@ export function ProfilePlot({ profile, variant, activeBlockId, onActivate, onSel
                 data-testid="repeat-bracket"
                 sx={{
                   position: 'absolute',
-                  left:  `${((de?.x ?? 0) / LARGURA_PADRAO) * 100}%`,
-                  width: `${(largura / LARGURA_PADRAO) * 100}%`,
+                  left:  `${de?.x ?? 0}px`,
+                  width: `${largura}px`,
                   height: '100%',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   borderTop: largura >= 48 ? `${chrome.bracketWidthPx}px solid ${chrome.bracketColor}` : 'none',
@@ -90,6 +100,7 @@ export function ProfilePlot({ profile, variant, activeBlockId, onActivate, onSel
         )}
 
         <Box
+          ref={plotRef}
           data-testid="workout-plot"
           role="presentation"
           sx={{
@@ -147,9 +158,8 @@ export function ProfilePlot({ profile, variant, activeBlockId, onActivate, onSel
                 sx={{
                   position: 'absolute',
                   bottom: 0,
-                  left:   `${(geo.x / LARGURA_PADRAO) * 100}%`,
-                  width:  `${(geo.width / LARGURA_PADRAO) * 100}%`,
-                  minWidth: `${geo.width}px`,
+                  left:   `${geo.x}px`,
+                  width:  `${geo.width}px`,
                   height: `${bloco.ramp ? heightOf(Math.max(bloco.ramp.fromNormalized, bloco.ramp.toNormalized), plotHeight) : altura}px`,
                   boxSizing: 'border-box',
                   clipPath: recorte,
