@@ -6,6 +6,7 @@ import { xAxisTicks, zoneBands } from '../axis';
 import type { ProfileBlock, WorkoutProfile } from '../types';
 import type { ProfileVariant } from '../useResolvedVariant';
 import { usePlotWidth } from '../usePlotWidth';
+import { medirTexto, fontCss } from '../measureText';
 
 const { workoutZone, workoutProfileFill: fill, workoutProfileChrome: chrome, workoutProfileType: type, workoutProfileSpace: space } = activeTheme;
 
@@ -296,6 +297,20 @@ function gruposDeRepeticao(blocos: ProfileBlock[]): GrupoRepeticao[] {
  * e por isso é verificada no Playwright; aqui aplica-se a regra sobre a largura
  * calculada, e a proibição de reticências vale sempre.
  */
+/** Respiro do rótulo completo e da abreviação, conforme a §4.7 da spec. */
+const FOLGA_LABEL_PX = 12;
+const FOLGA_ABREVIACAO_PX = 8;
+
+const FONTE_ROTULO = fontCss(type.blockLabel.weight, type.blockLabel.size, activeTheme.font.text);
+
+/**
+ * Cadeia de fallback do rótulo (§4.7): `label` → `shortLabel` → nada.
+ *
+ * A largura vem de **medição** do texto, não de contagem de caracteres. A versão
+ * anterior estimava 6px por caractere e, num bloco de 100px, escolhia
+ * "DESAQUECIMENTO" — que mede 99px e enchia o bloco de borda a borda; num plot
+ * mais largo, o mesmo cálculo passava do limite e o texto era decepado.
+ */
 function rotuloDoBloco(bloco: ProfileBlock, largura: number, variant: ProfileVariant): string | null {
   if (variant === 'sparkline') return null;
   // Dentro de uma série, só a primeira repetição fala: repetir "TRAB / REC"
@@ -303,8 +318,9 @@ function rotuloDoBloco(bloco: ProfileBlock, largura: number, variant: ProfileVar
   if (bloco.repeat && bloco.repeat.index !== 1) return null;
   if (variant === 'compact') return null;
 
-  const aproximado = (texto: string) => texto.length * 6;
-  if (largura >= 44 && aproximado(bloco.label) + 12 <= largura) return bloco.label;
-  if (bloco.shortLabel && aproximado(bloco.shortLabel) + 8 <= largura) return bloco.shortLabel;
+  const cabe = (texto: string, folga: number) => medirTexto(texto, FONTE_ROTULO) + folga <= largura;
+
+  if (largura >= 44 && cabe(bloco.label, FOLGA_LABEL_PX)) return bloco.label;
+  if (bloco.shortLabel && cabe(bloco.shortLabel, FOLGA_ABREVIACAO_PX)) return bloco.shortLabel;
   return null;
 }

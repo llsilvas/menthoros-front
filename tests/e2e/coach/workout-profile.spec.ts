@@ -227,6 +227,43 @@ test.describe('perfil do treino — geometria', () => {
     }
   })
 
+  /**
+   * Regressão: a cadeia de fallback estimava a largura do texto em 6px por
+   * caractere, e o texto real mede ~7,3. Num bloco de 100px isso escolhia
+   * "DESAQUECIMENTO", que mede 99px e enchia o bloco de borda a borda; num plot
+   * mais largo o mesmo cálculo passava do limite e o rótulo era decepado pelo
+   * `overflow: hidden` — o defeito que o AC-7 existe para impedir, chegando por
+   * um caminho que ele não olhava.
+   */
+  test('AC-4: o rótulo cabe no bloco com folga, e o bloco cabe no plot', async ({ page }) => {
+    await abrirPerfil(page)
+
+    const medidas = await page.getByTestId('workout-plot').evaluate(el => {
+      const plot = el.getBoundingClientRect()
+      return Array.from(el.querySelectorAll('[data-testid="workout-block"]'))
+        .map(b => {
+          const span = b.querySelector('[data-testid="block-label"]')
+          if (!span) return null
+          const cb = b.getBoundingClientRect()
+          const sb = span.getBoundingClientRect()
+          return {
+            texto: span.textContent ?? '',
+            folgaEsquerda: sb.left - cb.left,
+            folgaDireita: cb.right - sb.right,
+            blocoNoPlot: Math.min(cb.left - plot.left, plot.right - cb.right),
+          }
+        })
+        .filter((m): m is NonNullable<typeof m> => m !== null)
+    })
+
+    expect(medidas.length, 'o treino precisa ter rótulos para o teste valer').toBeGreaterThan(0)
+    for (const m of medidas) {
+      expect(m.folgaEsquerda, `"${m.texto}" encostou na borda esquerda`).toBeGreaterThanOrEqual(4)
+      expect(m.folgaDireita, `"${m.texto}" encostou na borda direita`).toBeGreaterThanOrEqual(4)
+      expect(m.blocoNoPlot, `o bloco de "${m.texto}" vazou o plot`).toBeGreaterThanOrEqual(-1)
+    }
+  })
+
   test('AC-8: uma superfície com borda e um único elemento caixa-alta', async ({ page }) => {
     await abrirPerfil(page)
 
