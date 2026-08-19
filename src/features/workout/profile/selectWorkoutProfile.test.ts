@@ -295,8 +295,11 @@ describe('selectWorkoutProfile — modo degradado (§6.4)', () => {
     expect(alturas[0]).toBeGreaterThan(alturas[2]);
   });
 
-  // Único dado real de intensidade quando a etapa não traz o seu.
-  it('a zona-alvo do treino levanta o corpo, sem tocar no aquecimento', () => {
+  // Único dado real de intensidade quando a etapa não traz o seu. Ela ancora a
+  // escala INTEIRA — a versão anterior deste teste exigia que o aquecimento
+  // ficasse parado, e era isso que produzia duas escalas no mesmo eixo e um
+  // gráfico de cabeça para baixo num treino leve.
+  it('a zona-alvo do treino reescala o perfil, mantendo a ordem dos papéis', () => {
     const semZona = [
       etapa({ tipo: 'AQUECIMENTO', duracaoMin: 10 }),
       etapa({ tipo: 'PRINCIPAL', duracaoMin: 30 }),
@@ -305,7 +308,9 @@ describe('selectWorkoutProfile — modo degradado (§6.4)', () => {
     const comAlvo = selectWorkoutProfile(semZona, { ...ctx, zonaAlvoTreino: 'Z4' });
 
     expect(comAlvo.blocks[1].intensityNormalized).toBeGreaterThan(semAlvo.blocks[1].intensityNormalized);
-    expect(comAlvo.blocks[0].intensityNormalized).toBe(semAlvo.blocks[0].intensityNormalized);
+    // O aquecimento sobe junto, e continua abaixo do corpo.
+    expect(comAlvo.blocks[0].intensityNormalized).toBeGreaterThan(semAlvo.blocks[0].intensityNormalized);
+    expect(comAlvo.blocks[0].intensityNormalized).toBeLessThan(comAlvo.blocks[1].intensityNormalized);
     // Continua declarado como estimativa — a zona do treino não é a da etapa.
     expect(comAlvo.degraded).toBe(true);
   });
@@ -335,6 +340,52 @@ describe('selectWorkoutProfile — modo degradado (§6.4)', () => {
 // Visto na tela: a rampa do aquecimento subia acima do bloco principal, porque
 // abria ±33% em torno do nominal. O gráfico dizia que aquecer é mais duro que o
 // treino — falso, e nem estava no dado.
+// "O treino regenerativo tem o principal em azul" — reportado da tela. Dois
+// defeitos atrás disso, e o segundo é o que deforma o desenho.
+describe('selectWorkoutProfile — treino regenerativo', () => {
+  it('reconhece "regenerativo" como Z1, em vez de não saber', () => {
+    const [b] = selectWorkoutProfile([etapa({ tipo: 'REGENERATIVO', duracaoMin: 30 })], ctx).blocks;
+    expect(b.zone).toBe('Z1');
+    expect(b.confidence).toBe('derived');
+  });
+
+  it('reconhece também a forma feminina e o trote de soltura', () => {
+    const zonas = [
+      etapa({ tipo: 'PRINCIPAL', duracaoMin: 30, descricao: 'Corrida regenerativa' }),
+      etapa({ tipo: 'SOLTURA', duracaoMin: 20 }),
+    ].map((e) => selectWorkoutProfile([e], ctx).blocks[0].zone);
+    expect(zonas).toEqual(['Z1', 'Z1']);
+  });
+
+  // O aquecimento saía TRÊS VEZES mais alto que o corpo do treino: o miolo usava
+  // altura de zona (0.15 para Z1) e o resto continuava em altura de papel (0.46).
+  // Duas escalas no mesmo eixo não se comparam, e o gráfico ficava de cabeça
+  // para baixo — aquecer parecia o esforço principal.
+  it('o corpo do treino nunca fica mais baixo que o aquecimento', () => {
+    for (const zona of ['Z1', 'Z2', 'Z3', 'Z4', 'Z5']) {
+      const p = selectWorkoutProfile([
+        etapa({ tipo: 'AQUECIMENTO', duracaoMin: 10 }),
+        etapa({ tipo: 'PRINCIPAL', duracaoMin: 30 }),
+        etapa({ tipo: 'DESAQUECIMENTO', duracaoMin: 5 }),
+      ], { ...ctx, zonaAlvoTreino: zona });
+
+      const [aquec, corpo, desaq] = p.blocks.map((b) => b.intensityNormalized);
+      expect(corpo, `com alvo ${zona}, o corpo ficou abaixo do aquecimento`).toBeGreaterThanOrEqual(aquec);
+      expect(aquec, `com alvo ${zona}, o aquecimento ficou abaixo do desaquecimento`).toBeGreaterThanOrEqual(desaq);
+    }
+  });
+
+  it('a zona-alvo do treino ainda levanta o corpo quando é alta', () => {
+    const base = selectWorkoutProfile([etapa({ tipo: 'PRINCIPAL', duracaoMin: 30 })], ctx);
+    const forte = selectWorkoutProfile(
+      [etapa({ tipo: 'PRINCIPAL', duracaoMin: 30 })],
+      { ...ctx, zonaAlvoTreino: 'Z4' },
+    );
+    expect(forte.blocks[0].intensityNormalized)
+      .toBeGreaterThan(base.blocks[0].intensityNormalized);
+  });
+});
+
 describe('selectWorkoutProfile — a rampa não inventa esforço', () => {
   const treino = [
     etapa({ tipo: 'AQUECIMENTO', duracaoMin: 10 }),

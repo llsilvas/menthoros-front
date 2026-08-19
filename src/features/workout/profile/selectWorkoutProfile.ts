@@ -151,6 +151,11 @@ function zonaInferida(tipo: string, ...textos: Array<string | undefined>): ZoneK
   if (t.includes('limiar') || t.includes('threshold')) return 'Z4';
   if (t.includes('tempo') || t.includes('moderado')) return 'Z3';
 
+  // Regenerativo é Z1 por definição — é o treino cujo propósito é não somar
+  // carga. Faltava no vocabulário, e o resultado era o treino mais leve do
+  // catálogo caindo em "não sei" e sendo desenhado na altura de um tempo run.
+  if (t.includes('regenerativ') || t.includes('soltura') || t.includes('regenera')) return 'Z1';
+
   const papel = papelDe(tipo);
   if (papel === 'warmup' || papel === 'cooldown' || papel === 'recovery' || papel === 'rest') return 'Z1';
   if (t.includes('aerob') || t.includes('leve') || t.includes('easy') || t.includes('longo')) return 'Z2';
@@ -194,13 +199,18 @@ function construirBlocos(
     // No modo degradado a altura codifica o papel; fora dele, o ponto médio da
     // faixa da zona. Zona desconhecida fica no meio da escala, hachurada pelo
     // componente — escolher Z1 seria afirmar que o trecho é leve.
-    // No corpo do treino, a zona-alvo declarada no treino vale mais que o nível
-    // genérico do papel — é o único dado real de intensidade que sobra quando a
-    // etapa não traz o seu. Fora do miolo ela não se aplica.
-    const miolo = papel === 'work' || papel === 'steady';
-    const alturaDegradada = miolo && zonaDoTreino
-      ? midpointOf(zonaDoTreino, scale)
-      : ALTURA_POR_PAPEL[papel];
+    // A zona-alvo do treino ancora a escala inteira, e não só o miolo.
+    //
+    // Antes ela era aplicada só a `work`/`steady`, e o resto seguia em altura de
+    // papel — duas escalas no mesmo eixo. Num treino Z1 o corpo ia a 0.15 e o
+    // aquecimento ficava em 0.46: o gráfico de cabeça para baixo, com o
+    // aquecimento parecendo o esforço principal. Agora ela reescala todos os
+    // papéis pelo mesmo fator, o que preserva a ordem (trabalho > corpo >
+    // aquecimento > desaquecimento > recuperação) e ancora no único dado real.
+    const fator = zonaDoTreino
+      ? midpointOf(zonaDoTreino, scale) / ALTURA_POR_PAPEL.steady
+      : 1;
+    const alturaDegradada = Math.min(1, Math.max(0.12, ALTURA_POR_PAPEL[papel] * fator));
 
     const intensityNormalized = degraded
       ? alturaDegradada
