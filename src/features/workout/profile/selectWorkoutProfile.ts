@@ -30,11 +30,19 @@ export interface ProfileContext {
   if?: number | null;
   /**
    * Zona-alvo declarada no **treino** (`TreinoPlanejadoDto.zonaAlvo`), quando as
-   * etapas não trazem zona própria.
+   * etapas não trazem zona própria. Só tem efeito no modo degradado.
    *
-   * Usada só no corpo do treino (`work`/`steady`) e só no modo degradado:
-   * "este treino é Z4" fala do miolo, não do aquecimento. Aplicá-la a todas as
-   * etapas achataria o perfil de novo e ainda mentiria sobre o aquecimento.
+   * Ancora a escala **inteira**: reescala todos os papéis pelo mesmo fator, em
+   * vez de mexer só no miolo. Ela chegou aplicada só a `work`/`steady`, e o
+   * resultado eram duas escalas no mesmo eixo — num treino Z1, o corpo ia a 0.15
+   * e o aquecimento ficava em 0.46, com o gráfico de cabeça para baixo.
+   *
+   * Consequência conhecida em zonas baixas: com o fator pequeno, vários papéis
+   * batem no piso de 0.12 e empatam em altura. É aceito — num regenerativo,
+   * aquecimento e desaquecimento realmente não diferem do corpo, e eles seguem
+   * distinguíveis pela forma (rampa) e pelo rótulo. Preservar a proporção ali
+   * exigiria inflar o treino leve, e isso quebraria a comparação entre treinos,
+   * que é o motivo de o teto da escala ser fixo.
    */
   zonaAlvoTreino?: string | null;
 }
@@ -154,7 +162,11 @@ function zonaInferida(tipo: string, ...textos: Array<string | undefined>): ZoneK
   // Regenerativo é Z1 por definição — é o treino cujo propósito é não somar
   // carga. Faltava no vocabulário, e o resultado era o treino mais leve do
   // catálogo caindo em "não sei" e sendo desenhado na altura de um tempo run.
-  if (t.includes('regenerativ') || t.includes('soltura') || t.includes('regenera')) return 'Z1';
+  // `regenera` cobre regenerativo, regenerativa, regeneração e regenerar — o
+  // `regenerativ` que estava aqui junto era prefixo dele, e redundante. Os
+  // sinais fortes (vo2, sprint, limiar, tempo) são testados ANTES, então um
+  // treino intenso que mencione a palavra já foi classificado.
+  if (t.includes('regenera') || t.includes('soltura')) return 'Z1';
 
   const papel = papelDe(tipo);
   if (papel === 'warmup' || papel === 'cooldown' || papel === 'recovery' || papel === 'rest') return 'Z1';
@@ -264,7 +276,13 @@ const QUEDA_RAMPA = 0.5;
 function rampaDe(papel: BlockKind, nominal: number): RampSpec | null {
   if (papel !== 'warmup' && papel !== 'cooldown') return null;
 
-  const piso = Math.max(0.12, nominal * QUEDA_RAMPA);
+  // Sem piso absoluto aqui, de propósito. Ele existia e degenerava a rampa: com
+  // o nominal no piso de 0.12, `max(0.12, 0.12*0.5)` devolvia o próprio
+  // nominal, `from === to`, e o trapézio virava retângulo — o patamar que esta
+  // função existe para não desenhar. O piso do bloco é aplicado na altura, e o
+  // recorte da rampa é **relativo ao pico**, então uma fração pura sempre
+  // desenha a trajetória, por menor que o bloco seja.
+  const piso = nominal * QUEDA_RAMPA;
 
   return papel === 'warmup'
     ? { fromNormalized: piso, toNormalized: nominal }

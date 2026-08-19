@@ -370,8 +370,31 @@ describe('selectWorkoutProfile — treino regenerativo', () => {
       ], { ...ctx, zonaAlvoTreino: zona });
 
       const [aquec, corpo, desaq] = p.blocks.map((b) => b.intensityNormalized);
+      // `>=` é deliberado, não descuido: em zonas baixas o piso de 0.12 faz
+      // papéis vizinhos empatarem, e isso é aceito — num regenerativo eles
+      // realmente não diferem. O que não pode acontecer é a INVERSÃO, que era o
+      // defeito. A distinção entre eles fica por conta da forma e do rótulo.
       expect(corpo, `com alvo ${zona}, o corpo ficou abaixo do aquecimento`).toBeGreaterThanOrEqual(aquec);
       expect(aquec, `com alvo ${zona}, o aquecimento ficou abaixo do desaquecimento`).toBeGreaterThanOrEqual(desaq);
+    }
+  });
+
+  // O piso de 0.12 chegava a colapsar a rampa: com o nominal no piso,
+  // `max(0.12, 0.12*0.5)` devolvia o próprio nominal, `from === to`, e o
+  // trapézio virava retângulo — o patamar que a rampa existe para não desenhar.
+  it('a rampa nunca degenera em patamar, nem no piso da escala', () => {
+    for (const zona of ['Z1', 'Z2', 'Z3', 'Z4', 'Z5']) {
+      const p = selectWorkoutProfile([
+        etapa({ tipo: 'AQUECIMENTO', duracaoMin: 10 }),
+        etapa({ tipo: 'PRINCIPAL', duracaoMin: 30 }),
+        etapa({ tipo: 'DESAQUECIMENTO', duracaoMin: 5 }),
+      ], { ...ctx, zonaAlvoTreino: zona });
+
+      for (const b of p.blocks) {
+        if (!b.ramp) continue;
+        expect(b.ramp.fromNormalized, `${b.kind} com alvo ${zona} virou patamar`)
+          .not.toBeCloseTo(b.ramp.toNormalized, 5);
+      }
     }
   });
 
