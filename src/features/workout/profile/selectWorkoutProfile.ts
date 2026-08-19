@@ -21,7 +21,7 @@ import type {
 } from './types';
 import type { ProfileEtapaInput } from './input';
 import { midpointOf, scaleFor, zoneOf, type AthleteThresholds } from './scale';
-import { detectarJanelaRepetida } from '../serie/janelaRepetida';
+import { inferirSeries } from './inferirSeries';
 
 export interface ProfileContext {
   sport: Sport;
@@ -110,13 +110,30 @@ function papelDe(tipo: string): BlockKind {
  * com o dado escrito ali. A ordem dos argumentos é a precedência: campo de alvo
  * é mais específico que prosa livre, e ganha quando os dois discordam.
  */
-function zonaDeclarada(...textos: Array<string | undefined>): ZoneKey | null {
-  for (const texto of textos) {
+function zonaDeclarada(fontes: Array<{ campo: string; texto: string | undefined }>): ZoneKey | null {
+  for (const { texto } of fontes) {
     if (!texto) continue;
     const m = texto.toLowerCase().match(/z(?:ona\s*)?([1-5])\b/);
     if (m) return `Z${m[1]}` as ZoneKey;
   }
   return null;
+}
+
+/**
+ * Precedência declarada como **dado**, não como ordem de argumentos.
+ *
+ * Campo de alvo é mais específico que prosa livre e ganha quando os dois
+ * discordam. Com a versão variádica anterior, trocar dois argumentos num
+ * refactor invertia a regra de negócio em silêncio — o TypeScript aceita, porque
+ * todos são `string | undefined`.
+ */
+function fontesDeZona(e: ProfileEtapaInput) {
+  return [
+    { campo: 'fcAlvo',      texto: e.fcAlvo },
+    { campo: 'intensidade', texto: e.intensidade },
+    { campo: 'descricao',   texto: e.descricao },
+    { campo: 'ritmoAlvo',   texto: e.ritmoAlvo },
+  ];
 }
 
 /**
@@ -148,7 +165,7 @@ interface BlocoResolvido {
 }
 
 function resolverZona(e: ProfileEtapaInput): BlocoResolvido {
-  const declarada = zonaDeclarada(e.fcAlvo, e.intensidade, e.descricao, e.ritmoAlvo);
+  const declarada = zonaDeclarada(fontesDeZona(e));
   if (declarada) return { zone: declarada, confidence: 'prescribed' };
 
   const inferida = zonaInferida(e.tipo, e.descricao, e.intensidade, e.ritmoAlvo);
@@ -219,70 +236,6 @@ function construirBlocos(
   }
 
   return blocos;
-}
-
-/**
- * Vocabulário do perfil para a detecção de série (`detectarJanelaRepetida`).
- *
- * Difere do editor em dois pontos, e os dois são deliberados: a assinatura não
- * inclui distância, porque `ProfileEtapaInput` não a carrega; e o esforço é
- * reconhecido pelo mesmo `papelDe` que o resto do módulo usa — `INTERVALADO`,
- * mas também `tiro`, `esforço` e afins. O editor reconhece só `INTERVALADO`,
- * para espelhar o backend; aqui, aceitar menos faria a série sumir do gráfico
- * num treino que o próprio módulo já trata como trabalho.
- */
-const VOCABULARIO_PERFIL = {
-  assinatura: (e: ProfileEtapaInput) => `${e.tipo}|${e.duracaoMin}|${e.fcAlvo}`,
-  ehTrabalho: (e: ProfileEtapaInput) => papelDe(e.tipo) === 'work',
-};
-
-/**
- * Marca as séries que o backend entregou expandidas, sem `blocoId`.
- *
- * Treinos gerados pela IA nascem sem agrupamento: chegam como N repetições
- * planas. Sem isto o gráfico desenha N blocos avulsos, sem bracket e com o
- * rótulo repetido em cada um — o ruído que a §4.5 da spec existe para evitar.
- *
- * O `blocoId` explícito, quando existe, manda: ele é dado, e isto é inferência.
- */
-function inferirSeries(etapas: ProfileEtapaInput[]): ProfileEtapaInput[] {
-  const saida: ProfileEtapaInput[] = [];
-  let i = 0;
-  let grupo = 0;
-
-  while (i < etapas.length) {
-    if (etapas[i].blocoId) {
-      saida.push(etapas[i]);
-      i++;
-      continue;
-    }
-
-    // A janela não atravessa uma etapa que já tem agrupamento próprio.
-    let limite = i;
-    while (limite < etapas.length && !etapas[limite].blocoId) limite++;
-
-    const serie = detectarJanelaRepetida(etapas, i, limite, VOCABULARIO_PERFIL);
-    if (!serie) {
-      saida.push(etapas[i]);
-      i++;
-      continue;
-    }
-
-    const groupId = `inferido-${grupo++}`;
-    for (let r = 1; r <= serie.reps; r++) {
-      for (let p = 0; p < serie.janela; p++) {
-        saida.push({
-          ...etapas[i + (r - 1) * serie.janela + p],
-          blocoId: groupId,
-          blocoRepeticoes: serie.reps,
-          blocoRepeticaoIndex: r,
-        });
-      }
-    }
-    i += serie.janela * serie.reps;
-  }
-
-  return saida;
 }
 
 /** Quanto a rampa se abre para cada lado do valor nominal. */
@@ -386,7 +339,7 @@ export function selectWorkoutProfile(
   const droppedBlocks = etapas.length - comDuracao.length;
   // Depois do descarte: uma etapa sem duração no meio da série quebraria a
   // janela e esconderia a repetição que existe.
-  const utilizaveis = inferirSeries(comDuracao);
+  const utilizaveis = inferirSeries(comDuracao, papelDe);
 
   // Degradado = alguma etapa sem zona confiável. Enquanto o backend não expuser
   // intensidade estruturada (DEP-1), o caminho normal é este — e o header diz
@@ -397,7 +350,7 @@ export function selectWorkoutProfile(
   const degraded = utilizaveis.length > 0
     && resolvidas.some((r) => r.confidence !== 'prescribed');
 
-  const zonaDoTreino = zonaDeclarada(context.zonaAlvoTreino ?? undefined);
+  const zonaDoTreino = zonaDeclarada([{ campo: 'zonaAlvoTreino', texto: context.zonaAlvoTreino ?? undefined }]);
   const blocks = construirBlocos(utilizaveis, resolvidas, scale, degraded, zonaDoTreino);
   const totalDurationSec = blocks.reduce((s, b) => s + b.durationSec, 0);
 
