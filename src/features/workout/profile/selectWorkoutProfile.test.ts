@@ -332,6 +332,43 @@ describe('selectWorkoutProfile — modo degradado (§6.4)', () => {
   });
 });
 
+// Visto na tela: a rampa do aquecimento subia acima do bloco principal, porque
+// abria ±33% em torno do nominal. O gráfico dizia que aquecer é mais duro que o
+// treino — falso, e nem estava no dado.
+describe('selectWorkoutProfile — a rampa não inventa esforço', () => {
+  const treino = [
+    etapa({ tipo: 'AQUECIMENTO', duracaoMin: 10 }),
+    etapa({ tipo: 'PRINCIPAL', duracaoMin: 20 }),
+    etapa({ tipo: 'DESAQUECIMENTO', duracaoMin: 5 }),
+  ];
+
+  it('a rampa chega ao nominal do bloco, nunca o ultrapassa', () => {
+    for (const b of selectWorkoutProfile(treino, ctx).blocks) {
+      if (!b.ramp) continue;
+      const pico = Math.max(b.ramp.fromNormalized, b.ramp.toNormalized);
+      expect(pico, `${b.kind} passa do próprio nominal`).toBeLessThanOrEqual(b.intensityNormalized);
+    }
+  });
+
+  it('o aquecimento nunca é desenhado mais alto que o corpo do treino', () => {
+    const blocos = selectWorkoutProfile(treino, ctx).blocks;
+    const alturaMaxima = (b: (typeof blocos)[number]) =>
+      b.ramp ? Math.max(b.ramp.fromNormalized, b.ramp.toNormalized) : b.intensityNormalized;
+
+    const aquecimento = blocos.find((b) => b.kind === 'warmup')!;
+    const corpo = blocos.find((b) => b.kind === 'steady')!;
+    expect(alturaMaxima(aquecimento)).toBeLessThan(alturaMaxima(corpo));
+  });
+
+  it('o aquecimento sobe e o desaquecimento desce', () => {
+    const blocos = selectWorkoutProfile(treino, ctx).blocks;
+    const aquec = blocos.find((b) => b.kind === 'warmup')!.ramp!;
+    const desaq = blocos.find((b) => b.kind === 'cooldown')!.ramp!;
+    expect(aquec.toNormalized).toBeGreaterThan(aquec.fromNormalized);
+    expect(desaq.toNormalized).toBeLessThan(desaq.fromNormalized);
+  });
+});
+
 describe('selectWorkoutProfile — invariantes do AC-6', () => {
   const casos: Array<[string, ProfileEtapaInput[]]> = [
     ['série clássica', [

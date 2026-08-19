@@ -238,23 +238,27 @@ function construirBlocos(
   return blocos;
 }
 
-/** Quanto a rampa se abre para cada lado do valor nominal. */
-const ABERTURA_RAMPA = 0.33;
+/** De quanto abaixo do nominal a rampa parte. */
+const QUEDA_RAMPA = 0.5;
 
 /**
  * Aquecimento e desaquecimento são trajetórias, não patamares — e é a **forma**
  * que passa a comunicar o papel estrutural, agora que a cor pertence à zona.
- * A altura nominal continua sendo o ponto médio; a rampa só governa a geometria.
+ *
+ * A rampa **chega** ao nominal; nunca o ultrapassa. A versão anterior abria
+ * ±33% em torno dele, e o efeito na tela era o aquecimento desenhado mais alto
+ * que o bloco principal — pico 0.61 contra 0.58 do miolo. O gráfico dizia que
+ * aquecer é mais duro que o treino, o que é falso e nem estava no dado: o
+ * nominal É a intensidade do bloco, e passar dele inventa esforço.
  */
 function rampaDe(papel: BlockKind, nominal: number): RampSpec | null {
   if (papel !== 'warmup' && papel !== 'cooldown') return null;
 
-  const piso = Math.max(0.12, nominal * (1 - ABERTURA_RAMPA));
-  const teto = Math.min(1, nominal * (1 + ABERTURA_RAMPA));
+  const piso = Math.max(0.12, nominal * QUEDA_RAMPA);
 
   return papel === 'warmup'
-    ? { fromNormalized: piso, toNormalized: teto }
-    : { fromNormalized: teto, toNormalized: piso };
+    ? { fromNormalized: piso, toNormalized: nominal }
+    : { fromNormalized: nominal, toNormalized: piso };
 }
 
 function distribuirPorZona(blocos: ProfileBlock[], total: number): ZoneShare[] {
