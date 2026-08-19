@@ -65,12 +65,20 @@
 - **[DetalheTreinoDialog.tsx](./components/features/planos/DetalheTreinoDialog.tsx)** - Modal com detalhes completos de treino planejado
 - **[planosDialog.tsx](./components/features/planos/planosDialog.tsx)** - Modal de gerenciamento de planos semanais
 
-#### components/features/planos/WorkoutTimelineChart/
+#### features/workout/profile/
 
-- **[WorkoutTimelineChart.tsx](./components/features/planos/WorkoutTimelineChart/WorkoutTimelineChart.tsx)** - Gráfico de linha do tempo de treino por zonas e blocos
-- **[toWorkoutBlocks.ts](./components/features/planos/WorkoutTimelineChart/toWorkoutBlocks.ts)** - Converte dados de treino em blocos visuais do gráfico
-- **[types.ts](./components/features/planos/WorkoutTimelineChart/types.ts)** - Tipos WorkoutBlock e BlockType do gráfico
-- **[index.ts](./components/features/planos/WorkoutTimelineChart/index.ts)** - Export público do componente WorkoutTimelineChart
+Perfil do treino: largura = tempo, altura = intensidade, cor = zona. Substituiu o
+`WorkoutTimelineChart`, que codificava a zona numa borda de 3px e pintava o bloco
+com a etapa estrutural.
+
+- **[WorkoutProfile.tsx](./features/workout/profile/WorkoutProfile.tsx)** - Componente do perfil, em três variantes por largura de container
+- **[selectWorkoutProfile.ts](./features/workout/profile/selectWorkoutProfile.ts)** - Seletor puro: zona, intensidade, agrupamento e distribuição, tudo num retorno só
+- **[input.ts](./features/workout/profile/input.ts)** - Entrada normalizada e os três adaptadores (detalhe, revisão, editor ao vivo)
+- **[geometry.ts](./features/workout/profile/geometry.ts)** - Largura com piso de 3px e altura com piso de 12%
+- **[axis.ts](./features/workout/profile/axis.ts)** - Marcas do eixo X e faixas de zona do eixo Y
+- **[scale.ts](./features/workout/profile/scale.ts)** - Escala por esporte, com teto fixo por métrica
+- **[format.ts](./features/workout/profile/format.ts)** - Duração, alvo e razão trabalho:recuperação
+- **[a11y.ts](./features/workout/profile/a11y.ts)** - Resumo falado gerado do mesmo perfil que desenha o gráfico
 
 #### components/features/provas/
 

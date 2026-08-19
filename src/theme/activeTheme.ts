@@ -30,6 +30,14 @@ import {
   trainingStage as premiumTrainingStage,
   readiness as premiumReadiness,
   zone as premiumZone,
+  zoneLabel as ZONE_LABELS,
+  workoutZone as premiumWorkoutZone,
+  workoutZoneLabel as premiumWorkoutZoneLabel,
+  font as premiumFont,
+  workoutProfileFill as premiumWorkoutProfileFill,
+  workoutProfileChrome as premiumWorkoutProfileChrome,
+  workoutProfileType as premiumWorkoutProfileType,
+  workoutProfileSpace as premiumWorkoutProfileSpace,
 } from './theme.premium';
 import { WORKOUT_STATUS_COLORS } from '../shared/theme/workoutColors';
 import { overlayWhite, overlayBlack } from './overlays';
@@ -54,9 +62,8 @@ const premiumType: Record<string, string> = {
 };
 
 // zones: shape estruturado (color/fill/border/label) sobre os hexes premium.
-const ZONE_LABELS = {
-  Z1: 'Recuperação', Z2: 'Base', Z3: 'Tempo', Z4: 'Limiar', Z5: 'VO₂ Máx',
-} as const;
+// Os rótulos vêm de `theme.premium` (`zoneLabel`) porque `workoutZone` também os
+// usa — declarados aqui, seriam duas listas divergindo na primeira renomeação.
 const zoneEntry = (color: string, label: string) =>
   ({ color, fill: `${color}2E`, border: color, label }) as const;
 const premiumZones = {
@@ -86,11 +93,26 @@ export const activeTheme = {
   trainingStage:  premiumTrainingStage,
   readiness:      premiumReadiness,
   zones:          premiumZones,
+  // WorkoutProfile — rampa própria, fria→quente. Não substitui `zones`, que
+  // segue servindo os demais gráficos (ver theme.premium, grupo `workoutZone`).
+  workoutZone:         premiumWorkoutZone,
+  workoutZoneLabel:    premiumWorkoutZoneLabel,
+  font:                premiumFont,
+  workoutProfileFill:  premiumWorkoutProfileFill,
+  workoutProfileChrome: premiumWorkoutProfileChrome,
+  workoutProfileType:  premiumWorkoutProfileType,
+  workoutProfileSpace: premiumWorkoutProfileSpace,
 } as const;
 
 // Re-export ergonômico do mapa de zonas: componentes importam de `theme/activeTheme`
 // mantendo o uso `zones[zoneKey]`.
 export const zones = activeTheme.zones;
+
+// Rampa do perfil de treino. Re-exportada no mesmo padrão de `zones` para quem
+// desenha zona fora do componente — não substitui `zones`, que segue servindo os
+// demais gráficos.
+export const workoutZone = activeTheme.workoutZone;
+export const workoutZoneLabel = activeTheme.workoutZoneLabel;
 
 // Resolve a cor do tipo de treino pela superfície única (`activeTheme`),
 // normalizando caixa e caindo no neutro DEFAULT.

@@ -8,6 +8,10 @@
 // Princípios:
 //   - Estados ancoram em `semantic`; categorias ancoram em `categorical` dedicado.
 //   - Lime (`primary`, suavizado para #BDDE5A) só em brand/primary-action.
+
+// `overlays` é folha (não importa nada) — a dependência não fecha ciclo. Os
+// grupos do WorkoutProfile consomem overlay em vez de repetir rgba() literal.
+import { overlayWhite } from './overlays';
 //   - Heat ramp Z1–Z5 preservado; apenas Z2 muda (lime → green #34D399).
 //
 // Esta é a camada de tokens (theme/**): hex raw é legítimo aqui. Componentes
@@ -119,6 +123,117 @@ export const zone = {
   Z3: semantic.info,    // #3B82F6
   Z4: semantic.warning, // #F59E0B
   Z5: semantic.danger,  // #EF4444
+} as const;
+
+// Rótulos das cinco zonas. Vivem aqui, e não em `activeTheme`, porque dois
+// grupos de cor os consomem (`zones` e `workoutZone`) — declarar em cada um
+// criaria duas listas que divergem no dia em que alguém renomear uma zona.
+export const zoneLabel = {
+  Z1: 'Recuperação', Z2: 'Base', Z3: 'Tempo', Z4: 'Limiar', Z5: 'VO₂ Máx',
+} as const;
+
+// ── WorkoutZone — rampa do perfil de treino (frio → quente) ──────────────────
+// Grupo NOVO, não substitui `zone`. Existe porque `zone` é não-monotônico —
+// cinza na base e azul no meio — e no perfil de treino a cor precisa reforçar a
+// altura, não contradizê-la: "mais alto e mais quente = mais forte" só lê bem se
+// o matiz caminhar numa direção só (AC-9).
+//
+// `zone` fica intocado de propósito: é consumido por outros gráficos que não
+// estão sendo redesenhados, e trocar a paleta deles sem verificação seria mudar
+// a leitura de telas que ninguém revisou. A migração é change própria.
+export const workoutZone = {
+  Z1: '#38BDF8', // sky    — base aeróbica / recuperação
+  Z2: '#34D399', // green  — mantém o hex de `zone.Z2`
+  Z3: '#FACC15', // yellow
+  Z4: '#F97316', // orange
+  Z5: '#EF4444', // red    — mantém o hex de `zone.Z5`
+} as const;
+
+export const workoutZoneLabel = zoneLabel;
+
+// ── Font — famílias tokenizadas ──────────────────────────────────────────────
+// `Space Grotesk` e `JetBrains Mono` já vinham carregadas no `index.html`, mas
+// não eram token: os componentes escreviam `fontFamily: 'monospace'` cru, que
+// resolve para a mono do sistema — a fonte carregada nunca aparecia na tela.
+export const font = {
+  display: '"Space Grotesk", "Syne", "Inter", sans-serif',
+  text:    '"Inter", system-ui, sans-serif',
+  mono:    '"JetBrains Mono", ui-monospace, SFMono-Regular, monospace',
+} as const;
+
+// ── WorkoutProfile — geometria e preenchimento do bloco ──────────────────────
+export const workoutProfileFill = {
+  /** Gradiente vertical do topo (100%) à base (55%): o olho sobe com a intensidade. */
+  gradientTopAlpha:    1.00,
+  gradientBottomAlpha: 0.55,
+  /** Banda sólida no topo — é ELA que carrega o contraste de 3:1, não o gradiente. */
+  capHeightPx:  2,
+  capAlpha:     1.00,
+  /** Contorno de 1px a 100% — segundo portador de contraste (WCAG 1.4.11). */
+  outlineAlpha:   1.00,
+  outlineWidthPx: 1,
+  /** Rampas (aquecimento/desaquecimento): mesma cor da zona, atenuada. */
+  rampAlpha: 0.70,
+  /** Bloco não-focado quando há um bloco ativo. */
+  inactiveAlpha: 0.55,
+  /** Sem prescrição confiável: hachura sobre neutro — o sinal de "não sei". */
+  unknownFill:  surface[600],
+  unknownHatch: 'repeating-linear-gradient(45deg, transparent 0 3px, rgba(255,255,255,.10) 3px 6px)',
+  radiusTopPx:      2,
+  radiusBottomPx:   0,
+  separatorWidthPx: 1,
+  /** O separador é o próprio fundo desenhado sobre a borda — não é um gap. */
+  separatorColor: surfaceShift.panel,
+} as const;
+
+// ── WorkoutProfile — grade, eixos e cromo do plot ────────────────────────────
+export const workoutProfileChrome = {
+  plotBg:            surfaceShift.panel,
+  gridlineColor:     overlayWhite[8],
+  gridlineWidthPx:   1,
+  baselineColor:     overlayWhite[15],
+  baselineWidthPx:   1,
+  axisTickColor:     overlayWhite[12],
+  axisLabelColor:    surface[500],
+  zoneLabelColor:    surface[500],
+  bracketColor:      overlayWhite[25],
+  bracketWidthPx:    1,
+  bracketTickPx:     4,
+  tooltipBg:         surfaceShift.raised,
+  tooltipBorder:     overlayWhite[15],
+  focusRingColor:    primary[500],
+  focusRingWidthPx:  2,
+  focusRingOffsetPx: 2,
+} as const;
+
+// ── WorkoutProfile — tipografia ──────────────────────────────────────────────
+// Regra: todo número é mono, todo rótulo é texto. Números em mono alinham
+// verticalmente entre blocos e entre chips, e é isso que deixa o treinador
+// comparar durações sem reler — a razão é funcional, não estética.
+export const workoutProfileType = {
+  headerTitle:  { family: font.display, size: '0.875rem',  weight: 600, tracking: '0',       transform: 'none' },
+  headerChip:   { family: font.mono,    size: '0.6875rem', weight: 500, tracking: '0.02em',  transform: 'none' },
+  badge:        { family: font.mono,    size: '0.6875rem', weight: 700, tracking: '0.06em',  transform: 'uppercase' },
+  blockLabel:   { family: font.text,    size: '0.625rem',  weight: 600, tracking: '0.01em',  transform: 'none' },
+  axisTick:     { family: font.mono,    size: '0.625rem',  weight: 400, tracking: '0.02em',  transform: 'none' },
+  zoneAxis:     { family: font.mono,    size: '0.5625rem', weight: 500, tracking: '0.04em',  transform: 'none' },
+  bracketLabel: { family: font.mono,    size: '0.625rem',  weight: 700, tracking: '0.02em',  transform: 'none' },
+  tooltipTitle: { family: font.text,    size: '0.8125rem', weight: 600, tracking: '0',       transform: 'none' },
+  tooltipBody:  { family: font.text,    size: '0.75rem',   weight: 400, tracking: '0',       transform: 'none' },
+  tooltipData:  { family: font.mono,    size: '0.75rem',   weight: 500, tracking: '0',       transform: 'none' },
+} as const;
+
+// ── WorkoutProfile — espaçamento por variante ────────────────────────────────
+export const workoutProfileSpace = {
+  cardPadding:   { full: 16, compact: 12, sparkline: 0 },
+  headerGap:     12,
+  chipGap:       8,
+  plotToXAxis:   6,
+  yAxisWidth:    { full: 22, compact: 0, sparkline: 0 },
+  bracketToPlot: 6,
+  bracketLane:   { full: 16, compact: 12, sparkline: 0 },
+  plotHeight:    { full: 176, compact: 92, sparkline: 36 },
+  cardRadius:    8,
 } as const;
 
 // TrainingStatus premium é montado em `activeTheme.ts` (premiumTrainingStatus,
