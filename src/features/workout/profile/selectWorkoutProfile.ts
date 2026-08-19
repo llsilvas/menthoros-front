@@ -21,6 +21,7 @@ import type {
 } from './types';
 import type { ProfileEtapaInput } from './input';
 import { midpointOf, scaleFor, zoneOf, type AthleteThresholds } from './scale';
+import { detectarJanelaRepetida } from '../serie/janelaRepetida';
 
 export interface ProfileContext {
   sport: Sport;
@@ -220,6 +221,70 @@ function construirBlocos(
   return blocos;
 }
 
+/**
+ * Vocabulário do perfil para a detecção de série (`detectarJanelaRepetida`).
+ *
+ * Difere do editor em dois pontos, e os dois são deliberados: a assinatura não
+ * inclui distância, porque `ProfileEtapaInput` não a carrega; e o esforço é
+ * reconhecido pelo mesmo `papelDe` que o resto do módulo usa — `INTERVALADO`,
+ * mas também `tiro`, `esforço` e afins. O editor reconhece só `INTERVALADO`,
+ * para espelhar o backend; aqui, aceitar menos faria a série sumir do gráfico
+ * num treino que o próprio módulo já trata como trabalho.
+ */
+const VOCABULARIO_PERFIL = {
+  assinatura: (e: ProfileEtapaInput) => `${e.tipo}|${e.duracaoMin}|${e.fcAlvo}`,
+  ehTrabalho: (e: ProfileEtapaInput) => papelDe(e.tipo) === 'work',
+};
+
+/**
+ * Marca as séries que o backend entregou expandidas, sem `blocoId`.
+ *
+ * Treinos gerados pela IA nascem sem agrupamento: chegam como N repetições
+ * planas. Sem isto o gráfico desenha N blocos avulsos, sem bracket e com o
+ * rótulo repetido em cada um — o ruído que a §4.5 da spec existe para evitar.
+ *
+ * O `blocoId` explícito, quando existe, manda: ele é dado, e isto é inferência.
+ */
+function inferirSeries(etapas: ProfileEtapaInput[]): ProfileEtapaInput[] {
+  const saida: ProfileEtapaInput[] = [];
+  let i = 0;
+  let grupo = 0;
+
+  while (i < etapas.length) {
+    if (etapas[i].blocoId) {
+      saida.push(etapas[i]);
+      i++;
+      continue;
+    }
+
+    // A janela não atravessa uma etapa que já tem agrupamento próprio.
+    let limite = i;
+    while (limite < etapas.length && !etapas[limite].blocoId) limite++;
+
+    const serie = detectarJanelaRepetida(etapas, i, limite, VOCABULARIO_PERFIL);
+    if (!serie) {
+      saida.push(etapas[i]);
+      i++;
+      continue;
+    }
+
+    const groupId = `inferido-${grupo++}`;
+    for (let r = 1; r <= serie.reps; r++) {
+      for (let p = 0; p < serie.janela; p++) {
+        saida.push({
+          ...etapas[i + (r - 1) * serie.janela + p],
+          blocoId: groupId,
+          blocoRepeticoes: serie.reps,
+          blocoRepeticaoIndex: r,
+        });
+      }
+    }
+    i += serie.janela * serie.reps;
+  }
+
+  return saida;
+}
+
 /** Quanto a rampa se abre para cada lado do valor nominal. */
 const ABERTURA_RAMPA = 0.33;
 
@@ -317,8 +382,11 @@ export function selectWorkoutProfile(
 ): WorkoutProfile {
   const scale = scaleFor(context.sport, context.thresholds);
 
-  const utilizaveis = etapas.filter((e) => (e.duracaoMin ?? 0) > 0);
-  const droppedBlocks = etapas.length - utilizaveis.length;
+  const comDuracao = etapas.filter((e) => (e.duracaoMin ?? 0) > 0);
+  const droppedBlocks = etapas.length - comDuracao.length;
+  // Depois do descarte: uma etapa sem duração no meio da série quebraria a
+  // janela e esconderia a repetição que existe.
+  const utilizaveis = inferirSeries(comDuracao);
 
   // Degradado = alguma etapa sem zona confiável. Enquanto o backend não expuser
   // intensidade estruturada (DEP-1), o caminho normal é este — e o header diz

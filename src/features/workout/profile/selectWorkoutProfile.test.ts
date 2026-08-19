@@ -179,6 +179,57 @@ describe('selectWorkoutProfile — métricas sobre o exemplo da spec §2.6', () 
   });
 });
 
+// O backend entrega a série já expandida e sem `blocoId` — então o perfil via
+// N blocos avulsos, sem bracket, e com "REC" repetido seis vezes na tela: o
+// ruído que o agrupamento existe para evitar.
+describe('selectWorkoutProfile — série expandida sem blocoId', () => {
+  const seisPares = Array.from({ length: 6 }, () => [
+    etapa({ tipo: 'INTERVALADO', duracaoMin: 2, fcAlvo: 'Z5' }),
+    etapa({ tipo: 'RECUPERACAO', duracaoMin: 1, fcAlvo: 'Z1' }),
+  ]).flat();
+
+  it('reconhece os seis pares repetidos como uma série', () => {
+    const p = selectWorkoutProfile(seisPares, ctx);
+    const naSerie = p.blocks.filter((b) => b.repeat);
+
+    expect(naSerie).toHaveLength(12);
+    expect(naSerie.every((b) => b.repeat!.total === 6)).toBe(true);
+    expect(naSerie.map((b) => b.repeat!.index)).toEqual([1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6]);
+  });
+
+  // O vocabulário de trabalho do perfil é mais amplo que o do editor, que só
+  // reconhece "INTERVALADO". Um treino com "TIRO" é série do mesmo jeito.
+  it('agrupa também as séries que o editor não reconheceria', () => {
+    const comTiro = Array.from({ length: 4 }, () => [
+      etapa({ tipo: 'TIRO', duracaoMin: 1, fcAlvo: 'Z5' }),
+      etapa({ tipo: 'RECUPERACAO', duracaoMin: 2, fcAlvo: 'Z1' }),
+    ]).flat();
+    expect(selectWorkoutProfile(comTiro, ctx).blocks.filter((b) => b.repeat)).toHaveLength(8);
+  });
+
+  it('não agrupa repetição sem esforço dentro — dois blocos leves não são série', () => {
+    const p = selectWorkoutProfile([
+      etapa({ tipo: 'AQUECIMENTO', duracaoMin: 10, fcAlvo: 'Z2' }),
+      etapa({ tipo: 'AQUECIMENTO', duracaoMin: 10, fcAlvo: 'Z2' }),
+    ], ctx);
+    expect(p.blocks.filter((b) => b.repeat)).toHaveLength(0);
+  });
+
+  it('respeita o `blocoId` quando ele existe — não reinventa o agrupamento', () => {
+    const p = selectWorkoutProfile([
+      etapa({ tipo: 'INTERVALADO', duracaoMin: 3, fcAlvo: 'Z4', blocoId: 'g1', blocoRepeticoes: 2, blocoRepeticaoIndex: 1 }),
+      etapa({ tipo: 'INTERVALADO', duracaoMin: 3, fcAlvo: 'Z4', blocoId: 'g1', blocoRepeticoes: 2, blocoRepeticaoIndex: 2 }),
+    ], ctx);
+    expect(p.blocks.every((b) => b.repeat?.groupId === 'g1')).toBe(true);
+  });
+
+  // Ganho colateral: com a série reconhecida, a razão volta a ser calculável —
+  // e agora pelo caminho que significa alguma coisa.
+  it('a razão trabalho:recuperação volta, agora pelo caminho da série', () => {
+    expect(selectWorkoutProfile(seisPares, ctx).metrics.workToRecoveryRatio).toBeCloseTo(2, 3);
+  });
+});
+
 describe('selectWorkoutProfile — zona-alvo', () => {
   it('ignora o pico incidental: um sprint curto não faz o treino ser Z5', () => {
     const longoComSprint = [
