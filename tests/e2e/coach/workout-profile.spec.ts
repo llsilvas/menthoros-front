@@ -366,6 +366,56 @@ test.describe('perfil do treino — geometria', () => {
   })
 })
 
+/**
+ * A zona costuma vir escrita na descrição da etapa ("Corrida contínua Z2"), e o
+ * caminho da revisão a perdia antes de o perfil existir: o modelo de edição não
+ * tinha campo de descrição, então o bloco saía hachurado — "não sei a zona" —
+ * com o dado escrito ali. Este teste cobre a costura inteira: DTO → EtapaItem →
+ * ProfileEtapaInput → desenho.
+ */
+test.describe('perfil do treino — zona escrita na descrição', () => {
+  const PLANO_DESCRICAO = {
+    ...PLANO,
+    treinosPlanejados: [{
+      ...PLANO.treinosPlanejados[0],
+      duracaoMin: 'PT50M',
+      etapas: [
+        { ordem: 1, tipoEtapa: 'AQUECIMENTO', duracaoMin: 10, fcAlvoEtapa: 'Z1' },
+        { ordem: 2, tipoEtapa: 'PRINCIPAL', duracaoMin: 35, fcAlvoEtapa: '', descricaoEtapa: 'Corrida contínua Z2' },
+        { ordem: 3, tipoEtapa: 'DESAQUECIMENTO', duracaoMin: 5, fcAlvoEtapa: 'Z1' },
+      ],
+    }],
+  }
+
+  test('o bloco sai colorido pela zona, e não hachurado', async ({ page }) => {
+    await page.setViewportSize({ width: 1600, height: 1000 })
+    await page.route(ME_API, route => route.fulfill({ json: {
+      id: 'coach-1', nome: 'Coach', email: 'coach@test.dev', roles: ['TECNICO'],
+      assessoria: { id: 'tenant-uuid', nome: 'Assessoria Teste' }, lgpdConsentGranted: true,
+      lgpdCurrentPolicyVersion: '2026-06-30', lgpdCurrentTermsVersion: '2026-06-30',
+      lgpdAcceptedPolicyVersion: '2026-06-30', lgpdAcceptedTermsVersion: '2026-06-30',
+      onboardingConcluido: true } }))
+    await page.route(REVIEW_API, route => {
+      const status = new URL(route.request().url()).searchParams.get('status')
+      route.fulfill({ json: status === 'AGUARDANDO_REVISAO' ? [PLANO_DESCRICAO] : [] })
+    })
+    await page.route('**/api/v1/coach/dashboard*', route => route.fulfill({ json: {} }))
+
+    await autenticarComPkce(page, { roles: ['TECNICO'] })
+    await page.goto(REVIEW_URL)
+    await page.getByRole('button', { name: /Atleta Teste/i }).click()
+    await page.getByRole('button', { name: 'Editar treino' }).first().click()
+    await expect(page.getByTestId('workout-profile')).toBeVisible()
+
+    const desconhecidos = await page.getByTestId('workout-block')
+      .evaluateAll(els => els.filter(e => e.getAttribute('data-confidence') === 'unknown').length)
+    expect(desconhecidos, 'a zona estava escrita na descrição e foi ignorada').toBe(0)
+
+    const principal = page.getByTestId('workout-block').nth(1)
+    await expect(principal).toHaveAttribute('data-zone', 'Z2')
+  })
+})
+
 test.describe('perfil do treino — leitura do treinador', () => {
   test('o header responde "que treino é este?" sem exigir leitura do gráfico', async ({ page }) => {
     await abrirPerfil(page)

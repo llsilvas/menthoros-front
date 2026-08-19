@@ -17,6 +17,15 @@ export interface StepRow {
     duracaoMin: string;
     distanciaKm: string;
     fcAlvoEtapa: string;
+    /**
+     * Texto que o treinador (ou a IA) escreveu para a etapa.
+     *
+     * O editor **não o expõe para edição** — ele viaja de ida e volta intacto.
+     * Sem isso, abrir um treino e salvar apagava a descrição de todas as etapas
+     * em silêncio, e é dado do plano do atleta. É também o campo onde a zona
+     * costuma estar escrita ("Corrida contínua Z2"), que o perfil do treino lê.
+     */
+    descricaoEtapa?: string;
 }
 
 export interface SubStep {
@@ -25,6 +34,8 @@ export interface SubStep {
     duracaoMin: string;
     distanciaKm: string;
     fcAlvoEtapa: string;
+    /** Preservada de ponta a ponta, como em `StepRow`. */
+    descricaoEtapa?: string;
 }
 
 export interface BlockRow {
@@ -50,10 +61,11 @@ export function emptyBlock(): BlockRow {
 
 function subEtapaPayload(s: SubStep): EtapaInputPayload {
     return {
-        tipoEtapa:   s.tipoEtapa,
-        duracaoMin:  s.duracaoMin  ? parseInt(s.duracaoMin, 10) : undefined,
-        distanciaKm: s.distanciaKm ? parseFloat(s.distanciaKm)  : undefined,
-        fcAlvoEtapa: s.fcAlvoEtapa || undefined,
+        tipoEtapa:      s.tipoEtapa,
+        duracaoMin:     s.duracaoMin  ? parseInt(s.duracaoMin, 10) : undefined,
+        distanciaKm:    s.distanciaKm ? parseFloat(s.distanciaKm)  : undefined,
+        fcAlvoEtapa:    s.fcAlvoEtapa || undefined,
+        descricaoEtapa: s.descricaoEtapa || undefined,
     };
 }
 
@@ -71,10 +83,11 @@ export function serializarItens(itens: EtapaItem[]): EtapaInputPayload[] {
         }
         if (!item.tipoEtapa) return [];
         return [{
-            tipoEtapa:   item.tipoEtapa,
-            duracaoMin:  item.duracaoMin  ? parseInt(item.duracaoMin, 10) : undefined,
-            distanciaKm: item.distanciaKm ? parseFloat(item.distanciaKm)  : undefined,
-            fcAlvoEtapa: item.fcAlvoEtapa || undefined,
+            tipoEtapa:      item.tipoEtapa,
+            duracaoMin:     item.duracaoMin  ? parseInt(item.duracaoMin, 10) : undefined,
+            distanciaKm:    item.distanciaKm ? parseFloat(item.distanciaKm)  : undefined,
+            fcAlvoEtapa:    item.fcAlvoEtapa || undefined,
+            descricaoEtapa: item.descricaoEtapa || undefined,
         }];
     });
 }
@@ -90,6 +103,7 @@ function subStepFromEtapa(e: EtapaTreinoDto): SubStep {
         duracaoMin: txt(e.duracaoMin),
         distanciaKm: txt(e.distanciaKm),
         fcAlvoEtapa: e.fcAlvoEtapa ?? '',
+        descricaoEtapa: e.descricaoEtapa,
     };
 }
 
