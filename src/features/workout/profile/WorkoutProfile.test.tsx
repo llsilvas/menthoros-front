@@ -151,6 +151,24 @@ describe('AC-6 — badge e distribuição não conseguem divergir', () => {
   });
 });
 
+describe('razão trabalho:recuperação — só aparece quando significa algo', () => {
+  it('o intervalado exibe a razão como o treinador a enuncia', () => {
+    renderizar();
+    expect(screen.getByTestId('header-chips')).toHaveTextContent('trabalho 3:2');
+  });
+
+  // Antes, um treino contínuo exibia "trabalho 11:4" — um número que o gráfico
+  // ao lado contradizia.
+  it('o treino sem série não exibe chip de razão nenhum', () => {
+    renderizar([
+      etapa({ tipo: 'AQUECIMENTO', duracaoMin: 15, fcAlvo: 'Z2' }),
+      etapa({ tipo: 'PRINCIPAL', duracaoMin: 55, fcAlvo: 'Z3' }),
+      etapa({ tipo: 'DESAQUECIMENTO', duracaoMin: 5, fcAlvo: 'Z1' }),
+    ]);
+    expect(screen.getByTestId('header-chips')).not.toHaveTextContent(/trabalho/);
+  });
+});
+
 describe('AC-7 (parte de conteúdo) — sem reticências', () => {
   it('nenhum rótulo de bloco contém reticências', () => {
     renderizar([

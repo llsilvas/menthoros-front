@@ -123,10 +123,14 @@ export interface ProfileMetrics {
   /** Maior bloco contínuo em Z3+ — proxy de "quanto de trabalho real tem aqui". */
   longestWorkBlockSec: number;
   /**
-   * Razão trabalho:recuperação, calculada DENTRO das séries quando existe pelo
-   * menos uma; global caso contrário. `null` sem recuperação. Dentro da série é
-   * como o treinador enuncia o treino — "3 por 2" —, e é a leitura que muda a
-   * decisão; a razão global de um longo com sprint final não diz nada.
+   * Razão trabalho:recuperação, calculada **apenas dentro de séries**. `null`
+   * quando o treino não tem série, ou quando a série não tem recuperação.
+   *
+   * Não há fallback global. Havia, e mentia: classificava por zona sobre o
+   * treino inteiro, e aquecimento e desaquecimento entravam como "recuperação"
+   * — em treinos reais saiu "trabalho 11:4", "3:8", "7:3". "3 por 2" é como o
+   * treinador enuncia um intervalado; sobre um treino contínuo a expressão não
+   * significa nada, e exibir um número ali é pior que omitir.
    */
   workToRecoveryRatio: number | null;
   /** Vêm do consumidor, não são derivados. `null` quando ausentes. */

@@ -27,11 +27,19 @@ function passoMinutos(totalMin: number): number {
   return 30;
 }
 
+/**
+ * Um treino, uma unidade na régua.
+ *
+ * Esta função devolvia minutos crus sempre que a hora era zero, mesmo num
+ * treino longo — o eixo de 1h15 saía "0 10 20 30 40 50 1:00 1:10 1:15", e o
+ * leitor trocava de sistema no meio. Acima de uma hora **tudo** vira `h:mm`,
+ * inclusive o zero; abaixo, tudo segue em minutos, onde não há ambiguidade.
+ */
 function formatar(minutos: number, totalMin: number): string {
   if (totalMin <= 60) return String(minutos);
   const h = Math.floor(minutos / 60);
   const m = minutos % 60;
-  return h > 0 ? `${h}:${String(m).padStart(2, '0')}` : String(m);
+  return `${h}:${String(m).padStart(2, '0')}`;
 }
 
 /**
@@ -51,8 +59,11 @@ export function xAxisTicks(totalDurationSec: number): AxisTick[] {
 
   // Se o total cai perto demais do penúltimo, os dois rótulos colidem — e o que
   // sai é o do passo, porque o total é o que não pode faltar.
+  //
+  // A comparação é `<=`, e não `<`: num treino de 1h15 a distância é exatamente
+  // meio passo (75 − 70 = 5), e com `<` os rótulos "1:10" e "1:15" saíam colados.
   const ultimo = ticks[ticks.length - 1];
-  if (ultimo && totalMin - ultimo.ratio * totalMin < passo / 2 && ticks.length > 1) {
+  if (ultimo && totalMin - ultimo.ratio * totalMin <= passo / 2 && ticks.length > 1) {
     ticks.pop();
   }
 

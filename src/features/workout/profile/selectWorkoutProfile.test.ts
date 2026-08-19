@@ -30,6 +30,46 @@ describe('selectWorkoutProfile — zona', () => {
     expect(b.confidence).toBe('unknown');
   });
 
+  // Achado da navegação de verificação: "Corrida contínua Z2" renderizava
+  // hachurado, como "não sei a zona", e com a altura errada. O dado estava
+  // escrito e era descartado — a mesma classe de erro que este módulo existe
+  // para corrigir.
+  it('lê a zona escrita na descrição da etapa', () => {
+    const [b] = selectWorkoutProfile(
+      [etapa({ tipo: 'PRINCIPAL', duracaoMin: 35, descricao: 'Corrida contínua Z2' })],
+      ctx,
+    ).blocks;
+    expect(b.zone).toBe('Z2');
+    expect(b.confidence).toBe('prescribed');
+  });
+
+  it('lê a zona escrita no ritmo alvo', () => {
+    const [b] = selectWorkoutProfile([etapa({ ritmoAlvo: 'Z3 — 5:00/km' })], ctx).blocks;
+    expect(b.zone).toBe('Z3');
+    expect(b.confidence).toBe('prescribed');
+  });
+
+  // Campo de alvo é mais específico que prosa livre: quando os dois existem e
+  // discordam, quem manda é o alvo.
+  it('o alvo da etapa ganha da zona escrita na prosa', () => {
+    const [b] = selectWorkoutProfile(
+      [etapa({ fcAlvo: 'Z4', descricao: 'aquecimento leve em Z2' })],
+      ctx,
+    ).blocks;
+    expect(b.zone).toBe('Z4');
+  });
+
+  it('um treino com as zonas só na prosa deixa de ser degradado', () => {
+    const p = selectWorkoutProfile([
+      etapa({ tipo: 'AQUECIMENTO', duracaoMin: 10, descricao: 'Aquecimento Z1' }),
+      etapa({ tipo: 'PRINCIPAL', duracaoMin: 35, descricao: 'Corrida contínua Z2' }),
+      etapa({ tipo: 'DESAQUECIMENTO', duracaoMin: 5, descricao: 'Solto, Z1' }),
+    ], ctx);
+
+    expect(p.degraded).toBe(false);
+    expect(p.metrics.targetZone).toBe('Z2');
+  });
+
   it('desaquecimento não é lido como aquecimento', () => {
     const [b] = selectWorkoutProfile([etapa({ tipo: 'DESAQUECIMENTO' })], ctx).blocks;
     expect(b.kind).toBe('cooldown');
@@ -106,6 +146,20 @@ describe('selectWorkoutProfile — métricas sobre o exemplo da spec §2.6', () 
   // sprint final não diria nada — por isso é medida DENTRO da série.
   it('calcula trabalho:recuperação dentro da série, não global', () => {
     expect(p.metrics.workToRecoveryRatio).toBeCloseTo(1.5, 3);
+  });
+
+  // Achado da navegação: treinos reais exibiam "trabalho 11:4", "3:8" e "7:3".
+  // Sem série, o cálculo classificava por zona sobre o treino inteiro, então
+  // aquecimento e desaquecimento entravam como "recuperação" — num intervalado
+  // isso dizia que o atleta descansa três vezes mais do que corre forte,
+  // enquanto o gráfico ao lado mostrava o contrário.
+  it('não calcula razão trabalho:recuperação sem série', () => {
+    const semSerie = selectWorkoutProfile([
+      etapa({ tipo: 'AQUECIMENTO', duracaoMin: 15, fcAlvo: 'Z2' }),
+      etapa({ tipo: 'PRINCIPAL', duracaoMin: 55, fcAlvo: 'Z3' }),
+      etapa({ tipo: 'DESAQUECIMENTO', duracaoMin: 5, fcAlvo: 'Z1' }),
+    ], ctx);
+    expect(semSerie.metrics.workToRecoveryRatio).toBeNull();
   });
 
   it('repassa TSS do consumidor e deixa IF nulo quando não vem', () => {

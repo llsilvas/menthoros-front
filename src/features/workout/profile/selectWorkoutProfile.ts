@@ -97,11 +97,17 @@ function papelDe(tipo: string): BlockKind {
 }
 
 /**
- * Zona declarada explicitamente no alvo da etapa: "Z4", "zona 4".
+ * Zona declarada explicitamente pelo treinador: "Z4", "zona 4".
  *
  * Vale como `prescribed` (ver `IntensityConfidence`): alguém escreveu aquela
  * zona, então ela é dado, não palpite. O que continua estimado é a altura
  * dentro da faixa — e é por isso que a spec chama o teto de escala de fixo.
+ *
+ * Lê também a **descrição** e o **ritmo alvo**, e não só os campos de alvo:
+ * uma navegação de verificação encontrou "Corrida contínua Z2" em
+ * `descricaoEtapa` sendo desenhada como hachurada, isto é, "não sei a zona" —
+ * com o dado escrito ali. A ordem dos argumentos é a precedência: campo de alvo
+ * é mais específico que prosa livre, e ganha quando os dois discordam.
  */
 function zonaDeclarada(...textos: Array<string | undefined>): ZoneKey | null {
   for (const texto of textos) {
@@ -141,7 +147,7 @@ interface BlocoResolvido {
 }
 
 function resolverZona(e: ProfileEtapaInput): BlocoResolvido {
-  const declarada = zonaDeclarada(e.fcAlvo, e.intensidade);
+  const declarada = zonaDeclarada(e.fcAlvo, e.intensidade, e.descricao, e.ritmoAlvo);
   if (declarada) return { zone: declarada, confidence: 'prescribed' };
 
   const inferida = zonaInferida(e.tipo, e.descricao, e.intensidade, e.ritmoAlvo);
@@ -276,15 +282,24 @@ function maiorBlocoDeTrabalho(blocos: ProfileBlock[]): number {
  */
 function razaoTrabalhoRecuperacao(blocos: ProfileBlock[]): number | null {
   const naSerie = blocos.filter((b) => b.repeat);
-  const dentroDaSerie = naSerie.length > 0;
-  const escopo = dentroDaSerie ? naSerie : blocos;
 
-  const ehTrabalho = (b: ProfileBlock) => (dentroDaSerie ? b.kind === 'work' : zonaIntensa(b.zone));
-  const ehDescanso = (b: ProfileBlock) =>
-    dentroDaSerie ? b.kind === 'recovery' || b.kind === 'rest' : !zonaIntensa(b.zone);
+  // Sem série, não há razão — e não há fallback.
+  //
+  // Havia um: classificava cada bloco por zona sobre o treino inteiro, e como
+  // aquecimento e desaquecimento ficam abaixo de Z3, eles entravam na conta como
+  // "recuperação". Em treinos reais isso produziu "trabalho 11:4", "3:8" e "7:3",
+  // e o 3:8 dizia que o atleta descansa quase três vezes mais do que corre forte
+  // enquanto o gráfico ao lado mostrava o contrário. Uma métrica ausente é melhor
+  // que uma que mente — e "3 por 2" só significa alguma coisa dentro de uma série,
+  // que é como o treinador enuncia o treino.
+  if (naSerie.length === 0) return null;
 
-  const trabalho = escopo.filter(ehTrabalho).reduce((s, b) => s + b.durationSec, 0);
-  const recuperacao = escopo.filter(ehDescanso).reduce((s, b) => s + b.durationSec, 0);
+  const trabalho = naSerie
+    .filter((b) => b.kind === 'work')
+    .reduce((s, b) => s + b.durationSec, 0);
+  const recuperacao = naSerie
+    .filter((b) => b.kind === 'recovery' || b.kind === 'rest')
+    .reduce((s, b) => s + b.durationSec, 0);
 
   if (recuperacao === 0 || trabalho === 0) return null;
   return trabalho / recuperacao;
