@@ -182,3 +182,49 @@ describe('round-trip serializarItens ∘ itensFromEtapas', () => {
         expect(payload.map(semRuido)).toEqual(simples.map(semRuido));
     });
 });
+
+// ── Descrição da etapa ────────────────────────────────────────────────────────
+
+describe('etapaItem — a descrição sobrevive ao round-trip', () => {
+    // Abrir um treino no editor e salvar apagava `descricaoEtapa` de todas as
+    // etapas, em silêncio: o modelo de edição não tinha o campo, e a
+    // serialização não o emitia. É perda de dado num caminho de escrita do plano
+    // do atleta — o coach escreve "Corrida contínua Z2" e o texto some na
+    // primeira edição administrativa.
+    const comDescricao: EtapaTreinoDto[] = [
+        { ordem: 1, tipoEtapa: 'AQUECIMENTO', duracaoMin: 10, fcAlvoEtapa: 'Z2', descricaoEtapa: 'Solto, progressivo' },
+        { ordem: 2, tipoEtapa: 'PRINCIPAL', duracaoMin: 35, fcAlvoEtapa: '', descricaoEtapa: 'Corrida contínua Z2' },
+        { ordem: 3, tipoEtapa: 'DESAQUECIMENTO', duracaoMin: 5, fcAlvoEtapa: 'Z1' },
+    ];
+
+    it('hidrata a descrição para o modelo de edição', () => {
+        const itens = itensFromEtapas(comDescricao);
+        const principal = itens[1];
+        expect(principal.kind).toBe('step');
+        expect(principal.kind === 'step' && principal.descricaoEtapa).toBe('Corrida contínua Z2');
+    });
+
+    it('devolve a descrição no payload de salvamento', () => {
+        const payload = serializarItens(itensFromEtapas(comDescricao));
+        expect(payload.map(p => p.descricaoEtapa))
+            .toEqual(['Solto, progressivo', 'Corrida contínua Z2', undefined]);
+    });
+
+    it('preserva a descrição dentro de uma série', () => {
+        const serie: EtapaTreinoDto[] = Array.from({ length: 3 }, (_, i) => [
+            { ordem: i * 2 + 1, tipoEtapa: 'INTERVALADO', duracaoMin: 3, fcAlvoEtapa: 'Z4', descricaoEtapa: 'Tiro forte' },
+            { ordem: i * 2 + 2, tipoEtapa: 'RECUPERACAO', duracaoMin: 2, fcAlvoEtapa: 'Z1', descricaoEtapa: 'Trote' },
+        ]).flat();
+
+        const bloco = serializarItens(itensFromEtapas(serie))[0];
+        expect(bloco.tipoEtapa).toBe('BLOCO');
+        expect(bloco.subEtapas?.map(s => s.descricaoEtapa)).toEqual(['Tiro forte', 'Trote']);
+    });
+
+    it('etapa sem descrição continua sem descrição — não inventa texto', () => {
+        const payload = serializarItens(itensFromEtapas([
+            { ordem: 1, tipoEtapa: 'PRINCIPAL', duracaoMin: 30, fcAlvoEtapa: 'Z2' },
+        ]));
+        expect(payload[0].descricaoEtapa).toBeUndefined();
+    });
+});

@@ -48,3 +48,16 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
 });
+
+/**
+ * jsdom não implementa `getContext` — e, em vez de lançar, ele imprime um stack
+ * trace de "Not implemented" na console virtual a cada render que mede texto.
+ *
+ * O código de produção já trata a ausência de canvas (`measureText.ts` cai numa
+ * estimativa por caractere), então o comportamento está correto; o problema é o
+ * ruído. Um stderr cheio de stack traces esperados é onde um erro de verdade
+ * passa despercebido — que é o mesmo motivo de o CI não poder nascer vermelho.
+ */
+if (typeof HTMLCanvasElement !== 'undefined') {
+  HTMLCanvasElement.prototype.getContext = (() => null) as typeof HTMLCanvasElement.prototype.getContext;
+}

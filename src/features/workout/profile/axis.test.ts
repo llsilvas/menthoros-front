@@ -22,20 +22,53 @@ describe('xAxisTicks — AC-4: o eixo tem marcas intermediárias', () => {
     expect(ticks[ticks.length - 1]).toBe('42');
   });
 
+  // Acima de uma hora o rótulo sai em h:mm — o passo é o mesmo, a unidade é que
+  // deixou de se misturar na régua.
   it.each([
-    [900,   '2'],   // 15min  -> passo 2
-    [1800,  '5'],   // 30min  -> passo 5
-    [3600,  '10'],  // 60min  -> passo 10
-    [7200,  '15'],  // 2h     -> passo 15
-    [14400, '30'],  // 4h     -> passo 30
-  ])('escolhe o passo pela duração: %s segundos usa passo de %s min', (total, primeiroPasso) => {
+    [900,   '2'],     // 15min -> passo 2
+    [1800,  '5'],     // 30min -> passo 5
+    [3600,  '10'],    // 60min -> passo 10
+    [7200,  '0:15'],  // 2h    -> passo 15
+    [14400, '0:30'],  // 4h    -> passo 30
+  ])('escolhe o passo pela duração: %s segundos usa passo de %s', (total, primeiroPasso) => {
     expect(rotulos(total)[1]).toBe(primeiroPasso);
   });
 
-  it('passa a h:mm acima de uma hora', () => {
+  // Achado da navegação: um treino de 1h15 mostrava "0 10 20 30 40 50 1:00
+  // 1:10 1:15" — duas unidades na mesma régua, e o leitor trocando de sistema
+  // no meio do eixo.
+  it('acima de uma hora, TODOS os rótulos ficam em h:mm', () => {
     const ticks = rotulos(7200);
+    expect(ticks[0]).toBe('0:00');
+    expect(ticks).toContain('0:15');
     expect(ticks).toContain('1:00');
     expect(ticks[ticks.length - 1]).toBe('2:00');
+    // Nenhum rótulo em minutos crus sobrando.
+    expect(ticks.every((r) => r.includes(':'))).toBe(true);
+  });
+
+  it('abaixo de uma hora segue em minutos, onde não há ambiguidade', () => {
+    expect(rotulos(2400).every((r) => !r.includes(':'))).toBe(true);
+  });
+
+  // 75 − 70 = 5, que é exatamente meio passo: a comparação `<` não suprimia, e
+  // "1:10" colidia com "1:15".
+  it('suprime o penúltimo tick quando ele encosta no total', () => {
+    const ticks = rotulos(4500); // 1h15
+    expect(ticks).not.toContain('1:10');
+    expect(ticks[ticks.length - 1]).toBe('1:15');
+  });
+
+  it('nenhum par de ticks fica a menos de meio passo de distância', () => {
+    for (const total of [2400, 2530, 4500, 7200, 9000]) {
+      const ticks = xAxisTicks(total);
+      const passoMin = (ticks[1]?.ratio ?? 1) * (total / 60);
+      for (let i = 1; i < ticks.length; i++) {
+        const distancia = (ticks[i].ratio - ticks[i - 1].ratio) * (total / 60);
+        expect(distancia, `${total}s: ${ticks[i - 1].label}→${ticks[i].label}`)
+          .toBeGreaterThan(passoMin / 2);
+      }
+    }
   });
 
   // A §4.6 da spec diz "4 a 7 rótulos", mas a tabela de passos da mesma seção

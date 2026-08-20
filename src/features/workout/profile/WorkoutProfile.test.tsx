@@ -118,13 +118,27 @@ describe('AC-5 (parte estrutural) — série repetida', () => {
     expect(brackets[0].textContent).toBe('5×');
   });
 
-  it('só a primeira repetição da série leva rótulo — as outras seriam ruído', () => {
+  // A asserção é sobre a REGRA, não sobre a contagem: quantos rótulos cabem
+  // depende da largura medida do texto, que difere entre jsdom (estimativa
+  // pessimista) e navegador. O que não pode variar é *quais* blocos podem falar.
+  it('nenhuma repetição além da primeira leva rótulo — as outras seriam ruído', () => {
     renderizar();
-    const rotulados = screen.getAllByTestId('workout-block')
-      .filter((b) => within(b).queryByTestId('block-label'));
+    const p = perfil();
 
-    // aquecimento + desaquecimento + os 2 blocos da primeira repetição
-    expect(rotulados).toHaveLength(4);
+    for (const bloco of screen.getAllByTestId('workout-block')) {
+      const id = bloco.getAttribute('data-block-id');
+      const modelo = p.blocks.find((b) => b.id === id)!;
+      if (modelo.repeat && modelo.repeat.index !== 1) {
+        expect(
+          within(bloco).queryByTestId('block-label'),
+          `repetição ${modelo.repeat.index} não pode ter rótulo`,
+        ).toBeNull();
+      }
+    }
+
+    // E alguém fala: o aquecimento, que é o bloco mais largo do treino.
+    const primeiro = screen.getAllByTestId('workout-block')[0];
+    expect(within(primeiro).getByTestId('block-label')).toHaveTextContent(/aquecimento/i);
   });
 });
 
@@ -148,6 +162,24 @@ describe('AC-6 — badge e distribuição não conseguem divergir', () => {
   it('a zona da badge aparece na legenda da distribuição', () => {
     renderizar();
     expect(screen.getByTestId('distribution-legend').textContent).toContain('Z4');
+  });
+});
+
+describe('razão trabalho:recuperação — só aparece quando significa algo', () => {
+  it('o intervalado exibe a razão como o treinador a enuncia', () => {
+    renderizar();
+    expect(screen.getByTestId('header-chips')).toHaveTextContent('trabalho 3:2');
+  });
+
+  // Antes, um treino contínuo exibia "trabalho 11:4" — um número que o gráfico
+  // ao lado contradizia.
+  it('o treino sem série não exibe chip de razão nenhum', () => {
+    renderizar([
+      etapa({ tipo: 'AQUECIMENTO', duracaoMin: 15, fcAlvo: 'Z2' }),
+      etapa({ tipo: 'PRINCIPAL', duracaoMin: 55, fcAlvo: 'Z3' }),
+      etapa({ tipo: 'DESAQUECIMENTO', duracaoMin: 5, fcAlvo: 'Z1' }),
+    ]);
+    expect(screen.getByTestId('header-chips')).not.toHaveTextContent(/trabalho/);
   });
 });
 

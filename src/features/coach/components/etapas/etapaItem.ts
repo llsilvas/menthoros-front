@@ -1,4 +1,5 @@
 import type { EtapaInputPayload, EtapaTreinoDto } from '../../../../types/PlanoReview';
+import { detectarJanelaRepetida } from '../../../workout/serie/janelaRepetida';
 
 /**
  * Modelo de edição de etapas, compartilhado entre `TreinoAddDialog` e `TreinoEditDialog`.
@@ -16,6 +17,15 @@ export interface StepRow {
     duracaoMin: string;
     distanciaKm: string;
     fcAlvoEtapa: string;
+    /**
+     * Texto que o treinador (ou a IA) escreveu para a etapa.
+     *
+     * O editor **não o expõe para edição** — ele viaja de ida e volta intacto.
+     * Sem isso, abrir um treino e salvar apagava a descrição de todas as etapas
+     * em silêncio, e é dado do plano do atleta. É também o campo onde a zona
+     * costuma estar escrita ("Corrida contínua Z2"), que o perfil do treino lê.
+     */
+    descricaoEtapa?: string;
 }
 
 export interface SubStep {
@@ -24,6 +34,8 @@ export interface SubStep {
     duracaoMin: string;
     distanciaKm: string;
     fcAlvoEtapa: string;
+    /** Preservada de ponta a ponta, como em `StepRow`. */
+    descricaoEtapa?: string;
 }
 
 export interface BlockRow {
@@ -49,10 +61,11 @@ export function emptyBlock(): BlockRow {
 
 function subEtapaPayload(s: SubStep): EtapaInputPayload {
     return {
-        tipoEtapa:   s.tipoEtapa,
-        duracaoMin:  s.duracaoMin  ? parseInt(s.duracaoMin, 10) : undefined,
-        distanciaKm: s.distanciaKm ? parseFloat(s.distanciaKm)  : undefined,
-        fcAlvoEtapa: s.fcAlvoEtapa || undefined,
+        tipoEtapa:      s.tipoEtapa,
+        duracaoMin:     s.duracaoMin  ? parseInt(s.duracaoMin, 10) : undefined,
+        distanciaKm:    s.distanciaKm ? parseFloat(s.distanciaKm)  : undefined,
+        fcAlvoEtapa:    s.fcAlvoEtapa || undefined,
+        descricaoEtapa: s.descricaoEtapa || undefined,
     };
 }
 
@@ -70,10 +83,11 @@ export function serializarItens(itens: EtapaItem[]): EtapaInputPayload[] {
         }
         if (!item.tipoEtapa) return [];
         return [{
-            tipoEtapa:   item.tipoEtapa,
-            duracaoMin:  item.duracaoMin  ? parseInt(item.duracaoMin, 10) : undefined,
-            distanciaKm: item.distanciaKm ? parseFloat(item.distanciaKm)  : undefined,
-            fcAlvoEtapa: item.fcAlvoEtapa || undefined,
+            tipoEtapa:      item.tipoEtapa,
+            duracaoMin:     item.duracaoMin  ? parseInt(item.duracaoMin, 10) : undefined,
+            distanciaKm:    item.distanciaKm ? parseFloat(item.distanciaKm)  : undefined,
+            fcAlvoEtapa:    item.fcAlvoEtapa || undefined,
+            descricaoEtapa: item.descricaoEtapa || undefined,
         }];
     });
 }
@@ -89,6 +103,7 @@ function subStepFromEtapa(e: EtapaTreinoDto): SubStep {
         duracaoMin: txt(e.duracaoMin),
         distanciaKm: txt(e.distanciaKm),
         fcAlvoEtapa: e.fcAlvoEtapa ?? '',
+        descricaoEtapa: e.descricaoEtapa,
     };
 }
 
@@ -96,28 +111,20 @@ function stepFromEtapa(e: EtapaTreinoDto): StepRow {
     return { ...subStepFromEtapa(e), kind: 'step' };
 }
 
-/** Duas etapas ocupam o mesmo papel numa série? A descrição e a ordem são ruído aqui. */
-function equivalentes(a: EtapaTreinoDto, b: EtapaTreinoDto): boolean {
-    return a.tipoEtapa === b.tipoEtapa
-        && a.duracaoMin === b.duracaoMin
-        && a.distanciaKm === b.distanciaKm
-        && a.fcAlvoEtapa === b.fcAlvoEtapa;
-}
-
-function janelaEquivalente(etapas: EtapaTreinoDto[], a: number, b: number, janela: number): boolean {
-    for (let p = 0; p < janela; p++) {
-        if (!equivalentes(etapas[a + p], etapas[b + p])) return false;
-    }
-    return true;
-}
-
-/** Uma série tem esforço: sem etapa INTERVALADO, a repetição é coincidência, não bloco. */
-function contemIntervalado(etapas: EtapaTreinoDto[], inicio: number, janela: number): boolean {
-    for (let p = inicio; p < inicio + janela; p++) {
-        if (etapas[p].tipoEtapa?.toUpperCase() === 'INTERVALADO') return true;
-    }
-    return false;
-}
+/**
+ * Vocabulário do editor para a detecção de série (`detectarJanelaRepetida`).
+ *
+ * A assinatura inclui `distanciaKm`, e o esforço é reconhecido só por
+ * `INTERVALADO` — que é o que espelha `IntervalsIcuWorkoutConverter.inferirBloco`
+ * no backend. O perfil do treino usa o mesmo algoritmo com outro vocabulário,
+ * mais amplo; a diferença é declarada aqui, e não em duas implementações.
+ */
+const VOCABULARIO_EDITOR = {
+    /** A descrição e a ordem são ruído: não entram na assinatura. */
+    assinatura: (e: EtapaTreinoDto) =>
+        `${e.tipoEtapa}|${e.duracaoMin}|${e.distanciaKm}|${e.fcAlvoEtapa}`,
+    ehTrabalho: (e: EtapaTreinoDto) => e.tipoEtapa?.toUpperCase() === 'INTERVALADO',
+};
 
 function blocoDeJanela(etapas: EtapaTreinoDto[], inicio: number, janela: number, reps: number): BlockRow {
     return {
@@ -169,33 +176,14 @@ export function itensFromEtapas(etapas: EtapaTreinoDto[] | undefined): EtapaItem
             while (l < etapas.length && !etapas[l].blocoId) l++;
             return l;
         })();
-        const disponivel = limite - i;
+        const serie = detectarJanelaRepetida(etapas, i, limite, VOCABULARIO_EDITOR);
 
-        let melhorJanela = 0;
-        let melhorReps = 0;
-        for (let janela = 1; janela <= Math.floor(disponivel / 2); janela++) {
-            if (!contemIntervalado(etapas, i, janela)) continue;
-            let reps = 1;
-            let proxima = i + janela;
-            while (proxima + janela <= limite && janelaEquivalente(etapas, i, proxima, janela)) {
-                reps++;
-                proxima += janela;
-            }
-            if (reps < 2) continue;
-            const cobertura = janela * reps;
-            if (cobertura > melhorJanela * melhorReps
-                || (cobertura === melhorJanela * melhorReps && reps > melhorReps)) {
-                melhorJanela = janela;
-                melhorReps = reps;
-            }
-        }
-
-        if (melhorReps < 2) {
+        if (!serie) {
             itens.push(stepFromEtapa(etapas[i]));
             i++;
         } else {
-            itens.push(blocoDeJanela(etapas, i, melhorJanela, melhorReps));
-            i += melhorJanela * melhorReps;
+            itens.push(blocoDeJanela(etapas, i, serie.janela, serie.reps));
+            i += serie.janela * serie.reps;
         }
     }
 

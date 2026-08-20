@@ -227,6 +227,43 @@ test.describe('perfil do treino — geometria', () => {
     }
   })
 
+  /**
+   * Regressão: a cadeia de fallback estimava a largura do texto em 6px por
+   * caractere, e o texto real mede ~7,3. Num bloco de 100px isso escolhia
+   * "DESAQUECIMENTO", que mede 99px e enchia o bloco de borda a borda; num plot
+   * mais largo o mesmo cálculo passava do limite e o rótulo era decepado pelo
+   * `overflow: hidden` — o defeito que o AC-7 existe para impedir, chegando por
+   * um caminho que ele não olhava.
+   */
+  test('AC-4: o rótulo cabe no bloco com folga, e o bloco cabe no plot', async ({ page }) => {
+    await abrirPerfil(page)
+
+    const medidas = await page.getByTestId('workout-plot').evaluate(el => {
+      const plot = el.getBoundingClientRect()
+      return Array.from(el.querySelectorAll('[data-testid="workout-block"]'))
+        .map(b => {
+          const span = b.querySelector('[data-testid="block-label"]')
+          if (!span) return null
+          const cb = b.getBoundingClientRect()
+          const sb = span.getBoundingClientRect()
+          return {
+            texto: span.textContent ?? '',
+            folgaEsquerda: sb.left - cb.left,
+            folgaDireita: cb.right - sb.right,
+            blocoNoPlot: Math.min(cb.left - plot.left, plot.right - cb.right),
+          }
+        })
+        .filter((m): m is NonNullable<typeof m> => m !== null)
+    })
+
+    expect(medidas.length, 'o treino precisa ter rótulos para o teste valer').toBeGreaterThan(0)
+    for (const m of medidas) {
+      expect(m.folgaEsquerda, `"${m.texto}" encostou na borda esquerda`).toBeGreaterThanOrEqual(4)
+      expect(m.folgaDireita, `"${m.texto}" encostou na borda direita`).toBeGreaterThanOrEqual(4)
+      expect(m.blocoNoPlot, `o bloco de "${m.texto}" vazou o plot`).toBeGreaterThanOrEqual(-1)
+    }
+  })
+
   test('AC-8: uma superfície com borda e um único elemento caixa-alta', async ({ page }) => {
     await abrirPerfil(page)
 
@@ -326,6 +363,56 @@ test.describe('perfil do treino — geometria', () => {
       el.scrollWidth > el.clientWidth,
     )
     expect(vazou, 'o perfil não pode rolar horizontalmente dentro do card').toBe(false)
+  })
+})
+
+/**
+ * A zona costuma vir escrita na descrição da etapa ("Corrida contínua Z2"), e o
+ * caminho da revisão a perdia antes de o perfil existir: o modelo de edição não
+ * tinha campo de descrição, então o bloco saía hachurado — "não sei a zona" —
+ * com o dado escrito ali. Este teste cobre a costura inteira: DTO → EtapaItem →
+ * ProfileEtapaInput → desenho.
+ */
+test.describe('perfil do treino — zona escrita na descrição', () => {
+  const PLANO_DESCRICAO = {
+    ...PLANO,
+    treinosPlanejados: [{
+      ...PLANO.treinosPlanejados[0],
+      duracaoMin: 'PT50M',
+      etapas: [
+        { ordem: 1, tipoEtapa: 'AQUECIMENTO', duracaoMin: 10, fcAlvoEtapa: 'Z1' },
+        { ordem: 2, tipoEtapa: 'PRINCIPAL', duracaoMin: 35, fcAlvoEtapa: '', descricaoEtapa: 'Corrida contínua Z2' },
+        { ordem: 3, tipoEtapa: 'DESAQUECIMENTO', duracaoMin: 5, fcAlvoEtapa: 'Z1' },
+      ],
+    }],
+  }
+
+  test('o bloco sai colorido pela zona, e não hachurado', async ({ page }) => {
+    await page.setViewportSize({ width: 1600, height: 1000 })
+    await page.route(ME_API, route => route.fulfill({ json: {
+      id: 'coach-1', nome: 'Coach', email: 'coach@test.dev', roles: ['TECNICO'],
+      assessoria: { id: 'tenant-uuid', nome: 'Assessoria Teste' }, lgpdConsentGranted: true,
+      lgpdCurrentPolicyVersion: '2026-06-30', lgpdCurrentTermsVersion: '2026-06-30',
+      lgpdAcceptedPolicyVersion: '2026-06-30', lgpdAcceptedTermsVersion: '2026-06-30',
+      onboardingConcluido: true } }))
+    await page.route(REVIEW_API, route => {
+      const status = new URL(route.request().url()).searchParams.get('status')
+      route.fulfill({ json: status === 'AGUARDANDO_REVISAO' ? [PLANO_DESCRICAO] : [] })
+    })
+    await page.route('**/api/v1/coach/dashboard*', route => route.fulfill({ json: {} }))
+
+    await autenticarComPkce(page, { roles: ['TECNICO'] })
+    await page.goto(REVIEW_URL)
+    await page.getByRole('button', { name: /Atleta Teste/i }).click()
+    await page.getByRole('button', { name: 'Editar treino' }).first().click()
+    await expect(page.getByTestId('workout-profile')).toBeVisible()
+
+    const desconhecidos = await page.getByTestId('workout-block')
+      .evaluateAll(els => els.filter(e => e.getAttribute('data-confidence') === 'unknown').length)
+    expect(desconhecidos, 'a zona estava escrita na descrição e foi ignorada').toBe(0)
+
+    const principal = page.getByTestId('workout-block').nth(1)
+    await expect(principal).toHaveAttribute('data-zone', 'Z2')
   })
 })
 

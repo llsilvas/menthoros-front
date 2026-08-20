@@ -78,6 +78,7 @@ export function fromEtapaItens(itens: EtapaItem[]): ProfileEtapaInput[] {
       return [{
         id:         `step-${item.id}`,
         tipo:       item.tipoEtapa,
+        descricao:  item.descricaoEtapa,
         duracaoMin: minutosDe(item.duracaoMin),
         fcAlvo:     item.fcAlvoEtapa || undefined,
       }];
@@ -92,6 +93,7 @@ export function fromEtapaItens(itens: EtapaItem[]): ProfileEtapaInput[] {
       return item.steps.map((sub) => ({
         id:         `bloco-${item.id}-1-${sub.id}`,
         tipo:       sub.tipoEtapa,
+        descricao:  sub.descricaoEtapa,
         duracaoMin: minutosDe(sub.duracaoMin),
         fcAlvo:     sub.fcAlvoEtapa || undefined,
       }));
@@ -106,6 +108,7 @@ export function fromEtapaItens(itens: EtapaItem[]): ProfileEtapaInput[] {
           // destaque sincronizado com a linha em edição piscaria.
           id:                  `bloco-${item.id}-${r}-${sub.id}`,
           tipo:                sub.tipoEtapa,
+          descricao:           sub.descricaoEtapa,
           duracaoMin:          minutosDe(sub.duracaoMin),
           fcAlvo:              sub.fcAlvoEtapa || undefined,
           blocoId:             item.id,

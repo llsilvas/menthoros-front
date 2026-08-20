@@ -21,6 +21,7 @@ import type {
 } from './types';
 import type { ProfileEtapaInput } from './input';
 import { midpointOf, scaleFor, zoneOf, type AthleteThresholds } from './scale';
+import { inferirSeries } from './inferirSeries';
 
 export interface ProfileContext {
   sport: Sport;
@@ -29,11 +30,19 @@ export interface ProfileContext {
   if?: number | null;
   /**
    * Zona-alvo declarada no **treino** (`TreinoPlanejadoDto.zonaAlvo`), quando as
-   * etapas não trazem zona própria.
+   * etapas não trazem zona própria. Só tem efeito no modo degradado.
    *
-   * Usada só no corpo do treino (`work`/`steady`) e só no modo degradado:
-   * "este treino é Z4" fala do miolo, não do aquecimento. Aplicá-la a todas as
-   * etapas achataria o perfil de novo e ainda mentiria sobre o aquecimento.
+   * Ancora a escala **inteira**: reescala todos os papéis pelo mesmo fator, em
+   * vez de mexer só no miolo. Ela chegou aplicada só a `work`/`steady`, e o
+   * resultado eram duas escalas no mesmo eixo — num treino Z1, o corpo ia a 0.15
+   * e o aquecimento ficava em 0.46, com o gráfico de cabeça para baixo.
+   *
+   * Consequência conhecida em zonas baixas: com o fator pequeno, vários papéis
+   * batem no piso de 0.12 e empatam em altura. É aceito — num regenerativo,
+   * aquecimento e desaquecimento realmente não diferem do corpo, e eles seguem
+   * distinguíveis pela forma (rampa) e pelo rótulo. Preservar a proporção ali
+   * exigiria inflar o treino leve, e isso quebraria a comparação entre treinos,
+   * que é o motivo de o teto da escala ser fixo.
    */
   zonaAlvoTreino?: string | null;
 }
@@ -97,19 +106,42 @@ function papelDe(tipo: string): BlockKind {
 }
 
 /**
- * Zona declarada explicitamente no alvo da etapa: "Z4", "zona 4".
+ * Zona declarada explicitamente pelo treinador: "Z4", "zona 4".
  *
  * Vale como `prescribed` (ver `IntensityConfidence`): alguém escreveu aquela
  * zona, então ela é dado, não palpite. O que continua estimado é a altura
  * dentro da faixa — e é por isso que a spec chama o teto de escala de fixo.
+ *
+ * Lê também a **descrição** e o **ritmo alvo**, e não só os campos de alvo:
+ * uma navegação de verificação encontrou "Corrida contínua Z2" em
+ * `descricaoEtapa` sendo desenhada como hachurada, isto é, "não sei a zona" —
+ * com o dado escrito ali. A ordem dos argumentos é a precedência: campo de alvo
+ * é mais específico que prosa livre, e ganha quando os dois discordam.
  */
-function zonaDeclarada(...textos: Array<string | undefined>): ZoneKey | null {
-  for (const texto of textos) {
+function zonaDeclarada(fontes: Array<{ campo: string; texto: string | undefined }>): ZoneKey | null {
+  for (const { texto } of fontes) {
     if (!texto) continue;
     const m = texto.toLowerCase().match(/z(?:ona\s*)?([1-5])\b/);
     if (m) return `Z${m[1]}` as ZoneKey;
   }
   return null;
+}
+
+/**
+ * Precedência declarada como **dado**, não como ordem de argumentos.
+ *
+ * Campo de alvo é mais específico que prosa livre e ganha quando os dois
+ * discordam. Com a versão variádica anterior, trocar dois argumentos num
+ * refactor invertia a regra de negócio em silêncio — o TypeScript aceita, porque
+ * todos são `string | undefined`.
+ */
+function fontesDeZona(e: ProfileEtapaInput) {
+  return [
+    { campo: 'fcAlvo',      texto: e.fcAlvo },
+    { campo: 'intensidade', texto: e.intensidade },
+    { campo: 'descricao',   texto: e.descricao },
+    { campo: 'ritmoAlvo',   texto: e.ritmoAlvo },
+  ];
 }
 
 /**
@@ -127,6 +159,15 @@ function zonaInferida(tipo: string, ...textos: Array<string | undefined>): ZoneK
   if (t.includes('limiar') || t.includes('threshold')) return 'Z4';
   if (t.includes('tempo') || t.includes('moderado')) return 'Z3';
 
+  // Regenerativo é Z1 por definição — é o treino cujo propósito é não somar
+  // carga. Faltava no vocabulário, e o resultado era o treino mais leve do
+  // catálogo caindo em "não sei" e sendo desenhado na altura de um tempo run.
+  // `regenera` cobre regenerativo, regenerativa, regeneração e regenerar — o
+  // `regenerativ` que estava aqui junto era prefixo dele, e redundante. Os
+  // sinais fortes (vo2, sprint, limiar, tempo) são testados ANTES, então um
+  // treino intenso que mencione a palavra já foi classificado.
+  if (t.includes('regenera') || t.includes('soltura')) return 'Z1';
+
   const papel = papelDe(tipo);
   if (papel === 'warmup' || papel === 'cooldown' || papel === 'recovery' || papel === 'rest') return 'Z1';
   if (t.includes('aerob') || t.includes('leve') || t.includes('easy') || t.includes('longo')) return 'Z2';
@@ -141,7 +182,7 @@ interface BlocoResolvido {
 }
 
 function resolverZona(e: ProfileEtapaInput): BlocoResolvido {
-  const declarada = zonaDeclarada(e.fcAlvo, e.intensidade);
+  const declarada = zonaDeclarada(fontesDeZona(e));
   if (declarada) return { zone: declarada, confidence: 'prescribed' };
 
   const inferida = zonaInferida(e.tipo, e.descricao, e.intensidade, e.ritmoAlvo);
@@ -170,13 +211,18 @@ function construirBlocos(
     // No modo degradado a altura codifica o papel; fora dele, o ponto médio da
     // faixa da zona. Zona desconhecida fica no meio da escala, hachurada pelo
     // componente — escolher Z1 seria afirmar que o trecho é leve.
-    // No corpo do treino, a zona-alvo declarada no treino vale mais que o nível
-    // genérico do papel — é o único dado real de intensidade que sobra quando a
-    // etapa não traz o seu. Fora do miolo ela não se aplica.
-    const miolo = papel === 'work' || papel === 'steady';
-    const alturaDegradada = miolo && zonaDoTreino
-      ? midpointOf(zonaDoTreino, scale)
-      : ALTURA_POR_PAPEL[papel];
+    // A zona-alvo do treino ancora a escala inteira, e não só o miolo.
+    //
+    // Antes ela era aplicada só a `work`/`steady`, e o resto seguia em altura de
+    // papel — duas escalas no mesmo eixo. Num treino Z1 o corpo ia a 0.15 e o
+    // aquecimento ficava em 0.46: o gráfico de cabeça para baixo, com o
+    // aquecimento parecendo o esforço principal. Agora ela reescala todos os
+    // papéis pelo mesmo fator, o que preserva a ordem (trabalho > corpo >
+    // aquecimento > desaquecimento > recuperação) e ancora no único dado real.
+    const fator = zonaDoTreino
+      ? midpointOf(zonaDoTreino, scale) / ALTURA_POR_PAPEL.steady
+      : 1;
+    const alturaDegradada = Math.min(1, Math.max(0.12, ALTURA_POR_PAPEL[papel] * fator));
 
     const intensityNormalized = degraded
       ? alturaDegradada
@@ -214,23 +260,33 @@ function construirBlocos(
   return blocos;
 }
 
-/** Quanto a rampa se abre para cada lado do valor nominal. */
-const ABERTURA_RAMPA = 0.33;
+/** De quanto abaixo do nominal a rampa parte. */
+const QUEDA_RAMPA = 0.5;
 
 /**
  * Aquecimento e desaquecimento são trajetórias, não patamares — e é a **forma**
  * que passa a comunicar o papel estrutural, agora que a cor pertence à zona.
- * A altura nominal continua sendo o ponto médio; a rampa só governa a geometria.
+ *
+ * A rampa **chega** ao nominal; nunca o ultrapassa. A versão anterior abria
+ * ±33% em torno dele, e o efeito na tela era o aquecimento desenhado mais alto
+ * que o bloco principal — pico 0.61 contra 0.58 do miolo. O gráfico dizia que
+ * aquecer é mais duro que o treino, o que é falso e nem estava no dado: o
+ * nominal É a intensidade do bloco, e passar dele inventa esforço.
  */
 function rampaDe(papel: BlockKind, nominal: number): RampSpec | null {
   if (papel !== 'warmup' && papel !== 'cooldown') return null;
 
-  const piso = Math.max(0.12, nominal * (1 - ABERTURA_RAMPA));
-  const teto = Math.min(1, nominal * (1 + ABERTURA_RAMPA));
+  // Sem piso absoluto aqui, de propósito. Ele existia e degenerava a rampa: com
+  // o nominal no piso de 0.12, `max(0.12, 0.12*0.5)` devolvia o próprio
+  // nominal, `from === to`, e o trapézio virava retângulo — o patamar que esta
+  // função existe para não desenhar. O piso do bloco é aplicado na altura, e o
+  // recorte da rampa é **relativo ao pico**, então uma fração pura sempre
+  // desenha a trajetória, por menor que o bloco seja.
+  const piso = nominal * QUEDA_RAMPA;
 
   return papel === 'warmup'
-    ? { fromNormalized: piso, toNormalized: teto }
-    : { fromNormalized: teto, toNormalized: piso };
+    ? { fromNormalized: piso, toNormalized: nominal }
+    : { fromNormalized: nominal, toNormalized: piso };
 }
 
 function distribuirPorZona(blocos: ProfileBlock[], total: number): ZoneShare[] {
@@ -276,15 +332,24 @@ function maiorBlocoDeTrabalho(blocos: ProfileBlock[]): number {
  */
 function razaoTrabalhoRecuperacao(blocos: ProfileBlock[]): number | null {
   const naSerie = blocos.filter((b) => b.repeat);
-  const dentroDaSerie = naSerie.length > 0;
-  const escopo = dentroDaSerie ? naSerie : blocos;
 
-  const ehTrabalho = (b: ProfileBlock) => (dentroDaSerie ? b.kind === 'work' : zonaIntensa(b.zone));
-  const ehDescanso = (b: ProfileBlock) =>
-    dentroDaSerie ? b.kind === 'recovery' || b.kind === 'rest' : !zonaIntensa(b.zone);
+  // Sem série, não há razão — e não há fallback.
+  //
+  // Havia um: classificava cada bloco por zona sobre o treino inteiro, e como
+  // aquecimento e desaquecimento ficam abaixo de Z3, eles entravam na conta como
+  // "recuperação". Em treinos reais isso produziu "trabalho 11:4", "3:8" e "7:3",
+  // e o 3:8 dizia que o atleta descansa quase três vezes mais do que corre forte
+  // enquanto o gráfico ao lado mostrava o contrário. Uma métrica ausente é melhor
+  // que uma que mente — e "3 por 2" só significa alguma coisa dentro de uma série,
+  // que é como o treinador enuncia o treino.
+  if (naSerie.length === 0) return null;
 
-  const trabalho = escopo.filter(ehTrabalho).reduce((s, b) => s + b.durationSec, 0);
-  const recuperacao = escopo.filter(ehDescanso).reduce((s, b) => s + b.durationSec, 0);
+  const trabalho = naSerie
+    .filter((b) => b.kind === 'work')
+    .reduce((s, b) => s + b.durationSec, 0);
+  const recuperacao = naSerie
+    .filter((b) => b.kind === 'recovery' || b.kind === 'rest')
+    .reduce((s, b) => s + b.durationSec, 0);
 
   if (recuperacao === 0 || trabalho === 0) return null;
   return trabalho / recuperacao;
@@ -302,8 +367,11 @@ export function selectWorkoutProfile(
 ): WorkoutProfile {
   const scale = scaleFor(context.sport, context.thresholds);
 
-  const utilizaveis = etapas.filter((e) => (e.duracaoMin ?? 0) > 0);
-  const droppedBlocks = etapas.length - utilizaveis.length;
+  const comDuracao = etapas.filter((e) => (e.duracaoMin ?? 0) > 0);
+  const droppedBlocks = etapas.length - comDuracao.length;
+  // Depois do descarte: uma etapa sem duração no meio da série quebraria a
+  // janela e esconderia a repetição que existe.
+  const utilizaveis = inferirSeries(comDuracao, papelDe);
 
   // Degradado = alguma etapa sem zona confiável. Enquanto o backend não expuser
   // intensidade estruturada (DEP-1), o caminho normal é este — e o header diz
@@ -314,7 +382,7 @@ export function selectWorkoutProfile(
   const degraded = utilizaveis.length > 0
     && resolvidas.some((r) => r.confidence !== 'prescribed');
 
-  const zonaDoTreino = zonaDeclarada(context.zonaAlvoTreino ?? undefined);
+  const zonaDoTreino = zonaDeclarada([{ campo: 'zonaAlvoTreino', texto: context.zonaAlvoTreino ?? undefined }]);
   const blocks = construirBlocos(utilizaveis, resolvidas, scale, degraded, zonaDoTreino);
   const totalDurationSec = blocks.reduce((s, b) => s + b.durationSec, 0);
 

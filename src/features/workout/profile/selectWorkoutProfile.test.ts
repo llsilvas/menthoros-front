@@ -30,6 +30,46 @@ describe('selectWorkoutProfile — zona', () => {
     expect(b.confidence).toBe('unknown');
   });
 
+  // Achado da navegação de verificação: "Corrida contínua Z2" renderizava
+  // hachurado, como "não sei a zona", e com a altura errada. O dado estava
+  // escrito e era descartado — a mesma classe de erro que este módulo existe
+  // para corrigir.
+  it('lê a zona escrita na descrição da etapa', () => {
+    const [b] = selectWorkoutProfile(
+      [etapa({ tipo: 'PRINCIPAL', duracaoMin: 35, descricao: 'Corrida contínua Z2' })],
+      ctx,
+    ).blocks;
+    expect(b.zone).toBe('Z2');
+    expect(b.confidence).toBe('prescribed');
+  });
+
+  it('lê a zona escrita no ritmo alvo', () => {
+    const [b] = selectWorkoutProfile([etapa({ ritmoAlvo: 'Z3 — 5:00/km' })], ctx).blocks;
+    expect(b.zone).toBe('Z3');
+    expect(b.confidence).toBe('prescribed');
+  });
+
+  // Campo de alvo é mais específico que prosa livre: quando os dois existem e
+  // discordam, quem manda é o alvo.
+  it('o alvo da etapa ganha da zona escrita na prosa', () => {
+    const [b] = selectWorkoutProfile(
+      [etapa({ fcAlvo: 'Z4', descricao: 'aquecimento leve em Z2' })],
+      ctx,
+    ).blocks;
+    expect(b.zone).toBe('Z4');
+  });
+
+  it('um treino com as zonas só na prosa deixa de ser degradado', () => {
+    const p = selectWorkoutProfile([
+      etapa({ tipo: 'AQUECIMENTO', duracaoMin: 10, descricao: 'Aquecimento Z1' }),
+      etapa({ tipo: 'PRINCIPAL', duracaoMin: 35, descricao: 'Corrida contínua Z2' }),
+      etapa({ tipo: 'DESAQUECIMENTO', duracaoMin: 5, descricao: 'Solto, Z1' }),
+    ], ctx);
+
+    expect(p.degraded).toBe(false);
+    expect(p.metrics.targetZone).toBe('Z2');
+  });
+
   it('desaquecimento não é lido como aquecimento', () => {
     const [b] = selectWorkoutProfile([etapa({ tipo: 'DESAQUECIMENTO' })], ctx).blocks;
     expect(b.kind).toBe('cooldown');
@@ -108,6 +148,20 @@ describe('selectWorkoutProfile — métricas sobre o exemplo da spec §2.6', () 
     expect(p.metrics.workToRecoveryRatio).toBeCloseTo(1.5, 3);
   });
 
+  // Achado da navegação: treinos reais exibiam "trabalho 11:4", "3:8" e "7:3".
+  // Sem série, o cálculo classificava por zona sobre o treino inteiro, então
+  // aquecimento e desaquecimento entravam como "recuperação" — num intervalado
+  // isso dizia que o atleta descansa três vezes mais do que corre forte,
+  // enquanto o gráfico ao lado mostrava o contrário.
+  it('não calcula razão trabalho:recuperação sem série', () => {
+    const semSerie = selectWorkoutProfile([
+      etapa({ tipo: 'AQUECIMENTO', duracaoMin: 15, fcAlvo: 'Z2' }),
+      etapa({ tipo: 'PRINCIPAL', duracaoMin: 55, fcAlvo: 'Z3' }),
+      etapa({ tipo: 'DESAQUECIMENTO', duracaoMin: 5, fcAlvo: 'Z1' }),
+    ], ctx);
+    expect(semSerie.metrics.workToRecoveryRatio).toBeNull();
+  });
+
   it('repassa TSS do consumidor e deixa IF nulo quando não vem', () => {
     expect(p.metrics.tss).toBe(62);
     expect(p.metrics.intensityFactor).toBeNull();
@@ -122,6 +176,57 @@ describe('selectWorkoutProfile — métricas sobre o exemplo da spec §2.6', () 
 
   it('não está degradado — todas as zonas foram declaradas', () => {
     expect(p.degraded).toBe(false);
+  });
+});
+
+// O backend entrega a série já expandida e sem `blocoId` — então o perfil via
+// N blocos avulsos, sem bracket, e com "REC" repetido seis vezes na tela: o
+// ruído que o agrupamento existe para evitar.
+describe('selectWorkoutProfile — série expandida sem blocoId', () => {
+  const seisPares = Array.from({ length: 6 }, () => [
+    etapa({ tipo: 'INTERVALADO', duracaoMin: 2, fcAlvo: 'Z5' }),
+    etapa({ tipo: 'RECUPERACAO', duracaoMin: 1, fcAlvo: 'Z1' }),
+  ]).flat();
+
+  it('reconhece os seis pares repetidos como uma série', () => {
+    const p = selectWorkoutProfile(seisPares, ctx);
+    const naSerie = p.blocks.filter((b) => b.repeat);
+
+    expect(naSerie).toHaveLength(12);
+    expect(naSerie.every((b) => b.repeat!.total === 6)).toBe(true);
+    expect(naSerie.map((b) => b.repeat!.index)).toEqual([1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6]);
+  });
+
+  // O vocabulário de trabalho do perfil é mais amplo que o do editor, que só
+  // reconhece "INTERVALADO". Um treino com "TIRO" é série do mesmo jeito.
+  it('agrupa também as séries que o editor não reconheceria', () => {
+    const comTiro = Array.from({ length: 4 }, () => [
+      etapa({ tipo: 'TIRO', duracaoMin: 1, fcAlvo: 'Z5' }),
+      etapa({ tipo: 'RECUPERACAO', duracaoMin: 2, fcAlvo: 'Z1' }),
+    ]).flat();
+    expect(selectWorkoutProfile(comTiro, ctx).blocks.filter((b) => b.repeat)).toHaveLength(8);
+  });
+
+  it('não agrupa repetição sem esforço dentro — dois blocos leves não são série', () => {
+    const p = selectWorkoutProfile([
+      etapa({ tipo: 'AQUECIMENTO', duracaoMin: 10, fcAlvo: 'Z2' }),
+      etapa({ tipo: 'AQUECIMENTO', duracaoMin: 10, fcAlvo: 'Z2' }),
+    ], ctx);
+    expect(p.blocks.filter((b) => b.repeat)).toHaveLength(0);
+  });
+
+  it('respeita o `blocoId` quando ele existe — não reinventa o agrupamento', () => {
+    const p = selectWorkoutProfile([
+      etapa({ tipo: 'INTERVALADO', duracaoMin: 3, fcAlvo: 'Z4', blocoId: 'g1', blocoRepeticoes: 2, blocoRepeticaoIndex: 1 }),
+      etapa({ tipo: 'INTERVALADO', duracaoMin: 3, fcAlvo: 'Z4', blocoId: 'g1', blocoRepeticoes: 2, blocoRepeticaoIndex: 2 }),
+    ], ctx);
+    expect(p.blocks.every((b) => b.repeat?.groupId === 'g1')).toBe(true);
+  });
+
+  // Ganho colateral: com a série reconhecida, a razão volta a ser calculável —
+  // e agora pelo caminho que significa alguma coisa.
+  it('a razão trabalho:recuperação volta, agora pelo caminho da série', () => {
+    expect(selectWorkoutProfile(seisPares, ctx).metrics.workToRecoveryRatio).toBeCloseTo(2, 3);
   });
 });
 
@@ -190,8 +295,11 @@ describe('selectWorkoutProfile — modo degradado (§6.4)', () => {
     expect(alturas[0]).toBeGreaterThan(alturas[2]);
   });
 
-  // Único dado real de intensidade quando a etapa não traz o seu.
-  it('a zona-alvo do treino levanta o corpo, sem tocar no aquecimento', () => {
+  // Único dado real de intensidade quando a etapa não traz o seu. Ela ancora a
+  // escala INTEIRA — a versão anterior deste teste exigia que o aquecimento
+  // ficasse parado, e era isso que produzia duas escalas no mesmo eixo e um
+  // gráfico de cabeça para baixo num treino leve.
+  it('a zona-alvo do treino reescala o perfil, mantendo a ordem dos papéis', () => {
     const semZona = [
       etapa({ tipo: 'AQUECIMENTO', duracaoMin: 10 }),
       etapa({ tipo: 'PRINCIPAL', duracaoMin: 30 }),
@@ -200,7 +308,9 @@ describe('selectWorkoutProfile — modo degradado (§6.4)', () => {
     const comAlvo = selectWorkoutProfile(semZona, { ...ctx, zonaAlvoTreino: 'Z4' });
 
     expect(comAlvo.blocks[1].intensityNormalized).toBeGreaterThan(semAlvo.blocks[1].intensityNormalized);
-    expect(comAlvo.blocks[0].intensityNormalized).toBe(semAlvo.blocks[0].intensityNormalized);
+    // O aquecimento sobe junto, e continua abaixo do corpo.
+    expect(comAlvo.blocks[0].intensityNormalized).toBeGreaterThan(semAlvo.blocks[0].intensityNormalized);
+    expect(comAlvo.blocks[0].intensityNormalized).toBeLessThan(comAlvo.blocks[1].intensityNormalized);
     // Continua declarado como estimativa — a zona do treino não é a da etapa.
     expect(comAlvo.degraded).toBe(true);
   });
@@ -224,6 +334,112 @@ describe('selectWorkoutProfile — modo degradado (§6.4)', () => {
     expect(p.metrics.kindDistribution).toBeDefined();
     const soma = p.metrics.kindDistribution!.reduce((s, k) => s + k.share, 0);
     expect(soma).toBeCloseTo(1, 3);
+  });
+});
+
+// Visto na tela: a rampa do aquecimento subia acima do bloco principal, porque
+// abria ±33% em torno do nominal. O gráfico dizia que aquecer é mais duro que o
+// treino — falso, e nem estava no dado.
+// "O treino regenerativo tem o principal em azul" — reportado da tela. Dois
+// defeitos atrás disso, e o segundo é o que deforma o desenho.
+describe('selectWorkoutProfile — treino regenerativo', () => {
+  it('reconhece "regenerativo" como Z1, em vez de não saber', () => {
+    const [b] = selectWorkoutProfile([etapa({ tipo: 'REGENERATIVO', duracaoMin: 30 })], ctx).blocks;
+    expect(b.zone).toBe('Z1');
+    expect(b.confidence).toBe('derived');
+  });
+
+  it('reconhece também a forma feminina e o trote de soltura', () => {
+    const zonas = [
+      etapa({ tipo: 'PRINCIPAL', duracaoMin: 30, descricao: 'Corrida regenerativa' }),
+      etapa({ tipo: 'SOLTURA', duracaoMin: 20 }),
+    ].map((e) => selectWorkoutProfile([e], ctx).blocks[0].zone);
+    expect(zonas).toEqual(['Z1', 'Z1']);
+  });
+
+  // O aquecimento saía TRÊS VEZES mais alto que o corpo do treino: o miolo usava
+  // altura de zona (0.15 para Z1) e o resto continuava em altura de papel (0.46).
+  // Duas escalas no mesmo eixo não se comparam, e o gráfico ficava de cabeça
+  // para baixo — aquecer parecia o esforço principal.
+  it('o corpo do treino nunca fica mais baixo que o aquecimento', () => {
+    for (const zona of ['Z1', 'Z2', 'Z3', 'Z4', 'Z5']) {
+      const p = selectWorkoutProfile([
+        etapa({ tipo: 'AQUECIMENTO', duracaoMin: 10 }),
+        etapa({ tipo: 'PRINCIPAL', duracaoMin: 30 }),
+        etapa({ tipo: 'DESAQUECIMENTO', duracaoMin: 5 }),
+      ], { ...ctx, zonaAlvoTreino: zona });
+
+      const [aquec, corpo, desaq] = p.blocks.map((b) => b.intensityNormalized);
+      // `>=` é deliberado, não descuido: em zonas baixas o piso de 0.12 faz
+      // papéis vizinhos empatarem, e isso é aceito — num regenerativo eles
+      // realmente não diferem. O que não pode acontecer é a INVERSÃO, que era o
+      // defeito. A distinção entre eles fica por conta da forma e do rótulo.
+      expect(corpo, `com alvo ${zona}, o corpo ficou abaixo do aquecimento`).toBeGreaterThanOrEqual(aquec);
+      expect(aquec, `com alvo ${zona}, o aquecimento ficou abaixo do desaquecimento`).toBeGreaterThanOrEqual(desaq);
+    }
+  });
+
+  // O piso de 0.12 chegava a colapsar a rampa: com o nominal no piso,
+  // `max(0.12, 0.12*0.5)` devolvia o próprio nominal, `from === to`, e o
+  // trapézio virava retângulo — o patamar que a rampa existe para não desenhar.
+  it('a rampa nunca degenera em patamar, nem no piso da escala', () => {
+    for (const zona of ['Z1', 'Z2', 'Z3', 'Z4', 'Z5']) {
+      const p = selectWorkoutProfile([
+        etapa({ tipo: 'AQUECIMENTO', duracaoMin: 10 }),
+        etapa({ tipo: 'PRINCIPAL', duracaoMin: 30 }),
+        etapa({ tipo: 'DESAQUECIMENTO', duracaoMin: 5 }),
+      ], { ...ctx, zonaAlvoTreino: zona });
+
+      for (const b of p.blocks) {
+        if (!b.ramp) continue;
+        expect(b.ramp.fromNormalized, `${b.kind} com alvo ${zona} virou patamar`)
+          .not.toBeCloseTo(b.ramp.toNormalized, 5);
+      }
+    }
+  });
+
+  it('a zona-alvo do treino ainda levanta o corpo quando é alta', () => {
+    const base = selectWorkoutProfile([etapa({ tipo: 'PRINCIPAL', duracaoMin: 30 })], ctx);
+    const forte = selectWorkoutProfile(
+      [etapa({ tipo: 'PRINCIPAL', duracaoMin: 30 })],
+      { ...ctx, zonaAlvoTreino: 'Z4' },
+    );
+    expect(forte.blocks[0].intensityNormalized)
+      .toBeGreaterThan(base.blocks[0].intensityNormalized);
+  });
+});
+
+describe('selectWorkoutProfile — a rampa não inventa esforço', () => {
+  const treino = [
+    etapa({ tipo: 'AQUECIMENTO', duracaoMin: 10 }),
+    etapa({ tipo: 'PRINCIPAL', duracaoMin: 20 }),
+    etapa({ tipo: 'DESAQUECIMENTO', duracaoMin: 5 }),
+  ];
+
+  it('a rampa chega ao nominal do bloco, nunca o ultrapassa', () => {
+    for (const b of selectWorkoutProfile(treino, ctx).blocks) {
+      if (!b.ramp) continue;
+      const pico = Math.max(b.ramp.fromNormalized, b.ramp.toNormalized);
+      expect(pico, `${b.kind} passa do próprio nominal`).toBeLessThanOrEqual(b.intensityNormalized);
+    }
+  });
+
+  it('o aquecimento nunca é desenhado mais alto que o corpo do treino', () => {
+    const blocos = selectWorkoutProfile(treino, ctx).blocks;
+    const alturaMaxima = (b: (typeof blocos)[number]) =>
+      b.ramp ? Math.max(b.ramp.fromNormalized, b.ramp.toNormalized) : b.intensityNormalized;
+
+    const aquecimento = blocos.find((b) => b.kind === 'warmup')!;
+    const corpo = blocos.find((b) => b.kind === 'steady')!;
+    expect(alturaMaxima(aquecimento)).toBeLessThan(alturaMaxima(corpo));
+  });
+
+  it('o aquecimento sobe e o desaquecimento desce', () => {
+    const blocos = selectWorkoutProfile(treino, ctx).blocks;
+    const aquec = blocos.find((b) => b.kind === 'warmup')!.ramp!;
+    const desaq = blocos.find((b) => b.kind === 'cooldown')!.ramp!;
+    expect(aquec.toNormalized).toBeGreaterThan(aquec.fromNormalized);
+    expect(desaq.toNormalized).toBeLessThan(desaq.fromNormalized);
   });
 });
 
