@@ -1,6 +1,7 @@
 import { Box, Typography, useTheme } from "@mui/material";
 import { glass } from "../theme/tokens";
-import { PriorityBadge, monoFont, type Priority } from "./primitives";
+import { PriorityBadge, CheckIcon, monoFont, type Priority } from "./primitives";
+import { radius } from "../theme/theme.premium";
 
 /* CTL = primary · ATL = text.secondary (steel) · TSB = warning (amber) — token roles, no raw hex */
 export function LoadChart() {
@@ -38,7 +39,7 @@ const QUEUE_ROWS: [string, string, string, Priority][] = [
 export function AttentionQueue() {
   const t = useTheme();
   return (
-    <Box sx={{ bgcolor: t.palette.surfaceShift.panel, border: `1px solid ${t.palette.divider}`, borderRadius: "18px", p: 2.5, boxShadow: glass.boxShadow }}>
+    <Box sx={{ bgcolor: t.palette.surfaceShift.panel, border: `1px solid ${t.palette.divider}`, borderRadius: radius.outer, p: 2.5, boxShadow: glass.boxShadow }}>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
         <Typography sx={{ fontFamily: monoFont, fontSize: 12, letterSpacing: ".12em", color: "text.secondary" }}>
           FILA DE ATENÇÃO
@@ -82,7 +83,7 @@ export function InterpretationCard() {
   const t = useTheme();
   const metrics: [string, string, string?][] = [["DISTÂNCIA", "12,4 km"], ["PACE", "4:42"], ["DECOUPLING", "6,4%"]];
   return (
-    <Box sx={{ bgcolor: t.palette.surfaceShift.panel, border: `1px solid ${t.palette.divider}`, borderRadius: "18px", p: 2.75, boxShadow: glass.boxShadow }}>
+    <Box sx={{ bgcolor: t.palette.surfaceShift.panel, border: `1px solid ${t.palette.divider}`, borderRadius: radius.outer, p: 2.75, boxShadow: glass.boxShadow }}>
       <Typography sx={{ fontFamily: monoFont, fontSize: 11, letterSpacing: ".14em", color: "text.secondary" }}>INTERPRETAÇÃO DO TREINO · HUGO SILVA</Typography>
       <Box sx={{ display: "flex", gap: 1.75, my: 2, flexWrap: "wrap" }}>
         {metrics.map(([k, v]) => (
@@ -96,14 +97,14 @@ export function InterpretationCard() {
           <Typography sx={{ fontFamily: monoFont, fontSize: 20, fontWeight: 700, color: "warning.main" }}>Fadigado</Typography>
         </Box>
       </Box>
-      <Box sx={{ bgcolor: "background.default", border: `1px solid ${t.palette.divider}`, borderRadius: "12px", px: 2, py: 1.75, fontSize: 14, lineHeight: 1.5 }}>
+      <Box sx={{ bgcolor: "background.default", border: `1px solid ${t.palette.divider}`, borderRadius: radius.inner, px: 2, py: 1.75, fontSize: 14, lineHeight: 1.5 }}>
         “Esse treino saiu <strong>acima da intenção</strong> e elevou a fadiga mais que o esperado. Sugiro ajuste de carga no próximo estímulo-chave.”
       </Box>
       <Box sx={{ mt: 1.75 }}>
         <Typography sx={{ fontFamily: monoFont, fontSize: 11, color: "text.secondary", letterSpacing: ".1em", mb: 1 }}>RECOMENDAÇÃO · EXPLICÁVEL</Typography>
         {["Reduzir volume no próximo bloco", "Manter o estímulo aeróbico de Z2", "Preservar o treino-chave da semana"].map((r) => (
           <Box key={r} sx={{ display: "flex", gap: 1.25, fontSize: 13.5, py: 0.5 }}>
-            <Box component="span" sx={{ color: "primary.main" }}>✓</Box>{r}
+            <Box component="span" sx={{ color: "primary.main", display: "flex" }}><CheckIcon /></Box>{r}
           </Box>
         ))}
       </Box>

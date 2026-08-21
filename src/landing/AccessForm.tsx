@@ -6,6 +6,7 @@ import { faixaDeAtletas } from "./athleteRange";
 import { validate, type AccessFormErrors } from "./accessFormValidation";
 import { useWaitlist } from "../hooks/useWaitlist";
 import type { PerfilWaitlist, WaitlistInput } from "../types/Waitlist";
+import { radius } from "../theme/theme.premium";
 
 export function AccessForm() {
   const t = useTheme();
@@ -39,7 +40,7 @@ export function AccessForm() {
 
   if (status === "success") {
     return (
-      <Box sx={{ bgcolor: "background.paper", border: `1px solid ${t.palette.divider}`, borderRadius: "16px", p: 4, maxWidth: 460, mx: "auto", textAlign: "center" }}>
+      <Box sx={{ bgcolor: "background.paper", border: `1px solid ${t.palette.divider}`, borderRadius: radius.outer, p: 4, maxWidth: 460, mx: "auto", textAlign: "center" }}>
         <Box sx={{ fontSize: 30, color: "primary.main" }}>✓</Box>
         <Typography variant="h3" sx={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 20, fontWeight: 600, my: 1 }}>Inscrição recebida</Typography>
         <Typography sx={{ color: "text.secondary", fontSize: 14.5 }}>

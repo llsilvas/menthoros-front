@@ -265,9 +265,19 @@ export const glass = {
   boxShadow:        '0 8px 32px rgba(0,0,0,0.40)',
 } as const;
 
+// ── Radius — dois raios e um pill ────────────────────────────────────────────
+// Antes conviviam 14/16/16/16/18 fazendo o mesmo trabalho. `sharp` é controle
+// (botão); `inner` é caixa dentro de painel; `outer` é card e painel; `pill` é
+// chip. Cada raio tem um papel — não é escala decorativa.
+//
+// Com unidade, e não número puro: no `sx` do MUI um `borderRadius` numérico é
+// multiplicado por `theme.shape.borderRadius` (4px), então `16` renderiza 64px.
+export const radius = { sharp: '4px', inner: '12px', outer: '16px', pill: '100px' } as const;
+
 // ── Agregado canônico ────────────────────────────────────────────────────────
 export const premiumTokens = {
   primary,
+  radius,
   surface,
   surfaceShift,
   text,
