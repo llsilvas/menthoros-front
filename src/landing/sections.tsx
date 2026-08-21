@@ -71,19 +71,24 @@ export function Nav() {
         transition: "background-color .28s ease, border-color .28s ease",
       }}
     >
-    <Container maxWidth="lg" sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", py: stuck ? 1.5 : 2.75, transition: "padding .28s ease" }}>
+    {/* Grade de três colunas no desktop: os links de seção ficam centrados no
+        eixo da página, não encostados no bloco de ações. No mobile só restam
+        logo e hambúrguer, então volta a ser flex. */}
+    <Container maxWidth="lg" sx={{ display: { xs: "flex", md: "grid" }, gridTemplateColumns: { md: "1fr auto 1fr" }, alignItems: "center", justifyContent: "space-between", py: stuck ? 1.5 : 2.75, transition: "padding .28s ease" }}>
       <Box component="img" src={logo} alt="Menthoros · AI Coaching" sx={{ height: stuck ? 38 : 46, width: "auto", display: "block", transition: "height .28s ease" }} />
 
       {/* Desktop */}
-      <Box sx={{ display: { xs: "none", md: "flex" }, gap: 3, alignItems: "center" }}>
+      <Box component="nav" sx={{ display: { xs: "none", md: "flex" }, gap: 3.5, alignItems: "center", justifyContent: "center" }}>
         {C.nav.links.map((l) => (
           <MuiLink key={l.id} component="button" type="button" onClick={() => scrollToId(l.id)} underline="none"
             sx={{ ...navLinkSx, cursor: "pointer" }}>
             {l.label}
           </MuiLink>
         ))}
-        {/* Separa navegação de conta: são classes de ação diferentes. */}
-        <Box aria-hidden sx={{ width: "1px", height: 14, bgcolor: t.palette.divider }} />
+      </Box>
+
+      {/* Ações de conta: separadas da navegação pela própria grade. */}
+      <Box sx={{ display: { xs: "none", md: "flex" }, gap: 2.5, alignItems: "center", justifySelf: "end" }}>
         <MuiLink component={RouterLink} to={ROUTES.LOGIN} underline="none" sx={navLinkSx}>
           {C.nav.login}
         </MuiLink>
