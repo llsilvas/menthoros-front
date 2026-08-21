@@ -1,5 +1,7 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Box, Button, Typography, useTheme, type SxProps, type Theme } from "@mui/material";
+import { alpha } from "@mui/material/styles";
+import { overlayWhite, gridFadeMask } from "../theme/overlays";
 
 /** Fonte monospace usada em toda a landing (eyebrows, métricas, badges). */
 export const monoFont = "'JetBrains Mono', monospace";
@@ -145,5 +147,87 @@ export function PriorityBadge({ kind }: PriorityBadgeProps) {
     >
       {kind}
     </Box>
+  );
+}
+
+/* ----- grade de fundo: textura fixa atrás do conteúdo da landing ----- */
+const GRID_STEP_PX = 56;
+
+/**
+ * Textura de grade fixa atrás do conteúdo da landing.
+ *
+ * A máscara radial é o que separa "textura" de "papel de parede": sem ela a
+ * grade encosta nas bordas do viewport e passa a ler como grid de wireframe.
+ * Decorativo — `aria-hidden`, fora da árvore de acessibilidade.
+ */
+export function GridBackdrop() {
+  return (
+    <Box
+      aria-hidden
+      sx={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 0,
+        pointerEvents: "none",
+        backgroundImage: `linear-gradient(${overlayWhite[2]} 1px, transparent 1px), linear-gradient(90deg, ${overlayWhite[2]} 1px, transparent 1px)`,
+        backgroundSize: `${GRID_STEP_PX}px ${GRID_STEP_PX}px`,
+        maskImage: gridFadeMask,
+        WebkitMaskImage: gridFadeMask,
+      }}
+    />
+  );
+}
+
+/* ----- aura lime: iluminação verde do hero e do fechamento ----- */
+interface LimeAuraProps {
+  /** Diâmetro do halo. 720 no hero, 900 no fechamento. */
+  size?: number;
+  /** Opacidade do centro. Acima de ~0.22 vira neon e come o texto. */
+  intensity?: number;
+  /**
+   * `headline` = atrás do título do hero, à esquerda. `offset` = fora do eixo,
+   * à direita. `center` = centralizada (CTA final).
+   */
+  placement?: "headline" | "offset" | "center";
+}
+
+// Deslocamentos por posicionamento. `headline` usa px (e não %) porque a âncora
+// é o bloco de título, cuja posição não acompanha a altura da seção. O `top`
+// mantém o halo abaixo da faixa em que o hero sobrepõe o vídeo (mt negativo) —
+// ali ele pintaria por cima do vídeo, não atrás.
+const PLACEMENT = {
+  headline: { left: -80, top: 80 },
+  offset: { right: "-10%", top: "10%" },
+  center: { left: "50%", top: "50%", transform: "translate(-50%, -50%)" },
+} as const;
+
+/**
+ * Halo lime difuso. Decorativo e não-interativo.
+ *
+ * O `blur` não é o que suaviza a borda — o gradiente radial já entrega isso.
+ * Ele existe pra matar o banding em degradê largo, que aparece em painel de
+ * 8 bits. Por isso o raio é modesto: subir muito só custa composite.
+ *
+ * A seção hospedeira precisa de `position: relative` e `overflow: hidden` — sem
+ * o `overflow` o halo estoura a lateral e cria scroll horizontal.
+ */
+export function LimeAura({ size = 720, intensity = 0.16, placement = "headline" }: LimeAuraProps) {
+  const t = useTheme();
+  const lime = t.palette.primary.main;
+
+  return (
+    <Box
+      aria-hidden
+      sx={{
+        position: "absolute",
+        width: size,
+        height: size,
+        pointerEvents: "none",
+        zIndex: 0,
+        background: `radial-gradient(circle, ${alpha(lime, intensity)}, transparent 60%)`,
+        filter: `blur(${placement === "center" ? 50 : 40}px)`,
+        ...PLACEMENT[placement],
+      }}
+    />
   );
 }

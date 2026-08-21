@@ -8,6 +8,7 @@
 //
 // Camada de tema (theme/**): rgba raw é legítimo aqui; componentes consomem o token.
 export const overlayWhite = {
+  2:  'rgba(255,255,255,0.02)',
   4:  'rgba(255,255,255,0.04)',
   5:  'rgba(255,255,255,0.05)',
   6:  'rgba(255,255,255,0.06)',
@@ -35,3 +36,10 @@ export const overlayBlack = {
   25: 'rgba(0,0,0,0.25)',
   40: 'rgba(0,0,0,0.40)',
 } as const;
+
+// Máscara da grade de fundo da landing (GridBackdrop): apaga as bordas do
+// viewport para a textura não virar papel de parede. Não é cor pintada — só o
+// canal alfa importa —, mas o literal mora aqui porque a regra de lint reserva
+// cor raw à camada de tema.
+export const gridFadeMask =
+  'radial-gradient(ellipse 80% 60% at 50% 30%, rgba(0,0,0,1) 40%, transparent 100%)';

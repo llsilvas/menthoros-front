@@ -5,7 +5,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import { Link as RouterLink } from "react-router";
 import { ROUTES } from "../constants/routes";
 import * as C from "./content";
-import { Reveal, Eyebrow, SectionHeading, CtaButton, monoFont } from "./primitives";
+import { Reveal, Eyebrow, SectionHeading, CtaButton, LimeAura, monoFont } from "./primitives";
 import { AttentionQueue, InterpretationCard } from "./ProductUI";
 import { AccessForm } from "./AccessForm";
 import logo from "../assets/landing/logo.png";
@@ -92,8 +92,11 @@ export function Nav() {
 
 export function Hero() {
   return (
-    <Container maxWidth="lg" sx={{ pt: 7, pb: 10 }}>
-      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1.08fr" }, gap: { xs: 4, md: 6 }, alignItems: "center" }}>
+    <Container maxWidth="lg" sx={{ pt: 7, pb: 10, position: "relative", overflow: "hidden" }}>
+      <LimeAura />
+      {/* O halo é posicionado com zIndex 0 — sem este wrapper ele pintaria acima
+          do conteúdo em fluxo, que não é posicionado. */}
+      <Box sx={{ position: "relative", zIndex: 1, display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1.08fr" }, gap: { xs: 4, md: 6 }, alignItems: "center" }}>
         <Box>
           <Eyebrow>{C.hero.eyebrow}</Eyebrow>
           <Typography variant="h1" sx={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, letterSpacing: "-.02em", fontSize: "clamp(38px,5.4vw,60px)", lineHeight: 1.02, mt: 2.5 }}>
@@ -294,8 +297,9 @@ export function Faq() {
 
 export function FinalCta() {
   return (
-    <Section id="acesso">
-      <Container maxWidth="sm" disableGutters sx={{ textAlign: "center" }}>
+    <Section id="acesso" sx={{ position: "relative", overflow: "hidden" }}>
+      <LimeAura size={900} intensity={0.18} placement="center" />
+      <Container maxWidth="sm" disableGutters sx={{ textAlign: "center", position: "relative", zIndex: 1 }}>
         <Reveal>
           <Typography variant="h2" sx={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: "clamp(28px,4vw,44px)", lineHeight: 1.08 }}>
             {C.finalCta.titlePre}<Box component="span" sx={{ color: "primary.main" }}>{C.finalCta.titleAccent}</Box>{C.finalCta.titlePost}
