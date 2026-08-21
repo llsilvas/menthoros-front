@@ -122,6 +122,39 @@ export function CtaButton({ children, fullWidth, onClick, type, disabled }: CtaB
   );
 }
 
+/* ----- marca de seção: § NN sobre numeral vazado ----- */
+interface SectionMarkProps { n: string; label: string; }
+
+/**
+ * Rótulo `§ NN — nome` sobre o numeral vazado.
+ *
+ * O numeral é `color: transparent` + `-webkit-text-stroke`. Empilhado, nunca em
+ * calha lateral: a calha empurra o bloco para o meio da coluna e o título passa
+ * a ler como centralizado.
+ */
+export function SectionMark({ n, label }: SectionMarkProps) {
+  const t = useTheme();
+  return (
+    <Box sx={{ mb: 1.5 }}>
+      <Typography sx={{ fontFamily: monoFont, fontSize: 11, lineHeight: 1.5, letterSpacing: ".1em", color: "text.disabled", mb: 1.25 }}>
+        <Box component="span" sx={{ color: "text.secondary", fontWeight: 500 }}>§ {n}</Box> — {label}
+      </Typography>
+      <Box
+        component="span"
+        sx={{
+          display: "block",
+          fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700,
+          fontSize: 40, lineHeight: 1, letterSpacing: "-.02em",
+          color: "transparent",
+          WebkitTextStroke: `1.5px ${t.palette.primary.main}`,
+        }}
+      >
+        {n}
+      </Box>
+    </Box>
+  );
+}
+
 /* ----- priority badge: ALTA/MÉDIA/BAIXA = semantic alerts ----- */
 export type Priority = "ALTA" | "MÉDIA" | "BAIXA";
 

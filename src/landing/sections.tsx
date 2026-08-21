@@ -6,7 +6,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import { Link as RouterLink } from "react-router";
 import { ROUTES } from "../constants/routes";
 import * as C from "./content";
-import { Reveal, Eyebrow, SectionHeading, CtaButton, LimeAura, monoFont } from "./primitives";
+import { Reveal, Eyebrow, SectionHeading, SectionMark, CtaButton, LimeAura, monoFont } from "./primitives";
 import { AttentionQueue, InterpretationCard } from "./ProductUI";
 import { AccessForm } from "./AccessForm";
 import logo from "../assets/landing/logo.png";
@@ -143,7 +143,7 @@ export function Pain() {
   return (
     <Section>
       <Reveal>
-        <Eyebrow>{C.pain.eyebrow}</Eyebrow>
+        <SectionMark n="01" label={C.pain.eyebrow} />
         <SectionHeading sx={{ my: 2, maxWidth: "20ch", mb: 5 }}>{C.pain.title}</SectionHeading>
       </Reveal>
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(3,1fr)" }, gap: 3 }}>
@@ -165,7 +165,7 @@ export function HowItWorks() {
   return (
     <Section id="how">
       <Reveal sx={{ textAlign: "center", mb: 6 }}>
-        <Eyebrow center>{C.how.eyebrow}</Eyebrow>
+        <SectionMark n="02" label={C.how.eyebrow} />
         <SectionHeading center sx={{ mt: 2 }}>{C.how.title}</SectionHeading>
       </Reveal>
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(3,1fr)" }, gap: 3 }}>
@@ -232,7 +232,7 @@ export function Delta() {
     >
       <Container maxWidth="lg">
       <Reveal>
-        <Eyebrow>{C.delta.eyebrow}</Eyebrow>
+        <SectionMark n="03" label={C.delta.eyebrow} />
         <SectionHeading sx={{ my: 1.5, maxWidth: "22ch" }}>{C.delta.title}</SectionHeading>
         <Typography sx={{ color: "text.secondary", fontSize: 16, maxWidth: "60ch", mb: 4.5 }}>{C.delta.sub}</Typography>
       </Reveal>
@@ -266,7 +266,7 @@ export function Capabilities() {
     <Section>
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1.05fr .95fr" }, gap: { xs: 4, md: 6 }, alignItems: "center" }}>
         <Reveal>
-          <Eyebrow>{C.capabilities.eyebrow}</Eyebrow>
+          <SectionMark n="04" label={C.capabilities.eyebrow} />
           <SectionHeading sx={{ my: 2, fontSize: "clamp(26px,3.4vw,34px)" }}>{C.capabilities.title}</SectionHeading>
           <Typography sx={{ color: "text.secondary", fontSize: 16, mb: 2.75 }}>{C.capabilities.sub}</Typography>
           {C.capabilities.bullets.map((b) => (
@@ -296,7 +296,7 @@ export function Fit() {
   return (
     <Section id="fit">
       <Reveal sx={{ mb: 4.5 }}>
-        <Eyebrow>{C.fit.eyebrow}</Eyebrow>
+        <SectionMark n="05" label={C.fit.eyebrow} />
         <SectionHeading sx={{ mt: 2, fontSize: "clamp(26px,3.4vw,34px)" }}>{C.fit.title}</SectionHeading>
       </Reveal>
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2.25 }}>
@@ -318,13 +318,13 @@ export function Trust() {
               <Box component="img" src={founderPhoto} alt="Fundador do Menthoros" sx={{ width: "100%", height: 380, objectFit: "cover", objectPosition: "center 28%", display: "block" }} />
               <Box sx={{ position: "absolute", inset: 0, background: `linear-gradient(180deg, transparent 38%, ${t.palette.background.default}f0)` }} />
               <Box sx={{ position: "absolute", left: 24, right: 24, bottom: 20 }}>
-                <Typography sx={{ fontFamily: monoFont, fontSize: 11, letterSpacing: ".14em", color: "primary.main", mb: 0.75 }}>{C.trust.founderLabel}</Typography>
                 <Typography sx={{ fontSize: 14, color: "text.primary" }}>{C.trust.founderBio}</Typography>
               </Box>
             </Box>
           </Box>
         </Reveal>
         <Reveal>
+          <SectionMark n="06" label={C.trust.founderLabel} />
           <SectionHeading sx={{ mb: 2, fontSize: "clamp(24px,3.2vw,32px)" }}>{C.trust.title}</SectionHeading>
           <Typography sx={{ color: "text.secondary", fontSize: 16, mb: 2.25 }}>{C.trust.body}</Typography>
           <Box sx={{ display: "flex", gap: 1.25, flexWrap: "wrap" }}>
@@ -357,7 +357,7 @@ export function Faq() {
     <Section>
       <Container maxWidth="md" disableGutters>
         <Reveal sx={{ textAlign: "center", mb: 4.5 }}>
-          <Eyebrow center>{C.faq.eyebrow}</Eyebrow>
+          <SectionMark n="07" label={C.faq.eyebrow} />
           <SectionHeading center sx={{ mt: 2 }}>{C.faq.title}</SectionHeading>
         </Reveal>
         {C.faq.items.map((it) => <FaqItem key={it.q} q={it.q} a={it.a} />)}
