@@ -346,9 +346,14 @@ function FaqItem({ q, a }: { q: string; a: string }) {
     <Box sx={{ bgcolor: "background.paper", border: `1px solid ${t.palette.divider}`, borderRadius: radius.outer, px: 2.75, mb: 1.5 }}>
       <Box component="button" onClick={() => setOpen((o) => !o)} aria-expanded={open}
         sx={{ width: "100%", background: "none", border: "none", color: "text.primary", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2, py: 2.25, textAlign: "left", fontFamily: "'Space Grotesk', sans-serif", fontSize: 16, fontWeight: 600 }}>
-        {q}<Box component="span" sx={{ fontFamily: monoFont, color: "primary.main", fontSize: 20, flexShrink: 0 }}>{open ? "−" : "+"}</Box>
+        {q}<Box component="span" sx={{ fontFamily: monoFont, color: "primary.main", fontSize: 20, flexShrink: 0, transform: open ? "rotate(45deg)" : "none", transition: "transform .28s ease" }}>+</Box>
       </Box>
-      {open && <Typography sx={{ color: "text.secondary", fontSize: 14.5, pb: 2.5, maxWidth: "60ch" }}>{a}</Typography>}
+      {/* `0fr → 1fr` anima a altura sem medir o conteúdo — evita max-height chutado. */}
+      <Box sx={{ display: "grid", gridTemplateRows: open ? "1fr" : "0fr", transition: "grid-template-rows .32s cubic-bezier(.2,.7,.2,1)", "@media (prefers-reduced-motion: reduce)": { transition: "none" } }}>
+        <Box sx={{ overflow: "hidden" }}>
+          <Typography sx={{ color: "text.secondary", fontSize: 14.5, pb: 2.5, maxWidth: "62ch" }}>{a}</Typography>
+        </Box>
+      </Box>
     </Box>
   );
 }
