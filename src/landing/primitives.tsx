@@ -79,7 +79,8 @@ export function SectionHeading({ children, center, sx }: SectionHeadingProps) {
         fontWeight: 600,
         letterSpacing: "-.02em",
         lineHeight: 1.08,
-        fontSize: "clamp(26px, 3.6vw, 38px)",
+        fontSize: "clamp(24px, 3vw, 32px)",
+        textWrap: "pretty",
         textAlign: center ? "center" : "left",
         ...sx,
       }}

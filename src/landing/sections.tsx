@@ -124,7 +124,7 @@ export function Hero() {
       <Box sx={{ position: "relative", zIndex: 1, display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1.08fr" }, gap: { xs: 4, md: 6 }, alignItems: "center" }}>
         <Box>
           <Eyebrow>{C.hero.eyebrow}</Eyebrow>
-          <Typography variant="h1" sx={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, letterSpacing: "-.02em", fontSize: "clamp(38px,5.4vw,60px)", lineHeight: 1.02, mt: 2.5 }}>
+          <Typography variant="h1" sx={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, letterSpacing: "-.02em", fontSize: "clamp(34px,4.8vw,54px)", lineHeight: 1.04, mt: 2.5 }}>
             {C.hero.titleLine1}<br />{C.hero.titleLine2Pre}<Box component="span" sx={{ color: "primary.main" }}>{C.hero.titleAccent}</Box>
           </Typography>
           <Box sx={{ width: 44, height: "1px", bgcolor: "primary.main", my: 3 }} />
@@ -233,7 +233,7 @@ export function Delta() {
       <Container maxWidth="lg">
       <Reveal>
         <SectionMark n="03" label={C.delta.eyebrow} />
-        <SectionHeading sx={{ my: 1.5, maxWidth: "22ch" }}>{C.delta.title}</SectionHeading>
+        <SectionHeading sx={{ my: 1.5, maxWidth: "22ch", fontSize: "clamp(28px,3.8vw,40px)" }}>{C.delta.title}</SectionHeading>
         <Typography sx={{ color: "text.secondary", fontSize: 16, maxWidth: "60ch", mb: 4.5 }}>{C.delta.sub}</Typography>
       </Reveal>
       <Reveal>
