@@ -183,6 +183,59 @@ describe('round-trip serializarItens ∘ itensFromEtapas', () => {
     });
 });
 
+// ── Ritmo da etapa ────────────────────────────────────────────────────────────
+
+describe('etapaItem — o ritmo sobrevive ao round-trip', () => {
+    // Terceira ocorrência do mesmo defeito, depois de `blocoId` e `descricaoEtapa`: o PATCH limpa
+    // as etapas e as reconstrói a partir do payload, então campo que o editor não devolve nasce
+    // nulo. Aqui o dado vem do planner — o schema do structured output exige `ritmoAlvo` por etapa
+    // —, e o coach perdia a prescrição de ritmo ao salvar qualquer edição administrativa.
+    const comRitmo: EtapaTreinoDto[] = [
+        { ordem: 1, tipoEtapa: 'AQUECIMENTO', duracaoMin: 10, fcAlvoEtapa: '115-130 bpm' },
+        { ordem: 2, tipoEtapa: 'PRINCIPAL', duracaoMin: 35, fcAlvoEtapa: '', ritmoAlvo: '5:00-5:15/km' },
+    ];
+
+    it('hidrata o ritmo para o modelo de edição', () => {
+        const itens = itensFromEtapas(comRitmo);
+        const principal = itens[1];
+        expect(principal.kind).toBe('step');
+        expect(principal.kind === 'step' && principal.ritmoAlvo).toBe('5:00-5:15/km');
+    });
+
+    it('devolve o ritmo no payload de salvamento', () => {
+        const payload = serializarItens(itensFromEtapas(comRitmo));
+        expect(payload.map(p => p.ritmoAlvo)).toEqual([undefined, '5:00-5:15/km']);
+    });
+
+    it('preserva o ritmo dentro de uma série', () => {
+        const serie: EtapaTreinoDto[] = Array.from({ length: 3 }, (_, i) => [
+            { ordem: i * 2 + 1, tipoEtapa: 'INTERVALADO', duracaoMin: 3, ritmoAlvo: '4:00-4:10/km' },
+            { ordem: i * 2 + 2, tipoEtapa: 'RECUPERACAO', duracaoMin: 2, ritmoAlvo: '6:30-7:00/km' },
+        ]).flat();
+
+        const bloco = serializarItens(itensFromEtapas(serie))[0];
+        expect(bloco.tipoEtapa).toBe('BLOCO');
+        expect(bloco.subEtapas?.map(s => s.ritmoAlvo)).toEqual(['4:00-4:10/km', '6:30-7:00/km']);
+    });
+
+    it('etapas de mesma duração e ritmos diferentes não viram série', () => {
+        // A assinatura da janela inclui o ritmo, espelhando etapasEquivalentes no backend. Sem
+        // isso, um progressivo (mesma duração, ritmo caindo a cada trecho) seria agrupado como
+        // repetição — e o editor mostraria uma série que o treinador não prescreveu.
+        const progressivo: EtapaTreinoDto[] = [
+            { ordem: 1, tipoEtapa: 'INTERVALADO', duracaoMin: 5, ritmoAlvo: '5:00-5:10/km' },
+            { ordem: 2, tipoEtapa: 'INTERVALADO', duracaoMin: 5, ritmoAlvo: '4:40-4:50/km' },
+            { ordem: 3, tipoEtapa: 'INTERVALADO', duracaoMin: 5, ritmoAlvo: '4:20-4:30/km' },
+            { ordem: 4, tipoEtapa: 'INTERVALADO', duracaoMin: 5, ritmoAlvo: '4:00-4:10/km' },
+        ];
+
+        const itens = itensFromEtapas(progressivo);
+
+        expect(itens.every(i => i.kind === 'step')).toBe(true);
+        expect(itens).toHaveLength(4);
+    });
+});
+
 // ── Descrição da etapa ────────────────────────────────────────────────────────
 
 describe('etapaItem — a descrição sobrevive ao round-trip', () => {
