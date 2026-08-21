@@ -215,32 +215,12 @@ export function HowItWorks() {
           </Reveal>
         ))}
       </Box>
-      {/* O arco fecha o 03 de volta no 01: é o que amarra o HowItWorks ao Delta.
-          Os extremos ancoram nos numerais, não nas bordas do bloco — o 03 fica na
-          borda esquerda da terceira coluna (~70% da largura), não na direita.
-          Some no mobile: com uma coluna só, um laço horizontal não descreve nada. */}
-      <Box sx={{ mt: 1 }}>
-        <Box
-          component="svg"
-          viewBox="0 0 1000 74"
-          aria-hidden
-          sx={{ width: "100%", display: { xs: "none", md: "block" } }}
-        >
-          <path
-            d="M696 4 C 726 34, 700 62, 645 62 L 70 62 C 20 62, 2 34, 16 4"
-            fill="none" stroke={t.palette.primary.main} strokeWidth={1.4}
-            strokeDasharray="5 5" opacity={.65}
-          />
-          <path
-            d="M22 16 L16 4 L10 16"
-            fill="none" stroke={t.palette.primary.main} strokeWidth={1.6}
-            strokeLinecap="round" strokeLinejoin="round"
-          />
-        </Box>
-        <Typography sx={{ fontFamily: monoFont, fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", color: "text.disabled", textAlign: { xs: "left", md: "center" }, mt: 1.25 }}>
-          {C.how.loopLabel}
-        </Typography>
-      </Box>
+      {/* A legenda sozinha diz o que o arco tentava desenhar: o loop fecha do 03
+          de volta no 01. O desenho competia com a régua dos numerais e não
+          sobrevivia à quebra para uma coluna. */}
+      <Typography sx={{ fontFamily: monoFont, fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", color: "text.disabled", mt: 4 }}>
+        {C.how.loopLabel}
+      </Typography>
     </Section>
   );
 }
