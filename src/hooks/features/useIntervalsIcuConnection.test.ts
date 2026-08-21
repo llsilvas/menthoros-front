@@ -23,8 +23,18 @@ function apiError(status: number, body: unknown): ApiError {
   );
 }
 
+// jsdom não implementa navegação: chamar window.location.assign de verdade emite
+// "Not implemented: navigation" e não dá como assertar o destino.
+const assign = vi.fn();
+
 describe('useIntervalsIcuConnection', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    Object.defineProperty(window, 'location', {
+      value: { ...window.location, assign },
+      writable: true,
+    });
+  });
 
   it('carrega status=null sem erro quando o atleta nunca conectou (404)', async () => {
     vi.mocked(IntervalsIcuService.getStatus).mockResolvedValue(null);
@@ -37,42 +47,45 @@ describe('useIntervalsIcuConnection', () => {
     expect(result.current.error).toBeNull();
   });
 
-  it('connect com sucesso atualiza status.conectado e retorna true', async () => {
+  // connect() não cria mais a conexão: busca a URL de consentimento e sai da página. Quem
+  // persiste é o callback do backend, depois que o atleta autoriza no provedor.
+  it('connect busca a URL de autorização e navega para ela', async () => {
     vi.mocked(IntervalsIcuService.getStatus).mockResolvedValue(null);
-    vi.mocked(IntervalsIcuService.connect).mockResolvedValue(CONECTADO);
+    vi.mocked(IntervalsIcuService.getAuthorizationUrl).mockResolvedValue({
+      authorizationUrl: 'https://intervals.icu/oauth/authorize?client_id=663&state=abc',
+    });
 
     const { result } = renderHook(() => useIntervalsIcuConnection());
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    let retorno: boolean | undefined;
     await act(async () => {
-      retorno = await result.current.connect('chave-valida');
+      await result.current.connect();
     });
 
-    expect(retorno).toBe(true);
-    expect(result.current.status?.conectado).toBe(true);
+    expect(assign).toHaveBeenCalledWith(
+      'https://intervals.icu/oauth/authorize?client_id=663&state=abc',
+    );
     expect(result.current.error).toBeNull();
-    expect(IntervalsIcuService.connect).toHaveBeenCalledWith('chave-valida');
   });
 
-  it('connect com 422 popula error com a mensagem curada do backend e retorna false', async () => {
+  it('connect com falha popula error e não navega', async () => {
     vi.mocked(IntervalsIcuService.getStatus).mockResolvedValue(null);
-    const mensagemCurada = 'API key inválida — verifique em Settings → Developer no intervals.icu';
-    vi.mocked(IntervalsIcuService.connect).mockRejectedValue(
-      apiError(422, { status: 422, error: 'Unprocessable Entity', message: mensagemCurada }),
+    const mensagemCurada = 'Usuário autenticado não tem atleta vinculado';
+    vi.mocked(IntervalsIcuService.getAuthorizationUrl).mockRejectedValue(
+      apiError(404, { status: 404, error: 'Not Found', message: mensagemCurada }),
     );
 
     const { result } = renderHook(() => useIntervalsIcuConnection());
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    let retorno: boolean | undefined;
     await act(async () => {
-      retorno = await result.current.connect('chave-invalida');
+      await result.current.connect();
     });
 
-    expect(retorno).toBe(false);
+    expect(assign).not.toHaveBeenCalled();
     expect(result.current.error).toBe(mensagemCurada);
-    expect(result.current.status).toBeNull();
+    // Falhou antes de sair da página, então o botão precisa voltar a clicável.
+    expect(result.current.loading).toBe(false);
   });
 
   it('disconnect zera o status para desconectado', async () => {

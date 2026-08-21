@@ -11,6 +11,10 @@ export interface IntervalsIcuConnectionStatus {
   ultimoErro?: string;
 }
 
+export interface IntervalsIcuAuthorizationUrl {
+  authorizationUrl: string;
+}
+
 export class IntervalsIcuService {
   /**
    * Status da conexão intervals.icu do atleta autenticado.
@@ -32,17 +36,20 @@ export class IntervalsIcuService {
   }
 
   /**
-   * Conecta a conta intervals.icu do atleta autenticado (valida a API key antes de salvar).
-   * @param apiKey API key gerada em intervals.icu -> Settings -> Developer
-   * @returns IntervalsIcuConnectionStatus status da conexão recém-criada
-   * @throws ApiError com `body.message` contendo a mensagem curada do backend (422 = key inválida)
+   * URL de consentimento OAuth2 do intervals.icu para o atleta autenticado.
+   *
+   * O `POST` de conexão por API key **não existe mais** (o backend responde 405): o OAuth2
+   * substituiu aquele fluxo e não convive com ele. Conectar agora é redirecionar o browser para
+   * esta URL; o retorno chega pelo callback do backend, que devolve o atleta a
+   * `/#/athlete/profile?intervals-icu=success|error`.
+   *
+   * @returns URL completa de autorização, com `state` assinado
+   * @throws ApiError 403 se o usuário não for ATLETA; 404 se não houver atleta vinculado
    */
-  public static connect(apiKey: string): CancelablePromise<IntervalsIcuConnectionStatus> {
+  public static getAuthorizationUrl(): CancelablePromise<IntervalsIcuAuthorizationUrl> {
     return __request(OpenAPI, {
-      method: 'POST',
-      url: '/api/v1/integracoes/me/intervals-icu',
-      body: { apiKey },
-      mediaType: 'application/json',
+      method: 'GET',
+      url: '/api/v1/integracoes/me/intervals-icu/authorize-url',
     });
   }
 
