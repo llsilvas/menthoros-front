@@ -150,7 +150,7 @@ export function Hero() {
           </Typography>
           <Box sx={{ width: 44, height: "1px", bgcolor: "primary.main", my: 3 }} />
           <Typography sx={{ color: "text.secondary", fontSize: 18, maxWidth: "42ch" }}>{C.hero.sub}</Typography>
-          <Box sx={{ mt: 3.75 }}><CtaButton onClick={() => scrollToId("acesso")}>{C.hero.cta} →</CtaButton></Box>
+          <Box sx={{ mt: 3.75 }}><CtaButton onClick={() => scrollToId("acesso")}>{C.hero.cta}<ArrowIcon /></CtaButton></Box>
           <Typography sx={{ fontFamily: monoFont, color: "text.disabled", fontSize: 12, mt: 2.25, letterSpacing: ".04em" }}>{C.hero.scarcity}</Typography>
           {/* Credencial acima da dobra. As mesmas chips voltam no Trust, ali como
               aprofundamento — repetir prova técnica não incomoda. */}

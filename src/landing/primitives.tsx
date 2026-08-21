@@ -120,6 +120,7 @@ export function CtaButton({ children, fullWidth, onClick, type, disabled }: CtaB
         letterSpacing: ".01em",
         lineHeight: 1.6,
         textTransform: "none",
+        gap: 1,
         borderRadius: radius.sharp,
         px: 2.5,
         py: 1.25,
