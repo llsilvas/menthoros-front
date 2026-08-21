@@ -132,6 +132,34 @@ export function CtaButton({ children, fullWidth, onClick, type, disabled }: CtaB
   );
 }
 
+/* ----- ícones: glifos de texto renderizam na fonte do sistema e não assentam
+   na baseline; em SVG o traço acompanha o peso do resto ----- */
+
+/** Todos herdam `currentColor` — a cor vem do contexto (primary, success, muted). */
+export function CheckIcon({ size = 14 }: { size?: number }) {
+  return (
+    <Box component="svg" viewBox="0 0 14 14" aria-hidden sx={{ width: size, height: size, flexShrink: 0, mt: "3px" }}>
+      <path d="M2 7.5 L5.2 10.5 L12 3.5" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+    </Box>
+  );
+}
+
+export function ArrowIcon({ size = 14 }: { size?: number }) {
+  return (
+    <Box component="svg" viewBox="0 0 14 10" aria-hidden sx={{ width: size, height: (size * 10) / 14, flexShrink: 0 }}>
+      <path d="M1 5 H12 M8 1 L12 5 L8 9" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+    </Box>
+  );
+}
+
+export function DashIcon({ size = 14 }: { size?: number }) {
+  return (
+    <Box component="svg" viewBox="0 0 14 14" aria-hidden sx={{ width: size, height: size, flexShrink: 0, mt: "3px" }}>
+      <path d="M3 7 H11" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" />
+    </Box>
+  );
+}
+
 /* ----- marca de seção: § NN sobre numeral vazado ----- */
 interface SectionMarkProps { n: string; label: string; }
 

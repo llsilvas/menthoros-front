@@ -1,6 +1,6 @@
 import { Box, Typography, useTheme } from "@mui/material";
 import { glass } from "../theme/tokens";
-import { PriorityBadge, monoFont, type Priority } from "./primitives";
+import { PriorityBadge, CheckIcon, monoFont, type Priority } from "./primitives";
 import { radius } from "../theme/theme.premium";
 
 /* CTL = primary · ATL = text.secondary (steel) · TSB = warning (amber) — token roles, no raw hex */
@@ -104,7 +104,7 @@ export function InterpretationCard() {
         <Typography sx={{ fontFamily: monoFont, fontSize: 11, color: "text.secondary", letterSpacing: ".1em", mb: 1 }}>RECOMENDAÇÃO · EXPLICÁVEL</Typography>
         {["Reduzir volume no próximo bloco", "Manter o estímulo aeróbico de Z2", "Preservar o treino-chave da semana"].map((r) => (
           <Box key={r} sx={{ display: "flex", gap: 1.25, fontSize: 13.5, py: 0.5 }}>
-            <Box component="span" sx={{ color: "primary.main" }}>✓</Box>{r}
+            <Box component="span" sx={{ color: "primary.main", display: "flex" }}><CheckIcon /></Box>{r}
           </Box>
         ))}
       </Box>

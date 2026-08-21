@@ -6,7 +6,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import { Link as RouterLink } from "react-router";
 import { ROUTES } from "../constants/routes";
 import * as C from "./content";
-import { Reveal, Eyebrow, SectionHeading, SectionMark, CtaButton, LimeAura, monoFont } from "./primitives";
+import { Reveal, Eyebrow, SectionHeading, SectionMark, CtaButton, LimeAura, CheckIcon, ArrowIcon, DashIcon, monoFont } from "./primitives";
 import { AttentionQueue, InterpretationCard } from "./ProductUI";
 import { AccessForm } from "./AccessForm";
 import logo from "../assets/landing/logo.png";
@@ -245,7 +245,7 @@ export function Delta() {
               <Typography sx={{ fontFamily: monoFont, fontSize: 11, letterSpacing: ".14em", color: "text.secondary" }}>IA PROPÔS</Typography>
               <Typography sx={{ mt: 1.25, fontSize: 14.5 }}>{C.delta.proposed}</Typography>
             </Box>
-            <Box sx={{ display: "grid", placeItems: "center", color: "primary.main", fontSize: 22 }} aria-hidden>→</Box>
+            <Box sx={{ display: "grid", placeItems: "center", color: "primary.main" }}><ArrowIcon size={22} /></Box>
             <Box sx={{ bgcolor: "background.paper", border: `1px solid ${t.palette.primary.main}`, borderRadius: radius.inner, p: 2.5 }}>
               <Typography sx={{ fontFamily: monoFont, fontSize: 11, letterSpacing: ".14em", color: "primary.main" }}>TREINADOR DECIDIU</Typography>
               <Typography sx={{ mt: 1.25, fontSize: 14.5 }}>{C.delta.decided}</Typography>
@@ -272,7 +272,7 @@ export function Capabilities() {
           <Typography sx={{ color: "text.secondary", fontSize: 16, mb: 2.75 }}>{C.capabilities.sub}</Typography>
           {C.capabilities.bullets.map((b) => (
             <Box key={b} sx={{ display: "flex", gap: 1.5, py: 1, fontSize: 15 }}>
-              <Box component="span" sx={{ color: "primary.main" }}>✓</Box>{b}
+              <Box component="span" sx={{ color: "primary.main", display: "flex" }}><CheckIcon /></Box>{b}
             </Box>
           ))}
         </Reveal>
@@ -289,7 +289,7 @@ export function Fit() {
       <Typography sx={{ fontFamily: monoFont, fontSize: 12, letterSpacing: ".12em", color: muted ? "text.disabled" : "primary.main", mb: 2 }}>{head}</Typography>
       {items.map((x) => (
         <Box key={x} sx={{ display: "flex", gap: 1.5, py: 1.1, fontSize: 14.5, color: muted ? "text.secondary" : "text.primary", borderTop: `1px solid ${t.palette.divider}` }}>
-          <Box component="span" sx={{ color: muted ? "text.disabled" : "success.main" }}>{muted ? "—" : "✓"}</Box>{x}
+          <Box component="span" sx={{ color: muted ? "text.disabled" : "success.main", display: "flex" }}>{muted ? <DashIcon /> : <CheckIcon />}</Box>{x}
         </Box>
       ))}
     </Box>
