@@ -115,16 +115,19 @@ export function CtaButton({ children, fullWidth, onClick, type, disabled }: CtaB
         bgcolor: "primary.main",
         color: "primary.contrastText",
         fontFamily: "'Space Grotesk', sans-serif",
-        fontWeight: 600,
-        fontSize: 15,
+        fontWeight: 500,
+        fontSize: 14.5,
+        letterSpacing: ".01em",
         textTransform: "none",
-        borderRadius: radius.pill,
-        px: 3.75,
-        py: 1.75,
+        borderRadius: radius.sharp,
+        px: 3,
+        py: 1.5,
         width: fullWidth ? "100%" : "auto",
-        "&:hover": { bgcolor: "primary.light", transform: "translateY(-1px)" },
+        // Sem lift no hover: a superfície lime já é o elemento mais alto da
+        // página; deslocá-la no hover é ruído, não affordance.
+        "&:hover": { bgcolor: "primary.light" },
         "&:active": { bgcolor: "primary.dark" },
-        transition: "background-color .15s ease, transform .15s ease",
+        transition: "background-color .15s ease",
       }}
     >
       {children}

@@ -29,6 +29,19 @@ function Section({ id, children, sx }: { id?: string; children: ReactNode; sx?: 
   );
 }
 
+// A nav é chrome, e todo chrome desta landing fala na utilitária mono — eyebrow,
+// § de seção, chips, métricas. Em Inter 14 ela era o único elemento de moldura
+// com a voz do corpo de texto, e por isso lia como nav genérica.
+const navLinkSx = {
+  fontFamily: monoFont,
+  fontSize: 12,
+  letterSpacing: ".12em",
+  textTransform: "uppercase" as const,
+  color: "text.secondary",
+  transition: "color .15s ease",
+  "&:hover": { color: "text.primary" },
+};
+
 export function Nav() {
   const t = useTheme();
   const [open, setOpen] = useState(false);
@@ -62,15 +75,16 @@ export function Nav() {
       <Box component="img" src={logo} alt="Menthoros · AI Coaching" sx={{ height: stuck ? 38 : 46, width: "auto", display: "block", transition: "height .28s ease" }} />
 
       {/* Desktop */}
-      <Box sx={{ display: { xs: "none", md: "flex" }, gap: 3.75, alignItems: "center" }}>
+      <Box sx={{ display: { xs: "none", md: "flex" }, gap: 3, alignItems: "center" }}>
         {C.nav.links.map((l) => (
           <MuiLink key={l.id} component="button" type="button" onClick={() => scrollToId(l.id)} underline="none"
-            sx={{ color: "text.secondary", fontSize: 14, cursor: "pointer", "&:hover": { color: "text.primary" } }}>
+            sx={{ ...navLinkSx, cursor: "pointer" }}>
             {l.label}
           </MuiLink>
         ))}
-        <MuiLink component={RouterLink} to={ROUTES.LOGIN} underline="none"
-          sx={{ color: "text.secondary", fontSize: 14, "&:hover": { color: "text.primary" } }}>
+        {/* Separa navegação de conta: são classes de ação diferentes. */}
+        <Box aria-hidden sx={{ width: "1px", height: 14, bgcolor: t.palette.divider }} />
+        <MuiLink component={RouterLink} to={ROUTES.LOGIN} underline="none" sx={navLinkSx}>
           {C.nav.login}
         </MuiLink>
         <CtaButton onClick={() => scrollToId("acesso")}>{C.nav.cta}</CtaButton>
@@ -98,12 +112,12 @@ export function Nav() {
         <Stack spacing={1.5} alignItems="stretch">
           {C.nav.links.map((l) => (
             <MuiLink key={l.id} component="button" type="button" onClick={() => goSection(l.id)} underline="none"
-              sx={{ color: "text.primary", fontSize: 16, textAlign: "left", py: 0.5, cursor: "pointer", "&:hover": { color: "primary.main" } }}>
+              sx={{ ...navLinkSx, fontSize: 13, color: "text.primary", textAlign: "left", py: 0.5, cursor: "pointer", "&:hover": { color: "primary.main" } }}>
               {l.label}
             </MuiLink>
           ))}
           <MuiLink component={RouterLink} to={ROUTES.LOGIN} onClick={close} underline="none"
-            sx={{ color: "text.primary", fontSize: 16, py: 0.5, "&:hover": { color: "primary.main" } }}>
+            sx={{ ...navLinkSx, fontSize: 13, color: "text.primary", py: 0.5, "&:hover": { color: "primary.main" } }}>
             {C.nav.login}
           </MuiLink>
           <Box sx={{ mt: 1 }}>
