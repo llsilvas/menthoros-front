@@ -47,6 +47,7 @@ export const delta = {
   context: "CARGA INTERNA · HUGO SILVA · SEMANA 14",
   proposed: "Reduzir o volume em 15% e manter um estímulo aeróbico de Z2.",
   decided: "Reduziu 10% e manteve o treino-chave — o atleta respondeu bem ao último bloco.",
+  feedback: "Esse delta de 5% e a escolha de preservar o treino-chave voltam para o modelo. Na semana 15, a proposta já nasce mais perto da sua leitura.",
 };
 
 export const capabilities = {

@@ -189,14 +189,32 @@ export function HowItWorks() {
 export function Delta() {
   const t = useTheme();
   return (
-    <Section id="delta">
+    <Box
+      component="section"
+      id="delta"
+      sx={{
+        bgcolor: t.palette.surfaceShift.panel,
+        borderTop: `1px solid ${t.palette.divider}`,
+        borderBottom: `1px solid ${t.palette.divider}`,
+        py: { xs: 9, md: 16 },
+        position: "relative",
+        overflow: "hidden",
+        // Fio lime no topo: marca a seção sem inflar tipografia.
+        "&::before": {
+          content: '""', position: "absolute", left: 0, right: 0, top: 0, height: "1px",
+          background: `linear-gradient(90deg, transparent, ${t.palette.primary.main}, transparent)`,
+          opacity: .5,
+        },
+      }}
+    >
+      <Container maxWidth="lg">
       <Reveal>
         <Eyebrow>{C.delta.eyebrow}</Eyebrow>
         <SectionHeading sx={{ my: 1.5, maxWidth: "22ch" }}>{C.delta.title}</SectionHeading>
         <Typography sx={{ color: "text.secondary", fontSize: 16, maxWidth: "60ch", mb: 4.5 }}>{C.delta.sub}</Typography>
       </Reveal>
       <Reveal>
-        <Box sx={{ bgcolor: t.palette.surfaceShift.panel, border: `1px solid ${t.palette.divider}`, borderRadius: "18px", p: 3.5 }}>
+        <Box sx={{ bgcolor: "background.default", border: `1px solid ${t.palette.divider}`, borderRadius: "18px", p: 3.5 }}>
           <Typography sx={{ fontFamily: monoFont, fontSize: 11, letterSpacing: ".14em", color: "text.secondary" }}>{C.delta.context}</Typography>
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr auto 1fr" }, gap: 2.25, mt: 2 }}>
             <Box sx={{ bgcolor: "background.paper", border: `1px dashed ${t.palette.divider}`, borderRadius: "14px", p: 2.5 }}>
@@ -209,9 +227,14 @@ export function Delta() {
               <Typography sx={{ mt: 1.25, fontSize: 14.5 }}>{C.delta.decided}</Typography>
             </Box>
           </Box>
+          <Box sx={{ mt: 2.5, pt: 2.25, borderTop: `1px solid ${t.palette.divider}`, display: "flex", gap: 1.5, alignItems: "flex-start" }}>
+            <Box component="span" sx={{ fontFamily: monoFont, fontSize: 11, letterSpacing: ".14em", color: "primary.main", flexShrink: 0, pt: "2px" }}>Δ</Box>
+            <Typography sx={{ fontSize: 13.5, color: "text.secondary" }}>{C.delta.feedback}</Typography>
+          </Box>
         </Box>
       </Reveal>
-    </Section>
+      </Container>
+    </Box>
   );
 }
 
