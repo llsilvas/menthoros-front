@@ -315,7 +315,7 @@ export function Trust() {
         <Reveal>
           <Box sx={{ bgcolor: "background.paper", border: `1px solid ${t.palette.divider}`, borderRadius: "16px", overflow: "hidden" }}>
             <Box sx={{ position: "relative" }}>
-              <Box component="img" src={founderPhoto} alt="Fundador do Menthoros" sx={{ width: "100%", height: 380, objectFit: "cover", objectPosition: "center 28%", display: "block" }} />
+              <Box component="img" src={founderPhoto} alt="Fundador do Menthoros" sx={{ width: "100%", aspectRatio: "4 / 5", maxHeight: 520, objectFit: "cover", objectPosition: "50% 6%", display: "block" }} />
               <Box sx={{ position: "absolute", inset: 0, background: `linear-gradient(180deg, transparent 38%, ${t.palette.background.default}f0)` }} />
               <Box sx={{ position: "absolute", left: 24, right: 24, bottom: 20 }}>
                 <Typography sx={{ fontSize: 14, color: "text.primary" }}>{C.trust.founderBio}</Typography>
