@@ -172,8 +172,10 @@ interface SectionMarkProps { n: string; label: string; }
  */
 export function SectionMark({ n, label }: SectionMarkProps) {
   const t = useTheme();
+  // `textAlign` explícito: seções de cabeçalho centralizado (02, 07) herdariam
+  // o center do wrapper e o § deixaria de ancorar a coluna à esquerda.
   return (
-    <Box sx={{ mb: 1.5 }}>
+    <Box sx={{ mb: 1.5, textAlign: "left" }}>
       <Typography sx={{ fontFamily: monoFont, fontSize: 11, lineHeight: 1.5, letterSpacing: ".1em", color: "text.disabled", mb: 1.25 }}>
         <Box component="span" sx={{ color: "text.secondary", fontWeight: 500 }}>§ {n}</Box> — {label}
       </Typography>
