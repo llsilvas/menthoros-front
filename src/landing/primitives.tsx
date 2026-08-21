@@ -116,12 +116,13 @@ export function CtaButton({ children, fullWidth, onClick, type, disabled }: CtaB
         color: "primary.contrastText",
         fontFamily: "'Space Grotesk', sans-serif",
         fontWeight: 500,
-        fontSize: 14.5,
+        fontSize: 14,
         letterSpacing: ".01em",
+        lineHeight: 1.6,
         textTransform: "none",
         borderRadius: radius.sharp,
-        px: 3,
-        py: 1.5,
+        px: 2.5,
+        py: 1.25,
         width: fullWidth ? "100%" : "auto",
         // Sem lift no hover: a superfície lime já é o elemento mais alto da
         // página; deslocá-la no hover é ruído, não affordance.
