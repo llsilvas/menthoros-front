@@ -33,6 +33,7 @@ export const pain = {
 export const how = {
   eyebrow: "Como funciona",
   title: "O loop fechado, em três passos.",
+  loopLabel: "A decisão do treinador retroalimenta o modelo",
   steps: [
     { n: "01", t: "Conecte e colete", b: "Os dados de treino dos seus atletas entram automaticamente, independente do relógio ou app que eles já usam." },
     { n: "02", t: "A IA analisa", b: "Modelos transformam carga, fadiga e prontidão em sinais claros: quem precisa de atenção e o porquê." },

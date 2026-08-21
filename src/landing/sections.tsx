@@ -182,6 +182,29 @@ export function HowItWorks() {
           </Reveal>
         ))}
       </Box>
+      {/* O arco fecha o 03 de volta no 01: é o que amarra o HowItWorks ao Delta. */}
+      <Box sx={{ mt: 1 }}>
+        <Box
+          component="svg"
+          viewBox="0 0 1000 74"
+          aria-hidden
+          sx={{ width: "100%", display: "block" }}
+        >
+          <path
+            d="M960 4 C 990 34, 960 62, 900 62 L 100 62 C 40 62, 10 34, 40 4"
+            fill="none" stroke={t.palette.primary.main} strokeWidth={1.4}
+            strokeDasharray="5 5" opacity={.65}
+          />
+          <path
+            d="M46 16 L40 4 L34 16"
+            fill="none" stroke={t.palette.primary.main} strokeWidth={1.6}
+            strokeLinecap="round" strokeLinejoin="round"
+          />
+        </Box>
+        <Typography sx={{ fontFamily: monoFont, fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", color: "text.disabled", textAlign: "center", mt: 1.25 }}>
+          {C.how.loopLabel}
+        </Typography>
+      </Box>
     </Section>
   );
 }
