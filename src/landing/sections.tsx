@@ -144,7 +144,7 @@ export function Pain() {
     <Section>
       <Reveal>
         <SectionMark n="01" label={C.pain.eyebrow} />
-        <SectionHeading sx={{ my: 2, maxWidth: "20ch", mb: 5 }}>{C.pain.title}</SectionHeading>
+        <SectionHeading sx={{ my: 2, maxWidth: 520, mb: 5 }}>{C.pain.title}</SectionHeading>
       </Reveal>
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(3,1fr)" }, gap: 3 }}>
         {C.pain.items.map((it) => (
@@ -233,7 +233,7 @@ export function Delta() {
       <Container maxWidth="lg">
       <Reveal>
         <SectionMark n="03" label={C.delta.eyebrow} />
-        <SectionHeading sx={{ my: 1.5, maxWidth: "22ch", fontSize: "clamp(28px,3.8vw,40px)" }}>{C.delta.title}</SectionHeading>
+        <SectionHeading sx={{ my: 1.5, fontSize: "clamp(28px,3.8vw,40px)" }}>{C.delta.title}</SectionHeading>
         <Typography sx={{ color: "text.secondary", fontSize: 16, maxWidth: "60ch", mb: 4.5 }}>{C.delta.sub}</Typography>
       </Reveal>
       <Reveal>

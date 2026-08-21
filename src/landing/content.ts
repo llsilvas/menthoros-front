@@ -20,9 +20,11 @@ export const hero = {
   scarcity: "Turma fundadora · vagas limitadas para as primeiras assessorias",
 };
 
+// `\n` nos títulos marca quebra autoral. O SectionHeading só a aplica acima de
+// 900px — em coluna estreita um <br> fixo cria linha órfã de duas palavras.
 export const pain = {
   eyebrow: "A rotina de quem acompanha muitos atletas",
-  title: "Você perde mais tempo lendo planilha do que treinando atleta.",
+  title: "Você perde mais tempo lendo\nplanilha do que treinando atleta.",
   items: [
     { t: "Horas na planilha", b: "Cada atleta exige abrir, cruzar e interpretar dado na mão. Não escala." },
     { t: "O atleta some quando sua atenção cai", b: "Sem priorização, quem precisa de você passa despercebido até virar lesão." },
@@ -32,7 +34,7 @@ export const pain = {
 
 export const how = {
   eyebrow: "Como funciona",
-  title: "O loop fechado, em três passos.",
+  title: "O loop fechado,\nem três passos.",
   loopLabel: "A decisão do treinador retroalimenta o modelo",
   steps: [
     { n: "01", t: "Conecte e colete", b: "Os dados de treino dos seus atletas entram automaticamente, independente do relógio ou app que eles já usam." },
@@ -43,7 +45,7 @@ export const how = {
 
 export const delta = {
   eyebrow: "O delta Menthoros",
-  title: "A IA não substitui você. Ela aprende com a sua decisão.",
+  title: "A IA não substitui você.\nEla aprende com a sua decisão.",
   sub: "Toda proposta da IA passa por você. A diferença entre o que ela sugeriu e o que você decidiu é o que torna o sistema melhor a cada semana — esse é o diferencial que ninguém mais entrega.",
   context: "CARGA INTERNA · HUGO SILVA · SEMANA 14",
   proposed: "Reduzir o volume em 15% e manter um estímulo aeróbico de Z2.",
@@ -53,7 +55,7 @@ export const delta = {
 
 export const capabilities = {
   eyebrow: "Visão clara, decisões melhores",
-  title: "Interpretação, não só exibição de métricas.",
+  title: "Interpretação, não só\nexibição de métricas.",
   sub: "Não basta mostrar pace, FC e TSS. O Menthoros traduz o sinal em leitura prática — e mostra o porquê de cada recomendação.",
   bullets: [
     "Prioriza quem mais precisa, primeiro",
@@ -65,7 +67,7 @@ export const capabilities = {
 
 export const fit = {
   eyebrow: "É para você?",
-  title: "Feito para assessorias que levam a sério.",
+  title: "Feito para assessorias\nque levam a sério.",
   yes: {
     head: "É PRA VOCÊ SE…",
     items: [
@@ -87,14 +89,14 @@ export const fit = {
 export const trust = {
   founderLabel: "QUEM CONSTRÓI",
   founderBio: "Leandro, engenheiro e corredor. O Menthoros nasce de quem vive, na prática, a rotina técnica de uma assessoria de endurance.",
-  title: "Profundidade técnica de verdade.",
+  title: "Profundidade técnica\nde verdade.",
   body: "CTL, ATL, TSB, aerobic decoupling, polarização de carga — o Menthoros é construído sobre a ciência do treino, não sobre buzzword. E os dados são seus: cada assessoria isolada, o treinador no controle do que o atleta vê.",
   chips: ["TSS", "CTL/ATL/TSB", "Decoupling", "Dados isolados por assessoria"],
 };
 
 export const faq = {
   eyebrow: "Perguntas frequentes",
-  title: "O que os treinadores perguntam.",
+  title: "O que os treinadores\nperguntam.",
   items: [
     { q: "A IA vai substituir o treinador?", a: "Não — o contrário. O Menthoros faz o trabalho pesado de ler os dados e propõe ajustes, mas a decisão é 100% sua. Nada chega ao atleta sem o seu aval. A ideia é devolver seu tempo, não tomar seu lugar." },
     { q: "Preciso que meus atletas tenham um relógio específico?", a: "Não precisa trocar de equipamento. O Menthoros trabalha com os dados que seus atletas já registram, independente da marca. Na conversa de acesso a gente alinha como entra o dado no seu caso." },

@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { Fragment, type ReactNode, useEffect, useRef, useState } from "react";
 import { Box, Button, Typography, useTheme, type SxProps, type Theme } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { overlayWhite, gridFadeMask } from "../theme/overlays";
@@ -71,6 +71,9 @@ export function Eyebrow({ children, center }: EyebrowProps) {
 interface SectionHeadingProps { children: ReactNode; center?: boolean; sx?: SxProps<Theme>; }
 
 export function SectionHeading({ children, center, sx }: SectionHeadingProps) {
+  // `\n` na copy marca quebra autoral; abaixo de md o <br> some e o rag decide.
+  const parts = typeof children === "string" ? children.split("\n") : [children];
+
   return (
     <Typography
       variant="h2"
@@ -85,7 +88,12 @@ export function SectionHeading({ children, center, sx }: SectionHeadingProps) {
         ...sx,
       }}
     >
-      {children}
+      {parts.map((part, i) => (
+        <Fragment key={i}>
+          {i > 0 && <Box component="br" sx={{ display: { xs: "none", md: "inline" } }} />}
+          {part}
+        </Fragment>
+      ))}
     </Typography>
   );
 }
