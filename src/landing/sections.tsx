@@ -178,9 +178,9 @@ export function HowItWorks() {
   const t = useTheme();
   return (
     <Section id="how">
-      <Reveal sx={{ textAlign: "center", mb: 6 }}>
+      <Reveal sx={{ mb: 6 }}>
         <SectionMark n="02" label={C.how.eyebrow} />
-        <SectionHeading center sx={{ mt: 2 }}>{C.how.title}</SectionHeading>
+        <SectionHeading sx={{ mt: 2 }}>{C.how.title}</SectionHeading>
       </Reveal>
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(3,1fr)" }, gap: 3 }}>
         {C.how.steps.map((s) => (
@@ -375,9 +375,9 @@ export function Faq() {
   return (
     <Section>
       <Container maxWidth="md" disableGutters>
-        <Reveal sx={{ textAlign: "center", mb: 4.5 }}>
+        <Reveal sx={{ mb: 4.5 }}>
           <SectionMark n="07" label={C.faq.eyebrow} />
-          <SectionHeading center sx={{ mt: 2 }}>{C.faq.title}</SectionHeading>
+          <SectionHeading sx={{ mt: 2 }}>{C.faq.title}</SectionHeading>
         </Reveal>
         {C.faq.items.map((it) => <FaqItem key={it.q} q={it.q} a={it.a} />)}
       </Container>
