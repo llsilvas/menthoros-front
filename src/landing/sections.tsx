@@ -1,5 +1,6 @@
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { Box, Container, Drawer, IconButton, Link as MuiLink, Stack, Typography, useTheme, type SxProps, type Theme } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import MenuIcon from "@mui/icons-material/Menu";
 import CloseIcon from "@mui/icons-material/Close";
 import { Link as RouterLink } from "react-router";
@@ -28,13 +29,36 @@ function Section({ id, children, sx }: { id?: string; children: ReactNode; sx?: 
 }
 
 export function Nav() {
+  const t = useTheme();
   const [open, setOpen] = useState(false);
+  const [stuck, setStuck] = useState(false);
   const close = () => setOpen(false);
   const goSection = (id: string) => { close(); scrollToId(id); };
 
+  // A barra só ganha material depois que o conteúdo passa por baixo dela.
+  useEffect(() => {
+    const onScroll = () => setStuck(window.scrollY > 8);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const blur = "blur(18px) saturate(160%)";
+
   return (
-    <Container maxWidth="lg" sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", py: 2.75 }}>
-      <Box component="img" src={logo} alt="Menthoros · AI Coaching" sx={{ height: 48, width: "auto", display: "block" }} />
+    <Box
+      component="header"
+      sx={{
+        position: "sticky", top: 0, zIndex: 50,
+        bgcolor: stuck ? alpha(t.palette.background.default, 0.72) : "transparent",
+        backdropFilter: stuck ? blur : "none",
+        WebkitBackdropFilter: stuck ? blur : "none",
+        borderBottom: `1px solid ${stuck ? t.palette.divider : "transparent"}`,
+        transition: "background-color .28s ease, border-color .28s ease",
+      }}
+    >
+    <Container maxWidth="lg" sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", py: stuck ? 1.5 : 2.75, transition: "padding .28s ease" }}>
+      <Box component="img" src={logo} alt="Menthoros · AI Coaching" sx={{ height: stuck ? 38 : 46, width: "auto", display: "block", transition: "height .28s ease" }} />
 
       {/* Desktop */}
       <Box sx={{ display: { xs: "none", md: "flex" }, gap: 3.75, alignItems: "center" }}>
@@ -87,6 +111,7 @@ export function Nav() {
         </Stack>
       </Drawer>
     </Container>
+    </Box>
   );
 }
 
