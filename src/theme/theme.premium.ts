@@ -265,9 +265,15 @@ export const glass = {
   boxShadow:        '0 8px 32px rgba(0,0,0,0.40)',
 } as const;
 
+// ── Radius — dois raios e um pill ────────────────────────────────────────────
+// Antes conviviam 14/16/16/16/18 fazendo o mesmo trabalho. `inner` é caixa
+// dentro de painel; `outer` é card e painel; `pill` é botão e chip.
+export const radius = { inner: 12, outer: 16, pill: 100 } as const;
+
 // ── Agregado canônico ────────────────────────────────────────────────────────
 export const premiumTokens = {
   primary,
+  radius,
   surface,
   surfaceShift,
   text,

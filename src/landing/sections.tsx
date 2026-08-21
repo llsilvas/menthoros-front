@@ -11,6 +11,7 @@ import { AttentionQueue, InterpretationCard } from "./ProductUI";
 import { AccessForm } from "./AccessForm";
 import logo from "../assets/landing/logo.png";
 import founderPhoto from "../assets/landing/founder-placeholder.jpg";
+import { radius } from "../theme/theme.premium";
 
 // Hash router: a rota já usa `#`. Para rolar até uma seção, scrollIntoView por id
 // (não `href="#..."`, que sobrescreveria a rota).
@@ -149,7 +150,7 @@ export function Pain() {
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(3,1fr)" }, gap: 3 }}>
         {C.pain.items.map((it) => (
           <Reveal key={it.t}>
-            <Box sx={{ bgcolor: "background.paper", border: `1px solid ${t.palette.divider}`, borderRadius: "16px", p: 3, height: "100%" }}>
+            <Box sx={{ bgcolor: "background.paper", border: `1px solid ${t.palette.divider}`, borderRadius: radius.outer, p: 3, height: "100%" }}>
               <Typography variant="h3" sx={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 17, fontWeight: 600, mb: 1.25 }}>{it.t}</Typography>
               <Typography sx={{ color: "text.secondary", fontSize: 14.5 }}>{it.b}</Typography>
             </Box>
@@ -237,15 +238,15 @@ export function Delta() {
         <Typography sx={{ color: "text.secondary", fontSize: 16, maxWidth: "60ch", mb: 4.5 }}>{C.delta.sub}</Typography>
       </Reveal>
       <Reveal>
-        <Box sx={{ bgcolor: "background.default", border: `1px solid ${t.palette.divider}`, borderRadius: "18px", p: 3.5 }}>
+        <Box sx={{ bgcolor: "background.default", border: `1px solid ${t.palette.divider}`, borderRadius: radius.outer, p: 3.5 }}>
           <Typography sx={{ fontFamily: monoFont, fontSize: 11, letterSpacing: ".14em", color: "text.secondary" }}>{C.delta.context}</Typography>
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr auto 1fr" }, gap: 2.25, mt: 2 }}>
-            <Box sx={{ bgcolor: "background.paper", border: `1px dashed ${t.palette.divider}`, borderRadius: "14px", p: 2.5 }}>
+            <Box sx={{ bgcolor: "background.paper", border: `1px dashed ${t.palette.divider}`, borderRadius: radius.inner, p: 2.5 }}>
               <Typography sx={{ fontFamily: monoFont, fontSize: 11, letterSpacing: ".14em", color: "text.secondary" }}>IA PROPÔS</Typography>
               <Typography sx={{ mt: 1.25, fontSize: 14.5 }}>{C.delta.proposed}</Typography>
             </Box>
             <Box sx={{ display: "grid", placeItems: "center", color: "primary.main", fontSize: 22 }} aria-hidden>→</Box>
-            <Box sx={{ bgcolor: "background.paper", border: `1px solid ${t.palette.primary.main}`, borderRadius: "14px", p: 2.5 }}>
+            <Box sx={{ bgcolor: "background.paper", border: `1px solid ${t.palette.primary.main}`, borderRadius: radius.inner, p: 2.5 }}>
               <Typography sx={{ fontFamily: monoFont, fontSize: 11, letterSpacing: ".14em", color: "primary.main" }}>TREINADOR DECIDIU</Typography>
               <Typography sx={{ mt: 1.25, fontSize: 14.5 }}>{C.delta.decided}</Typography>
             </Box>
@@ -284,7 +285,7 @@ export function Capabilities() {
 export function Fit() {
   const t = useTheme();
   const col = (head: string, items: string[], muted: boolean) => (
-    <Box sx={{ bgcolor: "background.paper", border: `1px solid ${t.palette.divider}`, borderRadius: "16px", p: 3.5, height: "100%" }}>
+    <Box sx={{ bgcolor: "background.paper", border: `1px solid ${t.palette.divider}`, borderRadius: radius.outer, p: 3.5, height: "100%" }}>
       <Typography sx={{ fontFamily: monoFont, fontSize: 12, letterSpacing: ".12em", color: muted ? "text.disabled" : "primary.main", mb: 2 }}>{head}</Typography>
       {items.map((x) => (
         <Box key={x} sx={{ display: "flex", gap: 1.5, py: 1.1, fontSize: 14.5, color: muted ? "text.secondary" : "text.primary", borderTop: `1px solid ${t.palette.divider}` }}>
@@ -313,7 +314,7 @@ export function Trust() {
     <Section>
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1.05fr .95fr" }, gap: { xs: 4, md: 6 }, alignItems: "center" }}>
         <Reveal>
-          <Box sx={{ bgcolor: "background.paper", border: `1px solid ${t.palette.divider}`, borderRadius: "16px", overflow: "hidden" }}>
+          <Box sx={{ bgcolor: "background.paper", border: `1px solid ${t.palette.divider}`, borderRadius: radius.outer, overflow: "hidden" }}>
             <Box sx={{ position: "relative" }}>
               <Box component="img" src={founderPhoto} alt="Fundador do Menthoros" sx={{ width: "100%", aspectRatio: "4 / 5", maxHeight: 520, objectFit: "cover", objectPosition: "50% 6%", display: "block" }} />
               <Box sx={{ position: "absolute", inset: 0, background: `linear-gradient(180deg, transparent 38%, ${t.palette.background.default}f0)` }} />
@@ -329,7 +330,7 @@ export function Trust() {
           <Typography sx={{ color: "text.secondary", fontSize: 16, mb: 2.25 }}>{C.trust.body}</Typography>
           <Box sx={{ display: "flex", gap: 1.25, flexWrap: "wrap" }}>
             {C.trust.chips.map((chip) => (
-              <Box key={chip} component="span" sx={{ fontFamily: monoFont, fontSize: 12, color: "text.secondary", border: `1px solid ${t.palette.divider}`, borderRadius: 100, px: 1.6, py: 0.9 }}>{chip}</Box>
+              <Box key={chip} component="span" sx={{ fontFamily: monoFont, fontSize: 12, color: "text.secondary", border: `1px solid ${t.palette.divider}`, borderRadius: radius.pill, px: 1.6, py: 0.9 }}>{chip}</Box>
             ))}
           </Box>
         </Reveal>
@@ -342,7 +343,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
   const t = useTheme();
   const [open, setOpen] = useState(false);
   return (
-    <Box sx={{ bgcolor: "background.paper", border: `1px solid ${t.palette.divider}`, borderRadius: "16px", px: 2.75, mb: 1.5 }}>
+    <Box sx={{ bgcolor: "background.paper", border: `1px solid ${t.palette.divider}`, borderRadius: radius.outer, px: 2.75, mb: 1.5 }}>
       <Box component="button" onClick={() => setOpen((o) => !o)} aria-expanded={open}
         sx={{ width: "100%", background: "none", border: "none", color: "text.primary", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2, py: 2.25, textAlign: "left", fontFamily: "'Space Grotesk', sans-serif", fontSize: 16, fontWeight: 600 }}>
         {q}<Box component="span" sx={{ fontFamily: monoFont, color: "primary.main", fontSize: 20, flexShrink: 0 }}>{open ? "−" : "+"}</Box>

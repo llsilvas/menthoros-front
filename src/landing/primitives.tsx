@@ -2,6 +2,7 @@ import { Fragment, type ReactNode, useEffect, useRef, useState } from "react";
 import { Box, Button, Typography, useTheme, type SxProps, type Theme } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { overlayWhite, gridFadeMask } from "../theme/overlays";
+import { radius } from "../theme/theme.premium";
 
 /** Fonte monospace usada em toda a landing (eyebrows, métricas, badges). */
 export const monoFont = "'JetBrains Mono', monospace";
@@ -117,7 +118,7 @@ export function CtaButton({ children, fullWidth, onClick, type, disabled }: CtaB
         fontWeight: 600,
         fontSize: 15,
         textTransform: "none",
-        borderRadius: 100,
+        borderRadius: radius.pill,
         px: 3.75,
         py: 1.75,
         width: fullWidth ? "100%" : "auto",
