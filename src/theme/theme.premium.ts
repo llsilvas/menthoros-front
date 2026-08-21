@@ -268,7 +268,10 @@ export const glass = {
 // ── Radius — dois raios e um pill ────────────────────────────────────────────
 // Antes conviviam 14/16/16/16/18 fazendo o mesmo trabalho. `inner` é caixa
 // dentro de painel; `outer` é card e painel; `pill` é botão e chip.
-export const radius = { inner: 12, outer: 16, pill: 100 } as const;
+//
+// Com unidade, e não número puro: no `sx` do MUI um `borderRadius` numérico é
+// multiplicado por `theme.shape.borderRadius` (4px), então `16` renderiza 64px.
+export const radius = { inner: '12px', outer: '16px', pill: '100px' } as const;
 
 // ── Agregado canônico ────────────────────────────────────────────────────────
 export const premiumTokens = {
