@@ -117,6 +117,7 @@ export function Nav() {
 }
 
 export function Hero() {
+  const t = useTheme();
   return (
     <Container maxWidth="lg" sx={{ pt: 7, pb: 10, position: "relative", overflow: "hidden" }}>
       <LimeAura />
@@ -132,6 +133,18 @@ export function Hero() {
           <Typography sx={{ color: "text.secondary", fontSize: 18, maxWidth: "42ch" }}>{C.hero.sub}</Typography>
           <Box sx={{ mt: 3.75 }}><CtaButton onClick={() => scrollToId("acesso")}>{C.hero.cta} →</CtaButton></Box>
           <Typography sx={{ fontFamily: monoFont, color: "text.disabled", fontSize: 12, mt: 2.25, letterSpacing: ".04em" }}>{C.hero.scarcity}</Typography>
+          {/* Credencial acima da dobra. As mesmas chips voltam no Trust, ali como
+              aprofundamento — repetir prova técnica não incomoda. */}
+          <Box sx={{ mt: 3.25, pt: 2.5, borderTop: `1px solid ${t.palette.divider}` }}>
+            <Typography sx={{ fontFamily: monoFont, fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase", color: "text.disabled", mb: 1.25 }}>
+              {C.hero.proofLabel}
+            </Typography>
+            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+              {C.trust.chips.map((chip) => (
+                <Box key={chip} component="span" sx={{ fontFamily: monoFont, fontSize: 11.5, letterSpacing: ".04em", color: "text.secondary", border: `1px solid ${t.palette.divider}`, borderRadius: radius.pill, px: 1.5, py: .9 }}>{chip}</Box>
+              ))}
+            </Box>
+          </Box>
         </Box>
         <Reveal><AttentionQueue /></Reveal>
       </Box>

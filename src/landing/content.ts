@@ -18,6 +18,7 @@ export const hero = {
   sub: "Inteligência que amplia sua visão, devolve tempo e eleva o desempenho de cada atleta — sem nunca tirar você do comando.",
   cta: "Solicitar acesso",
   scarcity: "Turma fundadora · vagas limitadas para as primeiras assessorias",
+  proofLabel: "Construído sobre a ciência do treino",
 };
 
 // `\n` nos títulos marca quebra autoral. O SectionHeading só a aplica acima de
