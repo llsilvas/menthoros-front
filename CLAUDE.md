@@ -24,7 +24,9 @@ When instructions conflict, follow this order:
 - **State:** React Context + custom hooks. **No Redux / Zustand** — do not introduce a global state library without an explicit change scope.
 - **Charts/Dates:** `recharts`, `date-fns`.
 - **i18n:** none — UI copy is **PT-BR hardcoded**. Do not add an i18n framework without an explicit change.
-- **Auth:** Keycloak JWT (token in `localStorage`), tenant propagated via `X-Tenant-ID` header.
+- **Auth:** Keycloak via Authorization Code + PKCE (`oidc-client-ts`); the access token is held
+  **in memory**, never in `localStorage`. Tenant propagated via `X-Tenant-ID` header. See
+  **Auth & Multi-tenancy**.
 
 ## Mandatory Workflow
 
@@ -217,7 +219,17 @@ Regras de uso:
 
 ## Auth & Multi-tenancy
 
-- JWT is read from `localStorage` (`@Menthoros:token`); expiration is checked periodically.
+- **The access token lives in memory only — never in `localStorage` or `sessionStorage`.** Login is
+  Authorization Code + PKCE via `oidc-client-ts`, with `userStore` backed by `InMemoryWebStorage`
+  (`src/context/auth/oidcConfig.ts`). Read the current token through `getAccessTokenSync()` /
+  `getAccessToken()` in `src/context/auth/session.ts` — never from a storage API.
+  - `@Menthoros:token` (`TOKEN_STORAGE_KEY`) is a **legacy key from the ROPC era, and nothing
+    writes to it**. It survives only so `limparTokenLegado` can clear sessions left over from the
+    migration. Looking for a token there finds nothing.
+  - `sessionStorage` holds the PKCE `code_verifier` and redirect bookkeeping — never a token.
+  - Practical consequence: to get a token for a manual `curl`, copy the `Authorization` header from
+    a real request in DevTools, or enable the `menthoros-test` Keycloak client (direct grant, ships
+    disabled on purpose — see `menthoros-infra/keycloak/README.md`).
 - Tenant is derived from Keycloak claims and sent as `X-Tenant-ID`. Do not bypass the central config.
 - Route protection goes through the existing `ProtectedRoute` / `AuthContext` — do not reimplement auth checks per page.
 - Prefer a typed JWT payload over `as any`; do not add new `as any` casts when reading claims.

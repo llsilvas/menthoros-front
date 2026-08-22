@@ -1,14 +1,13 @@
-import { useState } from 'react';
-import { Alert, Box, Button, CircularProgress, Link, TextField, Typography } from '@mui/material';
+import { useEffect, useState } from 'react';
+import { Alert, Box, Button, CircularProgress, Typography } from '@mui/material';
 import { Link as LinkIcon } from '@mui/icons-material';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useIntervalsIcuConnection } from '../../../hooks/features/useIntervalsIcuConnection';
+import { useIntervalsIcuCallbackResult } from '../../../hooks/features/useIntervalsIcuCallbackResult';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { primary, surface, semantic } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
-
-const INTERVALS_ICU_SETTINGS_URL = 'https://intervals.icu/settings';
 
 function formatDataHora(iso: string | undefined): string | null {
   if (!iso) return null;
@@ -20,17 +19,22 @@ function formatDataHora(iso: string | undefined): string | null {
 }
 
 export function IntervalsIcuConnectionCard() {
-  const { status, loading, error, connect, disconnect } = useIntervalsIcuConnection();
-  const [apiKey, setApiKey] = useState('');
+  const { status, loading, error, connect, disconnect, refresh } = useIntervalsIcuConnection();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const resultadoCallback = useIntervalsIcuCallbackResult();
 
   const conectado = status?.conectado ?? false;
 
-  const handleConnect = async () => {
-    const ok = await connect(apiKey);
-    if (ok) {
-      setApiKey('');
+  // Voltando do consentimento, o status em memória é o de antes de sair da página. Sem este
+  // refresh o atleta autorizaria com sucesso e continuaria vendo o botão "Conectar".
+  useEffect(() => {
+    if (resultadoCallback === 'success') {
+      void refresh();
     }
+  }, [resultadoCallback, refresh]);
+
+  const handleConnect = async () => {
+    await connect();
   };
 
   const handleDisconnect = async () => {
@@ -55,6 +59,21 @@ export function IntervalsIcuConnectionCard() {
           Conexões — intervals.icu
         </Typography>
       </Box>
+
+      {resultadoCallback === 'success' && (
+        <Alert severity="success" sx={{ bgcolor: `${semantic.success[500]}1A`, color: surface[100] }}>
+          Conta do intervals.icu conectada.
+        </Alert>
+      )}
+
+      {/* O backend não diz por que falhou, de propósito: a mensagem viajaria na URL, visível na
+          barra do browser e no histórico. A orientação aqui é a ação, não o diagnóstico. */}
+      {resultadoCallback === 'error' && (
+        <Alert severity="error" sx={{ bgcolor: `${semantic.danger[500]}1A`, color: surface[100] }}>
+          Não foi possível concluir a conexão. Tente novamente — se o problema persistir, verifique
+          se você autorizou o acesso no intervals.icu.
+        </Alert>
+      )}
 
       {error && (
         <Alert severity="error" sx={{ bgcolor: `${semantic.danger[500]}1A`, color: surface[100] }}>
@@ -82,7 +101,7 @@ export function IntervalsIcuConnectionCard() {
 
           {status?.ultimoErro && (
             <Alert severity="warning" sx={{ bgcolor: `${semantic.warning[500]}1A`, color: surface[100] }}>
-              {status.ultimoErro} — gere uma nova key no intervals.icu e reconecte.
+              {status.ultimoErro} — reconecte sua conta do intervals.icu.
             </Alert>
           )}
 
@@ -101,7 +120,7 @@ export function IntervalsIcuConnectionCard() {
           <ConfirmDialog
             open={confirmOpen}
             title="Desconectar intervals.icu"
-            message="Tem certeza que deseja desconectar sua conta intervals.icu? Pushes futuros de treino ficarão inativos."
+            message="Tem certeza que deseja desconectar sua conta intervals.icu? O Menthoros deixa de publicar treinos no seu calendário e o acesso é revogado no intervals.icu."
             confirmLabel="Confirmar"
             severity="danger"
             loading={loading}
@@ -112,33 +131,23 @@ export function IntervalsIcuConnectionCard() {
       ) : (
         <>
           <Typography sx={{ color: surface[400], fontSize: '0.85rem' }}>
-            Gere sua API key em intervals.icu → Settings → Developer → API Key e cole abaixo para conectar.{' '}
-            <Link
-              href={INTERVALS_ICU_SETTINGS_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              sx={{ color: primary[500] }}
-            >
-              intervals.icu/settings
-            </Link>
+            Conecte sua conta do intervals.icu para receber os treinos planejados no relógio e
+            trazer de volta o que você executou. A autorização é feita no site do intervals.icu, e
+            você pode revogá-la quando quiser.
           </Typography>
 
-          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
-            <TextField
-              label="API Key"
-              type="password"
-              size="small"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              sx={{ minWidth: 260 }}
-            />
+          <Box>
             <Button
               variant="contained"
-              disabled={!apiKey || loading}
+              disabled={loading}
               onClick={handleConnect}
               sx={{ bgcolor: primary[500], color: elevation.base, fontWeight: 700, '&:hover': { bgcolor: primary[400] } }}
             >
-              {loading ? <CircularProgress size={20} sx={{ color: elevation.base }} /> : 'Conectar'}
+              {loading ? (
+                <CircularProgress size={20} sx={{ color: elevation.base }} />
+              ) : (
+                'Conectar com intervals.icu'
+              )}
             </Button>
           </Box>
         </>

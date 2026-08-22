@@ -29,16 +29,24 @@ export const useIntervalsIcuConnection = () => {
     }
   }, []);
 
-  const connect = useCallback(async (apiKey: string): Promise<boolean> => {
+  /**
+   * Busca a URL de consentimento e leva o browser ao intervals.icu.
+   *
+   * Não devolve status como a versão de API key devolvia: a conexão não nasce aqui. Ela é criada
+   * pelo callback do backend, depois que o atleta autoriza — e o desfecho reaparece nesta tela
+   * como `?intervals-icu=success|error`.
+   *
+   * `loading` segue `true` no caminho feliz de propósito: a navegação já foi disparada, e
+   * desligar o spinner faria o botão piscar de volta ao normal antes de a página sair.
+   */
+  const connect = useCallback(async (): Promise<void> => {
     setLoading(true);
     setError(null);
     try {
-      setStatus(await IntervalsIcuService.connect(apiKey));
-      return true;
+      const { authorizationUrl } = await IntervalsIcuService.getAuthorizationUrl();
+      window.location.assign(authorizationUrl);
     } catch (err) {
-      setError(extrairMensagemErro(err, 'Erro ao conectar com intervals.icu'));
-      return false;
-    } finally {
+      setError(extrairMensagemErro(err, 'Erro ao iniciar a conexão com intervals.icu'));
       setLoading(false);
     }
   }, []);
