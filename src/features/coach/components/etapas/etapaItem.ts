@@ -18,6 +18,15 @@ export interface StepRow {
     distanciaKm: string;
     fcAlvoEtapa: string;
     /**
+     * Meta de ritmo da etapa (`"5:00-5:15/km"`), a alternativa à FC.
+     *
+     * Mesmo tratamento de `descricaoEtapa`: o editor ainda não expõe um campo,
+     * então ela viaja de ida e volta intacta. O planner prescreve ritmo por
+     * etapa — o schema do structured output exige `ritmoAlvo` em cada uma —, e
+     * sem isto abrir um treino e salvar apagava a prescrição de todas elas.
+     */
+    ritmoAlvo?: string;
+    /**
      * Texto que o treinador (ou a IA) escreveu para a etapa.
      *
      * O editor **não o expõe para edição** — ele viaja de ida e volta intacto.
@@ -34,6 +43,8 @@ export interface SubStep {
     duracaoMin: string;
     distanciaKm: string;
     fcAlvoEtapa: string;
+    /** Preservado de ponta a ponta, como em `StepRow`. */
+    ritmoAlvo?: string;
     /** Preservada de ponta a ponta, como em `StepRow`. */
     descricaoEtapa?: string;
 }
@@ -48,11 +59,17 @@ export interface BlockRow {
 export type EtapaItem = StepRow | BlockRow;
 
 export function emptyStep(): StepRow {
-    return { id: crypto.randomUUID(), kind: 'step', tipoEtapa: '', duracaoMin: '', distanciaKm: '', fcAlvoEtapa: '' };
+    return {
+        id: crypto.randomUUID(), kind: 'step',
+        tipoEtapa: '', duracaoMin: '', distanciaKm: '', fcAlvoEtapa: '',
+    };
 }
 
 export function emptySubStep(): SubStep {
-    return { id: crypto.randomUUID(), tipoEtapa: '', duracaoMin: '', distanciaKm: '', fcAlvoEtapa: '' };
+    return {
+        id: crypto.randomUUID(),
+        tipoEtapa: '', duracaoMin: '', distanciaKm: '', fcAlvoEtapa: '',
+    };
 }
 
 export function emptyBlock(): BlockRow {
@@ -65,6 +82,7 @@ function subEtapaPayload(s: SubStep): EtapaInputPayload {
         duracaoMin:     s.duracaoMin  ? parseInt(s.duracaoMin, 10) : undefined,
         distanciaKm:    s.distanciaKm ? parseFloat(s.distanciaKm)  : undefined,
         fcAlvoEtapa:    s.fcAlvoEtapa || undefined,
+        ritmoAlvo:      s.ritmoAlvo || undefined,
         descricaoEtapa: s.descricaoEtapa || undefined,
     };
 }
@@ -87,6 +105,7 @@ export function serializarItens(itens: EtapaItem[]): EtapaInputPayload[] {
             duracaoMin:     item.duracaoMin  ? parseInt(item.duracaoMin, 10) : undefined,
             distanciaKm:    item.distanciaKm ? parseFloat(item.distanciaKm)  : undefined,
             fcAlvoEtapa:    item.fcAlvoEtapa || undefined,
+            ritmoAlvo:      item.ritmoAlvo || undefined,
             descricaoEtapa: item.descricaoEtapa || undefined,
         }];
     });
@@ -103,6 +122,7 @@ function subStepFromEtapa(e: EtapaTreinoDto): SubStep {
         duracaoMin: txt(e.duracaoMin),
         distanciaKm: txt(e.distanciaKm),
         fcAlvoEtapa: e.fcAlvoEtapa ?? '',
+        ritmoAlvo: e.ritmoAlvo,
         descricaoEtapa: e.descricaoEtapa,
     };
 }
@@ -122,7 +142,7 @@ function stepFromEtapa(e: EtapaTreinoDto): StepRow {
 const VOCABULARIO_EDITOR = {
     /** A descrição e a ordem são ruído: não entram na assinatura. */
     assinatura: (e: EtapaTreinoDto) =>
-        `${e.tipoEtapa}|${e.duracaoMin}|${e.distanciaKm}|${e.fcAlvoEtapa}`,
+        `${e.tipoEtapa}|${e.duracaoMin}|${e.distanciaKm}|${e.fcAlvoEtapa}|${e.ritmoAlvo}`,
     ehTrabalho: (e: EtapaTreinoDto) => e.tipoEtapa?.toUpperCase() === 'INTERVALADO',
 };
 

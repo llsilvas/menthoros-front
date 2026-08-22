@@ -34,7 +34,8 @@ export interface EtapaTreinoDto {
     descricaoEtapa?: string;
     duracaoMin?: number;    // inteiro em minutos
     distanciaKm?: number;
-    fcAlvoEtapa?: string;   // zona alvo, e.g. "Z2"
+    fcAlvoEtapa?: string;   // meta de FC, e.g. "140-150 bpm"
+    ritmoAlvo?: string;     // meta de ritmo, e.g. "5:00-5:15/km"
     repeticoes?: number;
     blocoId?: string;
     blocoRepeticoes?: number;
@@ -79,6 +80,7 @@ export interface EtapaInputPayload {
     duracaoMin?: number;
     distanciaKm?: number;
     fcAlvoEtapa?: string;
+    ritmoAlvo?: string;
     repeticoes?: number;
     blocoRepeticoes?: number;    // somente quando tipoEtapa="BLOCO"
     subEtapas?: EtapaInputPayload[];  // somente quando tipoEtapa="BLOCO"

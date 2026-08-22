@@ -23,8 +23,9 @@ const PATCH_API = '**/api/v1/coach/planos/*/treinos/*'
 const PLANO_ID = '11111111-1111-1111-1111-111111111111'
 const TREINO_ID = '22222222-2222-2222-2222-222222222222'
 
-const etapa = (ordem: number, tipoEtapa: string, duracaoMin: number, fcAlvoEtapa: string) =>
-  ({ ordem, tipoEtapa, duracaoMin, fcAlvoEtapa })
+const etapa = (ordem: number, tipoEtapa: string, duracaoMin: number, fcAlvoEtapa: string,
+               ritmoAlvo?: string) =>
+  ({ ordem, tipoEtapa, duracaoMin, fcAlvoEtapa, ritmoAlvo })
 
 /** Fartlek como o backend entrega: 4 pares já expandidos, sem blocoId. */
 const PLANO = {
@@ -51,13 +52,13 @@ const PLANO = {
       editadoPeloCoach: false,
       etapas: [
         etapa(1, 'AQUECIMENTO', 5, 'Z2'),
-        etapa(2, 'INTERVALADO', 3, 'Z4'),
+        etapa(2, 'INTERVALADO', 3, 'Z4', '4:00-4:10/km'),
         etapa(3, 'RECUPERACAO', 2, 'Z1'),
-        etapa(4, 'INTERVALADO', 3, 'Z4'),
+        etapa(4, 'INTERVALADO', 3, 'Z4', '4:00-4:10/km'),
         etapa(5, 'RECUPERACAO', 2, 'Z1'),
-        etapa(6, 'INTERVALADO', 3, 'Z4'),
+        etapa(6, 'INTERVALADO', 3, 'Z4', '4:00-4:10/km'),
         etapa(7, 'RECUPERACAO', 2, 'Z1'),
-        etapa(8, 'INTERVALADO', 3, 'Z4'),
+        etapa(8, 'INTERVALADO', 3, 'Z4', '4:00-4:10/km'),
         etapa(9, 'RECUPERACAO', 2, 'Z1'),
         etapa(10, 'DESAQUECIMENTO', 5, 'Z1'),
       ],
@@ -124,6 +125,35 @@ test.describe('revisão do plano — edição de treino', () => {
     expect(bloco, 'a série deve sair como BLOCO, não como etapas planas').toBeDefined()
     expect(bloco?.blocoRepeticoes).toBe(5)
     expect(bloco?.subEtapas).toHaveLength(2)
+  })
+
+  test('PATCH preserva o ritmo por etapa que o planner prescreveu', async ({ page }) => {
+    // O editor não tem campo de ritmo, então o valor precisa fazer round-trip intacto. Sem isso,
+    // mexer nas repetições apagava a prescrição de ritmo de todos os tiros — em silêncio, e num
+    // caminho de escrita do plano de um atleta real.
+    await mockarApis(page)
+
+    const patches: unknown[] = []
+    await page.route(PATCH_API, async route => {
+      patches.push(route.request().postDataJSON())
+      await route.fulfill({ json: { ...PLANO.treinosPlanejados[0], editadoPeloCoach: true } })
+    })
+
+    await autenticarComPkce(page, { roles: ['TECNICO'] })
+    await page.goto(REVIEW_URL)
+
+    await page.getByRole('button', { name: /Atleta Teste/i }).click()
+    await page.getByRole('button', { name: 'Editar treino' }).first().click()
+    await page.getByLabel(/Aumentar repetições da série 2/i).click()
+    await page.getByRole('button', { name: /salvar/i }).click()
+
+    await expect.poll(() => patches.length).toBe(1)
+    const patch = patches[0] as {
+      etapas?: Array<{ tipoEtapa: string; ritmoAlvo?: string; subEtapas?: Array<{ ritmoAlvo?: string }> }>
+    }
+
+    const bloco = patch.etapas?.find(e => e.tipoEtapa === 'BLOCO')
+    expect(bloco?.subEtapas?.[0].ritmoAlvo, 'o tiro deve manter o ritmo prescrito').toBe('4:00-4:10/km')
   })
 
   test('editar só o TSS não envia etapas — não regrava a estrutura', async ({ page }) => {
