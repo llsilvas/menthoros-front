@@ -8,6 +8,8 @@ import { TrendCard } from '../TrendCard';
 import { SectionCard } from '../SectionCard';
 import { EmptyMetricState } from '../EmptyMetricState';
 import { AIInsightCard } from '../AIInsightCard';
+import { PmcBackfillNotice } from '../PmcBackfillNotice';
+import { usePmcBackfillNotice } from '../../../../hooks/usePmcBackfillNotice';
 import type { CoachAttentionItem } from '../../../../types/Coach';
 import { formatKm, formatPercent } from '../coachInboxHelpers';
 import { ACTION_BTN_END_ICON_SX } from '../../../../shared/components/actionButtonSx';
@@ -97,6 +99,7 @@ export function DiagnosisTabPanel({ selected, attentionItem, attentionRecencyDay
   const strainZone = getStrainZone(selected.quickStats.strain);
   const statusColor = PLAN_STATUS_COLOR[selected.planStatus];
   const [pmcRange, setPmcRange] = useState<PMCRange>('12w');
+  const { dismissed: pmcNoticeDismissed, dismiss: dismissPmcNotice } = usePmcBackfillNotice();
 
   /*
     Ordem: situação → evidência → explicação → ação → detalhe.
@@ -216,6 +219,7 @@ export function DiagnosisTabPanel({ selected, attentionItem, attentionRecencyDay
       </SectionCard>
 
       <SectionCard title="Tendência de forma (PMC)">
+        {pmc.length > 0 && !pmcNoticeDismissed && <PmcBackfillNotice onDismiss={dismissPmcNotice} />}
         {pmc.length === 0 ? (
           <Typography sx={{ fontSize: '0.82rem', color: surface[400] }}>
             Sem histórico de PMC para exibir ainda.

@@ -184,4 +184,20 @@ describe('DiagnosisTabPanel', () => {
       expect(ordem).toEqual([...ordem].sort((a, b) => a - b));
     });
   });
+
+  describe('aviso de backfill de PMC [task 6.2b]', () => {
+    const PONTO_PMC = { date: new Date('2026-08-01'), tss: 50, ctl: 40, atl: 35, tsb: 5 };
+
+    it('não mostra o aviso quando não há série PMC', () => {
+      render(<DiagnosisTabPanel selected={atleta()} pmc={[]} onOpenPlan={vi.fn()} />);
+
+      expect(screen.queryByText('Histórico de PMC atualizado')).not.toBeInTheDocument();
+    });
+
+    it('mostra o aviso quando há série PMC', () => {
+      render(<DiagnosisTabPanel selected={atleta()} pmc={[PONTO_PMC]} onOpenPlan={vi.fn()} />);
+
+      expect(screen.getByText('Histórico de PMC atualizado')).toBeInTheDocument();
+    });
+  });
 });
