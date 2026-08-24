@@ -8,6 +8,15 @@ server {
     # quando o hostname do backend ainda não está disponível no DNS)
     resolver __DNS_RESOLVER__ valid=10s ipv6=on;
 
+    # Atrás da borda do Railway o TLS termina antes do container, então $scheme aqui é sempre
+    # http. A borda manda X-Forwarded-Proto; sem repassá-lo, o Keycloak (sslRequired=external,
+    # confiando em X-Forwarded-*) responde 403 "HTTPS required" ao /auth. O fallback para $scheme
+    # mantém o docker-compose local, onde não há borda.
+    set $fwd_proto $scheme;
+    if ($http_x_forwarded_proto = "https") {
+        set $fwd_proto "https";
+    }
+
     # Cache imutável para assets com hash de conteúdo (Vite: /assets/main.a1b2c3.js)
     location /assets/ {
         expires 1y;
@@ -33,7 +42,7 @@ server {
         proxy_set_header Host $proxy_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $fwd_proto;
         proxy_ssl_server_name on;
         proxy_ssl_verify off;
         proxy_connect_timeout 10s;
@@ -52,7 +61,7 @@ server {
         proxy_set_header Origin "";
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $fwd_proto;
         proxy_connect_timeout 30s;
         proxy_read_timeout 60s;
     }
