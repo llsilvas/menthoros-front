@@ -5,9 +5,9 @@ name: CI
 # acesso a secrets, mesmo em PR de fork — combinação que transforma um PR num vetor de execução.
 on:
   pull_request:
-    branches: [develop]
+    branches: [develop, main]
   push:
-    branches: [develop]
+    branches: [develop, main]
   # CI só-em-PR fica cego em períodos sem PR. Foi assim que um teste apodreceu por 2,5 meses no
   # backend: nada o executava. O agendamento revela quebra por causa externa (dependência, browser,
   # runtime) sem depender de atividade.
