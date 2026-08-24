@@ -6,8 +6,13 @@ set -e
 # 1. Injeta VITE_API_BASE_URL no env-config.js (config runtime do React)
 ENV_CONFIG="/usr/share/nginx/html/env-config.js"
 API_BASE_URL="${VITE_API_BASE_URL-}"
+KEYCLOAK_RUNTIME_URL="${VITE_KEYCLOAK_URL-}"
 echo "Configurando API base URL: ${API_BASE_URL}"
-sed -i "s|__RUNTIME_API_URL_PLACEHOLDER__|${API_BASE_URL}|g" "${ENV_CONFIG}"
+echo "Configurando Keycloak URL: ${KEYCLOAK_RUNTIME_URL}"
+sed -i \
+    -e "s|__RUNTIME_API_URL_PLACEHOLDER__|${API_BASE_URL}|g" \
+    -e "s|__RUNTIME_KEYCLOAK_URL_PLACEHOLDER__|${KEYCLOAK_RUNTIME_URL}|g" \
+    "${ENV_CONFIG}"
 
 # 2. Extrai nameserver de /etc/resolv.conf para o resolver do nginx
 # gsub(/\r/,"") trata CRLF (comum em imagens Windows-built)
