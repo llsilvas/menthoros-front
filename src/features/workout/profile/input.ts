@@ -35,19 +35,25 @@ function tipoDe(tipoEtapa: EtapaTreino['tipoEtapa']): string {
   return tipoEtapa?.value ?? tipoEtapa?.label ?? '';
 }
 
-/** Detalhe do treino — `src/types/TreinoPlanejado.ts`. Sem `blocoId`, logo sem série. */
+/**
+ * Detalhe do treino — `src/types/TreinoPlanejado.ts`. Leva `blocoId`/`blocoRepeticoes` quando o
+ * contrato os traz, mas **não** o índice da repetição, que não existe no contrato: para a série
+ * ganhar o bracket "N×" use `indexarRepeticoes` sobre a lista, que deriva o índice por posição.
+ */
 export function fromEtapaTreino(e: EtapaTreino): ProfileEtapaInput {
   return {
-    id:          e.id,
-    ordem:       e.ordem,
-    tipo:        tipoDe(e.tipoEtapa),
-    descricao:   e.descricaoEtapa,
-    duracaoMin:  e.duracaoMin,
-    fcAlvo:      e.fcAlvoEtapa,
-    ritmoAlvo:   e.ritmoAlvo,
-    intensidade: e.intensidade,
-    repeticoes:  e.repeticoes,
-    observacao:  e.observacao,
+    id:              e.id,
+    ordem:           e.ordem,
+    tipo:            tipoDe(e.tipoEtapa),
+    descricao:       e.descricaoEtapa,
+    duracaoMin:      e.duracaoMin,
+    fcAlvo:          e.fcAlvoEtapa,
+    ritmoAlvo:       e.ritmoAlvo,
+    intensidade:     e.intensidade,
+    repeticoes:      e.repeticoes,
+    observacao:      e.observacao,
+    blocoId:         e.blocoId,
+    blocoRepeticoes: e.blocoRepeticoes,
   };
 }
 
@@ -124,4 +130,39 @@ export function fromEtapaItens(itens: EtapaItem[]): ProfileEtapaInput[] {
 function minutosDe(valor: string): number | undefined {
   const n = parseInt(valor, 10);
   return Number.isFinite(n) ? n : undefined;
+}
+
+/**
+ * Deriva `blocoRepeticaoIndex` por posição sobre uma série **já expandida** pelo backend
+ * (`expandirBloco` grava N × sub-etapas linhas com o mesmo `blocoId`): num grupo consecutivo de
+ * tamanho `k` com `N = blocoRepeticoes`, o ciclo é `c = k / N` e o índice é `⌊pos / c⌋ + 1`.
+ * Grupo com `k` não múltiplo de `N` é inválido: as etapas **perdem** `blocoId`/`blocoRepeticoes`,
+ * porque o `selectWorkoutProfile` criaria `repeat` com `index ?? 1` e desenharia um bracket
+ * falso. Nunca reexpande — um 4×2 já chega como 8 linhas.
+ */
+export function indexarRepeticoes(etapas: ProfileEtapaInput[]): ProfileEtapaInput[] {
+  const saida: ProfileEtapaInput[] = [];
+  let i = 0;
+  while (i < etapas.length) {
+    const atual = etapas[i];
+    const grupoId = atual.blocoId;
+    const reps = atual.blocoRepeticoes ?? 0;
+    if (!grupoId || reps <= 1) {
+      saida.push(atual);
+      i += 1;
+      continue;
+    }
+    let fim = i;
+    while (fim < etapas.length && etapas[fim].blocoId === grupoId) fim += 1;
+    const grupo = etapas.slice(i, fim);
+    const k = grupo.length;
+    if (k % reps !== 0) {
+      for (const e of grupo) saida.push({ ...e, blocoId: undefined, blocoRepeticoes: undefined, blocoRepeticaoIndex: undefined });
+    } else {
+      const ciclo = k / reps;
+      grupo.forEach((e, pos) => saida.push({ ...e, blocoRepeticaoIndex: Math.floor(pos / ciclo) + 1 }));
+    }
+    i = fim;
+  }
+  return saida;
 }

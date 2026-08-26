@@ -3,7 +3,7 @@ import type { PlanoSemanal } from '../../../types/PlanoSemanal';
 import type { TreinoPlanejado } from '../../../types/TreinoPlanejado';
 import type { TreinoRealizadoDto } from '../../../types/TreinoManual';
 import { workoutTypeColor } from '../../../theme/activeTheme';
-import { weekDatesFromInicio } from './buildWeeklyPlan';
+import { weekDatesFromInicio } from './buildWeekAgenda';
 import type { ProximaProva } from './provasAdapter';
 
 export type DiaStatus = 'concluido' | 'pulado' | 'hoje' | 'futuro' | 'pendente' | 'descanso';
