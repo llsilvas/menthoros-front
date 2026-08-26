@@ -157,7 +157,7 @@ export default function AthleteOnboardingPage() {
     return (
         <Box sx={{ minHeight: '100%', bgcolor: elevation.base, p: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
             <Box>
-                <Typography sx={{ color: surface[50], fontSize: '1.4rem', fontWeight: 800, fontFamily: 'Syne, sans-serif' }}>
+                <Typography variant="h5" sx={{ color: surface[50] }}>
                     Vamos te conhecer melhor
                 </Typography>
                 <Typography sx={{ color: surface[400], fontSize: '0.85rem', mt: 0.5 }}>

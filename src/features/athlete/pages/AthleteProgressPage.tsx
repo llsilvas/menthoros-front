@@ -339,7 +339,7 @@ export default function AthleteProgressPage() {
         <Box>
           <Typography
             variant="h5"
-            sx={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, color: surface[50] }}
+            sx={{ color: surface[50] }}
           >
             Progresso
           </Typography>

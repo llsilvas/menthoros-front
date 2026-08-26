@@ -1,26 +1,25 @@
 import { useEffect, useState } from 'react';
-import { Alert, Box, Button, CircularProgress, Tooltip, Typography } from '@mui/material';
-import { LocalFireDepartment as StreakIcon, Flag as ProvaIcon } from '@mui/icons-material';
-import { useNavigate } from 'react-router';
+import { Alert, Box, Button, CircularProgress, Link, Typography } from '@mui/material';
+import { Link as RouterLink, useNavigate } from 'react-router';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { TodayHeroCard } from '../components/TodayHeroCard';
 import { ReadinessCard } from '../components/ReadinessCard';
 import { QuickCheckInModal } from '../components/QuickCheckInModal';
 import type { QuickCheckInData } from '../components/QuickCheckInModal';
+import { InlineCheckIn } from '../components/InlineCheckIn';
+import { CheckInStatusRow } from '../components/CheckInStatusRow';
 import { KudosCard } from '../components/KudosCard';
-import { WeeklySummaryCard } from '../components/WeeklySummaryCard';
+import { WeekOverviewCard } from '../components/WeekOverviewCard';
 import { WeekClosedBanner } from '../components/WeekClosedBanner';
 import { CalibrationBanner } from '../components/CalibrationBanner';
-import {
-  buildHomeMetrics,
-  buildNextWorkout,
-  homeWorkoutType,
-  timeOfDayNow,
-  type HomeMetric,
-} from '../adapters/homeAdapter';
+import { buildNextWorkout, timeOfDayNow } from '../adapters/homeAdapter';
 import { calcularStreakSemanas } from '../adapters/streakAdapter';
 import { buildProximaProva } from '../adapters/provasAdapter';
-import { buildWeeklySummary } from '../adapters/buildWeeklySummary';
+import { buildWeekOverview } from '../adapters/buildWeekOverview';
 import { selectWeekClosedInfo } from '../adapters/selectWeekClosedInfo';
+import { useInlineCheckin } from '../hooks/useInlineCheckin';
+import { useAthleteHomeErrors } from '../hooks/useAthleteHomeErrors';
 import { useAthleteHome } from '../../../hooks/useAthleteHome';
 import { useAthletePlan } from '../../../hooks/useAthletePlan';
 import { useCalibracao } from '../../../hooks/useCalibracao';
@@ -31,33 +30,18 @@ import { useKudosRecentes } from '../../../hooks/useKudosRecentes';
 import { useManualTraining } from '../../../hooks/useManualTraining';
 import { useRegistrarCheckin } from '../../../hooks/useRegistrarCheckin';
 import { useUserInfo } from '../../../hooks/useUserInfo';
-import { glassSx, surface, primary } from '../../../theme/tokens';
+import { surface } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
+import { FAIXA_APRESENTACAO } from '../../../types/FaixaTsb';
 import { ROUTES } from '../../../constants/routes';
+import type { TimeOfDay } from '../../../shared/design-tokens/gradients';
 
 const STREAK_DIAS = 30; // ~4 semanas cheias, mesma janela usada pelo KPI de volume da 9.6
 
-// Copy de UI (não é dado do atleta): saudação/tom do hero. Ver D0.3 da change.
-const MENSAGEM_HERO = 'Consistência constrói sua base. Bons treinos hoje.';
+const SAUDACAO: Record<TimeOfDay, string> = { morning: 'Bom dia', afternoon: 'Boa tarde', evening: 'Boa noite', night: 'Boa noite' };
 
-// ── MetricCard (local, não exportado) ────────────────────────────────────────
-
-function MetricCard({ label, value, unit, tooltip }: HomeMetric) {
-  return (
-    <Tooltip title={tooltip} arrow placement="top">
-      <Box sx={{ ...glassSx, borderRadius: 2, p: 2, display: 'flex', flexDirection: 'column', gap: 0.5, cursor: 'default' }}>
-        <Typography sx={{ color: surface[400], fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, lineHeight: 1.2 }}>
-          {label}
-        </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
-          <Typography sx={{ color: surface[50], fontSize: '1.75rem', fontWeight: 800, lineHeight: 1 }}>
-            {value}
-          </Typography>
-          <Typography sx={{ color: surface[500], fontSize: '0.8rem', fontWeight: 600 }}>{unit}</Typography>
-        </Box>
-      </Box>
-    </Tooltip>
-  );
+function capitalizar(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 // ── AthleteHomePage ───────────────────────────────────────────────────────────
@@ -73,13 +57,34 @@ export default function AthleteHomePage() {
   const { checkinHoje, error: checkinAtualError, fetchCheckinAtual } = useCheckinAtual();
   const { kudos, error: kudosError, fetchKudos } = useKudosRecentes();
   const { plano, loading: planoLoading, error: planoError, fetchPlano } = useAthletePlan();
-  const { status: calibracaoStatus, justExited: calibracaoJustExited, fetchStatus: fetchCalibracao, dismissJustExited } = useCalibracao();
+  const { status: calibracaoStatus, justExited: calibracaoJustExited, error: calibracaoError, fetchStatus: fetchCalibracao, dismissJustExited } = useCalibracao();
   const [checkInOpen, setCheckInOpen] = useState(false);
+  const [inlineAberto, setInlineAberto] = useState(false);
   const [finalizandoCheckIn, setFinalizandoCheckIn] = useState(false);
   // Dispensa apenas na montagem corrente (reaparece ao voltar à Home) — intencional no XS;
   // persistir entre sessões (sessionStorage por semanaFim) é follow-up documentado na proposal.
   const [bannerDispensado, setBannerDispensado] = useState(false);
   const [calibracaoBannerDispensado, setCalibracaoBannerDispensado] = useState(false);
+
+  // `useCalibracao().error` entra aqui — a Home anterior não o lia e a falha era silenciosa.
+  const erros = useAthleteHomeErrors([
+    { label: 'prontidão', error: readinessError, refetch: fetchReadiness },
+    { label: 'check-in de hoje', error: checkinAtualError, refetch: fetchCheckinAtual },
+    { label: 'streak', error: treinosError, refetch: fetchTreinos },
+    { label: 'próxima prova', error: provasError, refetch: fetchProvas },
+    { label: 'reconhecimentos do coach', error: kudosError, refetch: fetchKudos },
+    { label: 'status da semana', error: planoError, refetch: fetchPlano },
+    { label: 'calibração', error: calibracaoError, refetch: fetchCalibracao },
+  ]);
+
+  const inline = useInlineCheckin({
+    checkinHoje,
+    registrar,
+    onSaved: async () => {
+      await fetchReadiness();
+      await fetchCheckinAtual();
+    },
+  });
 
   useEffect(() => {
     fetchHome();
@@ -126,15 +131,17 @@ export default function AthleteHomePage() {
     );
   }
 
+  const hoje = new Date();
   const athleteName = name?.trim().split(/\s+/)[0] ?? 'Atleta';
   const nextWorkout = buildNextWorkout(home);
-  const metrics = buildHomeMetrics(home?.metricasChave);
   const streak = calcularStreakSemanas(treinos);
   const proximaProva = provasLoading || provasError ? null : buildProximaProva(provas);
-  const resumoSemanal = buildWeeklySummary(treinos, home?.metricasChave, home?.proximoTreino, streak);
+  const overview = buildWeekOverview({ plano, treinos, streak, proximaProva, hoje });
   const { semanaEncerrada, treinosPerdidos } = selectWeekClosedInfo(plano);
   const mostrarBannerSemana =
     !planoLoading && !planoError && semanaEncerrada && treinosPerdidos > 0 && !bannerDispensado;
+  const faixa = home?.metricasChave?.statusForma;
+  const formaLabel = faixa && FAIXA_APRESENTACAO[faixa] ? FAIXA_APRESENTACAO[faixa].label : null;
   const checkInInitialData: QuickCheckInData | undefined = checkinHoje
     ? {
         qualidadeSono: checkinHoje.qualidadeSono,
@@ -145,9 +152,10 @@ export default function AthleteHomePage() {
         observacoes: checkinHoje.observacoes,
       }
     : undefined;
+  const mostrarInline = inlineAberto;
 
   return (
-    <Box sx={{ minHeight: '100%', bgcolor: elevation.base, p: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
+    <Box sx={{ minHeight: '100%', bgcolor: elevation.base, p: 2, pt: 2.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
       {!calibracaoBannerDispensado && (calibracaoStatus || calibracaoJustExited) && (
         <CalibrationBanner
           status={calibracaoStatus}
@@ -166,124 +174,65 @@ export default function AthleteHomePage() {
         />
       )}
 
-      {planoError && (
+      {erros.hasErrors && (
         <Alert
           severity="warning"
           variant="outlined"
-          action={<Button color="inherit" size="small" onClick={fetchPlano}>Recarregar</Button>}
+          action={<Button color="inherit" size="small" onClick={erros.retryAll}>Recarregar</Button>}
         >
-          Não foi possível verificar o status da sua semana.
+          Alguns dados não carregaram: {erros.failed.join(', ')}.
         </Alert>
+      )}
+
+      {/* Cabeçalho: data por extenso e saudação por período (D1) */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+        <Typography variant="overline" sx={{ color: surface[400] }}>
+          {capitalizar(format(hoje, "EEEE, d 'de' MMMM", { locale: ptBR }))}
+        </Typography>
+        <Typography variant="h3">{SAUDACAO[timeOfDayNow()]}, {athleteName}</Typography>
+      </Box>
+
+      {mostrarInline ? (
+        <InlineCheckIn
+          selecao={inline.selecao}
+          pendentes={inline.pendentes}
+          salvo={inline.salvo}
+          salvando={inline.salvando}
+          error={inline.error}
+          onSelecionar={inline.selecionar}
+          onMaisDetalhes={() => setCheckInOpen(true)}
+        />
+      ) : (
+        <CheckInStatusRow
+          feito={checkinHoje !== null}
+          onFazer={() => setInlineAberto(true)}
+          // Editar também abre o inline (três estados por item); o modal fica atrás de "Mais detalhes".
+          onEditar={() => setInlineAberto(true)}
+        />
       )}
 
       <TodayHeroCard
-        athleteName={athleteName}
-        workoutType={homeWorkoutType(home)}
-        timeOfDay={timeOfDayNow()}
-        motivationalMessage={MENSAGEM_HERO}
         nextWorkout={nextWorkout}
-        primaryActionLabel={checkinHoje ? 'Editado hoje' : 'Iniciar treino'}
-        onPrimaryAction={() => setCheckInOpen(true)}
+        onRegister={() => navigate(ROUTES.ATHLETE_TRAINING_LOG)}
       />
 
-      {checkinAtualError && (
-        <Alert
-          severity="warning"
-          variant="outlined"
-          action={<Button color="inherit" size="small" onClick={fetchCheckinAtual}>Recarregar</Button>}
-        >
-          Não foi possível confirmar se você já fez o check-in de hoje.
-        </Alert>
+      {!readinessError && readiness?.score != null && (
+        <ReadinessCard score={readiness.score} recommendation={readiness.nota} comCheckinHoje={checkinHoje !== null} />
       )}
 
-      {readinessError ? (
-        <Alert
-          severity="warning"
-          variant="outlined"
-          action={<Button color="inherit" size="small" onClick={fetchReadiness}>Recarregar</Button>}
-        >
-          Prontidão indisponível no momento.
-        </Alert>
-      ) : (
-        readiness?.score != null && (
-          <ReadinessCard score={readiness.score} recommendation={readiness.nota} />
-        )
-      )}
+      {!treinosLoading && !treinosError && <WeekOverviewCard overview={overview} provaConhecida={!provasLoading && !provasError} />}
 
-      {treinosError ? (
-        <Alert
-          severity="warning"
-          variant="outlined"
-          action={<Button color="inherit" size="small" onClick={fetchTreinos}>Recarregar</Button>}
-        >
-          Não foi possível carregar seu streak de treinos.
-        </Alert>
-      ) : (
-        streak > 0 && (
-          <Box sx={{ ...glassSx, borderRadius: 2, p: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <StreakIcon sx={{ color: primary[500], fontSize: 28 }} />
-            <Typography sx={{ color: surface[50], fontWeight: 700 }}>
-              {streak} {streak === 1 ? 'semana seguida' : 'semanas seguidas'} treinando
-            </Typography>
-          </Box>
-        )
-      )}
-
-      {kudosError && (
-        <Alert
-          severity="warning"
-          variant="outlined"
-          action={<Button color="inherit" size="small" onClick={fetchKudos}>Recarregar</Button>}
-        >
-          Não foi possível carregar seus reconhecimentos do coach.
-        </Alert>
-      )}
       <KudosCard kudos={kudos} />
 
-      {provasError ? (
-        <Alert
-          severity="warning"
-          variant="outlined"
-          action={<Button color="inherit" size="small" onClick={fetchProvas}>Recarregar</Button>}
-        >
-          Não foi possível carregar sua próxima prova.
-        </Alert>
-      ) : (
-        !provasLoading && (
-          <Box sx={{ ...glassSx, borderRadius: 2, p: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <ProvaIcon sx={{ color: primary[500], fontSize: 28 }} />
-            <Typography sx={{ color: surface[50], fontWeight: 700 }}>
-              {proximaProva
-                ? (proximaProva.diasFaltando != null
-                    ? `Faltam ${proximaProva.diasFaltando} ${proximaProva.diasFaltando === 1 ? 'dia' : 'dias'} para ${proximaProva.nomeProva}`
-                    : `Sua próxima meta: ${proximaProva.nomeProva}`)
-                : 'Sem próxima meta cadastrada — peça ao seu coach para cadastrar sua próxima prova.'}
-            </Typography>
-          </Box>
-        )
-      )}
-
-      {!treinosLoading && !treinosError && <WeeklySummaryCard resumo={resumoSemanal} />}
-
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-        <Typography sx={{ color: surface[50], fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-          Métricas de hoje
+      {/* Forma em linguagem simples; os números (CTL/ATL/TSB) vivem no Progresso (D1) */}
+      <Box data-testid="home-form" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1.5, px: 0.5 }}>
+        <Typography variant="body2" sx={{ color: surface[400] }}>
+          Forma: <Box component="span" sx={{ color: surface[50], fontWeight: 600 }}>{formaLabel ?? 'sem dados ainda'}</Box>
         </Typography>
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
-          {metrics.map((metric) => (
-            <MetricCard key={metric.label} {...metric} />
-          ))}
-        </Box>
+        <Link component={RouterLink} to={ROUTES.ATHLETE_PROGRESS} variant="body2" underline="hover" sx={{ fontWeight: 600, py: 0.75 }}>
+          Ver progresso →
+        </Link>
       </Box>
-
-      <Button
-        variant="outlined"
-        fullWidth
-        onClick={() => navigate(ROUTES.ATHLETE_TRAINING_LOG)}
-        sx={{ borderColor: primary[500], color: primary[500], fontWeight: 700, py: 1.5, '&:hover': { borderColor: primary[400], bgcolor: `${primary[500]}14` } }}
-      >
-        Registrar treino de hoje
-      </Button>
 
       <QuickCheckInModal
         open={checkInOpen}

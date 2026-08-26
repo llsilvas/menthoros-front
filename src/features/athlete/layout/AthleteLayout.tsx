@@ -1,5 +1,7 @@
 import { Box } from '@mui/material';
 import { Outlet, useLocation, useNavigate } from 'react-router';
+import { ThemeProvider } from '@mui/material/styles';
+import { athleteTheme } from '../theme/athleteTheme';
 import { elevation } from '../../../shared/design-tokens';
 import { AthleteBottomNav } from '../../../shared/components/AthleteBottomNav';
 import { ErrorBoundary } from '../../../shared/components/ErrorBoundary';
@@ -15,25 +17,32 @@ export default function AthleteLayout() {
     navigate(route);
   }
 
+  // Tema ANINHADO: o provider de `App.tsx` declara Syne como família padrão para todas as rotas;
+  // aqui o shell do atleta resolve para `font.text`/`font.display` sem tocar coach nem landing.
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100vh',
-        bgcolor: elevation.base,
-        overflow: 'hidden',
-      }}
-    >
-      <ErrorBoundary>
-        <Box sx={{ flex: 1, overflow: 'auto' }}>
-          <Outlet />
-        </Box>
-      </ErrorBoundary>
-      <AthleteBottomNav
-        activeRoute={activeRoute}
-        onNavigate={handleNavigate}
-      />
-    </Box>
+    <ThemeProvider theme={athleteTheme}>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100vh',
+          bgcolor: elevation.base,
+          overflow: 'hidden',
+        }}
+      >
+        <ErrorBoundary>
+          <Box sx={{ flex: 1, overflow: 'auto' }}>
+            <Outlet />
+          </Box>
+        </ErrorBoundary>
+        <AthleteBottomNav
+          activeRoute={activeRoute}
+          onNavigate={handleNavigate}
+          // Ponto de injeção do badge do Coach: a contagem vem de `add-athlete-coach-messaging`
+          // (Sprint 28); até lá não há fonte — `0` é o valor honesto, não um mock.
+          unreadCoachMessages={0}
+        />
+      </Box>
+    </ThemeProvider>
   );
 }

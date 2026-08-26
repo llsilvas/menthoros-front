@@ -23,7 +23,7 @@ export function PostWorkoutFeedbackCard({ treino, onVoltar }: PostWorkoutFeedbac
         gap: 2,
       }}
     >
-      <Typography sx={{ color: surface[50], fontSize: '1.1rem', fontWeight: 800, fontFamily: 'Syne, sans-serif' }}>
+      <Typography variant="h6" sx={{ color: surface[50] }}>
         {tipoLabel}
       </Typography>
 

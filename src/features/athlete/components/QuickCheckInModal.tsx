@@ -64,10 +64,10 @@ function RatingSlider({ label, value, min, max, onChange }: RatingSliderProps) {
   return (
     <Box>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-        <Typography sx={{ color: surface[50], fontSize: '0.9rem', fontWeight: 600 }}>
+        <Typography variant="body1" sx={{ color: surface[50], fontWeight: 600 }}>
           {label}
         </Typography>
-        <Typography sx={{ color: primary[500], fontSize: '0.85rem', fontWeight: 700 }}>
+        <Typography variant="body2" sx={{ color: primary[500], fontWeight: 700 }}>
           {value}/{max}
         </Typography>
       </Box>
@@ -139,9 +139,8 @@ export function QuickCheckInModal({
       <DialogTitle
         sx={{
           color: surface[50],
-          fontFamily: 'Syne, sans-serif',
           fontWeight: 800,
-          fontSize: '1.15rem',
+          fontSize: (t) => t.typography.h5.fontSize,
           pb: 0.5,
         }}
       >

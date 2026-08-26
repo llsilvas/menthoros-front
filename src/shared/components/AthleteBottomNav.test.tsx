@@ -1,10 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AthleteBottomNav } from './AthleteBottomNav';
 import { AuthContext, type AuthContextData } from '../../context/auth/authContext';
 
-function renderNav(overrides: Partial<AuthContextData> = {}) {
+function renderNav(overrides: Partial<AuthContextData> = {}, unread = 0) {
   const onNavigate = vi.fn();
   const ctx: AuthContextData = {
     isAuthenticated: true,
@@ -16,7 +16,7 @@ function renderNav(overrides: Partial<AuthContextData> = {}) {
 
   render(
     <AuthContext.Provider value={ctx}>
-      <AthleteBottomNav activeRoute="/athlete/home" onNavigate={onNavigate} />
+      <AthleteBottomNav activeRoute="/athlete/home" onNavigate={onNavigate} unreadCoachMessages={unread} />
     </AuthContext.Provider>,
   );
 
@@ -24,12 +24,19 @@ function renderNav(overrides: Partial<AuthContextData> = {}) {
 }
 
 describe('AthleteBottomNav', () => {
-  it('mostra os cinco destinos e a ação de sair', () => {
+  it('mostra só os cinco destinos — "Sair" vive no Perfil', () => {
     renderNav();
 
-    ['Hoje', 'Plano', 'Progresso', 'Coach', 'Perfil', 'Sair'].forEach((rotulo) => {
+    ['Hoje', 'Plano', 'Progresso', 'Coach', 'Perfil'].forEach((rotulo) => {
       expect(screen.getByRole('button', { name: rotulo })).toBeInTheDocument();
     });
+    expect(screen.getAllByRole('button')).toHaveLength(5);
+    expect(screen.queryByRole('button', { name: 'Sair' })).toBeNull();
+  });
+
+  it('mostra o badge de mensagens não lidas no item Coach', () => {
+    renderNav({}, 2);
+    expect(screen.getByLabelText('2 mensagens não lidas')).toHaveTextContent('2');
   });
 
   it('navega ao tocar num destino', async () => {
@@ -41,37 +48,11 @@ describe('AthleteBottomNav', () => {
     expect(onNavigate).toHaveBeenCalledWith('/athlete/plan');
   });
 
-  /**
-   * "Sair" divide a barra com destinos de navegação, mas **não é um destino**. Chamar `onNavigate`
-   * aqui tentaria rotear para `null` — e, pior, sairia sem confirmação num toque acidental, que é o
-   * risco real de colocar a ação numa barra de seis alvos em ~375px.
-   */
-  it('sair não navega: pede confirmação', async () => {
-    const user = userEvent.setup();
-    const { onNavigate, ctx } = renderNav();
 
-    await user.click(screen.getByRole('button', { name: 'Sair' }));
-
-    expect(onNavigate).not.toHaveBeenCalled();
-    expect(ctx.logout).not.toHaveBeenCalled();
-    expect(screen.getByText('Sair da conta')).toBeInTheDocument();
-  });
-
-  it('desloga ao confirmar', async () => {
-    const user = userEvent.setup();
-    const { ctx } = renderNav();
-
-    await user.click(screen.getByRole('button', { name: 'Sair' }));
-    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Sair' }));
-
-    expect(ctx.logout).toHaveBeenCalledTimes(1);
-  });
-
-  // Leitor de tela não pode anunciar "Sair" como página atual — ele não é uma rota.
-  it('não marca a ação de sair como página atual', () => {
+  it('marca só a rota ativa como página atual', () => {
     renderNav();
 
-    expect(screen.getByRole('button', { name: 'Sair' })).not.toHaveAttribute('aria-current');
     expect(screen.getByRole('button', { name: 'Hoje' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('button', { name: 'Plano' })).not.toHaveAttribute('aria-current');
   });
 });
