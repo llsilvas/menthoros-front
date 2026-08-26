@@ -73,7 +73,7 @@ export function WorkoutDetailDrawer({ dia, onClose, onRegister }: WorkoutDetailD
             ))}
           </Box>
 
-          {dia.status === 'hoje' && (
+          {dia.isToday && (
             <Button variant="contained" fullWidth onClick={onRegister} sx={{ bgcolor: primary[500], color: elevation.base, minHeight: 48, fontWeight: 700, '&:hover': { bgcolor: primary[400] } }}>
               Registrar treino
             </Button>

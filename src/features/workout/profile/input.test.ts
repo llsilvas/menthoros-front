@@ -137,15 +137,27 @@ describe('indexarRepeticoes — série já expandida pelo backend', () => {
     expect(profile.blocks.some((b) => b.repeat?.groupId === 'b1')).toBe(false);
   });
 
-  it('etapas sem bloco e blocos de uma repetição passam inalterados; dois blocos distintos não se misturam', () => {
+  it('sem bloco passa inalterado; bloco de 1 repetição ou sem N perde os metadados (não bloqueia a inferência); blocos distintos não se misturam', () => {
     const linhas = [
       etapa('AQUECIMENTO', undefined, 10),
       etapa('ESFORCO', { id: 'b1', reps: 2 }), etapa('ESFORCO', { id: 'b1', reps: 2 }),
       etapa('ESFORCO', { id: 'b2', reps: 1 }),
       etapa('ESFORCO', { id: 'b3', reps: 3 }), etapa('ESFORCO', { id: 'b3', reps: 3 }), etapa('ESFORCO', { id: 'b3', reps: 3 }),
+      { tipoEtapa: 'ESFORCO', duracaoMin: 3, blocoId: 'b4' } as EtapaTreino, // blocoId sem blocoRepeticoes
     ];
     const entradas = indexarRepeticoes(linhas.map(fromEtapaTreino));
-    expect(entradas.map((e) => e.blocoRepeticaoIndex)).toEqual([undefined, 1, 2, undefined, 1, 2, 3]);
-    expect(entradas[3].blocoId).toBe('b2'); // bloco de 1 repetição: metadados ficam, o perfil não desenha bracket
+    expect(entradas.map((e) => e.blocoRepeticaoIndex)).toEqual([undefined, 1, 2, undefined, 1, 2, 3, undefined]);
+    expect(entradas[3].blocoId).toBeUndefined();
+    expect(entradas[7].blocoId).toBeUndefined();
+  });
+
+  it('o mesmo blocoId em dois segmentos separados é inválido: nenhum dos dois ganha bracket', () => {
+    const linhas = [
+      etapa('ESFORCO', { id: 'b1', reps: 2 }), etapa('ESFORCO', { id: 'b1', reps: 2 }),
+      etapa('RECUPERACAO', undefined, 5),
+      etapa('ESFORCO', { id: 'b1', reps: 2 }), etapa('ESFORCO', { id: 'b1', reps: 2 }),
+    ];
+    const entradas = indexarRepeticoes(linhas.map(fromEtapaTreino));
+    expect(entradas.every((e) => e.blocoId === undefined)).toBe(true);
   });
 });

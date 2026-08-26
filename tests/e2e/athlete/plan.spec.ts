@@ -81,7 +81,7 @@ test.describe('Atleta — Plano da semana', () => {
   })
 
   test('hoje está destacado; toque no treino com etapas abre o detalhe com o perfil e a série 2×; registrar navega', async ({ page }) => {
-    const hoje = page.locator('[data-testid="week-agenda-row"][data-status="hoje"]')
+    const hoje = page.locator('[data-testid="week-agenda-row"][data-today="true"]')
     await expect(hoje).toHaveCount(1)
     await expect(hoje).toContainText(/intervalado/i)
 

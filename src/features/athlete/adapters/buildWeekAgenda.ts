@@ -1,12 +1,12 @@
 import { format, isSameDay } from 'date-fns';
 import type { PlanoSemanal } from '../../../types/PlanoSemanal';
 import type { TreinoPlanejado } from '../../../types/TreinoPlanejado';
-import { getSafeValue } from '../../../utils/safeValues';
 import { workoutTypeColor } from '../../../theme/activeTheme';
 import { tipoTreinoLabel } from './homeAdapter';
 import { parseDuracaoMin } from './parseDuracaoMin';
+import { statusDoDia, treinoConcluido, type DayStatus } from './dayStatus';
 
-export type AgendaDayStatus = 'concluido' | 'pulado' | 'hoje' | 'futuro' | 'pendente' | 'descanso';
+export type AgendaDayStatus = DayStatus;
 
 export interface AgendaWorkout {
   title: string;
@@ -25,6 +25,8 @@ export interface AgendaWorkout {
 export interface AgendaDay {
   date: Date;
   iso: string;
+  /** Hoje é um eixo próprio: um treino feito hoje é `concluido` E `isToday`. */
+  isToday: boolean;
   status: AgendaDayStatus;
   workout: AgendaWorkout | null;
 }
@@ -51,18 +53,6 @@ export function weekDatesFromInicio(semanaInicio: string): Date[] {
   });
 }
 
-function statusValue(status: TreinoPlanejado['statusTreino']): string {
-  return (getSafeValue(status) ?? '').toString().toUpperCase();
-}
-
-function statusDoDia(treino: TreinoPlanejado | undefined, date: Date, hoje: Date): AgendaDayStatus {
-  if (isSameDay(date, hoje)) return 'hoje';
-  if (!treino) return 'descanso';
-  const s = statusValue(treino.statusTreino);
-  if (s === 'REALIZADO' || s === 'PARCIAL') return 'concluido';
-  if (s === 'PERDIDO' || s === 'CANCELADO') return 'pulado';
-  return date > hoje ? 'futuro' : 'pendente';
-}
 
 /** Aceita número, "HH:MM:SS"/"MM:SS" (serialização do backend) e "50 min" (texto livre do coach). */
 function duracaoMinutos(duracao?: string | number): number | undefined {
@@ -101,12 +91,13 @@ export function buildWeekAgenda(plano: PlanoSemanal, hoje: Date = new Date()): W
   const dias: AgendaDay[] = dates.map((date) => {
     const iso = toIso(date);
     const treino = treinos.find((t) => t.dataTreino === iso);
+    const isToday = isSameDay(date, hoje);
     const status = statusDoDia(treino, date, hoje);
-    if (!treino) return { date, iso, status, workout: null };
+    if (!treino) return { date, iso, isToday, status, workout: null };
     const durationMin = duracaoMinutos(treino.duracaoMin);
     const { km, estimada } = distancia(treino, durationMin);
     return {
-      date, iso, status,
+      date, iso, isToday, status,
       workout: {
         title: tipoTreinoLabel(treino.tipoTreino),
         description: treino.descricao ?? '',
@@ -114,16 +105,16 @@ export function buildWeekAgenda(plano: PlanoSemanal, hoje: Date = new Date()): W
         durationMin,
         distanceKm: km,
         distanceEstimated: estimada,
-        zoneLabel: (treino as { zonaAlvo?: string }).zonaAlvo || undefined,
+        zoneLabel: treino.zonaAlvo || undefined,
         temEtapas: (treino.etapas?.length ?? 0) > 0,
         treino,
       },
     };
   });
 
-  const indiceHoje = dias.findIndex((d) => d.status === 'hoje');
+  const indiceHoje = dias.findIndex((d) => d.isToday);
   const planejados = dias.filter((d) => d.workout !== null);
-  const feitos = planejados.filter((d) => ['REALIZADO', 'PARCIAL'].includes(statusValue(d.workout!.treino.statusTreino)));
+  const feitos = planejados.filter((d) => treinoConcluido(d.workout!.treino));
 
   return {
     dias,

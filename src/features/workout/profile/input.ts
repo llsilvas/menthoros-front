@@ -141,28 +141,31 @@ function minutosDe(valor: string): number | undefined {
  * falso. Nunca reexpande — um 4×2 já chega como 8 linhas.
  */
 export function indexarRepeticoes(etapas: ProfileEtapaInput[]): ProfileEtapaInput[] {
+  const semBloco = (e: ProfileEtapaInput): ProfileEtapaInput =>
+    ({ ...e, blocoId: undefined, blocoRepeticoes: undefined, blocoRepeticaoIndex: undefined });
+
+  // Segmentos consecutivos por blocoId. O mesmo id em dois segmentos separados é inválido: o
+  // ProfilePlot desenha o bracket da primeira à última ocorrência e cobriria etapas alheias.
+  const segmentos: Array<{ id?: string; itens: ProfileEtapaInput[] }> = [];
+  for (const e of etapas) {
+    const ultimo = segmentos[segmentos.length - 1];
+    if (ultimo && e.blocoId && ultimo.id === e.blocoId) ultimo.itens.push(e);
+    else segmentos.push({ id: e.blocoId, itens: [e] });
+  }
+  const ocorrencias = new Map<string, number>();
+  for (const s of segmentos) if (s.id) ocorrencias.set(s.id, (ocorrencias.get(s.id) ?? 0) + 1);
+
   const saida: ProfileEtapaInput[] = [];
-  let i = 0;
-  while (i < etapas.length) {
-    const atual = etapas[i];
-    const grupoId = atual.blocoId;
-    const reps = atual.blocoRepeticoes ?? 0;
-    if (!grupoId || reps <= 1) {
-      saida.push(atual);
-      i += 1;
-      continue;
-    }
-    let fim = i;
-    while (fim < etapas.length && etapas[fim].blocoId === grupoId) fim += 1;
-    const grupo = etapas.slice(i, fim);
-    const k = grupo.length;
-    if (k % reps !== 0) {
-      for (const e of grupo) saida.push({ ...e, blocoId: undefined, blocoRepeticoes: undefined, blocoRepeticaoIndex: undefined });
-    } else {
-      const ciclo = k / reps;
-      grupo.forEach((e, pos) => saida.push({ ...e, blocoRepeticaoIndex: Math.floor(pos / ciclo) + 1 }));
-    }
-    i = fim;
+  for (const seg of segmentos) {
+    const reps = seg.itens[0].blocoRepeticoes ?? 0;
+    const k = seg.itens.length;
+    // Sem id: passa. Com id mas sem N (ou N ≤ 1), id repetido ou k não múltiplo de N: o bloco não
+    // é uma série válida — perde os metadados, senão bloqueia a inferência do perfil e/ou desenha
+    // bracket falso.
+    if (!seg.id) { saida.push(...seg.itens); continue; }
+    if (reps <= 1 || (ocorrencias.get(seg.id) ?? 0) > 1 || k % reps !== 0) { saida.push(...seg.itens.map(semBloco)); continue; }
+    const ciclo = k / reps;
+    seg.itens.forEach((e, pos) => saida.push({ ...e, blocoRepeticaoIndex: Math.floor(pos / ciclo) + 1 }));
   }
   return saida;
 }

@@ -11,8 +11,7 @@ import { WorkoutDetailDrawer } from '../components/WorkoutDetailDrawer';
 import { buildWeekAgenda, type AgendaDay } from '../adapters/buildWeekAgenda';
 import { useAthletePlan } from '../../../hooks/useAthletePlan';
 import { ROUTES } from '../../../constants/routes';
-
-const fmtKm = (v: number) => v.toFixed(1).replace('.', ',');
+import { formatKm } from '../../../utils/formatKm';
 
 function periodo(dias: AgendaDay[]): string {
   return `${format(dias[0].date, 'd', { locale: ptBR })} – ${format(dias[6].date, "d 'de' MMM", { locale: ptBR })}`;
@@ -32,7 +31,7 @@ export default function AthletePlanPage() {
 
   // Hoje começa expandido quando o plano contém hoje (D2); o usuário pode fechar.
   useEffect(() => {
-    if (agenda?.contemHoje) setExpandedIso(agenda.dias.find((d) => d.status === 'hoje')?.iso ?? null);
+    if (agenda?.contemHoje) setExpandedIso(agenda.dias.find((d) => d.isToday)?.iso ?? null);
     else setExpandedIso(null);
   }, [agenda]);
 
@@ -76,7 +75,7 @@ export default function AthletePlanPage() {
             <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
               <Typography variant="body2" sx={{ color: surface[400] }}>Volume da semana</Typography>
               <Typography variant="body1" sx={{ fontVariantNumeric: 'tabular-nums' }}>
-                <Box component="strong" sx={{ fontWeight: 600 }}>{fmtKm(plano.volumeRealizadoKm)}</Box>
+                <Box component="strong" sx={{ fontWeight: 600 }}>{formatKm(plano.volumeRealizadoKm)}</Box>
                 <Box component="span" sx={{ color: surface[500] }}> / {plano.volumePlanejadoKm} km</Box>
               </Typography>
             </Box>

@@ -11,6 +11,7 @@ import { alpha } from '@mui/material/styles';
 import { primary, surface, semantic } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import type { AgendaDay } from '../adapters/buildWeekAgenda';
+import { formatKm } from '../../../utils/formatKm';
 
 export interface WeekAgendaRowProps {
   dia: AgendaDay;
@@ -22,16 +23,12 @@ export interface WeekAgendaRowProps {
   onRegister: () => void;
 }
 
-function fmtKm(v: number): string {
-  return `${v.toFixed(1).replace('.', ',')} km`;
-}
-
 function metaLinha(dia: AgendaDay): string {
   const w = dia.workout;
   if (!w) return '';
   const partes: string[] = [];
   if (w.durationMin) partes.push(`${w.durationMin} min`);
-  if (w.distanceKm != null) partes.push(`${w.distanceEstimated ? '~' : ''}${fmtKm(w.distanceKm)}`);
+  if (w.distanceKm != null) partes.push(`${w.distanceEstimated ? '~' : ''}${formatKm(w.distanceKm)} km`);
   if (w.zoneLabel) partes.push(w.zoneLabel);
   return partes.join(' · ');
 }
@@ -44,7 +41,7 @@ function StatusIcon({ status }: { status: AgendaDay['status'] }) {
 
 /** Uma linha da agenda (design D1/D4): estado por ícone, sem borda lateral; hoje com anel lime. */
 export function WeekAgendaRow({ dia, expanded, onToggle, onOpenDetail, onRegister }: WeekAgendaRowProps) {
-  const hoje = dia.status === 'hoje';
+  const hoje = dia.isToday;
   const w = dia.workout;
   const abreDetalhe = w?.temEtapas ?? false;
   const clicavel = w !== null;
@@ -59,6 +56,7 @@ export function WeekAgendaRow({ dia, expanded, onToggle, onOpenDetail, onRegiste
     <Box
       data-testid="week-agenda-row"
       data-status={dia.status}
+      data-today={hoje ? 'true' : undefined}
       sx={{
         borderBottom: `1px solid ${surface[700]}`,
         bgcolor: hoje ? alpha(primary[500], 0.06) : 'transparent',
@@ -70,6 +68,7 @@ export function WeekAgendaRow({ dia, expanded, onToggle, onOpenDetail, onRegiste
         component={clicavel ? 'button' : 'div'}
         type={clicavel ? 'button' : undefined}
         aria-expanded={clicavel && !abreDetalhe ? expanded : undefined}
+        aria-haspopup={clicavel && abreDetalhe ? 'dialog' : undefined}
         aria-label={w ? `${format(dia.date, 'EEEE d', { locale: ptBR })}, ${w.title}` : undefined}
         onClick={clicavel ? handleClick : undefined}
         sx={{

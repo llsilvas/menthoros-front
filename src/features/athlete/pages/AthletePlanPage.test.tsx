@@ -66,9 +66,10 @@ describe('AthletePlanPage', () => {
   it('hoje começa expandido (treino com etapas abre o detalhe, não a expansão inline)', async () => {
     mock(PLANO);
     render(<AthletePlanPage />);
-    const hoje = screen.getAllByTestId('week-agenda-row').find((r) => r.dataset.status === 'hoje')!;
+    const hoje = screen.getAllByTestId('week-agenda-row').find((r) => r.dataset.today === 'true')!;
     expect(hoje).toHaveTextContent(/intervalado/i);
     // Linha com etapas: o toque abre o drawer com o perfil do treino e a série 2×.
+    expect(within(hoje).getByRole('button')).toHaveAttribute('aria-haspopup', 'dialog');
     await userEvent.click(within(hoje).getByRole('button'));
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByTestId('workout-profile')).toBeInTheDocument();
@@ -95,7 +96,8 @@ describe('AthletePlanPage', () => {
     mock(PLANO);
     render(<AthletePlanPage />);
     const linhas = screen.getAllByTestId('week-agenda-row');
-    expect(linhas.map((r) => r.dataset.status)).toEqual(['concluido', 'descanso', 'hoje', 'descanso', 'descanso', 'futuro', 'descanso']);
+    expect(linhas.map((r) => r.dataset.status)).toEqual(['concluido', 'descanso', 'pendente', 'descanso', 'descanso', 'futuro', 'descanso']);
+    expect(linhas.map((r) => r.dataset.today)).toEqual([undefined, undefined, 'true', undefined, undefined, undefined, undefined]);
     const descanso = linhas[1];
     expect(within(descanso).queryByRole('button')).toBeNull();
     expect(linhas.some((r) => getComputedStyle(r).borderLeftWidth === '4px')).toBe(false);

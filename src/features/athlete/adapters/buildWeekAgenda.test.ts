@@ -2,6 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { buildWeekAgenda, weekDatesFromInicio } from './buildWeekAgenda';
 import type { PlanoSemanal } from '../../../types/PlanoSemanal';
 import { workoutTypeColor } from '../../../theme/activeTheme';
+import type { TreinoPlanejado } from '../../../types/TreinoPlanejado';
+
+/** Fixture tipada — nada de `as never`: o compilador tem de acusar campo fora do contrato. */
+function treino(over: Partial<TreinoPlanejado> & Pick<TreinoPlanejado, 'tipoTreino' | 'dataTreino'>): TreinoPlanejado {
+  return { distanciaKm: 0, diaSemana: 'SEGUNDA', ...over };
+}
 
 const HOJE = new Date(2026, 7, 26); // quarta
 
@@ -9,10 +15,10 @@ const plano: PlanoSemanal = {
   atletaId: 'a1', semanaInicio: '2026-08-24', semanaFim: '2026-08-30',
   volumePlanejadoKm: 42, volumeRealizadoKm: 14.5, volumeAlvoKm: 42, status: 'ATIVO',
   treinosPlanejados: [
-    { tipoTreino: 'FACIL', distanciaKm: 8, duracaoMin: 45, diaSemana: 'SEGUNDA', dataTreino: '2026-08-24', statusTreino: 'REALIZADO', descricao: 'Trote', zonaAlvo: 'Z2' } as never,
-    { tipoTreino: 'INTERVALADO', distanciaKm: 0, duracaoMin: '50 min', diaSemana: 'TERCA', dataTreino: '2026-08-25', statusTreino: 'PERDIDO', ritmoAlvo: '5:00 min/km', etapas: [{ tipoEtapa: 'AQUECIMENTO', duracaoMin: 10 }] } as never,
-    { tipoTreino: 'FACIL', distanciaKm: 0, duracaoMin: 45, diaSemana: 'QUARTA', dataTreino: '2026-08-26', statusTreino: { value: 'PENDENTE', label: 'Pendente' } } as never,
-    { tipoTreino: 'LONGO', distanciaKm: 15, duracaoMin: 90, diaSemana: 'SABADO', dataTreino: '2026-08-29', statusTreino: 'PENDENTE' } as never,
+    treino({ tipoTreino: 'FACIL', distanciaKm: 8, duracaoMin: 45, dataTreino: '2026-08-24', statusTreino: 'REALIZADO', descricao: 'Trote', zonaAlvo: 'Z2' }),
+    treino({ tipoTreino: 'INTERVALADO', duracaoMin: '50 min', dataTreino: '2026-08-25', statusTreino: 'PERDIDO', ritmoAlvo: '5:00 min/km', etapas: [{ tipoEtapa: 'AQUECIMENTO', duracaoMin: 10 }] }),
+    treino({ tipoTreino: 'FACIL', duracaoMin: 45, dataTreino: '2026-08-26', statusTreino: { value: 'PENDENTE', label: 'Pendente' } }),
+    treino({ tipoTreino: 'LONGO', distanciaKm: 15, duracaoMin: 90, dataTreino: '2026-08-29', statusTreino: 'PENDENTE' }),
   ],
 };
 
@@ -20,7 +26,8 @@ describe('buildWeekAgenda', () => {
   it('sete linhas, status por dia, cor por enum do backend, hoje expandido', () => {
     const agenda = buildWeekAgenda(plano, HOJE);
     expect(agenda.dias).toHaveLength(7);
-    expect(agenda.dias.map((d) => d.status)).toEqual(['concluido', 'pulado', 'hoje', 'descanso', 'descanso', 'futuro', 'descanso']);
+    expect(agenda.dias.map((d) => d.status)).toEqual(['concluido', 'pulado', 'pendente', 'descanso', 'descanso', 'futuro', 'descanso']);
+    expect(agenda.dias.map((d) => d.isToday)).toEqual([false, false, true, false, false, false, false]);
     expect(agenda.contemHoje).toBe(true);
     expect(agenda.diaDaSemana).toBe(3);
     expect(agenda.dias[0].workout?.color).toBe(workoutTypeColor('FACIL'));
@@ -44,11 +51,18 @@ describe('buildWeekAgenda', () => {
     expect(ter.workout?.temEtapas).toBe(true);
   });
 
-  it('plano de outra semana (aprovado adiantado): nenhum dia é "hoje" e contemHoje é false', () => {
+  it('plano de outra semana (aprovado adiantado): nenhum dia é hoje e contemHoje é false', () => {
     const agenda = buildWeekAgenda({ ...plano, semanaInicio: '2026-08-31', semanaFim: '2026-09-06', treinosPlanejados: [] }, HOJE);
     expect(agenda.contemHoje).toBe(false);
-    expect(agenda.dias.every((d) => d.status !== 'hoje')).toBe(true);
+    expect(agenda.dias.every((d) => !d.isToday)).toBe(true);
     expect(agenda.diaDaSemana).toBeNull();
+  });
+
+  it('treino feito hoje é concluido E hoje — o check não some no dia mais importante', () => {
+    const feitoHoje = { ...plano, treinosPlanejados: [treino({ tipoTreino: 'FACIL', duracaoMin: 45, dataTreino: '2026-08-26', statusTreino: 'REALIZADO' })] };
+    const dia = buildWeekAgenda(feitoHoje, HOJE).dias[2];
+    expect(dia.isToday).toBe(true);
+    expect(dia.status).toBe('concluido');
   });
 
   it('treinos feitos: contagem de realizados sobre os planejados (descanso não conta)', () => {

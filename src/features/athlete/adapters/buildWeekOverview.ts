@@ -4,9 +4,10 @@ import type { TreinoPlanejado } from '../../../types/TreinoPlanejado';
 import type { TreinoRealizadoDto } from '../../../types/TreinoManual';
 import { workoutTypeColor } from '../../../theme/activeTheme';
 import { weekDatesFromInicio } from './buildWeekAgenda';
+import { statusDoDia as statusBase, type DayStatus } from './dayStatus';
 import type { ProximaProva } from './provasAdapter';
 
-export type DiaStatus = 'concluido' | 'pulado' | 'hoje' | 'futuro' | 'pendente' | 'descanso';
+export type DiaStatus = DayStatus | 'hoje';
 
 export interface DiaOverview {
   date: Date;
@@ -36,18 +37,11 @@ export interface BuildWeekOverviewArgs {
 
 const toIso = (d: Date) => format(d, 'yyyy-MM-dd');
 
-function statusValue(status: TreinoPlanejado['statusTreino']): string {
-  if (!status) return '';
-  return typeof status === 'string' ? status : status.value;
-}
-
+// Nos sete pontos da Home, hoje é desenhado como anel — o status operacional de hoje fica com o
+// Plano. Fora de hoje, a regra é a compartilhada (`dayStatus`).
 function statusDoDia(treino: TreinoPlanejado | undefined, date: Date, hoje: Date): DiaStatus {
-  if (isSameDay(date, hoje)) return 'hoje'; // hoje é hoje mesmo sem treino — o anel marca o dia
-  if (!treino) return 'descanso';
-  const s = statusValue(treino.statusTreino).toUpperCase();
-  if (s === 'REALIZADO' || s === 'PARCIAL') return 'concluido';
-  if (s === 'PERDIDO' || s === 'CANCELADO') return 'pulado';
-  return date > hoje ? 'futuro' : 'pendente';
+  if (isSameDay(date, hoje)) return 'hoje';
+  return statusBase(treino, date, hoje);
 }
 
 /**
