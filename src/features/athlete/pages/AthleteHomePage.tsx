@@ -152,7 +152,7 @@ export default function AthleteHomePage() {
         observacoes: checkinHoje.observacoes,
       }
     : undefined;
-  const mostrarInline = !checkinHoje && inlineAberto;
+  const mostrarInline = inlineAberto;
 
   return (
     <Box sx={{ minHeight: '100%', bgcolor: elevation.base, p: 2, pt: 2.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -206,7 +206,8 @@ export default function AthleteHomePage() {
         <CheckInStatusRow
           feito={checkinHoje !== null}
           onFazer={() => setInlineAberto(true)}
-          onEditar={() => setCheckInOpen(true)}
+          // Editar também abre o inline (três estados por item); o modal fica atrás de "Mais detalhes".
+          onEditar={() => setInlineAberto(true)}
         />
       )}
 

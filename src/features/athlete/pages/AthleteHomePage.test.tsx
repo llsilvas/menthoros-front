@@ -198,18 +198,31 @@ describe('AthleteHomePage', () => {
       expect(registrar).toHaveBeenCalledWith({ qualidadeSono: 3, humor: 3, doresMusculares: 8, nivelEnergia: 3, estresse: 8 });
     });
 
-    it('com check-in de hoje: linha "feito" sem horário, e "Editar" abre o modal pré-preenchido', async () => {
+    it('com check-in de hoje: linha "feito" sem horário; "Editar" abre o inline derivado e um toque envia o DTO completo', async () => {
       mockHome();
+      const registrar = vi.fn().mockResolvedValue(CHECKIN_HOJE);
+      vi.mocked(useRegistrarCheckin).mockReturnValue({ registrar, loading: false, error: null });
       vi.mocked(useCheckinAtual).mockReturnValue({ checkinHoje: CHECKIN_HOJE, loading: false, error: null, fetchCheckinAtual: vi.fn().mockResolvedValue(undefined) });
       renderPage();
       expect(screen.getByText(/check-in de hoje feito/i)).toBeInTheDocument();
       expect(screen.queryByText(/\bàs\b/)).toBeNull();
       expect(screen.queryByRole('button', { name: /iniciar treino|editado hoje/i })).toBeNull();
+      expect(screen.getByText(/com base no seu check-in/i)).toBeInTheDocument();
+
       await userEvent.click(screen.getByRole('button', { name: /^editar$/i }));
+      expect(screen.getByText('Como você acordou?')).toBeInTheDocument();
+      expect(screen.getByText('Salvo')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /sono/i })).toHaveAttribute('aria-pressed', 'true');
+
+      await userEvent.click(screen.getByRole('button', { name: /humor/i })); // 3 → 1
+      await waitFor(() => expect(registrar).toHaveBeenCalledTimes(1));
+      expect(registrar).toHaveBeenCalledWith({ qualidadeSono: 9, humor: 3, doresMusculares: 0, nivelEnergia: 9, estresse: 0 });
+
+      // O modal continua como caminho de precisão, pré-preenchido.
+      await userEvent.click(screen.getByRole('button', { name: /mais detalhes/i }));
       expect(screen.getByText('Como você está hoje?')).toBeInTheDocument();
       expect(screen.getByRole('slider', { name: /qualidade do sono/i })).toHaveAttribute('aria-valuenow', '9');
       expect(screen.getByDisplayValue('Dormi bem')).toBeInTheDocument();
-      expect(screen.getByText(/com base no seu check-in/i)).toBeInTheDocument();
     });
 
     it('"Mais detalhes" do inline abre o modal; submeter chama registrar, refetcha prontidão e fecha', async () => {
@@ -235,7 +248,8 @@ describe('AthleteHomePage', () => {
       vi.mocked(useCheckinAtual).mockReturnValue({ checkinHoje: CHECKIN_HOJE, loading: false, error: null, fetchCheckinAtual: vi.fn().mockResolvedValue(undefined) });
       renderPage();
       await userEvent.click(screen.getByRole('button', { name: /^editar$/i }));
-      await userEvent.click(screen.getByRole('button', { name: /registrar/i }));
+      await userEvent.click(screen.getByRole('button', { name: /mais detalhes/i }));
+      await userEvent.click(screen.getByRole('button', { name: /^registrar$/i }));
       expect(await screen.findByText(/não foi possível salvar seu check-in/i)).toBeInTheDocument();
       expect(screen.getByText('Como você está hoje?')).toBeInTheDocument();
     });

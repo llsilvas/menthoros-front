@@ -1,6 +1,5 @@
 import type { AthleteHome } from '../../../types/AthleteHome';
 import type { TimeOfDay } from '../../../shared/design-tokens/gradients';
-import { mapTipoTreino, type WorkoutType } from '../../coach/adapters/workoutType';
 import { workoutTypeColor } from '../../../theme/activeTheme';
 
 
@@ -19,10 +18,6 @@ export function timeOfDayNow(hora: number = new Date().getHours()): TimeOfDay {
   return 'night';
 }
 
-/** WorkoutType da UI a partir do tipo do próximo treino (default seguro quando ausente). */
-export function homeWorkoutType(home: AthleteHome | null): WorkoutType {
-  return mapTipoTreino(home?.proximoTreino?.tipoTreino);
-}
 
 const TIPO_TREINO_LABEL: Readonly<Record<string, string>> = {
   REGENERATIVO: 'Regenerativo',

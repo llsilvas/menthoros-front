@@ -123,10 +123,13 @@ test.describe('Atleta — Home', () => {
 
     // O score novo é o que o GET devolveu depois do POST — não o valor otimista.
     await expect(page.getByText(/prontidão baixa/i)).toBeVisible()
-    // Refetch do check-in atual devolve o registro: o inline dá lugar à linha de estado.
-    await expect(page.getByText(/check-in de hoje feito/i)).toBeVisible()
-    await expect(page.getByRole('button', { name: /^editar$/i })).toBeVisible()
+    await expect(page.getByText('Salvo')).toBeVisible()
     await expect(page.getByText(/com base no seu check-in/i)).toBeVisible()
+
+    // Check-in existente: um toque envia o DTO completo de novo (segundo POST), sem passar pelo modal.
+    await page.getByRole('button', { name: 'Humor', exact: true }).click()
+    await expect.poll(() => posts.length).toBe(2)
+    expect(JSON.parse(posts[1])).toEqual({ qualidadeSono: 3, humor: 6, doresMusculares: 8, nivelEnergia: 3, estresse: 8 })
   })
 
   test('falha parcial (provas e kudos) vira um único Alert com Recarregar', async ({ page }) => {

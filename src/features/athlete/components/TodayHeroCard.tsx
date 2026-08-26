@@ -1,4 +1,5 @@
 import { Box, Button, Link, Typography } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { Link as RouterLink } from 'react-router';
 import { Add as AddIcon } from '@mui/icons-material';
 import { elevation } from '../../../shared/design-tokens';
@@ -40,7 +41,7 @@ export function TodayHeroCard({ nextWorkout, onRegister }: TodayHeroCardProps) {
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
         <Typography variant="overline" sx={{ color: surface[400] }}>Treino de hoje</Typography>
         {nextWorkout && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, px: 1.25, py: 0.5, borderRadius: radius.full, border: `1px solid ${cor}73`, bgcolor: `${cor}2E` }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, px: 1.25, py: 0.5, borderRadius: radius.full, border: `1px solid ${alpha(cor, 0.45)}`, bgcolor: alpha(cor, 0.18) }}>
             <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: cor }} />
             <Typography variant="caption" sx={{ color: surface[300], fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
               {nextWorkout.title}

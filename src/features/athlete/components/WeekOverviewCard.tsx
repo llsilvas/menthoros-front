@@ -1,4 +1,5 @@
 import { Box, Typography } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { LocalFireDepartment as StreakIcon, Flag as ProvaIcon, Check as CheckIcon } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -21,7 +22,7 @@ function DiaDot({ dia }: { dia: DiaOverview }) {
   let miolo: React.ReactNode;
   let sx: Record<string, unknown> = { ...base, border: `1px solid ${surface[700]}` };
   if (dia.status === 'concluido') {
-    sx = { ...base, bgcolor: `${semantic.success[500]}2E` };
+    sx = { ...base, bgcolor: alpha(semantic.success[500], 0.18) };
     miolo = <CheckIcon sx={{ fontSize: 14, color: semantic.success[500] }} />;
   } else if (dia.status === 'hoje') {
     sx = { ...base, border: `2px solid ${primary[500]}` };

@@ -26,12 +26,17 @@ export function useInlineCheckin({ checkinHoje, registrar, onSaved }: UseInlineC
   const [error, setError] = useState<Error | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ultimoSalvo = useRef<SelecaoInline>(selecao);
+  // Espelho síncrono da seleção: o updater de `setSelecao` precisa ser puro (o StrictMode o executa
+  // duas vezes), então a próxima seleção é calculada a partir daqui, fora do updater.
+  const selecaoRef = useRef<SelecaoInline>(selecao);
+  selecaoRef.current = selecao;
 
   // Check-in chegando depois da montagem (fetch assíncrono da Home): deriva a seleção uma vez.
   useEffect(() => {
     if (checkinHoje && contarPendentes(ultimoSalvo.current) > 0) {
       const derivada = selecaoDeCheckin(checkinHoje);
       ultimoSalvo.current = derivada;
+      selecaoRef.current = derivada;
       setSelecao(derivada);
       setSalvo(true);
     }
@@ -51,6 +56,7 @@ export function useInlineCheckin({ checkinHoje, registrar, onSaved }: UseInlineC
       setSalvo(true);
       await onSaved();
     } catch (e) {
+      selecaoRef.current = anterior;
       setSelecao(anterior);
       setSalvo(contarPendentes(anterior) === 0);
       setError(e instanceof Error ? e : new Error('Não foi possível salvar o check-in'));
@@ -65,27 +71,17 @@ export function useInlineCheckin({ checkinHoje, registrar, onSaved }: UseInlineC
     timer.current = setTimeout(() => { void enviar(proxima); }, DEBOUNCE_MS);
   }, [enviar]);
 
-  const aplicar = useCallback((key: CheckinItemKey, nivel: NivelInline) => {
-    setSelecao((atual) => {
-      const proxima = { ...atual, [key]: nivel };
-      const primeiroCheckin = contarPendentes(ultimoSalvo.current) > 0;
-      if (contarPendentes(proxima) === 0) agendar(proxima, primeiroCheckin);
-      return proxima;
-    });
-    setSalvo(false);
-  }, [agendar]);
-
   /** Toque: cicla 1 → 2 → 3 → 1; item sem estado começa em 1. */
   const selecionar = useCallback((key: CheckinItemKey) => {
-    const atual = selecao[key];
-    const proximo = (atual === null ? 1 : atual === 3 ? 1 : atual + 1) as NivelInline;
-    aplicar(key, proximo);
-  }, [selecao, aplicar]);
+    const atual = selecaoRef.current[key];
+    const nivel = (atual === null ? 1 : atual === 3 ? 1 : atual + 1) as NivelInline;
+    const proxima: SelecaoInline = { ...selecaoRef.current, [key]: nivel };
+    selecaoRef.current = proxima;
+    setSelecao(proxima);
+    setSalvo(false);
+    const primeiroCheckin = contarPendentes(ultimoSalvo.current) > 0;
+    if (contarPendentes(proxima) === 0) agendar(proxima, primeiroCheckin);
+  }, [agendar]);
 
-  const definir = useCallback((key: CheckinItemKey, nivel: NivelInline) => {
-    if (!(key in SELECAO_VAZIA)) return;
-    aplicar(key, nivel);
-  }, [aplicar]);
-
-  return { selecao, pendentes: contarPendentes(selecao), salvo, salvando, error, selecionar, definir };
+  return { selecao, pendentes: contarPendentes(selecao), salvo, salvando, error, selecionar };
 }

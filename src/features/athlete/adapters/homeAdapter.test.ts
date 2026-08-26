@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { timeOfDayNow, homeWorkoutType, buildNextWorkout } from './homeAdapter';
+import { timeOfDayNow, buildNextWorkout } from './homeAdapter';
 import type { AthleteHome } from '../../../types/AthleteHome';
 
 describe('homeAdapter', () => {
@@ -13,15 +13,6 @@ describe('homeAdapter', () => {
     });
   });
 
-  describe('homeWorkoutType', () => {
-    it('mapeia tipoTreino do próximo treino', () => {
-      expect(homeWorkoutType({ proximoTreino: { tipoTreino: 'INTERVALADO' } })).toBe('intervals');
-    });
-    it('default seguro sem próximo treino', () => {
-      expect(homeWorkoutType(null)).toBe('easy_run');
-      expect(homeWorkoutType({})).toBe('easy_run');
-    });
-  });
 
   describe('buildNextWorkout', () => {
     it('retorna null sem próximo treino', () => {

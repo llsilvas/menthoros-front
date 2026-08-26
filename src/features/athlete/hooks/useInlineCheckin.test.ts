@@ -63,10 +63,4 @@ describe('useInlineCheckin', () => {
     expect(result.current.salvo).toBe(true); // o que está na tela é o último estado salvo
   });
 
-  it('definir() fixa um nível sem ciclar', () => {
-    const { result } = setup(null);
-    act(() => result.current.definir('sono' as never, 2 as never));
-    act(() => result.current.definir('qualidadeSono', 2));
-    expect(result.current.selecao.qualidadeSono).toBe(2);
-  });
 });

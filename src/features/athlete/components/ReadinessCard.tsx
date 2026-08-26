@@ -35,8 +35,8 @@ export function ReadinessCard({ score, recommendation, comCheckinHoje = false }:
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.75, bgcolor: elevation.card, border: `1px solid ${surface[700]}`, borderRadius: radius.lg, px: 2, py: 1.75 }}>
-      <Box sx={{ position: 'relative', width: 56, height: 56, flexShrink: 0 }} aria-hidden>
-        <svg width="56" height="56" viewBox="0 0 56 56">
+      <Box role="img" aria-label={`Prontidão ${Math.round(score)} de 100, ${label}`} sx={{ position: 'relative', width: 56, height: 56, flexShrink: 0 }}>
+        <svg width="56" height="56" viewBox="0 0 56 56" aria-hidden>
           <circle cx="28" cy="28" r={RAIO} fill="none" stroke={surface[700]} strokeWidth="5" />
           <circle
             cx="28" cy="28" r={RAIO} fill="none" stroke={color} strokeWidth="5" strokeLinecap="round"
@@ -46,6 +46,7 @@ export function ReadinessCard({ score, recommendation, comCheckinHoje = false }:
         </svg>
         <Typography
           variant="h6"
+          aria-hidden
           sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color, fontVariantNumeric: 'tabular-nums' }}
         >
           {Math.round(score)}

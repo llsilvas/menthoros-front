@@ -1,4 +1,5 @@
 import { Alert, Box, Button, Typography } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import {
   Bedtime as SonoIcon,
   SentimentSatisfiedAlt as HumorIcon,
@@ -58,7 +59,7 @@ export function InlineCheckIn({ selecao, pendentes, salvo, salvando, error, onSe
                 sx={{
                   width: 48, height: 48, borderRadius: '50%', cursor: 'pointer', p: 0,
                   border: `2px solid ${cor}`,
-                  bgcolor: nivel === null ? 'transparent' : `${cor}29`,
+                  bgcolor: nivel === null ? 'transparent' : alpha(cor, 0.16),
                   color: cor,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   transition: 'border-color 0.15s ease, background-color 0.15s ease',
