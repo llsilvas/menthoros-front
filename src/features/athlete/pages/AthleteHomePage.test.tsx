@@ -167,8 +167,9 @@ describe('AthleteHomePage', () => {
       mockHome();
       vi.mocked(useAthleteReadiness).mockReturnValue({ readiness: null, loading: false, error: new Error('x'), fetchReadiness: noop });
       renderPage();
-      expect(screen.getByText(/prontidão indisponível/i)).toBeInTheDocument();
-      expect(screen.getAllByRole('button', { name: /recarregar/i }).length).toBeGreaterThan(0);
+      expect(screen.getByRole('alert')).toHaveTextContent(/alguns dados não carregaram: prontidão/i);
+      expect(screen.getByRole('button', { name: /recarregar/i })).toBeInTheDocument();
+      expect(screen.queryByText(/prontidão (ótima|alta|moderada|baixa)/i)).toBeNull();
     });
 
     it('oculta a prontidão quando score é null (não fabrica)', () => {
@@ -275,8 +276,8 @@ describe('AthleteHomePage', () => {
       vi.mocked(useManualTraining).mockReturnValue({ recentes: [], isFetching: false, isSubmitting: false, fetchError: new Error('x'), registrar: noop, fetchRecentes: noop });
       vi.mocked(useAthleteProvas).mockReturnValue({ provas: [], loading: false, error: new Error('y'), fetchProvas: noop });
       renderPage();
-      expect(screen.getByText(/não foi possível carregar seu streak/i)).toBeInTheDocument();
-      expect(screen.getByText(/não foi possível carregar sua próxima prova/i)).toBeInTheDocument();
+      expect(screen.getAllByRole('alert')).toHaveLength(1);
+      expect(screen.getByRole('alert')).toHaveTextContent(/streak, próxima prova/i);
       expect(screen.queryByText(/peça ao seu coach/i)).toBeNull();
     });
 
@@ -303,7 +304,7 @@ describe('AthleteHomePage', () => {
       mockHome();
       vi.mocked(useKudosRecentes).mockReturnValue({ kudos: [], loading: false, error: new Error('x'), fetchKudos: noop });
       renderPage();
-      expect(screen.getByText(/não foi possível carregar seus reconhecimentos/i)).toBeInTheDocument();
+      expect(screen.getByRole('alert')).toHaveTextContent(/reconhecimentos do coach/i);
     });
   });
 
@@ -340,7 +341,7 @@ describe('AthleteHomePage', () => {
       unmount();
       mockPlano(null, { error: new Error('x') });
       renderPage();
-      expect(screen.getByText(/Não foi possível verificar o status da sua semana/)).toBeInTheDocument();
+      expect(screen.getByRole('alert')).toHaveTextContent(/status da semana/i);
     });
   });
 
@@ -361,6 +362,17 @@ describe('AthleteHomePage', () => {
       await userEvent.click(screen.getByRole('button', { name: /close/i }));
       expect(screen.queryByText(/calibração concluída/i)).toBeNull();
       expect(dismissJustExited).toHaveBeenCalled();
+    });
+
+    it('erro de calibração entra no Alert consolidado (antes era silencioso)', async () => {
+      mockHome();
+      const fetchStatus = vi.fn().mockResolvedValue(undefined);
+      vi.mocked(useCalibracao).mockReturnValue({ status: null, justExited: false, loading: false, error: new Error('x'), fetchStatus, dismissJustExited: vi.fn() });
+      renderPage();
+      expect(screen.getAllByRole('alert')).toHaveLength(1);
+      expect(screen.getByRole('alert')).toHaveTextContent(/calibração/i);
+      await userEvent.click(screen.getByRole('button', { name: /recarregar/i }));
+      expect(fetchStatus).toHaveBeenCalledTimes(2); // montagem + retry
     });
 
     it('não exibe nenhum banner de calibração fora de CALIBRATION', () => {

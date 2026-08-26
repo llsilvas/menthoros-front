@@ -19,6 +19,7 @@ import { buildProximaProva } from '../adapters/provasAdapter';
 import { buildWeekOverview } from '../adapters/buildWeekOverview';
 import { selectWeekClosedInfo } from '../adapters/selectWeekClosedInfo';
 import { useInlineCheckin } from '../hooks/useInlineCheckin';
+import { useAthleteHomeErrors } from '../hooks/useAthleteHomeErrors';
 import { useAthleteHome } from '../../../hooks/useAthleteHome';
 import { useAthletePlan } from '../../../hooks/useAthletePlan';
 import { useCalibracao } from '../../../hooks/useCalibracao';
@@ -56,7 +57,7 @@ export default function AthleteHomePage() {
   const { checkinHoje, error: checkinAtualError, fetchCheckinAtual } = useCheckinAtual();
   const { kudos, error: kudosError, fetchKudos } = useKudosRecentes();
   const { plano, loading: planoLoading, error: planoError, fetchPlano } = useAthletePlan();
-  const { status: calibracaoStatus, justExited: calibracaoJustExited, fetchStatus: fetchCalibracao, dismissJustExited } = useCalibracao();
+  const { status: calibracaoStatus, justExited: calibracaoJustExited, error: calibracaoError, fetchStatus: fetchCalibracao, dismissJustExited } = useCalibracao();
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [inlineAberto, setInlineAberto] = useState(false);
   const [finalizandoCheckIn, setFinalizandoCheckIn] = useState(false);
@@ -64,6 +65,17 @@ export default function AthleteHomePage() {
   // persistir entre sessões (sessionStorage por semanaFim) é follow-up documentado na proposal.
   const [bannerDispensado, setBannerDispensado] = useState(false);
   const [calibracaoBannerDispensado, setCalibracaoBannerDispensado] = useState(false);
+
+  // `useCalibracao().error` entra aqui — a Home anterior não o lia e a falha era silenciosa.
+  const erros = useAthleteHomeErrors([
+    { label: 'prontidão', error: readinessError, refetch: fetchReadiness },
+    { label: 'check-in de hoje', error: checkinAtualError, refetch: fetchCheckinAtual },
+    { label: 'streak', error: treinosError, refetch: fetchTreinos },
+    { label: 'próxima prova', error: provasError, refetch: fetchProvas },
+    { label: 'reconhecimentos do coach', error: kudosError, refetch: fetchKudos },
+    { label: 'status da semana', error: planoError, refetch: fetchPlano },
+    { label: 'calibração', error: calibracaoError, refetch: fetchCalibracao },
+  ]);
 
   const inline = useInlineCheckin({
     checkinHoje,
@@ -162,13 +174,13 @@ export default function AthleteHomePage() {
         />
       )}
 
-      {planoError && (
+      {erros.hasErrors && (
         <Alert
           severity="warning"
           variant="outlined"
-          action={<Button color="inherit" size="small" onClick={fetchPlano}>Recarregar</Button>}
+          action={<Button color="inherit" size="small" onClick={erros.retryAll}>Recarregar</Button>}
         >
-          Não foi possível verificar o status da sua semana.
+          Alguns dados não carregaram: {erros.failed.join(', ')}.
         </Alert>
       )}
 
@@ -179,16 +191,6 @@ export default function AthleteHomePage() {
         </Typography>
         <Typography variant="h3">{SAUDACAO[timeOfDayNow()]}, {athleteName}</Typography>
       </Box>
-
-      {checkinAtualError && (
-        <Alert
-          severity="warning"
-          variant="outlined"
-          action={<Button color="inherit" size="small" onClick={fetchCheckinAtual}>Recarregar</Button>}
-        >
-          Não foi possível confirmar se você já fez o check-in de hoje.
-        </Alert>
-      )}
 
       {mostrarInline ? (
         <InlineCheckIn
@@ -213,51 +215,12 @@ export default function AthleteHomePage() {
         onRegister={() => navigate(ROUTES.ATHLETE_TRAINING_LOG)}
       />
 
-      {readinessError ? (
-        <Alert
-          severity="warning"
-          variant="outlined"
-          action={<Button color="inherit" size="small" onClick={fetchReadiness}>Recarregar</Button>}
-        >
-          Prontidão indisponível no momento.
-        </Alert>
-      ) : (
-        readiness?.score != null && (
-          <ReadinessCard score={readiness.score} recommendation={readiness.nota} comCheckinHoje={checkinHoje !== null} />
-        )
+      {!readinessError && readiness?.score != null && (
+        <ReadinessCard score={readiness.score} recommendation={readiness.nota} comCheckinHoje={checkinHoje !== null} />
       )}
 
-      {treinosError && (
-        <Alert
-          severity="warning"
-          variant="outlined"
-          action={<Button color="inherit" size="small" onClick={fetchTreinos}>Recarregar</Button>}
-        >
-          Não foi possível carregar seu streak de treinos.
-        </Alert>
-      )}
+      {!treinosLoading && !treinosError && <WeekOverviewCard overview={overview} provaConhecida={!provasLoading && !provasError} />}
 
-      {provasError && (
-        <Alert
-          severity="warning"
-          variant="outlined"
-          action={<Button color="inherit" size="small" onClick={fetchProvas}>Recarregar</Button>}
-        >
-          Não foi possível carregar sua próxima prova.
-        </Alert>
-      )}
-
-      {!treinosLoading && <WeekOverviewCard overview={overview} provaConhecida={!provasLoading && !provasError} />}
-
-      {kudosError && (
-        <Alert
-          severity="warning"
-          variant="outlined"
-          action={<Button color="inherit" size="small" onClick={fetchKudos}>Recarregar</Button>}
-        >
-          Não foi possível carregar seus reconhecimentos do coach.
-        </Alert>
-      )}
       <KudosCard kudos={kudos} />
 
       {/* Forma em linguagem simples; os números (CTL/ATL/TSB) vivem no Progresso (D1) */}
