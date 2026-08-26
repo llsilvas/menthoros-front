@@ -38,6 +38,9 @@ export default function AthleteLayout() {
         <AthleteBottomNav
           activeRoute={activeRoute}
           onNavigate={handleNavigate}
+          // Ponto de injeção do badge do Coach: a contagem vem de `add-athlete-coach-messaging`
+          // (Sprint 28); até lá não há fonte — `0` é o valor honesto, não um mock.
+          unreadCoachMessages={0}
         />
       </Box>
     </ThemeProvider>

@@ -1,17 +1,13 @@
-import { useState } from 'react';
 import { Box } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import ForumIcon from '@mui/icons-material/Forum';
 import PersonIcon from '@mui/icons-material/Person';
-import LogoutIcon from '@mui/icons-material/Logout';
 import type { AthleteRoute } from '../../constants/routes';
 import { elevation } from '../design-tokens/elevation';
 import { primary, surface, semantic } from '../design-tokens/colors';
 import { content } from '../../theme/tokens';
-import { ConfirmDialog } from './ConfirmDialog';
-import { useAuth } from '../../context/auth/useAuth';
 
 interface AthleteBottomNavProps {
   activeRoute: AthleteRoute;
@@ -27,41 +23,14 @@ const NAV_ITEMS = [
   { route: '/athlete/profile',  label: 'Perfil',    Icon: PersonIcon    },
 ] as const satisfies ReadonlyArray<{ route: AthleteRoute; label: string; Icon: React.ElementType }>;
 
-/**
- * Sair entra na barra com `route: null` — não é destino, é ação.
- *
- * A distinção importa para a acessibilidade: só os cinco primeiros recebem `aria-current`, e o
- * leitor de tela não anuncia "Sair" como página. Fica por último, o mais longe possível do primeiro
- * item, e a confirmação é o que protege do toque acidental — a barra tem seis alvos em ~375px.
- */
-const ITEM_SAIR = { route: null, label: 'Sair', Icon: LogoutIcon } as const;
-
-const ITENS: ReadonlyArray<{ route: AthleteRoute | null; label: string; Icon: React.ElementType }> =
-  [...NAV_ITEMS, ITEM_SAIR];
+// "Sair" saiu da barra em 2026-08-26 (athlete-home-restructure): era o sexto alvo em ~375px e não é
+// destino de navegação — vive no Perfil, com a mesma confirmação (`LogoutButton`).
 
 export function AthleteBottomNav({
   activeRoute,
   unreadCoachMessages = 0,
   onNavigate,
 }: AthleteBottomNavProps) {
-  const { logout } = useAuth();
-  const [confirmandoSaida, setConfirmandoSaida] = useState(false);
-  const [saindo, setSaindo] = useState(false);
-  const [erroSaida, setErroSaida] = useState('');
-
-  const executarLogout = async () => {
-    setSaindo(true);
-    setErroSaida('');
-    try {
-      await logout();
-      // Sucesso: a página navega para o Keycloak; nada depois disto executa.
-    } catch {
-      // Dialogo permanece aberto: fechar faria parecer que saiu, com o usuário ainda autenticado.
-      setSaindo(false);
-      setErroSaida('Não foi possível sair agora. Tente novamente.');
-    }
-  };
-
   return (
     <Box
       component="nav"
@@ -77,19 +46,18 @@ export function AthleteBottomNav({
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       }}
     >
-      {ITENS.map(({ route, label, Icon }) => {
-        const isActive = route !== null && activeRoute === route;
+      {NAV_ITEMS.map(({ route, label, Icon }) => {
+        const isActive = activeRoute === route;
         const isCoach = route === '/athlete/coach';
         const showBadge = isCoach && unreadCoachMessages > 0;
-        const ehSair = route === null;
 
         return (
           <Box
-            key={route ?? 'sair'}
+            key={route}
             component="button"
             aria-label={label}
             aria-current={isActive ? 'page' : undefined}
-            onClick={() => (ehSair ? setConfirmandoSaida(true) : onNavigate(route))}
+            onClick={() => onNavigate(route)}
             sx={{
               flex: 1,
               minHeight: 44, // touch target mínimo (WCAG 2.5.5)
@@ -156,19 +124,6 @@ export function AthleteBottomNav({
         );
       })}
 
-      <ConfirmDialog
-        open={confirmandoSaida}
-        title="Sair da conta"
-        message={erroSaida || 'Você será desconectado e precisará entrar novamente para acessar seus dados.'}
-        confirmLabel="Sair"
-        cancelLabel="Cancelar"
-        loading={saindo}
-        onClose={() => {
-          setConfirmandoSaida(false);
-          setErroSaida('');
-        }}
-        onConfirm={executarLogout}
-      />
     </Box>
   );
 }
