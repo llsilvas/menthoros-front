@@ -70,6 +70,9 @@ export function AthleteBottomNav({
               background: 'none',
               cursor: 'pointer',
               padding: 0,
+              // <button> não herda fonte (sairia em Arial) e o body global é Syne: a família vem do
+              // tema mais próximo — o do shell do atleta.
+              fontFamily: (t) => t.typography.fontFamily,
               color: isActive ? primary[500] : surface[500],
               transition: 'color 0.15s ease',
               '&:focus-visible': {
@@ -111,7 +114,8 @@ export function AthleteBottomNav({
             <Box
               component="span"
               sx={{
-                fontSize: '0.625rem',
+                // 11px: piso da escala (`typography.xs`); 10px ficava abaixo do mínimo legível.
+                fontSize: '0.6875rem',
                 fontWeight: isActive ? 600 : 400,
                 color: 'inherit',
                 lineHeight: 1.2,
