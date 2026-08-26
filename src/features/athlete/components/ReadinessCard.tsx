@@ -1,31 +1,14 @@
-import { Box, Tooltip, Typography } from '@mui/material';
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import TrendingFlatIcon from '@mui/icons-material/TrendingFlat';
-import TrendingDownIcon from '@mui/icons-material/TrendingDown';
+import { Box, Typography } from '@mui/material';
 import { surface } from '../../../theme/tokens';
 import { activeTheme } from '../../../theme/activeTheme';
 import { elevation } from '../../../shared/design-tokens';
+import { radius } from '../../../shared/design-tokens/density';
 
 export interface ReadinessCardProps {
   score: number; // 0-100
-  /**
-   * Sub-fatores de readiness. Opcional: o backend hoje não expõe recovery/fatigue/sleep
-   * granulares (ver change `wire-athlete-shell-to-endpoints` D0.3) — o card usa apenas o `score`.
-   */
-  factors?: {
-    recovery: number;
-    fatigue: number;
-    sleep?: number;
-    hrv?: number;
-  };
-  /**
-   * Tendência da prontidão. Opcional: o backend não expõe série de tendência hoje
-   * (ver `wire-athlete-shell-to-endpoints` D0.3) — quando ausente, o bloco de tendência
-   * não é renderizado, em vez de fabricar "Estável".
-   */
-  trend?: 'improving' | 'stable' | 'declining';
   recommendation?: string;
+  /** Mostra a origem ("com base no seu check-in") só quando há check-in de hoje — não afirma o que não sabe. */
+  comCheckinHoje?: boolean;
 }
 
 interface ReadinessLevel {
@@ -33,142 +16,53 @@ interface ReadinessLevel {
   color: string;
 }
 
+// Bandas herdadas do card anterior; o backend é dono da classificação oficial (NivelProntidao) —
+// aqui é só apresentação do score 0–100 que o `me/readiness` devolve.
 function getReadinessLevel(score: number): ReadinessLevel {
-  if (score >= 90) return { label: 'Ótima',    color: activeTheme.readiness.optimal  };
-  if (score >= 70) return { label: 'Alta',     color: activeTheme.readiness.good      };
-  if (score >= 40) return { label: 'Moderada', color: activeTheme.readiness.caution   };
-  return               { label: 'Baixa',    color: activeTheme.readiness.critical  };
+  if (score >= 90) return { label: 'ótima',    color: activeTheme.readiness.optimal  };
+  if (score >= 70) return { label: 'alta',     color: activeTheme.readiness.good      };
+  if (score >= 40) return { label: 'moderada', color: activeTheme.readiness.caution   };
+  return               { label: 'baixa',    color: activeTheme.readiness.critical  };
 }
 
-interface TrendConfig {
-  icon: React.ReactNode;
-  label: string;
-}
+const RAIO = 24;
+const CIRCUNFERENCIA = 2 * Math.PI * RAIO;
 
-function getTrendConfig(trend: ReadinessCardProps['trend']): TrendConfig {
-  switch (trend) {
-    case 'improving':
-      return { icon: <TrendingUpIcon sx={{ fontSize: 16 }} />, label: 'Melhorando' };
-    case 'declining':
-      return { icon: <TrendingDownIcon sx={{ fontSize: 16 }} />, label: 'Caindo' };
-    case 'stable':
-    default:
-      return { icon: <TrendingFlatIcon sx={{ fontSize: 16 }} />, label: 'Estável' };
-  }
-}
-
-const TOOLTIP_EXPLANATION =
-  'A prontidão combina recuperação muscular, nível de fadiga acumulada, qualidade do sono e variabilidade da frequência cardíaca (HRV). Quanto maior o valor, mais preparado você está para treinar com alta intensidade.';
-
-export function ReadinessCard({ score, trend, recommendation }: ReadinessCardProps) {
+/** Prontidão em uma linha (D1): anel de 56px, rótulo e recomendação — não um bloco centralizado. */
+export function ReadinessCard({ score, recommendation, comCheckinHoje = false }: ReadinessCardProps) {
   const { label, color } = getReadinessLevel(score);
-  const trendConfig = trend ? getTrendConfig(trend) : null;
+  const pct = Math.max(0, Math.min(100, score));
 
   return (
-    <Box
-      sx={{
-        bgcolor: elevation.card,
-        borderRadius: 1,
-        p: 2.5,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 2,
-      }}
-    >
-      {/* Cabeçalho */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.75, bgcolor: elevation.card, border: `1px solid ${surface[700]}`, borderRadius: radius.lg, px: 2, py: 1.75 }}>
+      <Box sx={{ position: 'relative', width: 56, height: 56, flexShrink: 0 }} aria-hidden>
+        <svg width="56" height="56" viewBox="0 0 56 56">
+          <circle cx="28" cy="28" r={RAIO} fill="none" stroke={surface[700]} strokeWidth="5" />
+          <circle
+            cx="28" cy="28" r={RAIO} fill="none" stroke={color} strokeWidth="5" strokeLinecap="round"
+            strokeDasharray={`${(pct / 100) * CIRCUNFERENCIA} ${CIRCUNFERENCIA}`}
+            transform="rotate(-90 28 28)"
+          />
+        </svg>
         <Typography
-          sx={{
-            color: surface[50],
-            fontSize: '0.9rem',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: 0.5,
-          }}
+          variant="h6"
+          sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color, fontVariantNumeric: 'tabular-nums' }}
         >
-          Prontidão
-        </Typography>
-        <Tooltip title={TOOLTIP_EXPLANATION} arrow placement="top">
-          <InfoOutlinedIcon sx={{ color: surface[400], fontSize: 18, cursor: 'help' }} />
-        </Tooltip>
-      </Box>
-
-      {/* Círculo com score */}
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 1,
-        }}
-      >
-        <Box
-          sx={{
-            width: 80,
-            height: 80,
-            borderRadius: '50%',
-            border: `3px solid ${color}`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Typography
-            sx={{
-              fontSize: '1.8rem',
-              fontWeight: 800,
-              color,
-              lineHeight: 1,
-            }}
-          >
-            {Math.round(score)}
-          </Typography>
-        </Box>
-
-        <Typography
-          sx={{
-            fontSize: '0.9rem',
-            fontWeight: 600,
-            color,
-          }}
-        >
-          {label}
+          {Math.round(score)}
         </Typography>
       </Box>
 
-      {/* Tendência — só quando há série real (sem fabricar) */}
-      {trendConfig && (
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 0.5,
-            color: surface[400],
-          }}
-        >
-          {trendConfig.icon}
-          <Typography sx={{ fontSize: '0.82rem', color: surface[400] }}>
-            Tendência:{' '}
-            <Box component="span" sx={{ color: surface[50], fontWeight: 600 }}>
-              {trendConfig.label}
-            </Box>
-          </Typography>
+      <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75, flexWrap: 'wrap' }}>
+          <Typography variant="body1" sx={{ fontWeight: 600 }}>Prontidão {label}</Typography>
+          {comCheckinHoje && (
+            <Typography variant="caption" sx={{ color: surface[500] }}>com base no seu check-in</Typography>
+          )}
         </Box>
-      )}
-
-      {/* Recomendação */}
-      {recommendation && (
-        <Typography
-          sx={{
-            fontSize: '0.82rem',
-            color: surface[400],
-            fontStyle: 'italic',
-            lineHeight: 1.4,
-          }}
-        >
-          &ldquo;{recommendation}&rdquo;
-        </Typography>
-      )}
+        {recommendation && (
+          <Typography variant="body2" sx={{ color: surface[400] }}>{recommendation}</Typography>
+        )}
+      </Box>
     </Box>
   );
 }
