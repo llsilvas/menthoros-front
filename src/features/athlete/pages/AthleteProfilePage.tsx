@@ -12,7 +12,7 @@ export default function AthleteProfilePage() {
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
         <ProfileIcon sx={{ color: primary[500], fontSize: 28 }} />
         <Box>
-          <Typography variant="h5" sx={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, color: surface[50] }}>
+          <Typography variant="h5" sx={{ color: surface[50] }}>
             Perfil
           </Typography>
           <Typography variant="body2" sx={{ color: surface[400] }}>

@@ -55,7 +55,7 @@ export function IntervalsIcuConnectionCard() {
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <LinkIcon sx={{ color: primary[500], fontSize: 20 }} />
-        <Typography sx={{ color: surface[50], fontSize: '1.1rem', fontWeight: 800, fontFamily: 'Syne, sans-serif' }}>
+        <Typography variant="h6" sx={{ color: surface[50] }}>
           Conexões — intervals.icu
         </Typography>
       </Box>

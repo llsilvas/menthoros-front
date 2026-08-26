@@ -139,7 +139,6 @@ export function QuickCheckInModal({
       <DialogTitle
         sx={{
           color: surface[50],
-          fontFamily: 'Syne, sans-serif',
           fontWeight: 800,
           fontSize: '1.15rem',
           pb: 0.5,

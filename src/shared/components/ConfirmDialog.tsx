@@ -34,7 +34,7 @@ export function ConfirmDialog({
 
     return (
         <Dialog open={open} onClose={loading ? undefined : onClose} maxWidth="xs" fullWidth>
-            <DialogTitle sx={{ fontFamily: 'Syne, sans-serif', fontWeight: 800 }}>{title}</DialogTitle>
+            <DialogTitle sx={{ fontFamily: (t) => t.typography.h4.fontFamily, fontWeight: 800 }}>{title}</DialogTitle>
             <DialogContent>
                 <DialogContentText sx={{ color: surface[200] }}>{message}</DialogContentText>
             </DialogContent>

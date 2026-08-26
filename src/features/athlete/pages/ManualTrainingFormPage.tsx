@@ -83,7 +83,6 @@ export default function ManualTrainingFormPage() {
                         color: surface[50],
                         fontSize: '1.4rem',
                         fontWeight: 800,
-                        fontFamily: 'Syne, sans-serif',
                     }}
                 >
                     Registrar treino
