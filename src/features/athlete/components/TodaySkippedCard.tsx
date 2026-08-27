@@ -2,11 +2,7 @@ import { Box, Button, Typography } from '@mui/material';
 import { elevation } from '../../../shared/design-tokens';
 import { radius } from '../../../shared/design-tokens/density';
 import { surface, primary } from '../../../theme/tokens';
-import type { MotivoPulo } from '../../../types/AthleteWorkoutToday';
-
-const MOTIVO_LABELS: Record<MotivoPulo, string> = {
-  SEM_TEMPO: 'sem tempo', CANSADO: 'cansaço', DOR: 'dor', OUTRO: 'outro motivo',
-};
+import { MOTIVO_PULO_LABELS, type MotivoPulo } from '../../../types/AthleteWorkoutToday';
 
 export interface TodaySkippedCardProps {
   motivoPulo?: string;
@@ -15,7 +11,7 @@ export interface TodaySkippedCardProps {
 
 /** Hero quando o atleta pulou o treino de hoje (D1, estado PULADO). */
 export function TodaySkippedCard({ motivoPulo, onRegister }: TodaySkippedCardProps) {
-  const label = motivoPulo && motivoPulo in MOTIVO_LABELS ? MOTIVO_LABELS[motivoPulo as MotivoPulo] : null;
+  const label = motivoPulo && motivoPulo in MOTIVO_PULO_LABELS ? MOTIVO_PULO_LABELS[motivoPulo as MotivoPulo] : null;
 
   return (
     <Box

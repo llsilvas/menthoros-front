@@ -37,3 +37,12 @@ export interface TreinoHoje {
 }
 
 export type MotivoPulo = 'SEM_TEMPO' | 'CANSADO' | 'DOR' | 'OUTRO';
+
+/**
+ * Única fonte do rótulo em prosa ("Motivo: {label}.") — achado do QA (clean-code + frontend
+ * review): três cópias deste mapa já tinham divergido (`'cansaço'` vs `'Cansado'`). O
+ * `SkipWorkoutDialog` usa os mesmos valores capitalizados para os chips de escolha.
+ */
+export const MOTIVO_PULO_LABELS: Record<MotivoPulo, string> = {
+  SEM_TEMPO: 'sem tempo', CANSADO: 'cansaço', DOR: 'dor', OUTRO: 'outro motivo',
+};

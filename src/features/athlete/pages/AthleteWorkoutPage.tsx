@@ -9,13 +9,10 @@ import { WorkoutProfile } from '../../workout/profile';
 import { buildTodayWorkoutProfile, formatAlvoEtapa } from '../adapters/buildTodayWorkoutProfile';
 import { tipoTreinoLabel } from '../adapters/homeAdapter';
 import { SkipWorkoutDialog } from '../components/SkipWorkoutDialog';
+import { TodaySkippedCard } from '../components/TodaySkippedCard';
 import { useTodayWorkout } from '../hooks/useTodayWorkout';
 import { ROUTES } from '../../../constants/routes';
 import type { MotivoPulo } from '../../../types/AthleteWorkoutToday';
-
-const MOTIVO_LABELS: Record<MotivoPulo, string> = {
-  SEM_TEMPO: 'sem tempo', CANSADO: 'cansaço', DOR: 'dor', OUTRO: 'outro motivo',
-};
 
 export default function AthleteWorkoutPage() {
   const navigate = useNavigate();
@@ -68,17 +65,8 @@ export default function AthleteWorkoutPage() {
 
   if (treino.statusTreino === 'PERDIDO') {
     return (
-      <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <Typography variant="h4">Você pulou hoje</Typography>
-        <Typography variant="body1" sx={{ color: surface[300] }}>
-          {treino.motivoPulo && (MOTIVO_LABELS as Record<string, string>)[treino.motivoPulo]
-            ? `Motivo: ${(MOTIVO_LABELS as Record<string, string>)[treino.motivoPulo]}.`
-            : 'Sem motivo registrado.'}{' '}
-          Seu coach vê isso no plano da semana.
-        </Typography>
-        <Button variant="contained" onClick={registrar} sx={{ bgcolor: primary[500], color: elevation.base, minHeight: 48, fontWeight: 700 }}>
-          Registrar mesmo assim
-        </Button>
+      <Box sx={{ p: 2 }}>
+        <TodaySkippedCard motivoPulo={treino.motivoPulo} onRegister={registrar} />
       </Box>
     );
   }

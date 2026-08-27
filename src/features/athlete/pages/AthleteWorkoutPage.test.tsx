@@ -103,7 +103,7 @@ describe('AthleteWorkoutPage', () => {
   it('treino já pulado: estado de pulo, sem etapas nem "Concluí o treino"', () => {
     mock({ treino: { ...TREINO, statusTreino: 'PERDIDO', motivoPulo: 'DOR' } });
     renderPage();
-    expect(screen.getByText(/você pulou hoje/i)).toBeInTheDocument();
+    expect(screen.getByText(/hoje você pulou/i)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /concluí o treino/i })).toBeNull();
     expect(screen.getByRole('button', { name: /registrar mesmo assim/i })).toBeInTheDocument();
   });

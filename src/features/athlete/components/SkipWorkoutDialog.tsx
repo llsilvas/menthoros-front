@@ -1,16 +1,14 @@
 import { useState } from 'react';
 import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Typography } from '@mui/material';
 import { primary, surface, content, backgrounds } from '../../../theme/tokens';
-import type { MotivoPulo } from '../../../types/AthleteWorkoutToday';
+import { MOTIVO_PULO_LABELS, type MotivoPulo } from '../../../types/AthleteWorkoutToday';
 
-const MOTIVO_LABELS: Record<MotivoPulo, string> = {
-  SEM_TEMPO: 'Sem tempo',
-  CANSADO: 'Cansado',
-  DOR: 'Dor',
-  OUTRO: 'Outro',
-};
+const MOTIVOS = Object.keys(MOTIVO_PULO_LABELS) as MotivoPulo[];
 
-const MOTIVOS = Object.keys(MOTIVO_LABELS) as MotivoPulo[];
+/** Chip é rótulo, não frase — só a primeira letra maiúscula, mesma fonte de `MOTIVO_PULO_LABELS`. */
+function capitalizar(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
 
 export interface SkipWorkoutDialogProps {
   open: boolean;
@@ -35,7 +33,7 @@ export function SkipWorkoutDialog({ open, onClose, onConfirm, submitting = false
           {MOTIVOS.map((m) => (
             <Chip
               key={m}
-              label={MOTIVO_LABELS[m]}
+              label={capitalizar(MOTIVO_PULO_LABELS[m])}
               onClick={() => setMotivo((atual) => (atual === m ? undefined : m))}
               role="radio"
               aria-checked={motivo === m}

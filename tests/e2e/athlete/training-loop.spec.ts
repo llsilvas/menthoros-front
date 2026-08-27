@@ -94,7 +94,7 @@ test.describe('Atleta — Ciclo do treino (modo treino)', () => {
     pulado = true
     await page.getByRole('button', { name: /confirmar/i }).click()
 
-    await expect(page.getByText(/você pulou hoje/i)).toBeVisible()
+    await expect(page.getByText(/hoje você pulou/i)).toBeVisible()
     await expect(page.getByText(/dor/i)).toBeVisible()
 
     // O Plano, consultado no mesmo dia, também mostra o pulo (PERDIDO → status "pulado",
