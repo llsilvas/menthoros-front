@@ -32,7 +32,11 @@ export default function AthleteLayout() {
       >
         <ErrorBoundary>
           <Box sx={{ flex: 1, overflow: 'auto' }}>
-            <Outlet />
+            {/* Desktop: as telas são pensadas para o telefone; acima de 900px limitam-se a 640px
+                centralizados (athlete-plan-agenda D1) — sem voltar a layouts de largura total. */}
+            <Box sx={{ maxWidth: { xs: 'none', md: 640 }, mx: 'auto' }}>
+              <Outlet />
+            </Box>
           </Box>
         </ErrorBoundary>
         <AthleteBottomNav

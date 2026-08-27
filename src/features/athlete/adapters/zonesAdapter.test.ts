@@ -15,10 +15,16 @@ describe('zonesAdapter', () => {
       expect(result).toBeNull();
     });
 
-    it('arredonda os percentuais para inteiro', () => {
+    it('arredonda para inteiro e fecha em 100: a diferença do arredondamento vai para a maior zona', () => {
+      // 33+33+33 = 99 → a primeira das maiores (empate) absorve o resto.
       const result = buildZoneDistributionPercent({ z1: 1, z2: 1, z3: 1, z4: 0, z5: 0, duracaoTotalSegundos: 3 });
 
-      expect(result).toEqual({ z1: 33, z2: 33, z3: 33, z4: 0, z5: 0 });
+      expect(result).toEqual({ z1: 34, z2: 33, z3: 33, z4: 0, z5: 0 });
+    });
+
+    it('não mexe quando já soma 100', () => {
+      expect(buildZoneDistributionPercent({ z1: 12, z2: 62, z3: 10, z4: 13, z5: 3, duracaoTotalSegundos: 100 }))
+        .toEqual({ z1: 12, z2: 62, z3: 10, z4: 13, z5: 3 });
     });
   });
 });
