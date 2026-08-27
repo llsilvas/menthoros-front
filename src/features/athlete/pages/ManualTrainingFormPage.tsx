@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Box, CircularProgress, Snackbar, Typography } from '@mui/material';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { isSameDay, parseISO } from 'date-fns';
 import { surface, glassSx, primary } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
@@ -17,6 +17,16 @@ import { ROUTES } from '../../../constants/routes';
 
 export default function ManualTrainingFormPage() {
     const navigate = useNavigate();
+    // Vindo de "Concluí o treino" (modo treino): tipo e duração planejada pré-preenchem o
+    // formulário. `state` é `unknown` no tipo do router — validado campo a campo, não confiado.
+    const location = useLocation();
+    const state = location.state as { tipo?: unknown; duracaoMinutos?: unknown } | null;
+    const initial = state && (typeof state.tipo === 'string' || typeof state.duracaoMinutos === 'number')
+        ? {
+            tipo: typeof state.tipo === 'string' ? state.tipo : undefined,
+            duracaoMinutos: typeof state.duracaoMinutos === 'number' ? state.duracaoMinutos : undefined,
+        }
+        : undefined;
     const { recentes, isFetching, isSubmitting, fetchError, registrar, fetchRecentes } = useManualTraining(7);
     const { upload, uploading, reset: resetFitUpload } = useFitUpload();
     const { status: calibracaoStatus, fetchStatus: fetchCalibracao } = useCalibracao();
@@ -123,6 +133,7 @@ export default function ManualTrainingFormPage() {
                         loading={isSubmitting}
                         hasTreinoHoje={hasTreinoHoje}
                         emCalibracao={Boolean(calibracaoStatus)}
+                        initial={initial}
                         onSubmit={handleSubmit}
                     />
                 )}

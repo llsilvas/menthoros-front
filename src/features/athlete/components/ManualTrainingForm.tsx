@@ -39,19 +39,27 @@ export interface ManualTrainingFormProps {
      * só RPE é perguntado.
      */
     emCalibracao?: boolean;
+    /** Pré-preenche a partir do treino planejado de hoje (modo treino, "Concluí o treino"). */
+    initial?: { tipo?: string; duracaoMinutos?: number };
     onSubmit: (input: TreinoManualInput) => Promise<void>;
 }
 
-export function ManualTrainingForm({ loading, hasTreinoHoje, emCalibracao = false, onSubmit }: ManualTrainingFormProps) {
+export function ManualTrainingForm({ loading, hasTreinoHoje, emCalibracao = false, initial, onSubmit }: ManualTrainingFormProps) {
     const [hoje, minData] = useMemo(() => {
         const today = format(new Date(), 'yyyy-MM-dd');
         const min = format(subDays(new Date(), 7), 'yyyy-MM-dd');
         return [today, min];
     }, []);
 
-    const [tipo, setTipo] = useState<TipoTreino>('CONTINUO');
+    // O tipo vindo do modo treino é o mesmo enum do backend (TipoTreino); fora da lista, o
+    // default de sempre — não trava o formulário por um valor que a UI não reconhece.
+    const tipoInicial: TipoTreino = initial?.tipo && (initial.tipo in TIPO_TREINO_LABELS)
+        ? (initial.tipo as TipoTreino)
+        : 'CONTINUO';
+
+    const [tipo, setTipo] = useState<TipoTreino>(tipoInicial);
     const [data, setData] = useState(hoje);
-    const [duracaoMinutos, setDuracaoMinutos] = useState<number | ''>(45);
+    const [duracaoMinutos, setDuracaoMinutos] = useState<number | ''>(initial?.duracaoMinutos ?? 45);
     const [distanciaKm, setDistanciaKm] = useState<number | ''>('');
     const [rpe, setRpe] = useState<number>(6);
     const [observacoes, setObservacoes] = useState('');

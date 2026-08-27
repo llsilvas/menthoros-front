@@ -30,6 +30,7 @@ export const ROUTES = {
     ATHLETE_PROFILE:      '/athlete/profile',
     ATHLETE_TRAINING_LOG: '/athlete/training/log',
     ATHLETE_ONBOARDING:   '/athlete/onboarding',
+    ATHLETE_WORKOUT_TODAY: '/athlete/workout/today',
 } as const;
 
 export type CoachRoute =
@@ -47,4 +48,5 @@ export type AthleteRoute =
     | '/athlete/coach'
     | '/athlete/profile'
     | '/athlete/training/log'
-    | '/athlete/onboarding';
+    | '/athlete/onboarding'
+    | '/athlete/workout/today';
