@@ -1,3 +1,4 @@
+import { format } from 'date-fns';
 import type { PlanoSemanal } from '../../../types/PlanoSemanal';
 
 /**
@@ -11,7 +12,9 @@ import type { PlanoSemanal } from '../../../types/PlanoSemanal';
  */
 export function selectAthletePlan(
   response: PlanoSemanal | PlanoSemanal[] | null | undefined,
-  hoje: string = new Date().toISOString().slice(0, 10),
+  // Data LOCAL: `toISOString()` é UTC — às 23:30 de domingo em UTC-3 já é segunda em UTC, e o
+  // seletor escolheria a semana seguinte (design D2b).
+  hoje: string = format(new Date(), 'yyyy-MM-dd'),
 ): PlanoSemanal | null {
   const planos = response == null ? [] : Array.isArray(response) ? response : [response];
   if (planos.length === 0) return null;

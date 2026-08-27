@@ -6,7 +6,7 @@ import { workoutTypeColor } from '../../../theme/activeTheme';
 export interface HomeNextWorkout {
   title: string;
   description: string;
-  /** Cor do tipo de treino — fonte única `workoutTypeColor()` (mesmo padrão do DayCard/Plano). */
+  /** Cor do tipo de treino — fonte única `workoutTypeColor()` (mesma fonte do Plano). */
   color: string;
 }
 

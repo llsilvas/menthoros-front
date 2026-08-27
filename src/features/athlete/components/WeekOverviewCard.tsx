@@ -7,14 +7,13 @@ import { elevation } from '../../../shared/design-tokens';
 import { radius } from '../../../shared/design-tokens/density';
 import { primary, surface, semantic } from '../../../theme/tokens';
 import type { DiaOverview, WeekOverview } from '../adapters/buildWeekOverview';
+import { formatKm } from '../../../utils/formatKm';
 
 export interface WeekOverviewCardProps {
   overview: WeekOverview;
   /** `false` enquanto as provas carregam ou falharam — não sugerir "sem meta" sem saber. */
   provaConhecida?: boolean;
 }
-
-const fmtKm = (v: number) => v.toFixed(1).replace('.', ',');
 
 function DiaDot({ dia }: { dia: DiaOverview }) {
   const letra = format(dia.date, 'EEEEE', { locale: ptBR }).toUpperCase();
@@ -65,7 +64,7 @@ export function WeekOverviewCard({ overview, provaConhecida = true }: WeekOvervi
         <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
           <Typography variant="body2" sx={{ color: surface[400] }}>Volume</Typography>
           <Typography variant="body2" sx={{ fontVariantNumeric: 'tabular-nums' }}>
-            <Box component="strong" sx={{ fontWeight: 600 }}>{fmtKm(volumeRealizadoKm)}</Box>
+            <Box component="strong" sx={{ fontWeight: 600 }}>{formatKm(volumeRealizadoKm)}</Box>
             {volumePlanejadoKm !== null
               ? <Box component="span" sx={{ color: surface[500] }}> / {volumePlanejadoKm} km</Box>
               : <Box component="span" sx={{ color: surface[500] }}> km</Box>}

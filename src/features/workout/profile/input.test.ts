@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { fromEtapaTreino, fromEtapaTreinoDto, fromEtapaItens } from './input';
+import { fromEtapaTreino, fromEtapaTreinoDto, fromEtapaItens, indexarRepeticoes } from './input';
+import { selectWorkoutProfile } from './selectWorkoutProfile';
 import type { EtapaTreino } from '../../../types/TreinoPlanejado';
 import type { EtapaTreinoDto } from '../../../types/PlanoReview';
 import type { EtapaItem } from '../../coach/components/etapas/etapaItem';
@@ -17,9 +18,9 @@ describe('fromEtapaTreino — detalhe do treino', () => {
     expect(fromEtapaTreino({ tipoEtapa: 'PRINCIPAL', duracaoMin: 20 }).tipo).toBe('PRINCIPAL');
   });
 
-  // O tipo do detalhe não tem blocoId, e inferir grupo por igualdade de rótulo
+  // Sem bloco na origem, nada de bloco na saída — inferir grupo por igualdade de rótulo
   // seria adivinhação apresentada como estrutura.
-  it('nunca produz blocoId — o tipo de origem não tem essa informação', () => {
+  it('não inventa blocoId quando a etapa não vem de um bloco', () => {
     const entrada = fromEtapaTreino({ tipoEtapa: 'INTERVALADO', duracaoMin: 3, repeticoes: 5 });
     expect(entrada.blocoId).toBeUndefined();
     expect(entrada.blocoRepeticoes).toBeUndefined();
@@ -107,5 +108,56 @@ describe('fromEtapaItens — editor ao vivo', () => {
     expect(tipos[0]).toBe('AQUECIMENTO');
     expect(tipos[tipos.length - 1]).toBe('DESAQUECIMENTO');
     expect(tipos).toHaveLength(12);
+  });
+});
+
+describe('indexarRepeticoes — série já expandida pelo backend', () => {
+  const etapa = (tipo: string, bloco?: { id: string; reps: number }, duracaoMin = 3): EtapaTreino => ({
+    tipoEtapa: tipo, duracaoMin, blocoId: bloco?.id, blocoRepeticoes: bloco?.reps,
+  });
+
+  it('bloco 4× (esforço, recuperação) já vem como 8 linhas: índices 1,1,2,2,3,3,4,4 e total 4', () => {
+    const linhas = Array.from({ length: 4 }, () => [etapa('ESFORCO', { id: 'b1', reps: 4 }), etapa('RECUPERACAO', { id: 'b1', reps: 4 })]).flat();
+    const entradas = indexarRepeticoes(linhas.map(fromEtapaTreino));
+    expect(entradas).toHaveLength(8); // nunca reexpande
+    expect(entradas.map((e) => e.blocoRepeticaoIndex)).toEqual([1, 1, 2, 2, 3, 3, 4, 4]);
+    const profile = selectWorkoutProfile(entradas, { sport: 'run' });
+    const repeats = profile.blocks.filter((b) => b.repeat);
+    expect(repeats.map((b) => b.repeat!.index)).toEqual([1, 1, 2, 2, 3, 3, 4, 4]);
+    expect(repeats.every((b) => b.repeat!.total === 4 && b.repeat!.groupId === 'b1')).toBe(true);
+  });
+
+  it('grupo com k não múltiplo de N é inválido: perde os metadados de bloco, sem repeat', () => {
+    const linhas = Array.from({ length: 7 }, () => etapa('ESFORCO', { id: 'b1', reps: 4 }));
+    const entradas = indexarRepeticoes(linhas.map(fromEtapaTreino));
+    expect(entradas.every((e) => e.blocoId === undefined && e.blocoRepeticaoIndex === undefined)).toBe(true);
+    // O perfil pode inferir série por padrão repetido (inferirSeries) — isso é dele; o que o
+    // adapter garante é que nenhum bracket vem do blocoId inválido.
+    const profile = selectWorkoutProfile(entradas, { sport: 'run' });
+    expect(profile.blocks.some((b) => b.repeat?.groupId === 'b1')).toBe(false);
+  });
+
+  it('sem bloco passa inalterado; bloco de 1 repetição ou sem N perde os metadados (não bloqueia a inferência); blocos distintos não se misturam', () => {
+    const linhas = [
+      etapa('AQUECIMENTO', undefined, 10),
+      etapa('ESFORCO', { id: 'b1', reps: 2 }), etapa('ESFORCO', { id: 'b1', reps: 2 }),
+      etapa('ESFORCO', { id: 'b2', reps: 1 }),
+      etapa('ESFORCO', { id: 'b3', reps: 3 }), etapa('ESFORCO', { id: 'b3', reps: 3 }), etapa('ESFORCO', { id: 'b3', reps: 3 }),
+      { tipoEtapa: 'ESFORCO', duracaoMin: 3, blocoId: 'b4' } as EtapaTreino, // blocoId sem blocoRepeticoes
+    ];
+    const entradas = indexarRepeticoes(linhas.map(fromEtapaTreino));
+    expect(entradas.map((e) => e.blocoRepeticaoIndex)).toEqual([undefined, 1, 2, undefined, 1, 2, 3, undefined]);
+    expect(entradas[3].blocoId).toBeUndefined();
+    expect(entradas[7].blocoId).toBeUndefined();
+  });
+
+  it('o mesmo blocoId em dois segmentos separados é inválido: nenhum dos dois ganha bracket', () => {
+    const linhas = [
+      etapa('ESFORCO', { id: 'b1', reps: 2 }), etapa('ESFORCO', { id: 'b1', reps: 2 }),
+      etapa('RECUPERACAO', undefined, 5),
+      etapa('ESFORCO', { id: 'b1', reps: 2 }), etapa('ESFORCO', { id: 'b1', reps: 2 }),
+    ];
+    const entradas = indexarRepeticoes(linhas.map(fromEtapaTreino));
+    expect(entradas.every((e) => e.blocoId === undefined)).toBe(true);
   });
 });
