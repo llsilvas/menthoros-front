@@ -22,7 +22,7 @@ describe('recordsAdapter', () => {
         { distancia: '10k', tempoSegundos: 2730, data: '2026-05-08', treinoRealizadoId: 'abc' },
       ]);
 
-      expect(rows).toEqual([{ distancia: '10k', tempoFormatado: '00:45:30', data: '2026-05-08' }]);
+      expect(rows).toEqual([{ distancia: '10k', tempoFormatado: '00:45:30', dataIso: '2026-05-08', dataFormatada: '8 de mai' }]);
     });
 
     it('retorna lista vazia sem inventar recordes', () => {

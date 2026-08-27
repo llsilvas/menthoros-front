@@ -312,7 +312,7 @@ export default function AthleteProgressPage() {
                 >
                   <Typography sx={{ color: surface[50], fontWeight: 600 }}>{pr.distancia}</Typography>
                   <Typography sx={{ color: primary[500], fontWeight: 800 }}>{pr.tempoFormatado}</Typography>
-                  <Typography sx={{ color: surface[400], fontSize: '0.8rem' }}>{pr.data}</Typography>
+                  <Typography sx={{ color: surface[400], fontSize: '0.8rem' }}>{pr.dataFormatada}</Typography>
                 </Box>
               ))
             )}
