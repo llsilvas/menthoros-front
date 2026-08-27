@@ -4,6 +4,9 @@ import { Link as RouterLink, useNavigate } from 'react-router';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { TodayHeroCard } from '../components/TodayHeroCard';
+import { TodayFeedbackCard } from '../components/TodayFeedbackCard';
+import { TodayCompletedCard } from '../components/TodayCompletedCard';
+import { TodaySkippedCard } from '../components/TodaySkippedCard';
 import { ReadinessCard } from '../components/ReadinessCard';
 import { QuickCheckInModal } from '../components/QuickCheckInModal';
 import type { QuickCheckInData } from '../components/QuickCheckInModal';
@@ -14,6 +17,9 @@ import { WeekOverviewCard } from '../components/WeekOverviewCard';
 import { WeekClosedBanner } from '../components/WeekClosedBanner';
 import { CalibrationBanner } from '../components/CalibrationBanner';
 import { buildNextWorkout, timeOfDayNow } from '../adapters/homeAdapter';
+import { selectTodayState } from '../adapters/selectTodayState';
+import { useAthleteFeedback } from '../hooks/useAthleteFeedback';
+import type { Sensacao } from '../../../types/AthleteFeedback';
 import { calcularStreakSemanas } from '../adapters/streakAdapter';
 import { buildProximaProva } from '../adapters/provasAdapter';
 import { buildWeekOverview } from '../adapters/buildWeekOverview';
@@ -57,6 +63,7 @@ export default function AthleteHomePage() {
   const { checkinHoje, error: checkinAtualError, fetchCheckinAtual } = useCheckinAtual();
   const { kudos, error: kudosError, fetchKudos } = useKudosRecentes();
   const { plano, loading: planoLoading, error: planoError, fetchPlano } = useAthletePlan();
+  const { enviar: enviarFeedback, enviando: feedbackEnviando, error: feedbackError } = useAthleteFeedback();
   const { status: calibracaoStatus, justExited: calibracaoJustExited, error: calibracaoError, fetchStatus: fetchCalibracao, dismissJustExited } = useCalibracao();
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [inlineAberto, setInlineAberto] = useState(false);
@@ -153,6 +160,13 @@ export default function AthleteHomePage() {
       }
     : undefined;
   const mostrarInline = inlineAberto;
+  const todayState = selectTodayState(home);
+
+  const handleFeedbackSubmit = async (input: { percepcaoEsforco: number; sensacoes: Sensacao[]; comentario?: string }) => {
+    if (!home?.realizadoHoje) return;
+    await enviarFeedback(home.realizadoHoje.id, input);
+    await fetchHome();
+  };
 
   return (
     <Box sx={{ minHeight: '100%', bgcolor: elevation.base, p: 2, pt: 2.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -211,10 +225,32 @@ export default function AthleteHomePage() {
         />
       )}
 
-      <TodayHeroCard
-        nextWorkout={nextWorkout}
-        onRegister={() => navigate(ROUTES.ATHLETE_TRAINING_LOG)}
-      />
+      {todayState === 'FEITO_SEM_FEEDBACK' && home?.realizadoHoje && (
+        <TodayFeedbackCard
+          realizado={home.realizadoHoje}
+          onSubmit={handleFeedbackSubmit}
+          submitting={feedbackEnviando}
+          error={feedbackError ? 'Não foi possível salvar. Tente novamente.' : undefined}
+        />
+      )}
+
+      {todayState === 'FEITO' && home?.realizadoHoje && (
+        <TodayCompletedCard realizado={home.realizadoHoje} />
+      )}
+
+      {todayState === 'PULADO' && (
+        <TodaySkippedCard
+          motivoPulo={home?.proximoTreino?.motivoPulo}
+          onRegister={() => navigate(ROUTES.ATHLETE_TRAINING_LOG)}
+        />
+      )}
+
+      {(todayState === 'PLANEJADO' || todayState === 'DESCANSO') && (
+        <TodayHeroCard
+          nextWorkout={nextWorkout}
+          onRegister={() => navigate(ROUTES.ATHLETE_TRAINING_LOG)}
+        />
+      )}
 
       {!readinessError && readiness?.score != null && (
         <ReadinessCard score={readiness.score} recommendation={readiness.nota} comCheckinHoje={checkinHoje !== null} />
