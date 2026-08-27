@@ -26,6 +26,7 @@ import { AdherenceChart } from '../components/AdherenceChart';
 import { CurrentWeekPlan } from '../components/CurrentWeekPlan';
 import { RecentSignalsPanel } from '../components/RecentSignalsPanel';
 import { RecentSuggestionsPanel } from '../components/RecentSuggestionsPanel';
+import { RecentTrainingsPanel } from '../components/RecentTrainingsPanel';
 import { KudosDialog } from '../components/KudosDialog';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { resolveStatusVencimentoPlanoBadge, formatDataVencimentoPlano } from '../adapters/billingPlanAdapters';
@@ -278,6 +279,13 @@ export default function CoachAthleteProfilePage() {
                                 sugestoes={profile.sugestoesRecentes}
                                 onVerTodas={() => navigate('/coach/inbox')}
                             />
+                        </SectionCard>
+                    </Grid>
+
+                    {/* Treinos recentes — 6 colunas */}
+                    <Grid size={{ xs: 12, md: 6 }}>
+                        <SectionCard title="Treinos recentes">
+                            <RecentTrainingsPanel realizados={profile.realizadosRecentes ?? []} />
                         </SectionCard>
                     </Grid>
 

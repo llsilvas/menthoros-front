@@ -186,6 +186,19 @@ describe('CoachAthleteProfilePage', () => {
         expect(screen.getByText(/Sugestões recentes/i)).toBeInTheDocument();
     });
 
+    it('exibe seção Treinos recentes com o feedback do atleta', () => {
+        mockHook({ profile: {
+            ...STUB_PROFILE,
+            realizadosRecentes: [{
+                id: 'r1', dataTreino: '2026-08-27', tipoTreino: 'FACIL', fonteDados: 'MANUAL',
+                duracaoMin: 40, percepcaoEsforco: 6, feedbackRegistradoEm: '2026-08-27T19:00:00',
+            }],
+        } });
+        renderPage();
+        expect(screen.getByText(/Treinos recentes/i)).toBeInTheDocument();
+        expect(screen.getByText(/rpe 6/i)).toBeInTheDocument();
+    });
+
     it('monta a revisão semanal — hook → adapter → card (props amarradas)', () => {
         mockHook({ profile: STUB_PROFILE });
         const revisao: RevisaoSemanalOutputDto = {
