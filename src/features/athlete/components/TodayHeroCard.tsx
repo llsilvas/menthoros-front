@@ -17,6 +17,8 @@ export interface TodayHeroCardProps {
     color?: string;
     /** Perfil do treino — o mesmo que o coach vê no detalhe. Ausente: nada é desenhado. */
     profile?: WorkoutProfileData;
+    /** Data do treino é hoje — mostra a entrada para o modo treino. */
+    isToday?: boolean;
   } | null;
   /** Única ação primária da Home: registrar o treino de hoje. */
   onRegister: () => void;
@@ -80,6 +82,11 @@ export function TodayHeroCard({ nextWorkout, onRegister }: TodayHeroCardProps) {
         >
           Registrar treino
         </Button>
+        {nextWorkout?.isToday && (
+          <Link component={RouterLink} to={ROUTES.ATHLETE_WORKOUT_TODAY} variant="body2" underline="hover" sx={{ textAlign: 'center', color: primary[400], py: 0.75, fontWeight: 600 }}>
+            Ver etapas e começar →
+          </Link>
+        )}
         <Box sx={{ display: 'flex', justifyContent: 'center' }}>
           <Link component={RouterLink} to={ROUTES.ATHLETE_PLAN} variant="body2" underline="hover" sx={{ color: surface[400], py: 0.75 }}>
             Ver plano da semana →

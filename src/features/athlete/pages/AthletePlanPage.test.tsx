@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { createHashRouter, RouterProvider } from 'react-router';
 import AthletePlanPage from './AthletePlanPage';
 import { useAthletePlan } from '../../../hooks/useAthletePlan';
 import type { PlanoSemanal } from '../../../types/PlanoSemanal';
@@ -11,6 +12,13 @@ vi.mock('react-router', async (importOriginal) => {
   return { ...mod, useNavigate: () => navigateMock };
 });
 vi.mock('../../../hooks/useAthletePlan');
+
+// Router real (não MemoryRouter): o `WorkoutDetailDrawer` passou a ter um `Link` de
+// `react-router` para o modo treino — precisa de contexto de rota mesmo fora do App.
+function renderPage() {
+  const router = createHashRouter([{ path: '/', element: <AthletePlanPage /> }]);
+  return render(<RouterProvider router={router} />);
+}
 
 const noop = vi.fn();
 const HOJE = new Date(2026, 6, 1, 9, 0, 0); // quarta, 1 de julho
@@ -50,7 +58,7 @@ describe('AthletePlanPage', () => {
 
   it('sete linhas, volume em km com uma casa, rodapé neutro, sem TSS e sem juízo', () => {
     mock(PLANO);
-    render(<AthletePlanPage />);
+    renderPage();
     expect(screen.getAllByTestId('week-agenda-row')).toHaveLength(7);
     const volume = screen.getByTestId('plan-volume');
     expect(volume).toHaveTextContent('22,0');
@@ -65,7 +73,7 @@ describe('AthletePlanPage', () => {
 
   it('hoje começa expandido (treino com etapas abre o detalhe, não a expansão inline)', async () => {
     mock(PLANO);
-    render(<AthletePlanPage />);
+    renderPage();
     const hoje = screen.getAllByTestId('week-agenda-row').find((r) => r.dataset.today === 'true')!;
     expect(hoje).toHaveTextContent(/intervalado/i);
     // Linha com etapas: o toque abre o drawer com o perfil do treino e a série 2×.
@@ -75,13 +83,14 @@ describe('AthletePlanPage', () => {
     expect(within(dialog).getByTestId('workout-profile')).toBeInTheDocument();
     expect(within(dialog).getAllByTestId('workout-block').length).toBeGreaterThanOrEqual(5);
     expect(within(dialog).getByTestId('repeat-bracket')).toHaveTextContent('2×');
+    expect(within(dialog).getByRole('link', { name: /ver etapas e começar/i })).toHaveAttribute('href', '#/athlete/workout/today');
     await userEvent.click(within(dialog).getByRole('button', { name: /registrar treino/i }));
     expect(navigateMock).toHaveBeenCalledWith('/athlete/training/log');
   });
 
   it('linha sem etapas expande e colapsa (aria-expanded) e mostra a descrição', async () => {
     mock(PLANO);
-    render(<AthletePlanPage />);
+    renderPage();
     const sabado = screen.getAllByTestId('week-agenda-row').find((r) => r.textContent?.includes('Longo'))!;
     const botao = within(sabado).getByRole('button');
     expect(botao).toHaveAttribute('aria-expanded', 'false');
@@ -94,7 +103,7 @@ describe('AthletePlanPage', () => {
 
   it('descanso não é clicável; status por ícone via data-status, sem borda lateral', () => {
     mock(PLANO);
-    render(<AthletePlanPage />);
+    renderPage();
     const linhas = screen.getAllByTestId('week-agenda-row');
     expect(linhas.map((r) => r.dataset.status)).toEqual(['concluido', 'descanso', 'pendente', 'descanso', 'descanso', 'futuro', 'descanso']);
     expect(linhas.map((r) => r.dataset.today)).toEqual([undefined, undefined, 'true', undefined, undefined, undefined, undefined]);
@@ -105,7 +114,7 @@ describe('AthletePlanPage', () => {
 
   it('plano de outra semana (aprovado adiantado): nada expandido e subtítulo com o intervalo', () => {
     mock({ ...PLANO, semanaInicio: '2026-07-06', semanaFim: '2026-07-12', treinosPlanejados: [] });
-    render(<AthletePlanPage />);
+    renderPage();
     expect(screen.getByText(/Semana de 6 – 12 de jul/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { expanded: true })).toBeNull();
     expect(screen.getByTestId('plan-volume')).toHaveTextContent(/semana ainda não começou/i);
@@ -113,20 +122,20 @@ describe('AthletePlanPage', () => {
 
   it('estado vazio quando não há plano aprovado', () => {
     mock(null);
-    render(<AthletePlanPage />);
+    renderPage();
     expect(screen.getByText(/ainda não aprovou o plano desta semana/i)).toBeInTheDocument();
   });
 
   it('estado de erro com retry', () => {
     mock(null, { error: new Error('boom') });
-    render(<AthletePlanPage />);
+    renderPage();
     expect(screen.getByText(/não foi possível carregar seu plano/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /tentar novamente/i })).toBeInTheDocument();
   });
 
   it('spinner enquanto carrega sem dado', () => {
     mock(null, { loading: true });
-    render(<AthletePlanPage />);
+    renderPage();
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 });

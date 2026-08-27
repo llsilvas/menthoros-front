@@ -26,6 +26,19 @@ describe('homeAdapter', () => {
       expect(workout?.description).toBe('Longão 18km Z2');
     });
 
+    it('isToday: true quando a data do próximo treino é hoje, false quando é futura', () => {
+      const hojeIso = new Date().toISOString().slice(0, 10);
+      const hoje = buildNextWorkout({ proximoTreino: { tipoTreino: 'FACIL', data: hojeIso } });
+      const futuro = buildNextWorkout({ proximoTreino: { tipoTreino: 'FACIL', data: '2099-01-01' } });
+      expect(hoje?.isToday).toBe(true);
+      expect(futuro?.isToday).toBe(false);
+    });
+
+    it('isToday: false quando o próximo treino não tem data', () => {
+      const workout = buildNextWorkout({ proximoTreino: { tipoTreino: 'FACIL' } });
+      expect(workout?.isToday).toBe(false);
+    });
+
     it('monta o perfil pelo mesmo caminho do drawer do Plano: bloco 2× ganha repeat com total 2 e índice por posição', () => {
       const workout = buildNextWorkout({
         proximoTreino: {

@@ -1,3 +1,4 @@
+import { isSameDay, parseISO } from 'date-fns';
 import type { AthleteHome } from '../../../types/AthleteHome';
 import type { TimeOfDay } from '../../../shared/design-tokens/gradients';
 import { workoutTypeColor } from '../../../theme/activeTheme';
@@ -12,6 +13,8 @@ export interface HomeNextWorkout {
   estimatedDuration?: number;
   /** Perfil do treino (mesmo caminho do `WorkoutDetailDrawer`); ausente sem etapas — sem placeholder. */
   profile?: WorkoutProfileData;
+  /** `proximoTreino.data` é hoje — habilita a entrada para o modo treino. */
+  isToday: boolean;
 }
 
 /** Período do dia a partir do relógio local do usuário (dado real, não fabricado). */
@@ -54,6 +57,7 @@ export function buildNextWorkout(home: AthleteHome | null): HomeNextWorkout | nu
     color: workoutTypeColor(p.tipoTreino),
     estimatedDuration: p.duracaoMin,
     profile,
+    isToday: Boolean(p.data) && isSameDay(parseISO(p.data!), new Date()),
   };
 }
 
