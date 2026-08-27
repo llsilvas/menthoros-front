@@ -171,15 +171,21 @@ describe('AthleteHomePage', () => {
       expect(screen.queryByRole('button', { name: /registrar treino/i })).toBeNull();
     });
 
-    it('realizado hoje com feedback: resumo do feito, sem o formulário nem "Registrar treino"', () => {
+    it('realizado hoje com feedback: resumo do feito com sensações e comentário, sem o formulário nem "Registrar treino"', () => {
       mockHome({ home: {
         hoje: HOJE_ISO,
-        realizadoHoje: { id: 'r1', fonteDados: 'MANUAL', tipoTreino: 'FACIL', duracaoMin: 40, percepcaoEsforco: 6, feedbackRegistradoEm: '2026-08-26T19:00:00' },
+        realizadoHoje: {
+          id: 'r1', fonteDados: 'MANUAL', tipoTreino: 'FACIL', duracaoMin: 40, percepcaoEsforco: 6,
+          sensacoes: ['PERNAS_PESADAS'], feedbackAtleta: 'Difícil no final',
+          feedbackRegistradoEm: '2026-08-26T19:00:00',
+        },
         metricasChave: { ctl: 74, atl: 71, tsb: 3, tss: 62, statusForma: 'FORMA_IDEAL' },
       } });
       renderPage();
       expect(screen.getByText(/treino feito/i)).toBeInTheDocument();
       expect(screen.getByText(/6\/10/)).toBeInTheDocument();
+      expect(screen.getByText(/pernas pesadas/i)).toBeInTheDocument();
+      expect(screen.getByText('Difícil no final')).toBeInTheDocument();
       expect(screen.queryByRole('radiogroup', { name: /percepção de esforço/i })).toBeNull();
       expect(screen.queryByRole('button', { name: /registrar treino/i })).toBeNull();
     });

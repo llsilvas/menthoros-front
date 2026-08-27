@@ -235,7 +235,11 @@ export default function AthleteHomePage() {
       )}
 
       {todayState === 'FEITO' && home?.realizadoHoje && (
-        <TodayCompletedCard realizado={home.realizadoHoje} />
+        <TodayCompletedCard
+          realizado={home.realizadoHoje}
+          sensacoes={home.realizadoHoje.sensacoes as Sensacao[] | undefined}
+          comentario={home.realizadoHoje.feedbackAtleta}
+        />
       )}
 
       {todayState === 'PULADO' && (

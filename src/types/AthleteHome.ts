@@ -38,6 +38,8 @@ export interface AthleteRealizadoHoje {
   duracaoMin?: number;
   distanciaKm?: number;
   percepcaoEsforco?: number;
+  sensacoes?: string[];
+  feedbackAtleta?: string;
   /** Ausente = "Como foi?" ainda não respondido — é o único critério de completude (D3). */
   feedbackRegistradoEm?: string;
 }
