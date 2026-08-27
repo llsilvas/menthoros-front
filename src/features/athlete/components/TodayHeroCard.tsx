@@ -6,6 +6,7 @@ import { elevation } from '../../../shared/design-tokens';
 import { radius } from '../../../shared/design-tokens/density';
 import { primary, surface } from '../../../theme/tokens';
 import { ROUTES } from '../../../constants/routes';
+import { WorkoutProfile, type WorkoutProfileData } from '../../workout/profile';
 
 export interface TodayHeroCardProps {
   nextWorkout: {
@@ -14,6 +15,8 @@ export interface TodayHeroCardProps {
     estimatedDuration?: number; // minutos; ausente quando o resumo do dia não traz duração
     /** Cor do tipo de treino (fonte única `workoutTypeColor()`, enum do backend). */
     color?: string;
+    /** Perfil do treino — o mesmo que o coach vê no detalhe. Ausente: nada é desenhado. */
+    profile?: WorkoutProfileData;
   } | null;
   /** Única ação primária da Home: registrar o treino de hoje. */
   onRegister: () => void;
@@ -60,6 +63,12 @@ export function TodayHeroCard({ nextWorkout, onRegister }: TodayHeroCardProps) {
             : 'Sem treino planejado. Se fizer algo, registre — conta na semana.'}
         </Typography>
       </Box>
+
+      {nextWorkout?.profile && nextWorkout.profile.blocks.length > 0 && (
+        // Compacto explícito (D2): plot de 92px; `auto` só resolveria `full` acima de 560px, mas o
+        // hero não deve mudar de variante com a largura.
+        <WorkoutProfile profile={nextWorkout.profile} variant="compact" />
+      )}
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
         <Button

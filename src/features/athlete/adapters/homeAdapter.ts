@@ -1,6 +1,7 @@
 import type { AthleteHome } from '../../../types/AthleteHome';
 import type { TimeOfDay } from '../../../shared/design-tokens/gradients';
 import { workoutTypeColor } from '../../../theme/activeTheme';
+import { buildProfileFromTreino, type WorkoutProfileData } from '../../workout/profile';
 
 
 export interface HomeNextWorkout {
@@ -8,6 +9,9 @@ export interface HomeNextWorkout {
   description: string;
   /** Cor do tipo de treino — fonte única `workoutTypeColor()` (mesma fonte do Plano). */
   color: string;
+  estimatedDuration?: number;
+  /** Perfil do treino (mesmo caminho do `WorkoutDetailDrawer`); ausente sem etapas — sem placeholder. */
+  profile?: WorkoutProfileData;
 }
 
 /** Período do dia a partir do relógio local do usuário (dado real, não fabricado). */
@@ -42,10 +46,14 @@ export function tipoTreinoLabel(tipoTreino?: string): string {
 export function buildNextWorkout(home: AthleteHome | null): HomeNextWorkout | null {
   const p = home?.proximoTreino;
   if (!p) return null;
+  // Mesmo caminho do drawer do Plano — uma regra, duas telas.
+  const profile = buildProfileFromTreino(p.etapas, p);
   return {
     title: tipoTreinoLabel(p.tipoTreino),
     description: p.descricao ?? '',
     color: workoutTypeColor(p.tipoTreino),
+    estimatedDuration: p.duracaoMin,
+    profile,
   };
 }
 
