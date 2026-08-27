@@ -82,7 +82,9 @@ export default function AthletePlanPage() {
             <Box sx={{ position: 'relative', height: 6, borderRadius: 3, bgcolor: surface[700], overflow: 'visible' }}>
               <Box sx={{ width: `${pct}%`, height: 6, borderRadius: 3, bgcolor: primary[500] }} />
               {esperadoPct !== null && (
-                <Box aria-hidden sx={{ position: 'absolute', left: `${esperadoPct}%`, top: -2, width: 1, height: 10, bgcolor: surface[500] }} />
+                // `width: 1` no sx do MUI é 100% (escala de tema), não 1px — a versão anterior desenhava uma
+                // barra da largura da trilha a partir do marcador, estourando a tela. Unidades explícitas.
+                <Box data-testid="plan-volume-marker" aria-hidden sx={{ position: 'absolute', left: `${esperadoPct}%`, top: '-2px', width: '1px', height: '10px', bgcolor: surface[500] }} />
               )}
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>

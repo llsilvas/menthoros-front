@@ -73,6 +73,11 @@ test.describe('Atleta — Plano da semana', () => {
     expect(estoura).toBe(false)
 
     const volume = page.getByTestId('plan-volume')
+    // Regressão: o marcador do esperado-até-hoje tinha `width: 1` (100% no sx do MUI) e estourava a tela.
+    const marcador = await page.getByTestId('plan-volume-marker').boundingBox()
+    const card = await volume.boundingBox()
+    expect(marcador!.width).toBeLessThanOrEqual(2)
+    expect(marcador!.x + marcador!.width).toBeLessThanOrEqual(card!.x + card!.width)
     await expect(volume).toContainText('14,5')
     await expect(volume).toContainText('/ 42 km')
     await expect(volume).toContainText(/Dia \d de 7/)
