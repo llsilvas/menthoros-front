@@ -28,6 +28,16 @@ describe('TodayHeroCard', () => {
     expect(screen.getByRole('link', { name: /ver plano da semana/i })).toHaveAttribute('href', '#/athlete/plan');
   });
 
+  it('treino de hoje: mostra "Ver etapas e começar" para o modo treino', () => {
+    renderHero({ nextWorkout: { title: 'Corrida Fácil', description: '45 min em Z2', isToday: true } });
+    expect(screen.getByRole('link', { name: /ver etapas e começar/i })).toHaveAttribute('href', '#/athlete/workout/today');
+  });
+
+  it('treino futuro (fora de hoje): sem "Ver etapas e começar"', () => {
+    renderHero({ nextWorkout: { title: 'Longo', description: 'Z2', isToday: false } });
+    expect(screen.queryByRole('link', { name: /ver etapas e começar/i })).toBeNull();
+  });
+
   it('sem treino planejado: mostra Descanso e mantém o registro disponível', () => {
     renderHero({ nextWorkout: null });
     expect(screen.getByTestId('home-next-workout')).toHaveTextContent(/descanso/i);

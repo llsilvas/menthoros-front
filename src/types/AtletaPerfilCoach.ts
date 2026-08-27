@@ -106,4 +106,21 @@ export interface AtletaPerfilCoachDto {
     dataVencimentoPlano?: string;
     /** Status de vencimento derivado; ausente quando dataVencimentoPlano não cadastrada. */
     statusVencimentoPlano?: StatusVencimentoPlano;
+    /** Treinos realizados dos últimos 7 dias, mais recente primeiro; ausente sem realizados. */
+    realizadosRecentes?: RealizadoRecenteDto[];
+}
+
+/** Treino realizado recente, com feedback do atleta quando registrado (athlete-training-loop, D3). */
+export interface RealizadoRecenteDto {
+    id: string;
+    dataTreino: string;
+    tipoTreino?: string;
+    fonteDados?: string;
+    duracaoMin?: number;
+    distanciaKm?: number;
+    percepcaoEsforco?: number;
+    sensacoes?: string[];
+    feedbackAtleta?: string;
+    /** Ausente = "Como foi?" ainda não respondido. */
+    feedbackRegistradoEm?: string;
 }

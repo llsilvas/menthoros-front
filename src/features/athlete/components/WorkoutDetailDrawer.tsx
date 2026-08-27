@@ -1,12 +1,14 @@
 import { useMemo } from 'react';
-import { Box, Button, Drawer, IconButton, Typography } from '@mui/material';
+import { Box, Button, Drawer, IconButton, Link, Typography } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
+import { Link as RouterLink } from 'react-router';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { primary, surface } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import { WorkoutProfile, buildProfileFromTreino } from '../../workout/profile';
 import { getSafeValue } from '../../../utils/safeValues';
+import { ROUTES } from '../../../constants/routes';
 import type { AgendaDay } from '../adapters/buildWeekAgenda';
 
 export interface WorkoutDetailDrawerProps {
@@ -65,9 +67,14 @@ export function WorkoutDetailDrawer({ dia, onClose, onRegister }: WorkoutDetailD
           </Box>
 
           {dia.isToday && (
-            <Button variant="contained" fullWidth onClick={onRegister} sx={{ bgcolor: primary[500], color: elevation.base, minHeight: 48, fontWeight: 700, '&:hover': { bgcolor: primary[400] } }}>
-              Registrar treino
-            </Button>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+              <Link component={RouterLink} to={ROUTES.ATHLETE_WORKOUT_TODAY} onClick={onClose} variant="body2" underline="hover" sx={{ textAlign: 'center', color: primary[400], fontWeight: 600, py: 0.75 }}>
+                Ver etapas e começar →
+              </Link>
+              <Button variant="contained" fullWidth onClick={onRegister} sx={{ bgcolor: primary[500], color: elevation.base, minHeight: 48, fontWeight: 700, '&:hover': { bgcolor: primary[400] } }}>
+                Registrar treino
+              </Button>
+            </Box>
           )}
         </Box>
       )}

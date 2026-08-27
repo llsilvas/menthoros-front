@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { createHashRouter, RouterProvider } from 'react-router';
 import AthleteHomePage from './AthleteHomePage';
 import { useAthleteHome } from '../../../hooks/useAthleteHome';
+import { useAthleteFeedback } from '../hooks/useAthleteFeedback';
 import { useAthleteReadiness } from '../../../hooks/useAthleteReadiness';
 import { useAthleteProvas } from '../../../hooks/useAthleteProvas';
 import { useCheckinAtual } from '../../../hooks/useCheckinAtual';
@@ -25,6 +26,7 @@ vi.mock('react-router', async (importOriginal) => {
 });
 
 vi.mock('../../../hooks/useAthleteHome');
+vi.mock('../hooks/useAthleteFeedback');
 vi.mock('../../../hooks/useAthleteReadiness');
 vi.mock('../../../hooks/useAthleteProvas');
 vi.mock('../../../hooks/useCheckinAtual');
@@ -38,12 +40,21 @@ vi.mock('../../../hooks/useCalibracao');
 const noop = vi.fn();
 const HOJE = new Date(2026, 7, 26, 8, 0, 0); // quarta, 26 de agosto, manhã
 
+const HOJE_ISO = '2026-08-26';
+
 function mockHome(overrides: Partial<ReturnType<typeof useAthleteHome>> = {}) {
   vi.mocked(useAthleteHome).mockReturnValue({
-    home: { proximoTreino: { tipoTreino: 'INTERVALADO', descricao: 'Tiros de 400m' },
+    home: { hoje: HOJE_ISO,
+            proximoTreino: { data: HOJE_ISO, tipoTreino: 'INTERVALADO', descricao: 'Tiros de 400m', statusTreino: 'PENDENTE' },
             metricasChave: { ctl: 74, atl: 71, tsb: 3, tss: 62, statusForma: 'FORMA_IDEAL' } },
     loading: false, error: null, fetchHome: noop, ...overrides,
   });
+}
+
+const feedbackEnviar = vi.fn().mockResolvedValue(undefined);
+
+function mockFeedback(overrides: Partial<ReturnType<typeof useAthleteFeedback>> = {}) {
+  vi.mocked(useAthleteFeedback).mockReturnValue({ enviar: feedbackEnviar, enviando: false, error: null, ...overrides });
 }
 
 function mockPlano(plano: PlanoSemanal | null, extra: Partial<ReturnType<typeof useAthletePlan>> = {}) {
@@ -75,6 +86,7 @@ describe('AthleteHomePage', () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.setSystemTime(HOJE);
     vi.mocked(useUserInfo).mockReturnValue({ name: 'Carlos Silva' });
+    mockFeedback();
     vi.mocked(useAthleteReadiness).mockReturnValue({
       readiness: { score: 78, nota: 'Provisório.' }, loading: false, error: null, fetchReadiness: vi.fn().mockResolvedValue(undefined),
     });
@@ -146,6 +158,61 @@ describe('AthleteHomePage', () => {
       expect(screen.getAllByTestId('home-streak')).toHaveLength(1);
       expect(screen.getAllByTestId('home-next-workout')).toHaveLength(1);
       expect(screen.getAllByTestId('home-form')).toHaveLength(1);
+    });
+
+    it('realizado hoje sem feedback: "Como foi?" no lugar do hero, sem "Registrar treino"', () => {
+      mockHome({ home: {
+        hoje: HOJE_ISO,
+        realizadoHoje: { id: 'r1', fonteDados: 'INTERVALS_ICU', tipoTreino: 'FACIL', duracaoMin: 40 },
+        metricasChave: { ctl: 74, atl: 71, tsb: 3, tss: 62, statusForma: 'FORMA_IDEAL' },
+      } });
+      renderPage();
+      expect(screen.getByText(/como foi\?/i)).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /registrar treino/i })).toBeNull();
+    });
+
+    it('realizado hoje com feedback: resumo do feito com sensações e comentário, sem o formulário nem "Registrar treino"', () => {
+      mockHome({ home: {
+        hoje: HOJE_ISO,
+        realizadoHoje: {
+          id: 'r1', fonteDados: 'MANUAL', tipoTreino: 'FACIL', duracaoMin: 40, percepcaoEsforco: 6,
+          sensacoes: ['PERNAS_PESADAS'], feedbackAtleta: 'Difícil no final',
+          feedbackRegistradoEm: '2026-08-26T19:00:00',
+        },
+        metricasChave: { ctl: 74, atl: 71, tsb: 3, tss: 62, statusForma: 'FORMA_IDEAL' },
+      } });
+      renderPage();
+      expect(screen.getByText(/treino feito/i)).toBeInTheDocument();
+      expect(screen.getByText(/6\/10/)).toBeInTheDocument();
+      expect(screen.getByText(/pernas pesadas/i)).toBeInTheDocument();
+      expect(screen.getByText('Difícil no final')).toBeInTheDocument();
+      expect(screen.queryByRole('radiogroup', { name: /percepção de esforço/i })).toBeNull();
+      expect(screen.queryByRole('button', { name: /registrar treino/i })).toBeNull();
+    });
+
+    it('planejado de hoje pulado: "Hoje você pulou" no lugar do hero', () => {
+      mockHome({ home: {
+        hoje: HOJE_ISO,
+        proximoTreino: { data: HOJE_ISO, tipoTreino: 'FACIL', statusTreino: 'PERDIDO', motivoPulo: 'DOR' },
+        metricasChave: { ctl: 74, atl: 71, tsb: 3, tss: 62, statusForma: 'FORMA_IDEAL' },
+      } });
+      renderPage();
+      expect(screen.getByText(/hoje você pulou/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /registrar mesmo assim/i })).toBeInTheDocument();
+    });
+
+    it('enviar o feedback chama o hook com o realizado do dia e recarrega a Home', async () => {
+      mockHome({ home: {
+        hoje: HOJE_ISO,
+        realizadoHoje: { id: 'r1', fonteDados: 'INTERVALS_ICU', tipoTreino: 'FACIL', duracaoMin: 40 },
+        metricasChave: {},
+      }, fetchHome: noop });
+      renderPage();
+
+      await userEvent.click(screen.getByRole('radio', { name: '6' }));
+      await userEvent.click(screen.getByRole('button', { name: /enviar/i }));
+
+      expect(feedbackEnviar).toHaveBeenCalledWith('r1', { percepcaoEsforco: 6, sensacoes: [], comentario: undefined });
     });
   });
 
