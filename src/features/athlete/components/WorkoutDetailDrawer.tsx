@@ -5,8 +5,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { primary, surface } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
-import { WorkoutProfile, selectWorkoutProfile, fromEtapaTreino } from '../../workout/profile';
-import { indexarRepeticoes } from '../../workout/profile/input';
+import { WorkoutProfile, buildProfileFromTreino } from '../../workout/profile';
 import { getSafeValue } from '../../../utils/safeValues';
 import type { AgendaDay } from '../adapters/buildWeekAgenda';
 
@@ -24,16 +23,8 @@ export interface WorkoutDetailDrawerProps {
 export function WorkoutDetailDrawer({ dia, onClose, onRegister }: WorkoutDetailDrawerProps) {
   const treino = dia?.workout?.treino ?? null;
   const etapas = useMemo(() => [...(treino?.etapas ?? [])].sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0)), [treino]);
-  const profile = useMemo(() => {
-    if (!treino || etapas.length === 0) return null;
-    return selectWorkoutProfile(indexarRepeticoes(etapas.map(fromEtapaTreino)), {
-      // O esporte não existe no contrato (mesma limitação do detalhe do coach): escala de corrida.
-      sport: 'run',
-      tss: treino.tssPlanejado ?? null,
-      if: treino.intensidadePlanejada ?? null,
-      zonaAlvoTreino: treino.zonaAlvo ?? null,
-    });
-  }, [treino, etapas]);
+  // Mesmo caminho do hero da Home — uma regra, duas telas.
+  const profile = useMemo(() => (treino ? buildProfileFromTreino(treino.etapas, treino) ?? null : null), [treino]);
 
   const aberto = dia !== null && treino !== null;
 

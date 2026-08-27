@@ -3,8 +3,7 @@ import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createHashRouter, RouterProvider } from 'react-router';
 import { TodayHeroCard } from './TodayHeroCard';
-import { selectWorkoutProfile, fromEtapaTreino } from '../../workout/profile';
-import { indexarRepeticoes } from '../../workout/profile/input';
+import { buildProfileFromTreino } from '../../workout/profile';
 
 function renderHero(props: Partial<React.ComponentProps<typeof TodayHeroCard>> = {}) {
   const onRegister = vi.fn();
@@ -43,7 +42,7 @@ describe('TodayHeroCard', () => {
       { ordem: 4, tipoEtapa: 'ESFORCO', duracaoMin: 4, blocoId: 'b1', blocoRepeticoes: 2 },
       { ordem: 5, tipoEtapa: 'RECUPERACAO', duracaoMin: 2, blocoId: 'b1', blocoRepeticoes: 2 },
     ];
-    const profile = selectWorkoutProfile(indexarRepeticoes(etapas.map(fromEtapaTreino)), { sport: 'run' });
+    const profile = buildProfileFromTreino(etapas, {})!;
     renderHero({ nextWorkout: { title: 'Intervalado', description: '2x(4/2)', color: '#E364A6', estimatedDuration: 45, profile } });
     expect(screen.getByTestId('workout-profile')).toBeInTheDocument();
     expect(screen.getByTestId('repeat-bracket')).toHaveTextContent('2×');
