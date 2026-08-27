@@ -19,7 +19,7 @@ import { buildProximaProva } from '../adapters/provasAdapter';
 import { buildWeekOverview } from '../adapters/buildWeekOverview';
 import { selectWeekClosedInfo } from '../adapters/selectWeekClosedInfo';
 import { useInlineCheckin } from '../hooks/useInlineCheckin';
-import { useAthleteHomeErrors } from '../hooks/useAthleteHomeErrors';
+import { useAggregatedFetchErrors } from '../hooks/useAggregatedFetchErrors';
 import { useAthleteHome } from '../../../hooks/useAthleteHome';
 import { useAthletePlan } from '../../../hooks/useAthletePlan';
 import { useCalibracao } from '../../../hooks/useCalibracao';
@@ -67,7 +67,7 @@ export default function AthleteHomePage() {
   const [calibracaoBannerDispensado, setCalibracaoBannerDispensado] = useState(false);
 
   // `useCalibracao().error` entra aqui — a Home anterior não o lia e a falha era silenciosa.
-  const erros = useAthleteHomeErrors([
+  const erros = useAggregatedFetchErrors([
     { label: 'prontidão', error: readinessError, refetch: fetchReadiness },
     { label: 'check-in de hoje', error: checkinAtualError, refetch: fetchCheckinAtual },
     { label: 'streak', error: treinosError, refetch: fetchTreinos },

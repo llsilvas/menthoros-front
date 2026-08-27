@@ -14,6 +14,12 @@ describe('buildStrongerReading', () => {
     expect(r.forma?.label).toBe('Forma ideal');
   });
 
+  it('o limiar usa o Δ bruto: 2,6 arredonda para 3 na exibição mas continua estável', () => {
+    const r = buildStrongerReading([ponto('2026-07-29', 45.4), ponto('2026-08-26', 48)], HOJE)!;
+    expect(r.delta).toBe(3);
+    expect(r.tendencia).toBe('estavel');
+  });
+
   it('estável quando |Δ| < 3; caiu quando ≤ −3', () => {
     expect(buildStrongerReading([ponto('2026-07-29', 48), ponto('2026-08-26', 46)], HOJE)!.tendencia).toBe('estavel');
     expect(buildStrongerReading([ponto('2026-07-29', 48), ponto('2026-08-26', 44)], HOJE)!.tendencia).toBe('caiu');

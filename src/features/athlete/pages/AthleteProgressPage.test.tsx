@@ -78,7 +78,9 @@ describe('AthleteProgressPage', () => {
 
   it('tudo falhando: um Alert consolidado com retry', async () => {
     const fetchPmc = vi.fn();
+    const fetchProvas = vi.fn();
     vi.mocked(useAthletePmc).mockReturnValue({ pmc: [], loading: false, error: new Error('a'), fetchPmc });
+    vi.mocked(useAthleteProvas).mockReturnValue({ provas: [], loading: false, error: new Error('e'), fetchProvas });
     vi.mocked(useAthleteZones).mockReturnValue({ zones: null, loading: false, error: new Error('b'), fetchZones: noop });
     vi.mocked(useAthleteRecordes).mockReturnValue({ recordes: [], loading: false, error: new Error('c'), fetchRecordes: noop });
     vi.mocked(useAthleteAderencia).mockReturnValue({ aderencia: [], loading: false, error: new Error('d'), fetchAderencia: noop });
@@ -86,6 +88,7 @@ describe('AthleteProgressPage', () => {
     expect(screen.getAllByRole('alert')).toHaveLength(1);
     await userEvent.click(screen.getByRole('button', { name: /tentar novamente/i }));
     expect(fetchPmc).toHaveBeenCalledTimes(2); // montagem + retry
+    expect(fetchProvas).toHaveBeenCalledTimes(2); // provas entra no retry consolidado
   });
 
   it('estados vazios honestos por bloco', () => {
@@ -96,6 +99,8 @@ describe('AthleteProgressPage', () => {
     expect(screen.getByText(/ainda não há histórico de forma/i)).toBeInTheDocument();
     expect(screen.getByText(/sem plano aprovado nas últimas semanas/i)).toBeInTheDocument();
     expect(screen.getByText(/ainda sem recordes/i)).toBeInTheDocument();
+    // vazio também tem saída para o coach (D1)
+    expect(screen.getAllByRole('link', { name: /falar com o coach/i })).toHaveLength(4);
   });
 
   it('PMC curto: "Ainda cedo para comparar" sem inventar delta', () => {

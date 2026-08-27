@@ -56,7 +56,8 @@ test.describe('Atleta — Progresso', () => {
       await expect(page.getByTestId(id)).toBeVisible()
     }
     await expect(page.getByRole('link', { name: /falar com o coach/i })).toHaveCount(4)
-    await expect(page.getByTestId('progress-stronger-reading')).toContainText(/Sua carga subiu \+\d+/)
+    // CTL 30 → 51 em 84 dias (0,25/dia): D−28 = 44, hoje = 51 → +7; valor exato para pegar erro de limiar/arredondamento
+    await expect(page.getByTestId('progress-stronger-reading')).toHaveText('Sua carga subiu +7')
     await expect(page.getByText(/^(Sim|Não)$/)).toHaveCount(0)
     await expect(page.getByText(/\b(CTL|ATL|TSB)\b|\bpts\b/)).toHaveCount(0)
     await expect(page.getByText(/Z2 — 62%/)).toBeVisible()

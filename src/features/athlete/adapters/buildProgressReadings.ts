@@ -7,8 +7,9 @@ import { buildZoneDistributionPercent, type ZoneDistributionPercent } from './zo
 import { buildRecordRows, type RecordRow } from './recordsAdapter';
 import { buildProximaProva, type ProximaProva } from './provasAdapter';
 
-// Limiares — únicos números novos da change, validados com o founder (task 0.2). A UI descreve;
-// quem interpreta é o coach, então só existe um corte: o que conta como "estável".
+// As quatro leituras do Progresso vivem juntas de propósito: dividem os limiares abaixo (únicos
+// números novos da change, validados com o founder — task 0.2) e a página as consome em bloco. A UI
+// descreve; quem interpreta é o coach, então só existe um corte: o que conta como "estável".
 export const CTL_DELTA_ESTAVEL = 3;
 export const CTL_JANELA_DIAS = 28;
 export const CTL_TOLERANCIA_DIAS = 3;
@@ -74,8 +75,10 @@ export function buildStrongerReading(pmc: PmcPontoRaw[], hoje: Date = new Date()
   const ordenado = [...pmc].sort((a, b) => a.data.localeCompare(b.data));
   const ultimo = ordenado[ordenado.length - 1];
   const base = pontoProximo(ordenado, new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - CTL_JANELA_DIAS));
-  const delta = base ? Math.round(ultimo.ctl - base.ctl) : null;
-  const tendencia: CtlTendencia | null = delta === null ? null : Math.abs(delta) < CTL_DELTA_ESTAVEL ? 'estavel' : delta > 0 ? 'subiu' : 'caiu';
+  // O limiar compara o Δ bruto: arredondar antes faria 2,6 virar 3 e "subir" quando o design diz estável (|Δ| < 3).
+  const deltaBruto = base ? ultimo.ctl - base.ctl : null;
+  const delta = deltaBruto === null ? null : Math.round(deltaBruto);
+  const tendencia: CtlTendencia | null = deltaBruto === null ? null : Math.abs(deltaBruto) < CTL_DELTA_ESTAVEL ? 'estavel' : deltaBruto > 0 ? 'subiu' : 'caiu';
   const inicioSparkline = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - CTL_SPARKLINE_DIAS);
   return {
     delta,

@@ -1,3 +1,4 @@
+import { alpha } from '@mui/material/styles';
 import { primary, surface } from '../../../../theme/tokens';
 import { overlayWhite } from '../../../../theme/overlays';
 
@@ -28,7 +29,7 @@ export function Sparkline({ valores, width = 326, height = 72, labelInicio, labe
     // Largura fluida: o viewBox mantém a geometria; o SVG ocupa o card (390 no telefone, 640 no desktop).
     <svg data-testid="progress-sparkline" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" role="img" aria-label="Evolução do condicionamento nas últimas semanas" style={{ width: '100%', height, display: 'block' }}>
       <line x1="0" y1={base} x2={width} y2={base} stroke={overlayWhite[12]} strokeWidth="1" />
-      <path d={`${d} L ${width} ${base} L 0 ${base} Z`} fill={`${primary[500]}1A`} />
+      <path d={`${d} L ${width} ${base} L 0 ${base} Z`} fill={alpha(primary[500], 0.1)} />
       <path d={d} fill="none" stroke={primary[500]} strokeWidth="2.5" strokeLinecap="round" />
       <circle cx={ux} cy={uy} r="4" fill={primary[500]} />
       {labelInicio && <text x="0" y={height - 1} fontFamily="JetBrains Mono, monospace" fontSize="11" fill={surface[500]}>{labelInicio}</text>}
