@@ -2,11 +2,14 @@ import { test, expect, type Page } from '@playwright/test'
 import { autenticarComPkce } from '../../fixtures/pkceAuth'
 
 /**
- * Ciclo do treino do atleta — parte A (modo treino) da change `athlete-training-loop`.
+ * Ciclo do treino do atleta — partes A (modo treino) e B (pós-treino) da change
+ * `athlete-training-loop`.
  *
  * O que só aqui se prova: perfil + três etapas + "Concluí o treino" cabem sem scroll em
  * 390×844 (CA2); o botão abre o registro pré-preenchido com o tipo do treino (CA3); "Não vou
- * conseguir hoje" marca o dia PERDIDO e isso aparece no Plano (CA4).
+ * conseguir hoje" marca o dia PERDIDO e isso aparece no Plano (CA4); o hero da Home mostra
+ * "Como foi?" para um realizado sem feedback, o envio grava e o hero passa a mostrar o resumo
+ * (CA5); o coach vê o feedback no drilldown (CA6).
  */
 
 const URL = '/#/athlete/workout/today'
@@ -108,5 +111,76 @@ test.describe('Atleta — Ciclo do treino (modo treino)', () => {
     await page.goto('/#/athlete/plan')
     const hoje = page.locator('[data-testid="week-agenda-row"][data-today="true"]')
     await expect(hoje).toHaveAttribute('data-status', 'pulado')
+  })
+})
+
+test.describe('Atleta — pós-treino ("Como foi?")', () => {
+  test.beforeEach(async ({ page }) => {
+    await autenticarComPkce(page, { roles: ['ATLETA'] })
+    await mockarBase(page)
+  })
+
+  test('realizado sem feedback: hero mostra "Como foi?"; enviar grava e o hero passa a mostrar o resumo', async ({ page }) => {
+    let respondido = false
+    await page.route('**/api/v1/atletas/me/home', (route) =>
+      route.fulfill(json({
+        hoje: TREINO_HOJE.hoje,
+        realizadoHoje: respondido
+          ? { id: 'r1', fonteDados: 'INTERVALS_ICU', tipoTreino: 'FACIL', duracaoMin: 40, percepcaoEsforco: 6, feedbackRegistradoEm: `${TREINO_HOJE.hoje}T19:00:00` }
+          : { id: 'r1', fonteDados: 'INTERVALS_ICU', tipoTreino: 'FACIL', duracaoMin: 40 },
+        metricasChave: {},
+      })))
+    await page.route('**/api/v1/atletas/me/realizados/r1/feedback', (route) => {
+      respondido = true
+      return route.fulfill(json({ id: 'r1', percepcaoEsforco: 6 }))
+    })
+
+    await page.goto('/#/athlete/home')
+
+    await expect(page.getByText(/como foi\?/i)).toBeVisible()
+    expect(await page.getByRole('button', { name: /registrar treino/i }).count()).toBe(0)
+
+    await page.getByRole('radio', { name: '6' }).click()
+    await page.getByRole('button', { name: /^enviar$/i }).click()
+
+    await expect(page.getByText(/treino feito/i)).toBeVisible()
+    await expect(page.getByText(/6\/10/)).toBeVisible()
+    await expect(page.getByRole('radiogroup', { name: /percepção de esforço/i })).toHaveCount(0)
+  })
+})
+
+test.describe('Coach — drilldown vê o feedback do atleta', () => {
+  test('seção "Treinos recentes" mostra RPE e sensações quando carimbado', async ({ page }) => {
+    // Shell do coach é desktop — o arquivo herda 390×844 (viewport do modo treino do atleta).
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await autenticarComPkce(page, { roles: ['TECNICO'] })
+    await page.route('**/api/**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }))
+    // 404, não `{}`: o hook trata `{}` como uma revisão válida e o adapter quebra em
+    // parseISO(undefined) — o backend real devolve 404 quando não há revisão da semana.
+    await page.route('**/api/v1/coach/atletas/atleta-uuid/revisao-semanal', (route) => route.fulfill({ status: 404, contentType: 'application/json', body: '{}' }))
+    await page.route('**/api/v1/users/me**', (route) => route.fulfill(json({
+      id: 'coach-1', nome: 'Coach', email: 'coach@test.dev', roles: ['TECNICO'],
+      assessoria: { id: 'tenant-uuid', nome: 'Assessoria Teste' }, lgpdConsentGranted: true,
+      lgpdCurrentPolicyVersion: '2026-06-30', lgpdCurrentTermsVersion: '2026-06-30',
+      lgpdAcceptedPolicyVersion: '2026-06-30', lgpdAcceptedTermsVersion: '2026-06-30',
+      onboardingConcluido: true,
+    })))
+    await page.route('**/api/v1/coach/atletas/atleta-uuid/perfil', (route) => route.fulfill(json({
+      atletaId: 'atleta-uuid', nomeAtleta: 'Marina Teste', objetivo: null, proximaProva: null,
+      nivelExperiencia: null, pmc: [], aderenciaSemanal: [], planoVigente: null,
+      sinaisRecentes: [], sugestoesRecentes: [], recordes: [], geradoEm: new Date().toISOString(), avisos: null,
+      realizadosRecentes: [{
+        id: 'r1', dataTreino: TREINO_HOJE.hoje, tipoTreino: 'FACIL', fonteDados: 'INTERVALS_ICU',
+        duracaoMin: 40, percepcaoEsforco: 6, sensacoes: ['PERNAS_PESADAS'], feedbackAtleta: 'Cansado',
+        feedbackRegistradoEm: `${TREINO_HOJE.hoje}T19:00:00`,
+      }],
+    })))
+
+    await page.goto('/#/coach/athletes/atleta-uuid')
+
+    await expect(page.getByText(/treinos recentes/i)).toBeVisible()
+    await expect(page.getByText(/rpe 6/i)).toBeVisible()
+    await expect(page.getByText(/pernas pesadas/i)).toBeVisible()
+    await expect(page.getByText('Cansado')).toBeVisible()
   })
 })
