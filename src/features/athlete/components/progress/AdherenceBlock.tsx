@@ -14,7 +14,7 @@ export function AdherenceBlock({ reading }: AdherenceBlockProps) {
     <ProgressBlockCard pergunta="Estou cumprindo o plano?" periodo="4 semanas" testId="progress-adherence">
       <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
         <Typography variant="h3" data-testid="progress-adherence-count">
-          {reading.realizado} <Box component="span" sx={{ fontSize: '0.6em', color: surface[500] }}>de {reading.planejado}</Box>
+          {reading.realizado} <Typography component="span" variant="h6" sx={{ color: surface[500] }}>de {reading.planejado}</Typography>
         </Typography>
         <Typography variant="body2" sx={{ color: surface[400] }}>treinos feitos · {reading.percentual}%</Typography>
       </Box>
