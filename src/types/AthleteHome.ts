@@ -17,6 +17,9 @@ export interface AthleteProximoTreino {
   intensidadePlanejada?: number;
   /** Mesmo `EtapaTreinoDto` do detalhe do coach (com `blocoId`/`blocoRepeticoes`); ausente sem etapas. */
   etapas?: EtapaTreino[];
+  /** Status de execução do planejado — PERDIDO + motivoPulo é o estado "pulado" (D1). */
+  statusTreino?: string;
+  motivoPulo?: string;
 }
 
 export interface AthleteMetricasChave {
@@ -28,8 +31,22 @@ export interface AthleteMetricasChave {
   statusForma?: FaixaTsbStatus; // FaixaTsb resolvida pelo backend
 }
 
+export interface AthleteRealizadoHoje {
+  id: string;
+  fonteDados?: string;
+  tipoTreino?: string;
+  duracaoMin?: number;
+  distanciaKm?: number;
+  percepcaoEsforco?: number;
+  /** Ausente = "Como foi?" ainda não respondido — é o único critério de completude (D3). */
+  feedbackRegistradoEm?: string;
+}
+
 export interface AthleteHome {
+  /** Hoje no fuso do atleta — a fonte de verdade do dia, nunca a data do aparelho. */
+  hoje?: string;
   proximoTreino?: AthleteProximoTreino;
+  realizadoHoje?: AthleteRealizadoHoje;
   metricasChave?: AthleteMetricasChave;
 }
 
