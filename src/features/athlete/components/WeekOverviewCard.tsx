@@ -78,7 +78,7 @@ export function WeekOverviewCard({ overview, provaConhecida = true }: WeekOvervi
         )}
       </Box>
 
-      <Box sx={{ height: 1, bgcolor: surface[700] }} />
+      <Box sx={{ height: '1px', bgcolor: surface[700] }} />
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
         <Box data-testid="home-streak" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
