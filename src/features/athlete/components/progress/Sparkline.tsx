@@ -25,7 +25,8 @@ export function Sparkline({ valores, width = 326, height = 72, labelInicio, labe
   const d = pts.map(([x, y], i) => `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`).join(' ');
   const [ux, uy] = pts[pts.length - 1];
   return (
-    <svg data-testid="progress-sparkline" width={width} height={height} viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Evolução do condicionamento nas últimas semanas" style={{ maxWidth: '100%', display: 'block' }}>
+    // Largura fluida: o viewBox mantém a geometria; o SVG ocupa o card (390 no telefone, 640 no desktop).
+    <svg data-testid="progress-sparkline" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" role="img" aria-label="Evolução do condicionamento nas últimas semanas" style={{ width: '100%', height, display: 'block' }}>
       <line x1="0" y1={base} x2={width} y2={base} stroke={overlayWhite[12]} strokeWidth="1" />
       <path d={`${d} L ${width} ${base} L 0 ${base} Z`} fill={`${primary[500]}1A`} />
       <path d={d} fill="none" stroke={primary[500]} strokeWidth="2.5" strokeLinecap="round" />
