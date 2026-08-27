@@ -25,8 +25,14 @@ const ME = {
   onboardingConcluido: true,
 }
 
+/** Data LOCAL do runner — `toISOString()` é UTC e, depois das 21h em UTC-3, já é "amanhã" para o app. */
+const hojeLocal = () => {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 const CHECKIN_SALVO = {
-  id: 'checkin-uuid', atletaId: 'atleta-uuid', data: new Date().toISOString().slice(0, 10),
+  id: 'checkin-uuid', atletaId: 'atleta-uuid', data: hojeLocal(),
   qualidadeSono: 3, humor: 3, doresMusculares: 8, nivelEnergia: 3, estresse: 8,
   readinessScore: 0.21, nivelProntidao: 'DESCANSAR',
 }
@@ -45,7 +51,16 @@ async function mockarHome(page: Page, opcoes: Opcoes = {}) {
   await page.route('**/api/v1/users/me**', (route) => route.fulfill(json(ME)))
   await page.route('**/api/v1/atletas/me/home', (route) =>
     route.fulfill(json({
-      proximoTreino: { data: CHECKIN_SALVO.data, tipoTreino: 'FACIL', descricao: '45 min em Z2, terreno plano' },
+      proximoTreino: {
+        data: CHECKIN_SALVO.data, tipoTreino: 'INTERVALADO', descricao: '2 × (4 min forte / 2 min leve)', duracaoMin: 45, zonaAlvo: 'Z4', tssPlanejado: 70, intensidadePlanejada: 0.95,
+        etapas: [
+          { ordem: 1, tipoEtapa: 'AQUECIMENTO', duracaoMin: 10, descricaoEtapa: 'Trote' },
+          { ordem: 2, tipoEtapa: 'ESFORCO', duracaoMin: 4, blocoId: 'b1', blocoRepeticoes: 2 },
+          { ordem: 3, tipoEtapa: 'RECUPERACAO', duracaoMin: 2, blocoId: 'b1', blocoRepeticoes: 2 },
+          { ordem: 4, tipoEtapa: 'ESFORCO', duracaoMin: 4, blocoId: 'b1', blocoRepeticoes: 2 },
+          { ordem: 5, tipoEtapa: 'RECUPERACAO', duracaoMin: 2, blocoId: 'b1', blocoRepeticoes: 2 },
+        ],
+      },
       metricasChave: { ctl: 48, atl: 40, tsb: 8, tss: 52, statusForma: 'FORMA_IDEAL' },
     })),
   )
@@ -81,6 +96,11 @@ test.describe('Atleta — Home', () => {
   test('"Registrar treino" é a única ação sólida e fica visível sem scroll em 390×844', async ({ page }) => {
     await mockarHome(page)
     await page.goto(HOME_URL)
+
+    // O perfil do treino está no hero (athlete-home-workout-profile) e o botão continua acima da dobra.
+    await expect(page.getByTestId('workout-profile')).toBeVisible()
+    await expect(page.getByTestId('repeat-bracket')).toContainText('2×')
+    await page.screenshot({ path: 'test-results/smoke-home-perfil.png', fullPage: true })
 
     const registrar = page.getByRole('button', { name: /registrar treino/i })
     await expect(registrar).toBeVisible()
@@ -168,6 +188,10 @@ test.describe('Atleta — Home', () => {
     const fora = await page.evaluate((escala) => {
       const problemas: Array<{ texto: string; familia: string; px: number }> = []
       for (const el of Array.from(document.querySelectorAll('body *'))) {
+        // O WorkoutProfile é um componente compartilhado com tokens tipográficos próprios
+        // (`workoutProfileType`: ticks mono de 10px) e uma tabela oculta de acessibilidade — não é
+        // texto do shell; a varredura mede o shell.
+        if (el.closest('[data-testid="workout-profile"]')) continue
         const proprio = Array.from(el.childNodes)
           .filter((n) => n.nodeType === Node.TEXT_NODE)
           .map((n) => n.textContent?.trim() ?? '')

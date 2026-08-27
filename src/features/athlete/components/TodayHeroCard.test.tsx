@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createHashRouter, RouterProvider } from 'react-router';
 import { TodayHeroCard } from './TodayHeroCard';
+import { selectWorkoutProfile, fromEtapaTreino } from '../../workout/profile';
+import { indexarRepeticoes } from '../../workout/profile/input';
 
 function renderHero(props: Partial<React.ComponentProps<typeof TodayHeroCard>> = {}) {
   const onRegister = vi.fn();
@@ -31,6 +33,26 @@ describe('TodayHeroCard', () => {
     renderHero({ nextWorkout: null });
     expect(screen.getByTestId('home-next-workout')).toHaveTextContent(/descanso/i);
     expect(screen.getByRole('button', { name: /registrar treino/i })).toBeInTheDocument();
+  });
+
+  it('com perfil: desenha o WorkoutProfile compacto com a série; sem perfil: nada (sem placeholder)', () => {
+    const etapas = [
+      { ordem: 1, tipoEtapa: 'AQUECIMENTO', duracaoMin: 10 },
+      { ordem: 2, tipoEtapa: 'ESFORCO', duracaoMin: 4, blocoId: 'b1', blocoRepeticoes: 2 },
+      { ordem: 3, tipoEtapa: 'RECUPERACAO', duracaoMin: 2, blocoId: 'b1', blocoRepeticoes: 2 },
+      { ordem: 4, tipoEtapa: 'ESFORCO', duracaoMin: 4, blocoId: 'b1', blocoRepeticoes: 2 },
+      { ordem: 5, tipoEtapa: 'RECUPERACAO', duracaoMin: 2, blocoId: 'b1', blocoRepeticoes: 2 },
+    ];
+    const profile = selectWorkoutProfile(indexarRepeticoes(etapas.map(fromEtapaTreino)), { sport: 'run' });
+    renderHero({ nextWorkout: { title: 'Intervalado', description: '2x(4/2)', color: '#E364A6', estimatedDuration: 45, profile } });
+    expect(screen.getByTestId('workout-profile')).toBeInTheDocument();
+    expect(screen.getByTestId('repeat-bracket')).toHaveTextContent('2×');
+    expect(screen.getByText(/45 min/)).toBeInTheDocument();
+    cleanup();
+
+    renderHero();
+    expect(screen.queryByTestId('workout-profile')).toBeNull();
+    expect(screen.queryByTestId('workout-profile-empty')).toBeNull();
   });
 
   it('não tem frase motivacional fixa nem "Iniciar treino"', () => {

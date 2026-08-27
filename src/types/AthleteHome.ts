@@ -4,11 +4,19 @@
 // aninhados podem vir ausentes (atleta sem próximo treino / sem métricas / sem sinais).
 
 import type { FaixaTsbStatus } from './FaixaTsb';
+import type { EtapaTreino } from './TreinoPlanejado';
 
 export interface AthleteProximoTreino {
   data?: string; // ISO date, ex.: "2026-06-18"
   tipoTreino?: string; // enum name do backend, ex.: "INTERVALADO"
   descricao?: string;
+  /** Minutos inteiros (o backend converte de `Duration`); ausente quando não prescrita. */
+  duracaoMin?: number;
+  zonaAlvo?: string;
+  tssPlanejado?: number;
+  intensidadePlanejada?: number;
+  /** Mesmo `EtapaTreinoDto` do detalhe do coach (com `blocoId`/`blocoRepeticoes`); ausente sem etapas. */
+  etapas?: EtapaTreino[];
 }
 
 export interface AthleteMetricasChave {

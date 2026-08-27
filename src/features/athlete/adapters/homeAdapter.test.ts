@@ -26,6 +26,33 @@ describe('homeAdapter', () => {
       expect(workout?.description).toBe('Longão 18km Z2');
     });
 
+    it('monta o perfil pelo mesmo caminho do drawer do Plano: bloco 2× ganha repeat com total 2 e índice por posição', () => {
+      const workout = buildNextWorkout({
+        proximoTreino: {
+          tipoTreino: 'INTERVALADO', descricao: '2x(4/2)', duracaoMin: 45, zonaAlvo: 'Z4', tssPlanejado: 70, intensidadePlanejada: 0.95,
+          etapas: [
+            { ordem: 1, tipoEtapa: 'AQUECIMENTO', duracaoMin: 10 },
+            { ordem: 2, tipoEtapa: 'ESFORCO', duracaoMin: 4, blocoId: 'b1', blocoRepeticoes: 2 },
+            { ordem: 3, tipoEtapa: 'RECUPERACAO', duracaoMin: 2, blocoId: 'b1', blocoRepeticoes: 2 },
+            { ordem: 4, tipoEtapa: 'ESFORCO', duracaoMin: 4, blocoId: 'b1', blocoRepeticoes: 2 },
+            { ordem: 5, tipoEtapa: 'RECUPERACAO', duracaoMin: 2, blocoId: 'b1', blocoRepeticoes: 2 },
+          ],
+        },
+      })!;
+      expect(workout.estimatedDuration).toBe(45);
+      expect(workout.profile).toBeDefined();
+      const repeats = workout.profile!.blocks.filter((b) => b.repeat);
+      expect(repeats).toHaveLength(4);
+      expect(repeats.map((b) => b.repeat!.index)).toEqual([1, 1, 2, 2]);
+      expect(repeats.every((b) => b.repeat!.total === 2)).toBe(true);
+    });
+
+    it('sem etapas: sem perfil (nada de placeholder), duração ausente quando não prescrita', () => {
+      const workout = buildNextWorkout({ proximoTreino: { tipoTreino: 'FACIL', descricao: 'Trote' } })!;
+      expect(workout.profile).toBeUndefined();
+      expect(workout.estimatedDuration).toBeUndefined();
+    });
+
     it('usa a cor canônica do tipo de treino (workoutTypeColor) — mesma fonte do DayCard/Plano', () => {
       const intervalado = buildNextWorkout({ proximoTreino: { tipoTreino: 'INTERVALADO' } });
       const longo = buildNextWorkout({ proximoTreino: { tipoTreino: 'LONGO' } });

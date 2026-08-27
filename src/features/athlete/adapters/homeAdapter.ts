@@ -1,6 +1,8 @@
 import type { AthleteHome } from '../../../types/AthleteHome';
 import type { TimeOfDay } from '../../../shared/design-tokens/gradients';
 import { workoutTypeColor } from '../../../theme/activeTheme';
+import { selectWorkoutProfile, fromEtapaTreino, type WorkoutProfileData } from '../../workout/profile';
+import { indexarRepeticoes } from '../../workout/profile/input';
 
 
 export interface HomeNextWorkout {
@@ -8,6 +10,9 @@ export interface HomeNextWorkout {
   description: string;
   /** Cor do tipo de treino — fonte única `workoutTypeColor()` (mesma fonte do Plano). */
   color: string;
+  estimatedDuration?: number;
+  /** Perfil do treino (mesmo caminho do `WorkoutDetailDrawer`); ausente sem etapas — sem placeholder. */
+  profile?: WorkoutProfileData;
 }
 
 /** Período do dia a partir do relógio local do usuário (dado real, não fabricado). */
@@ -42,10 +47,22 @@ export function tipoTreinoLabel(tipoTreino?: string): string {
 export function buildNextWorkout(home: AthleteHome | null): HomeNextWorkout | null {
   const p = home?.proximoTreino;
   if (!p) return null;
+  const etapas = p.etapas ?? [];
+  const profile = etapas.length > 0
+    ? selectWorkoutProfile(indexarRepeticoes(etapas.map(fromEtapaTreino)), {
+        // O esporte não existe no contrato (mesma limitação do detalhe do coach): escala de corrida.
+        sport: 'run',
+        tss: p.tssPlanejado ?? null,
+        if: p.intensidadePlanejada ?? null,
+        zonaAlvoTreino: p.zonaAlvo ?? null,
+      })
+    : undefined;
   return {
     title: tipoTreinoLabel(p.tipoTreino),
     description: p.descricao ?? '',
     color: workoutTypeColor(p.tipoTreino),
+    estimatedDuration: p.duracaoMin,
+    profile,
   };
 }
 
