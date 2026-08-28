@@ -108,7 +108,7 @@ export function AccessForm() {
         </CtaButton>
       </Box>
       <Typography sx={{ fontFamily: monoFont, color: "text.disabled", fontSize: 11, mt: 1.75, textAlign: "center" }}>
-        Sem compromisso · vagas limitadas
+        Sem compromisso · 60 dias grátis, sem cartão · 10 vagas no programa fundador
       </Typography>
     </Box>
   );

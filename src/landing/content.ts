@@ -115,7 +115,7 @@ export const faq = {
   items: [
     { q: "A IA vai substituir o treinador?", a: "Não — o contrário. O Menthoros faz o trabalho pesado de ler os dados e propõe ajustes, mas a decisão é 100% sua. Nada chega ao atleta sem o seu aval. A ideia é devolver seu tempo, não tomar seu lugar." },
     { q: "Preciso que meus atletas tenham um relógio específico?", a: "Nesta primeira turma, sim: o Menthoros lê os dados direto do Garmin. Se os atletas da sua assessoria usam outra marca, me conta na conversa de acesso — a próxima integração é priorizada pela demanda dos parceiros fundadores." },
-    { q: "Quanto custa?", a: "Estamos fechando os planos para o lançamento. As assessorias da turma fundadora entram com condição especial — solicite acesso e a gente conversa sobre o seu porte." },
+    { q: "Quanto custa?", a: "As 10 vagas do programa fundador entram com 60 dias grátis, sem cartão. No dia 61 você cadastra o cartão e segue no plano Basic — R$ 99/mês, 1 técnico e até 20 atletas. Não cadastrou até lá? perde o acesso." },
     { q: "Serve para uma assessoria pequena?", a: "Serve, e às vezes encaixa até melhor. Quando você cuida de tudo, o gargalo é tempo — exatamente onde o Menthoros ajuda, automatizando a análise para você focar na decisão." },
   ],
 };
@@ -124,5 +124,5 @@ export const finalCta = {
   titlePre: "Pronto para ",
   titleAccent: "elevar",
   titlePost: " sua assessoria?",
-  sub: "Entre na turma fundadora e veja como a IA transforma seu tempo em impacto real para seus atletas.",
+  sub: "Você seria uma das 10 assessorias fundadoras a usar o Menthoros em produção real — seu retorno molda as próximas versões antes de qualquer lançamento aberto.",
 };
