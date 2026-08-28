@@ -159,11 +159,11 @@ export function Hero() {
           <Box sx={{ width: 44, height: "1px", bgcolor: "primary.main", my: 3 }} />
           <Typography sx={{ color: "text.secondary", fontSize: 18, maxWidth: "42ch" }}>{C.hero.sub}</Typography>
           <Box sx={{ mt: 5 }}><CtaButton onClick={() => scrollToId("acesso")}>{C.hero.cta}<ArrowIcon /></CtaButton></Box>
-          <Typography sx={{ fontFamily: monoFont, color: "text.disabled", fontSize: 12, mt: 2.25, letterSpacing: ".04em" }}>{C.hero.scarcity}</Typography>
+          <Typography sx={{ fontFamily: monoFont, color: "text.secondary", fontSize: 12, mt: 2.25, letterSpacing: ".04em" }}>{C.hero.scarcity}</Typography>
           {/* Credencial acima da dobra. As mesmas chips voltam no Trust, ali como
               aprofundamento — repetir prova técnica não incomoda. */}
           <Box sx={{ mt: 3.25, pt: 2.5, borderTop: `1px solid ${t.palette.divider}` }}>
-            <Typography sx={{ fontFamily: monoFont, fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase", color: "text.disabled", mb: 1.25 }}>
+            <Typography sx={{ fontFamily: monoFont, fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase", color: "text.secondary", mb: 1.25 }}>
               {C.hero.proofLabel}
             </Typography>
             <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
@@ -234,7 +234,7 @@ export function HowItWorks() {
       {/* A legenda sozinha diz o que o arco tentava desenhar: o loop fecha do 03
           de volta no 01. O desenho competia com a régua dos numerais e não
           sobrevivia à quebra para uma coluna. */}
-      <Typography sx={{ fontFamily: monoFont, fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", color: "text.disabled", mt: 4 }}>
+      <Typography sx={{ fontFamily: monoFont, fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", color: "text.secondary", mt: 4 }}>
         {C.how.loopLabel}
       </Typography>
     </Section>
@@ -477,7 +477,7 @@ export function Footer() {
     <Box component="footer" sx={{ borderTop: `1px solid ${t.palette.divider}`, py: 4.5 }}>
       <Container maxWidth="lg" sx={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 2, alignItems: "center" }}>
         <Box component="img" src={logo} alt="Menthoros" sx={{ height: 40, width: "auto", display: "block", opacity: 0.92 }} />
-        <Typography sx={{ fontFamily: monoFont, fontSize: 11, color: "text.disabled" }}>© {new Date().getFullYear()} Menthoros · a IA propõe, o treinador decide</Typography>
+        <Typography sx={{ fontFamily: monoFont, fontSize: 11, color: "text.secondary" }}>© {new Date().getFullYear()} Menthoros · a IA propõe, o treinador decide</Typography>
       </Container>
     </Box>
   );
