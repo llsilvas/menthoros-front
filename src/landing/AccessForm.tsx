@@ -23,9 +23,9 @@ export function AccessForm() {
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const next = validate(nome, email, qtdAtletasRaw);
+    const next = validate(nome, email, qtdAtletasRaw, aceiteLgpd);
     setErrors(next);
-    if (Object.keys(next).length || !aceiteLgpd) return;
+    if (Object.keys(next).length) return;
 
     const payload: WaitlistInput = {
       nome: nome.trim(),
@@ -72,6 +72,11 @@ export function AccessForm() {
         sx={{ ...fieldSx(t), mt: 1.75 }}
       />
 
+      {/* Último ponto de honestidade antes do envio: hoje só Garmin está integrado. */}
+      <Typography sx={{ fontSize: 12.5, color: "text.secondary", lineHeight: 1.4, mt: 1.5 }}>
+        Hoje o Menthoros lê dados de treino do <Box component="strong" sx={{ color: "text.primary" }}>Garmin</Box>. Outra marca? conta pra gente no acesso.
+      </Typography>
+
       {/* Honeypot anti-spam: oculto e fora da ordem de tabulação. */}
       <input
         type="text" name="website" value={website}
@@ -80,16 +85,47 @@ export function AccessForm() {
         style={{ position: "absolute", width: 1, height: 1, padding: 0, margin: "-1px", overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap", border: 0 }}
       />
 
+      {/* Link fora do <label> de propósito, mesmo padrão de CoachConsentDialog.tsx: um <label>
+          encaminha qualquer clique dentro dele para o controle associado (o checkbox) — é
+          comportamento nativo do browser, não bug de React, e `stopPropagation` não resolve.
+          A frase do checkbox fica autocontida (sem link embutido) para não depender de onde a
+          linha quebra; o link vive numa linha própria, sempre alinhado, nunca deslocado. */}
       <FormControlLabel
         sx={{ mt: 1.5, alignItems: "flex-start" }}
-        control={<Checkbox checked={aceiteLgpd} onChange={(e) => setAceiteLgpd(e.target.checked)} disabled={submitting} size="small" />}
+        control={
+          <Checkbox
+            checked={aceiteLgpd}
+            onChange={(e) => {
+              setAceiteLgpd(e.target.checked);
+              // Sem isso, marcar o checkbox depois de ver o erro deixava a mensagem obsoleta
+              // na tela até o próximo submit — o usuário já tinha corrigido, mas o form não dizia.
+              if (e.target.checked) {
+                setErrors((prev) => {
+                  if (!prev.aceiteLgpd) return prev;
+                  const next = { ...prev };
+                  delete next.aceiteLgpd;
+                  return next;
+                });
+              }
+            }}
+            disabled={submitting}
+            size="small"
+          />
+        }
         label={
           <Typography sx={{ color: "text.secondary", fontSize: 13 }}>
-            Concordo em receber contato do Menthoros e com o uso dos meus dados conforme a{" "}
-            <Link component={RouterLink} to="/privacidade" underline="always">Política de Privacidade</Link>.
+            Concordo em receber contato do Menthoros e com o uso dos meus dados pessoais.
           </Typography>
         }
       />
+      <Link component={RouterLink} to="/privacidade" underline="always" sx={{ fontSize: 13, display: "inline-block", ml: 4.5, mt: -.5 }}>
+        Ler a Política de Privacidade
+      </Link>
+      {errors.aceiteLgpd && (
+        <Typography sx={{ color: "error.main", fontFamily: monoFont, fontSize: 11.5, mt: .5 }}>
+          {errors.aceiteLgpd}
+        </Typography>
+      )}
 
       {status === "error" && (
         <Typography role="alert" sx={{ color: "error.main", fontFamily: monoFont, fontSize: 12.5, mt: 1.5, textAlign: "center" }}>
@@ -98,12 +134,12 @@ export function AccessForm() {
       )}
 
       <Box sx={{ mt: 2.25 }}>
-        <CtaButton type="submit" fullWidth disabled={submitting || !aceiteLgpd}>
+        <CtaButton type="submit" fullWidth disabled={submitting}>
           {submitting ? "Enviando…" : "Solicitar acesso →"}
         </CtaButton>
       </Box>
-      <Typography sx={{ fontFamily: monoFont, color: "text.disabled", fontSize: 11, mt: 1.75, textAlign: "center" }}>
-        Sem compromisso · vagas limitadas
+      <Typography sx={{ fontFamily: monoFont, color: "text.secondary", fontSize: 11, mt: 1.75, textAlign: "center" }}>
+        Sem compromisso · 60 dias grátis, sem cartão · 10 vagas no programa fundador
       </Typography>
     </Box>
   );
