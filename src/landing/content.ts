@@ -38,7 +38,7 @@ export const how = {
   title: "O loop fechado,\nem três passos.",
   loopLabel: "A decisão do treinador retroalimenta o modelo",
   steps: [
-    { n: "01", t: "Conecte e colete", b: "Os dados de treino dos seus atletas entram automaticamente, independente do relógio ou app que eles já usam." },
+    { n: "01", t: "Conecte e colete", b: "Os dados de treino entram automaticamente do Garmin — a integração ativa nesta primeira turma. Outras marcas entram por demanda dos parceiros fundadores." },
     { n: "02", t: "A IA analisa", b: "Modelos transformam carga, fadiga e prontidão em sinais claros: quem precisa de atenção e o porquê." },
     { n: "03", t: "Você decide", b: "A IA propõe os ajustes. Você aplica sua experiência e conduz cada atleta. Nada vai ao atleta sem o seu aval." },
   ],
@@ -114,7 +114,7 @@ export const faq = {
   title: "O que os treinadores\nperguntam.",
   items: [
     { q: "A IA vai substituir o treinador?", a: "Não — o contrário. O Menthoros faz o trabalho pesado de ler os dados e propõe ajustes, mas a decisão é 100% sua. Nada chega ao atleta sem o seu aval. A ideia é devolver seu tempo, não tomar seu lugar." },
-    { q: "Preciso que meus atletas tenham um relógio específico?", a: "Não precisa trocar de equipamento. O Menthoros trabalha com os dados que seus atletas já registram, independente da marca. Na conversa de acesso a gente alinha como entra o dado no seu caso." },
+    { q: "Preciso que meus atletas tenham um relógio específico?", a: "Nesta primeira turma, sim: o Menthoros lê os dados direto do Garmin. Se os atletas da sua assessoria usam outra marca, me conta na conversa de acesso — a próxima integração é priorizada pela demanda dos parceiros fundadores." },
     { q: "Quanto custa?", a: "Estamos fechando os planos para o lançamento. As assessorias da turma fundadora entram com condição especial — solicite acesso e a gente conversa sobre o seu porte." },
     { q: "Serve para uma assessoria pequena?", a: "Serve, e às vezes encaixa até melhor. Quando você cuida de tudo, o gargalo é tempo — exatamente onde o Menthoros ajuda, automatizando a análise para você focar na decisão." },
   ],

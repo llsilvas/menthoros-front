@@ -72,6 +72,11 @@ export function AccessForm() {
         sx={{ ...fieldSx(t), mt: 1.75 }}
       />
 
+      {/* Último ponto de honestidade antes do envio: hoje só Garmin está integrado. */}
+      <Typography sx={{ fontSize: 12.5, color: "text.secondary", lineHeight: 1.4, mt: 1.5 }}>
+        Hoje o Menthoros lê dados de treino do <Box component="strong" sx={{ color: "text.primary" }}>Garmin</Box>. Outra marca? conta pra gente no acesso.
+      </Typography>
+
       {/* Honeypot anti-spam: oculto e fora da ordem de tabulação. */}
       <input
         type="text" name="website" value={website}
