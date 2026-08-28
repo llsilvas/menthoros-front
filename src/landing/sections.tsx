@@ -10,7 +10,6 @@ import { Reveal, Eyebrow, SectionHeading, SectionMark, CtaButton, LimeAura, Chec
 import { AttentionQueue, InterpretationCard } from "./ProductUI";
 import { AccessForm } from "./AccessForm";
 import logo from "../assets/landing/logo.png";
-import founderPhoto from "../assets/landing/founder-placeholder.jpg";
 import { radius } from "../theme/theme.premium";
 
 // Hash router: a rota já usa `#`. Para rolar até uma seção, scrollIntoView por id
@@ -345,15 +344,15 @@ export function Trust() {
   return (
     <Section>
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1.05fr .95fr" }, gap: { xs: 4, md: 6 }, alignItems: "center" }}>
+        {/* Citação do fundador + avatar de iniciais — sem foto até existir uma foto real
+            (a anterior era um modelo de banco de imagens com "Leandro" escrito embaixo). */}
         <Reveal>
-          <Box sx={{ bgcolor: "background.paper", border: `1px solid ${t.palette.divider}`, borderRadius: radius.outer, overflow: "hidden" }}>
-            <Box sx={{ position: "relative" }}>
-              <Box component="img" src={founderPhoto} alt="Fundador do Menthoros" sx={{ width: "100%", aspectRatio: "4 / 5", maxHeight: 520, objectFit: "cover", objectPosition: "50% 6%", display: "block" }} />
-              <Box sx={{ position: "absolute", inset: 0, background: `linear-gradient(180deg, transparent 38%, ${t.palette.background.default}f0)` }} />
-              <Box sx={{ position: "absolute", left: 24, right: 24, bottom: 20 }}>
-                <Typography sx={{ fontSize: 14, color: "text.primary" }}>{C.trust.founderBio}</Typography>
-              </Box>
+          <Box sx={{ bgcolor: "background.paper", border: `1px solid ${t.palette.divider}`, borderRadius: radius.outer, p: 3.5, display: "flex", flexDirection: "column", gap: 2, height: "100%" }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+              <Box sx={{ width: 40, height: 40, borderRadius: "8px", bgcolor: t.palette.surfaceShift.raised, display: "grid", placeItems: "center", fontFamily: monoFont, fontSize: 14, fontWeight: 700, color: "primary.main", flexShrink: 0 }}>L</Box>
+              <Typography sx={{ fontFamily: monoFont, fontSize: 11, letterSpacing: ".14em", color: "text.secondary" }}>{C.trust.founderLabel}</Typography>
             </Box>
+            <Typography sx={{ fontSize: 16, lineHeight: 1.55, color: "text.primary" }}>{C.trust.founderBio}</Typography>
           </Box>
         </Reveal>
         <Reveal>
