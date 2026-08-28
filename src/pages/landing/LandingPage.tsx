@@ -1,7 +1,7 @@
 import { Box, GlobalStyles, ThemeProvider } from '@mui/material';
 import landingTheme from '../../theme/landingTheme';
 import {
-  Nav, Hero, Pain, HowItWorks, Delta, Capabilities, Fit, Trust, Faq, FinalCta, Footer,
+  Nav, Hero, Pain, HowItWorks, Delta, Capabilities, Fit, Trust, Pricing, Faq, FinalCta, Footer,
 } from '../../landing/sections';
 import { VideoShowcase } from '../../landing/VideoShowcase';
 import { GridBackdrop } from '../../landing/primitives';
@@ -39,6 +39,7 @@ export default function LandingPage() {
           <Capabilities />
           <Fit />
           <Trust />
+          <Pricing />
           <Faq />
           <FinalCta />
           <Footer />

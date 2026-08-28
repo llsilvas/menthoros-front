@@ -95,6 +95,20 @@ export const trust = {
   chips: ["TSS", "CTL/ATL/TSB", "Decoupling", "Dados isolados por assessoria"],
 };
 
+export const pricing = {
+  eyebrow: "Planos e preços",
+  title: "Preço claro,\nsem letra miúda.",
+  intro: "Estes são os planos a partir do lançamento geral. As 10 vagas do programa fundador não escolhem entre eles — pulam direto para o Basic no dia 61 do trial.",
+  trialNote: "60 dias grátis, sem cartão — no dia 61 vira Basic se você cadastrar o cartão.",
+  plans: [
+    { nome: "GRATUITO", atletas: "≤10", tecnicos: "1", preco: "R$ 0", destaque: false },
+    { nome: "BASIC", atletas: "≤20", tecnicos: "1", preco: "R$ 99", destaque: true },
+    { nome: "PRO", atletas: "≤50", tecnicos: "2", preco: "R$ 199", destaque: false },
+    { nome: "ENTERPRISE", atletas: "≤100", tecnicos: "5", preco: "R$ 349", destaque: false },
+    { nome: "SCALE", atletas: "100+", tecnicos: "Ilimitado", preco: "R$ 599", destaque: false },
+  ],
+};
+
 export const faq = {
   eyebrow: "Perguntas frequentes",
   title: "O que os treinadores\nperguntam.",

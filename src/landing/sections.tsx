@@ -370,6 +370,57 @@ export function Trust() {
   );
 }
 
+function PlanCard({ nome, atletas, tecnicos, preco, destaque }: { nome: string; atletas: string; tecnicos: string; preco: string; destaque: boolean }) {
+  const t = useTheme();
+  return (
+    <Box sx={{ position: "relative", bgcolor: "background.paper", border: `1px solid ${destaque ? t.palette.primary.main : t.palette.divider}`, borderRadius: radius.outer, p: 2.75, display: "flex", flexDirection: "column", gap: 1.75, height: "100%" }}>
+      {destaque && (
+        <Box component="span" sx={{ position: "absolute", top: -11, left: 20, bgcolor: "primary.main", color: "primary.contrastText", fontFamily: monoFont, fontSize: 9.5, fontWeight: 700, letterSpacing: ".06em", borderRadius: radius.pill, px: 1.25, py: .375, whiteSpace: "nowrap" }}>
+          SEU PLANO APÓS O TRIAL
+        </Box>
+      )}
+      <Typography sx={{ fontFamily: monoFont, fontSize: 12, letterSpacing: ".14em", color: destaque ? "primary.main" : "text.secondary" }}>{nome}</Typography>
+      <Box sx={{ display: "flex", alignItems: "baseline", gap: .6 }}>
+        <Typography sx={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 28, fontWeight: 700 }}>{preco}</Typography>
+        <Typography sx={{ fontSize: 13, color: "text.secondary" }}>/mês</Typography>
+      </Box>
+      <Box sx={{ display: "flex", flexDirection: "column", gap: .75, pt: 1.5, borderTop: `1px solid ${t.palette.divider}` }}>
+        <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: 13.5 }}>
+          <Box component="span" sx={{ color: "text.secondary" }}>Atletas</Box>
+          <Box component="span" sx={{ fontWeight: 500 }}>{atletas}</Box>
+        </Box>
+        <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: 13.5 }}>
+          <Box component="span" sx={{ color: "text.secondary" }}>Técnicos</Box>
+          <Box component="span" sx={{ fontWeight: 500 }}>{tecnicos}</Box>
+        </Box>
+      </Box>
+    </Box>
+  );
+}
+
+export function Pricing() {
+  return (
+    <Section>
+      <Reveal sx={{ mb: 4.5 }}>
+        <SectionMark n="07" label={C.pricing.eyebrow} />
+        <SectionHeading sx={{ mt: 2, fontSize: "clamp(26px,3.4vw,34px)" }}>{C.pricing.title}</SectionHeading>
+        <Typography sx={{ color: "text.secondary", fontSize: 16, mt: 2, maxWidth: "60ch" }}>{C.pricing.intro}</Typography>
+        {/* Achado do pré-mortem (alto): quem lê só esta seção — sem abrir o FAQ — não pode
+            ver R$99–R$599 sem saber que os primeiros 60 dias são grátis. Declarado por
+            extenso aqui, não só no badge do card Basic. */}
+        <Typography sx={{ fontFamily: monoFont, fontSize: 12.5, color: "primary.main", mt: 1.5 }}>{C.pricing.trialNote}</Typography>
+      </Reveal>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(5, minmax(0,1fr))" }, gap: 2 }}>
+        {C.pricing.plans.map((p) => (
+          <Reveal key={p.nome} sx={{ mt: p.destaque ? { xs: 0, md: 1.5 } : 0 }}>
+            <PlanCard {...p} />
+          </Reveal>
+        ))}
+      </Box>
+    </Section>
+  );
+}
+
 function FaqItem({ q, a }: { q: string; a: string }) {
   const t = useTheme();
   const [open, setOpen] = useState(false);
@@ -394,7 +445,7 @@ export function Faq() {
     <Section>
       <Container maxWidth="md" disableGutters>
         <Reveal sx={{ mb: 4.5 }}>
-          <SectionMark n="07" label={C.faq.eyebrow} />
+          <SectionMark n="08" label={C.faq.eyebrow} />
           <SectionHeading sx={{ mt: 2 }}>{C.faq.title}</SectionHeading>
         </Reveal>
         {C.faq.items.map((it) => <FaqItem key={it.q} q={it.q} a={it.a} />)}
