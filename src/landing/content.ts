@@ -48,7 +48,7 @@ export const delta = {
   eyebrow: "O delta Menthoros",
   title: "A IA não substitui você.\nEla aprende com a sua decisão.",
   sub: "Toda proposta da IA passa por você. A diferença entre o que ela sugeriu e o que você decidiu é o que torna o sistema melhor a cada semana — esse é o diferencial que ninguém mais entrega.",
-  context: "CARGA INTERNA · HUGO SILVA · SEMANA 14",
+  context: "HUGO SILVA · SEM. 14 · CARGA INTERNA",
   proposed: "Reduzir o volume em 15% e manter um estímulo aeróbico de Z2.",
   decided: "Reduziu 10% e manteve o treino-chave — o atleta respondeu bem ao último bloco.",
   feedback: "Esse delta de 5% e a escolha de preservar o treino-chave voltam para o modelo. Na semana 15, a proposta já nasce mais perto da sua leitura.",

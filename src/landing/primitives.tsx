@@ -98,7 +98,10 @@ export function SectionHeading({ children, center, sx }: SectionHeadingProps) {
     >
       {parts.map((part, i) => (
         <Fragment key={i}>
-          {i > 0 && <Box component="br" sx={{ display: { xs: "none", md: "inline" } }} />}
+          {/* Espaço literal antes do <br> condicional — abaixo de md o <br> vira
+              display:none e some sem deixar nada no lugar, colando as duas partes
+              ("lendoplanilha"). O espaço garante a quebra de palavra no rag. */}
+          {i > 0 && <>{" "}<Box component="br" sx={{ display: { xs: "none", md: "inline" } }} /></>}
           {part}
         </Fragment>
       ))}
@@ -172,37 +175,34 @@ export function DashIcon({ size = 14 }: { size?: number }) {
   );
 }
 
-/* ----- marca de seção: § NN sobre numeral vazado ----- */
+/* ----- marca de seção: numeral vazado + rótulo, mesma linha ----- */
 interface SectionMarkProps { n: string; label: string; }
 
 /**
- * Rótulo `§ NN — nome` sobre o numeral vazado.
- *
- * O numeral é `color: transparent` + `-webkit-text-stroke`. Empilhado, nunca em
- * calha lateral: a calha empurra o bloco para o meio da coluna e o título passa
- * a ler como centralizado.
+ * Numeral vazado + rótulo lado a lado. Antes o rótulo repetia "§ NN — nome" numa
+ * linha empilhada acima do numeral — o número aparecia duas vezes na mesma marca.
  */
 export function SectionMark({ n, label }: SectionMarkProps) {
   const t = useTheme();
   // `textAlign` explícito: seções de cabeçalho centralizado (02, 07) herdariam
-  // o center do wrapper e o § deixaria de ancorar a coluna à esquerda.
+  // o center do wrapper e o numeral deixaria de ancorar a coluna à esquerda.
   return (
-    <Box sx={{ mb: 1.5, textAlign: "left" }}>
-      <Typography sx={{ fontFamily: monoFont, fontSize: 11, lineHeight: 1.5, letterSpacing: ".1em", color: "text.disabled", mb: 1.25 }}>
-        <Box component="span" sx={{ color: "text.secondary", fontWeight: 500 }}>§ {n}</Box> — {label}
-      </Typography>
+    <Box sx={{ mb: 1.5, textAlign: "left", display: "flex", alignItems: "baseline", gap: 1.75 }}>
       <Box
         component="span"
         sx={{
-          display: "block",
           fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700,
           fontSize: 40, lineHeight: 1, letterSpacing: "-.02em",
           color: "transparent",
           WebkitTextStroke: `1.5px ${t.palette.primary.main}`,
+          flexShrink: 0,
         }}
       >
         {n}
       </Box>
+      <Typography sx={{ fontFamily: monoFont, fontSize: 11, lineHeight: 1.5, letterSpacing: ".1em", color: "text.secondary" }}>
+        {label}
+      </Typography>
     </Box>
   );
 }

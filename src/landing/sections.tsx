@@ -174,7 +174,7 @@ export function Hero() {
             </Box>
           </Box>
         </Box>
-        <Reveal sx={{ mt: { md: 18 } }}><AttentionQueue /></Reveal>
+        <Reveal sx={{ mt: { md: 26 } }}><AttentionQueue /></Reveal>
       </Box>
     </Container>
     </Box>
@@ -204,7 +204,6 @@ export function Pain() {
 }
 
 export function HowItWorks() {
-  const t = useTheme();
   return (
     <Section id="how">
       <Reveal sx={{ mb: 6 }}>
@@ -214,10 +213,18 @@ export function HowItWorks() {
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(3,1fr)" }, gap: 3 }}>
         {C.how.steps.map((s) => (
           <Reveal key={s.n}>
+            {/* Pílula mono no lugar do numeral grande em lime — o numeral colidia
+                visualmente com o numeral vazado da marca de seção (02) acima. */}
             <Box>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1.75, mb: 1.75 }}>
-                <Typography sx={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 30, fontWeight: 700, color: "primary.main" }}>{s.n}</Typography>
-                <Box sx={{ flex: 1, height: "1px", bgcolor: t.palette.divider }} />
+              <Box
+                component="span"
+                sx={{
+                  display: "inline-block", fontFamily: monoFont, fontSize: 11, letterSpacing: ".12em",
+                  color: "primary.contrastText", bgcolor: "primary.main", borderRadius: radius.sharp,
+                  px: 1, py: .375, fontWeight: 700, mb: 1.75,
+                }}
+              >
+                PASSO {s.n}
               </Box>
               <Typography variant="h3" sx={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 600, mb: 1 }}>{s.t}</Typography>
               <Typography sx={{ color: "text.secondary", fontSize: 14.5 }}>{s.b}</Typography>
