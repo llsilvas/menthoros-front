@@ -12,40 +12,13 @@ import {
   Typography,
 } from '@mui/material';
 import { useCoachSignup } from '../../hooks/useCoachSignup';
+import { useInviteToken } from '../../hooks/useInviteToken';
 import { useAuth } from '../../context/auth/useAuth';
 import { ROUTES } from '../../constants/routes';
 import { gradients, glassAzulSx, surface } from '../../theme/tokens';
 import { overlayWhite } from '../../theme/overlays';
 
 const TAMANHO_MINIMO_DA_SENHA = 12;
-
-/** Nome do parâmetro do link do convite: `/#/cadastro?convite=<token>`. */
-const PARAM_CONVITE = 'convite';
-
-/**
- * Lê o token do fragmento (`#/cadastro?convite=<token>`). Direto do `location.hash`, e não do
- * router: a leitura acontece uma vez, no primeiro render, e a remoção logo abaixo também não passa
- * pelo router — `replaceState` limpa a URL sem disparar navegação.
- */
-function lerTokenDoFragmento(): string | null {
-  const query = window.location.hash.split('?')[1];
-  if (!query) {
-    return null;
-  }
-  return new URLSearchParams(query).get(PARAM_CONVITE)?.trim() || null;
-}
-
-/** Tira o token da barra de endereço e do histórico. O router não é envolvido de propósito. */
-function removerTokenDoFragmento(): void {
-  const [caminho, query] = window.location.hash.split('?');
-  if (!query) {
-    return;
-  }
-  const params = new URLSearchParams(query);
-  params.delete(PARAM_CONVITE);
-  const resto = params.toString();
-  window.history.replaceState(window.history.state, '', resto ? `${caminho}?${resto}` : caminho);
-}
 
 /** Espelha o `@Pattern` do backend: minúsculas, números e hífen simples, nunca nas bordas. */
 const FORMATO_DO_SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
@@ -78,8 +51,8 @@ export default function CadastroPage() {
   const { status, error, resultado, convite, cadastrar, reiniciarTentativa, consultarConvite } =
     useCoachSignup();
   const { login } = useAuth();
-  // Lido uma vez, no primeiro render. Depois disso a URL não o carrega mais.
-  const [inviteToken] = useState<string | null>(lerTokenDoFragmento);
+  // Lido uma vez, no primeiro render, e removido da URL pelo próprio hook.
+  const inviteToken = useInviteToken();
 
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
@@ -97,12 +70,12 @@ export default function CadastroPage() {
   const nomeFinal = porConvite ? (convite.dados?.nome ?? '') : nome;
   const emailFinal = porConvite ? (convite.dados?.email ?? '') : email;
 
-  // Tira o token da URL (histórico, barra de endereço, captura de tela) e consulta o convite.
+  // Consulta o convite uma vez. Sob StrictMode (dev) o efeito roda duas vezes e dispara dois GETs
+  // idempotentes — inofensivo, e dentro do rate limit (10/min/IP).
   useEffect(() => {
     if (!porConvite) {
       return;
     }
-    removerTokenDoFragmento();
     void consultarConvite(inviteToken);
     // Só no mount: o token é fixo para a vida da página.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -156,7 +129,7 @@ export default function CadastroPage() {
       return convite.status === 'invalido' ? (
         <ConviteInvalido />
       ) : (
-        <Stack alignItems="center" spacing={2} sx={{ py: 4 }}>
+        <Stack alignItems="center" spacing={2} sx={{ py: 4 }} role="status">
           <CircularProgress size={28} />
           <Typography variant="body2" sx={{ color: overlayWhite[70] }}>
             Conferindo seu convite…
@@ -317,11 +290,11 @@ export default function CadastroPage() {
         */}
         <Typography variant="body2" sx={{ color: overlayWhite[70] }}>
           Ao criar sua assessoria, você poderá consultar nossos{' '}
-          <Link component={RouterLink} to="/termos" underline="always">
+          <Link component={RouterLink} to={ROUTES.TERMOS} underline="always">
             Termos de Uso
           </Link>{' '}
           e a{' '}
-          <Link component={RouterLink} to="/privacidade" underline="always">
+          <Link component={RouterLink} to={ROUTES.PRIVACIDADE} underline="always">
             Política de Privacidade
           </Link>
           .
