@@ -5,6 +5,7 @@ export const nav = {
     { label: "Plataforma", id: "how" },
     { label: "Diferencial", id: "delta" },
     { label: "Para treinadores", id: "fit" },
+    { label: "Preços", id: "precos" },
   ],
   login: "Entrar",
   cta: "Solicitar acesso",

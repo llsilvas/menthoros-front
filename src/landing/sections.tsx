@@ -400,7 +400,7 @@ function PlanCard({ nome, atletas, tecnicos, preco, destaque }: { nome: string; 
 
 export function Pricing() {
   return (
-    <Section>
+    <Section id="precos">
       <Reveal sx={{ mb: 4.5 }}>
         <SectionMark n="07" label={C.pricing.eyebrow} />
         <SectionHeading sx={{ mt: 2, fontSize: "clamp(26px,3.4vw,34px)" }}>{C.pricing.title}</SectionHeading>
