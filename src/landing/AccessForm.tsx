@@ -92,7 +92,26 @@ export function AccessForm() {
           linha quebra; o link vive numa linha própria, sempre alinhado, nunca deslocado. */}
       <FormControlLabel
         sx={{ mt: 1.5, alignItems: "flex-start" }}
-        control={<Checkbox checked={aceiteLgpd} onChange={(e) => setAceiteLgpd(e.target.checked)} disabled={submitting} size="small" />}
+        control={
+          <Checkbox
+            checked={aceiteLgpd}
+            onChange={(e) => {
+              setAceiteLgpd(e.target.checked);
+              // Sem isso, marcar o checkbox depois de ver o erro deixava a mensagem obsoleta
+              // na tela até o próximo submit — o usuário já tinha corrigido, mas o form não dizia.
+              if (e.target.checked) {
+                setErrors((prev) => {
+                  if (!prev.aceiteLgpd) return prev;
+                  const next = { ...prev };
+                  delete next.aceiteLgpd;
+                  return next;
+                });
+              }
+            }}
+            disabled={submitting}
+            size="small"
+          />
+        }
         label={
           <Typography sx={{ color: "text.secondary", fontSize: 13 }}>
             Concordo em receber contato do Menthoros e com o uso dos meus dados pessoais.
@@ -119,7 +138,7 @@ export function AccessForm() {
           {submitting ? "Enviando…" : "Solicitar acesso →"}
         </CtaButton>
       </Box>
-      <Typography sx={{ fontFamily: monoFont, color: "text.disabled", fontSize: 11, mt: 1.75, textAlign: "center" }}>
+      <Typography sx={{ fontFamily: monoFont, color: "text.secondary", fontSize: 11, mt: 1.75, textAlign: "center" }}>
         Sem compromisso · 60 dias grátis, sem cartão · 10 vagas no programa fundador
       </Typography>
     </Box>

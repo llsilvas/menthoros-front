@@ -49,6 +49,17 @@ describe('AccessForm', () => {
     expect(inscreverMock).not.toHaveBeenCalled();
   });
 
+  it('limpa o erro de consentimento assim que o checkbox é marcado', async () => {
+    const user = userEvent.setup();
+    renderForm();
+
+    await user.click(screen.getByRole('button', { name: /solicitar acesso/i }));
+    expect(screen.getByText('É preciso aceitar para continuar.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('checkbox'));
+    expect(screen.queryByText('É preciso aceitar para continuar.')).not.toBeInTheDocument();
+  });
+
   it('valida os campos e não envia quando inválidos', async () => {
     const user = userEvent.setup();
     renderForm();
