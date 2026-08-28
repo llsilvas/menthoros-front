@@ -174,7 +174,7 @@ export function Hero() {
             </Box>
           </Box>
         </Box>
-        <Reveal><AttentionQueue /></Reveal>
+        <Reveal sx={{ mt: { md: 18 } }}><AttentionQueue /></Reveal>
       </Box>
     </Container>
     </Box>
