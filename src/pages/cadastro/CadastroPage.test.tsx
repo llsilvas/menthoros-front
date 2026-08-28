@@ -246,4 +246,108 @@ describe('CadastroPage', () => {
     liberar(respostaOk());
     await screen.findByText(/assessoria criada/i);
   });
+
+  describe('modo convite (/#/cadastro?convite=<token>)', () => {
+    function respostaConvite() {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ nome: 'Maria Treinadora', email: 'maria@exemplo.com' }),
+      } as Response;
+    }
+
+    function respostaCadastroPorConvite() {
+      return {
+        ok: true,
+        status: 201,
+        json: async () => ({
+          slug: 'corrida-na-serra',
+          email: 'maria@exemplo.com',
+          proximoPasso: 'Sua assessoria está pronta. Entre com seu e-mail e a senha que você acabou de criar.',
+        }),
+      } as Response;
+    }
+
+    /** Router real em `/cadastro`, aberto já com o token no fragmento — como o link do e-mail. */
+    function renderizarComConvite(token = 'tok-1') {
+      window.location.hash = `#/cadastro?convite=${token}`;
+      const router = createHashRouter([{ path: '/cadastro', element: <CadastroPage /> }]);
+      return render(<RouterProvider router={router} />);
+    }
+
+    afterEach(() => {
+      window.location.hash = '';
+    });
+
+    it('consulta o convite, pré-preenche e BLOQUEIA nome e e-mail, com a copy da turma fundadora', async () => {
+      fetchSpy.mockResolvedValueOnce(respostaConvite());
+      renderizarComConvite();
+
+      expect(await screen.findByText(/bem-vinda à turma fundadora/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/seu nome/i)).toHaveValue('Maria Treinadora');
+      expect(screen.getByLabelText(/seu nome/i)).toBeDisabled();
+      expect(screen.getByLabelText(/seu e-mail/i)).toHaveValue('maria@exemplo.com');
+      expect(screen.getByLabelText(/seu e-mail/i)).toBeDisabled();
+      expect(fetchSpy.mock.calls[0][0]).toMatch(/\/api\/public\/founding-invites\/tok-1$/);
+    });
+
+    it('remove o token da URL logo após o mount — ele não pode ficar no histórico', async () => {
+      fetchSpy.mockResolvedValueOnce(respostaConvite());
+      renderizarComConvite('tok-secreto');
+
+      await screen.findByText(/bem-vinda à turma fundadora/i);
+
+      await waitFor(() => expect(window.location.hash).not.toContain('tok-secreto'));
+      expect(window.location.hash).toMatch(/^#\/cadastro/);
+    });
+
+    it('envia o inviteToken junto com o cadastro e mostra o próximo passo do convite', async () => {
+      const user = userEvent.setup();
+      fetchSpy.mockResolvedValueOnce(respostaConvite()).mockResolvedValueOnce(respostaCadastroPorConvite());
+      renderizarComConvite();
+      await screen.findByText(/bem-vinda à turma fundadora/i);
+
+      await user.type(screen.getByLabelText(/^senha/i), 'senha-forte-o-suficiente');
+      await user.type(screen.getByLabelText(/nome da assessoria/i), 'Corrida na Serra');
+      await user.click(screen.getByRole('button', { name: /criar assessoria/i }));
+
+      expect(await screen.findByText(/assessoria criada/i)).toBeInTheDocument();
+      expect(screen.getByText(/sua assessoria está pronta/i)).toBeInTheDocument();
+      expect(screen.queryByText(/enviamos para/i)).not.toBeInTheDocument();
+      const body = JSON.parse((fetchSpy.mock.calls[1][1] as RequestInit).body as string);
+      expect(body).toMatchObject({ inviteToken: 'tok-1', email: 'maria@exemplo.com', nome: 'Maria Treinadora' });
+    });
+
+    it('convite inválido: mostra o aviso com link para a waitlist e NÃO mostra o formulário', async () => {
+      fetchSpy.mockResolvedValueOnce(respostaErro(404));
+      renderizarComConvite('tok-x');
+
+      expect(await screen.findByText(/convite inválido ou expirado/i)).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /lista de espera/i })).toHaveAttribute('href', '#/waitlist');
+      expect(screen.queryByLabelText(/nome da assessoria/i)).not.toBeInTheDocument();
+    });
+
+    it('não grava o token em storage', async () => {
+      const setItem = vi.spyOn(Storage.prototype, 'setItem');
+      fetchSpy.mockResolvedValueOnce(respostaConvite());
+      renderizarComConvite('tok-secreto');
+      await screen.findByText(/bem-vinda à turma fundadora/i);
+
+      expect(setItem).not.toHaveBeenCalled();
+      expect(sessionStorage.length).toBe(0);
+    });
+  });
+
+  it('sem token e com o cadastro público desligado (404): mostra "cadastro é por convite" com link para a waitlist', async () => {
+    const user = userEvent.setup();
+    fetchSpy.mockResolvedValue(respostaErro(404));
+    renderizar();
+
+    await preencher(user);
+    await user.click(screen.getByRole('button', { name: /criar assessoria/i }));
+
+    expect(await screen.findByText(/o cadastro é por convite/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /lista de espera/i })).toHaveAttribute('href', '#/waitlist');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
 });

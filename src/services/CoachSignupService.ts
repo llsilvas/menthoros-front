@@ -1,5 +1,5 @@
 import { OpenAPI } from '../api/core/OpenAPI';
-import type { CoachSignupInput, CoachSignupResult } from '../types/CoachSignup';
+import type { CoachSignupInput, CoachSignupResult, FoundingInviteLookup } from '../types/CoachSignup';
 
 /** Erro do auto-cadastro, carregando o status HTTP para diferenciar o tratamento. */
 export class CoachSignupError extends Error {
@@ -13,7 +13,7 @@ export class CoachSignupError extends Error {
 }
 
 /**
- * Wrapper não-gerado do endpoint público `POST /api/public/coach-signups`.
+ * Wrapper não-gerado dos endpoints públicos do cadastro de assessoria.
  *
  * Sem autenticação, e sem `Authorization` de propósito: o cadastro roda antes de existir sessão.
  * A resposta **não** traz token — quem autentica é o Keycloak, pelo fluxo PKCE já existente.
@@ -40,5 +40,21 @@ export class CoachSignupService {
     }
 
     return (await response.json()) as CoachSignupResult;
+  }
+
+  /**
+   * Dados do inscrito para um convite de fundadora ativo. Qualquer convite que não esteja ativo
+   * (inexistente, expirado, invalidado, convertido) responde 404 — o backend não distingue.
+   */
+  static async consultarConvite(token: string): Promise<FoundingInviteLookup> {
+    const response = await fetch(
+      `${OpenAPI.BASE}/api/public/founding-invites/${encodeURIComponent(token)}`,
+    );
+
+    if (!response.ok) {
+      throw new CoachSignupError(response.status);
+    }
+
+    return (await response.json()) as FoundingInviteLookup;
   }
 }
