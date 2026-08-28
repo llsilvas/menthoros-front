@@ -270,13 +270,16 @@ describe('CadastroPage', () => {
 
     /** Router real em `/cadastro`, aberto já com o token no fragmento — como o link do e-mail. */
     function renderizarComConvite(token = 'tok-1') {
-      window.location.hash = `#/cadastro?convite=${token}`;
+      // replaceState, não `location.hash = …`: a atribuição dispara `hashchange`, e os data routers dos
+      // testes anteriores (o RouterProvider não os descarta) tratariam como navegação — criando um
+      // Request que o jsdom rejeita e vira "unhandled error" no Vitest.
+      window.history.replaceState(null, '', `#/cadastro?convite=${token}`);
       const router = createHashRouter([{ path: '/cadastro', element: <CadastroPage /> }]);
       return render(<RouterProvider router={router} />);
     }
 
     afterEach(() => {
-      window.location.hash = '';
+      window.history.replaceState(null, '', '#/');
     });
 
     it('consulta o convite, pré-preenche e BLOQUEIA nome e e-mail, com a copy da turma fundadora', async () => {

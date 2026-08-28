@@ -9,25 +9,25 @@ describe('useInviteToken', () => {
 
   describe('lerTokenDoFragmento', () => {
     it('lê o token do fragmento', () => {
-      window.location.hash = '#/cadastro?convite=abc_DEF-123';
+      window.history.replaceState(null, '', '#/cadastro?convite=abc_DEF-123');
 
       expect(lerTokenDoFragmento()).toBe('abc_DEF-123');
     });
 
     it('sem query → null', () => {
-      window.location.hash = '#/cadastro';
+      window.history.replaceState(null, '', '#/cadastro');
 
       expect(lerTokenDoFragmento()).toBeNull();
     });
 
     it('token vazio ou em branco → null', () => {
-      window.location.hash = '#/cadastro?convite=%20%20';
+      window.history.replaceState(null, '', '#/cadastro?convite=%20%20');
 
       expect(lerTokenDoFragmento()).toBeNull();
     });
 
     it('divide na PRIMEIRA ? — uma segunda ? faz parte da query, não some', () => {
-      window.location.hash = '#/cadastro?convite=tok?x=1';
+      window.history.replaceState(null, '', '#/cadastro?convite=tok?x=1');
 
       expect(lerTokenDoFragmento()).toBe('tok?x=1');
     });
@@ -35,7 +35,7 @@ describe('useInviteToken', () => {
 
   describe('removerTokenDoFragmento', () => {
     it('remove só o token, preservando os outros parâmetros', () => {
-      window.location.hash = '#/cadastro?utm=x&convite=tok&y=2';
+      window.history.replaceState(null, '', '#/cadastro?utm=x&convite=tok&y=2');
 
       removerTokenDoFragmento();
 
@@ -43,7 +43,7 @@ describe('useInviteToken', () => {
     });
 
     it('sem outros parâmetros, deixa só o caminho', () => {
-      window.location.hash = '#/cadastro?convite=tok';
+      window.history.replaceState(null, '', '#/cadastro?convite=tok');
 
       removerTokenDoFragmento();
 
@@ -51,7 +51,7 @@ describe('useInviteToken', () => {
     });
 
     it('sem token é no-op — idempotente sob StrictMode', () => {
-      window.location.hash = '#/cadastro?utm=x';
+      window.history.replaceState(null, '', '#/cadastro?utm=x');
 
       removerTokenDoFragmento();
       removerTokenDoFragmento();
@@ -61,7 +61,7 @@ describe('useInviteToken', () => {
   });
 
   it('o hook devolve o token e limpa a URL no mount', () => {
-    window.location.hash = '#/cadastro?convite=tok-secreto';
+    window.history.replaceState(null, '', '#/cadastro?convite=tok-secreto');
 
     const { result } = renderHook(() => useInviteToken());
 
@@ -70,7 +70,7 @@ describe('useInviteToken', () => {
   });
 
   it('sem token o hook devolve null e não mexe na URL', () => {
-    window.location.hash = '#/cadastro?utm=x';
+    window.history.replaceState(null, '', '#/cadastro?utm=x');
 
     const { result } = renderHook(() => useInviteToken());
 
