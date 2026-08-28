@@ -7,6 +7,13 @@ import { radius } from "../theme/theme.premium";
 /** Fonte monospace usada em toda a landing (eyebrows, métricas, badges). */
 export const monoFont = "'JetBrains Mono', monospace";
 
+/**
+ * Altura fixa da nav, usada pelo `calc()` de centralização vertical do hero
+ * (`Hero`, em `sections.tsx`). A nav sempre renderiza neste tamanho — mesmo antes do primeiro
+ * scroll — para o `calc()` nunca ficar errado no load inicial; só o fundo/blur muda com o scroll.
+ */
+export const NAV_HEIGHT_PX = 64;
+
 interface RevealProps { children: ReactNode; sx?: SxProps<Theme>; }
 
 /* ----- scroll reveal (respects prefers-reduced-motion) ----- */

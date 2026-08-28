@@ -11,13 +11,13 @@ export const nav = {
 };
 
 export const hero = {
-  eyebrow: "Performance intelligence",
+  eyebrow: "Inteligência de performance",
   titleLine1: "A IA propõe.",
   titleLine2Pre: "O treinador ",
   titleAccent: "decide.",
   sub: "Inteligência que amplia sua visão, devolve tempo e eleva o desempenho de cada atleta — sem nunca tirar você do comando.",
   cta: "Solicitar acesso",
-  scarcity: "Turma fundadora · vagas limitadas para as primeiras assessorias",
+  scarcity: "10 vagas do programa fundador · 60 dias grátis, sem cartão",
   proofLabel: "Construído sobre a ciência do treino",
 };
 

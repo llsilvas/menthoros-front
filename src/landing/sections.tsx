@@ -6,7 +6,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import { Link as RouterLink } from "react-router";
 import { ROUTES } from "../constants/routes";
 import * as C from "./content";
-import { Reveal, Eyebrow, SectionHeading, SectionMark, CtaButton, LimeAura, CheckIcon, ArrowIcon, DashIcon, monoFont } from "./primitives";
+import { Reveal, Eyebrow, SectionHeading, SectionMark, CtaButton, LimeAura, CheckIcon, ArrowIcon, DashIcon, monoFont, NAV_HEIGHT_PX } from "./primitives";
 import { AttentionQueue, InterpretationCard } from "./ProductUI";
 import { AccessForm } from "./AccessForm";
 import logo from "../assets/landing/logo.png";
@@ -74,8 +74,11 @@ export function Nav() {
     {/* Grade de três colunas no desktop: os links de seção ficam centrados no
         eixo da página, não encostados no bloco de ações. No mobile só restam
         logo e hambúrguer, então volta a ser flex. */}
-    <Container maxWidth="lg" sx={{ display: { xs: "flex", md: "grid" }, gridTemplateColumns: { md: "1fr auto 1fr" }, alignItems: "center", justifyContent: "space-between", py: stuck ? 1.5 : 2.75, transition: "padding .28s ease" }}>
-      <Box component="img" src={logo} alt="Menthoros · AI Coaching" sx={{ height: stuck ? 38 : 46, width: "auto", display: "block", transition: "height .28s ease" }} />
+    {/* py e altura do logo são fixos (não variam com `stuck`) — o hero usa NAV_HEIGHT_PX
+        (primitives.tsx) para centralizar verticalmente via calc(100vh - nav); se a nav
+        crescesse antes do primeiro scroll, esse calc ficaria errado no load inicial. */}
+    <Container maxWidth="lg" sx={{ display: { xs: "flex", md: "grid" }, gridTemplateColumns: { md: "1fr auto 1fr" }, alignItems: "center", justifyContent: "space-between", py: 1.5 }}>
+      <Box component="img" src={logo} alt="Menthoros · AI Coaching" sx={{ height: 38, width: "auto", display: "block" }} />
 
       {/* Desktop */}
       <Box component="nav" sx={{ display: { xs: "none", md: "flex" }, gap: 3.5, alignItems: "center", justifyContent: "center" }}>
@@ -138,7 +141,13 @@ export function Nav() {
 export function Hero() {
   const t = useTheme();
   return (
-    <Container maxWidth="lg" sx={{ pt: 7, pb: 10, position: "relative", overflow: "hidden" }}>
+    // position:relative + zIndex acima do vídeo de fundo (VideoShowcase, absoluto, zIndex 0 —
+    // ver LandingPage.tsx). minHeight/alignItems centralizam o bloco na dobra — calc() usa
+    // NAV_HEIGHT_PX (fixo) em vez da altura real da nav, que varia com o scroll. SEM
+    // overflow:hidden aqui: se o conteúdo for mais alto que a viewport (janela baixa, zoom),
+    // a seção cresce em vez de cortar título/CTA.
+    <Box sx={{ position: "relative", zIndex: 1, minHeight: { md: `calc(100vh - ${NAV_HEIGHT_PX}px)` }, display: "flex", alignItems: "center" }}>
+    <Container maxWidth="lg" sx={{ py: { xs: 7, md: 5 }, position: "relative", overflow: "hidden", width: "100%" }}>
       <LimeAura />
       {/* O halo é posicionado com zIndex 0 — sem este wrapper ele pintaria acima
           do conteúdo em fluxo, que não é posicionado. */}
@@ -150,7 +159,7 @@ export function Hero() {
           </Typography>
           <Box sx={{ width: 44, height: "1px", bgcolor: "primary.main", my: 3 }} />
           <Typography sx={{ color: "text.secondary", fontSize: 18, maxWidth: "42ch" }}>{C.hero.sub}</Typography>
-          <Box sx={{ mt: 3.75 }}><CtaButton onClick={() => scrollToId("acesso")}>{C.hero.cta}<ArrowIcon /></CtaButton></Box>
+          <Box sx={{ mt: 5 }}><CtaButton onClick={() => scrollToId("acesso")}>{C.hero.cta}<ArrowIcon /></CtaButton></Box>
           <Typography sx={{ fontFamily: monoFont, color: "text.disabled", fontSize: 12, mt: 2.25, letterSpacing: ".04em" }}>{C.hero.scarcity}</Typography>
           {/* Credencial acima da dobra. As mesmas chips voltam no Trust, ali como
               aprofundamento — repetir prova técnica não incomoda. */}
@@ -168,6 +177,7 @@ export function Hero() {
         <Reveal><AttentionQueue /></Reveal>
       </Box>
     </Container>
+    </Box>
   );
 }
 

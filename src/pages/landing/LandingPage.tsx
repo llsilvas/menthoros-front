@@ -24,12 +24,15 @@ export default function LandingPage() {
         {/* O backdrop é fixed com zIndex 0 — cria contexto de empilhamento e pintaria
             acima de irmãos estáticos. O wrapper posicionado mantém a grade atrás. */}
         <Box sx={{ position: 'relative', zIndex: 1 }}>
-          <Nav />
-          <VideoShowcase />
-          {/* Hero sobe e sobrepõe a base do vídeo (zona já fundida no navy pelo gradiente). */}
-          <Box sx={{ position: 'relative', zIndex: 1, mt: { xs: -12, md: -28 } }}>
-            <Hero />
+          {/* Vídeo como fundo do hero: absoluto, ancorado no topo, fora do fluxo — Nav e Hero
+              (irmãos, em fluxo normal) desenham por cima dele sem precisar ser filhos dele.
+              Isso preserva o sticky da Nav (contido pelo wrapper que engloba a página inteira,
+              não por este box de 100vh). */}
+          <Box aria-hidden sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: '100vh', zIndex: 0, overflow: 'hidden' }}>
+            <VideoShowcase />
           </Box>
+          <Nav />
+          <Hero />
           <Pain />
           <HowItWorks />
           <Delta />
