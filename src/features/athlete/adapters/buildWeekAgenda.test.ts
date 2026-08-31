@@ -71,6 +71,17 @@ describe('buildWeekAgenda', () => {
     expect(agenda.treinosPlanejados).toBe(4);
   });
 
+  it('analiseDisponivel e treinoRealizadoId chegam do contrato; ausentes viram false', () => {
+    const comAnalise = { ...plano, treinosPlanejados: [
+      treino({ tipoTreino: 'FACIL', duracaoMin: 45, dataTreino: '2026-08-24', statusTreino: 'REALIZADO', treinoRealizadoId: 'tr1', analiseAtletaDisponivel: true }),
+      treino({ tipoTreino: 'LONGO', duracaoMin: 90, dataTreino: '2026-08-25', statusTreino: 'REALIZADO', treinoRealizadoId: 'tr2' }),
+    ] };
+    const [seg, ter] = buildWeekAgenda(comAnalise, HOJE).dias;
+    expect(seg.workout?.analiseDisponivel).toBe(true);
+    expect(seg.workout?.treinoRealizadoId).toBe('tr1');
+    expect(ter.workout?.analiseDisponivel).toBe(false);
+  });
+
   it('weekDatesFromInicio gera segunda→domingo em horário local', () => {
     const dias = weekDatesFromInicio('2026-08-24');
     expect(dias[0].getDate()).toBe(24);

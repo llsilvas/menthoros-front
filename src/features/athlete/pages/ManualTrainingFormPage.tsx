@@ -10,6 +10,8 @@ import { useCalibracao } from '../../../hooks/useCalibracao';
 import { ManualTrainingForm } from '../components/ManualTrainingForm';
 import { RecentTrainingsList } from '../components/RecentTrainingsList';
 import { PostWorkoutFeedbackCard } from '../components/PostWorkoutFeedbackCard';
+import { useAthleteWorkoutAnalysis } from '../hooks/useAthleteWorkoutAnalysis';
+import { buildWorkoutAnalysisView } from '../adapters/buildWorkoutAnalysisView';
 import { FileUploadZone } from '../components/FileUploadZone';
 import { FitUploadResultCard } from '../components/FitUploadResultCard';
 import type { TreinoManualInput, TreinoRealizadoDto } from '../../../types/TreinoManual';
@@ -31,6 +33,10 @@ export default function ManualTrainingFormPage() {
     const { upload, uploading, reset: resetFitUpload } = useFitUpload();
     const { status: calibracaoStatus, fetchStatus: fetchCalibracao } = useCalibracao();
     const [treinoRegistrado, setTreinoRegistrado] = useState<TreinoRealizadoDto | null>(null);
+    // Análise da IA do treino recém-registrado: 200 PENDING já na primeira consulta (o backend
+    // responde por elegibilidade antes mesmo de a linha existir) — o card mostra "Analisando…".
+    const { analysis } = useAthleteWorkoutAnalysis(treinoRegistrado?.id ?? null);
+    const analysisView = useMemo(() => (analysis ? buildWorkoutAnalysisView(analysis) : null), [analysis]);
     const [treinoImportado, setTreinoImportado] = useState<TreinoRealizadoDto | null>(null);
     const [toast, setToast] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
         open: false,
@@ -127,6 +133,7 @@ export default function ManualTrainingFormPage() {
                     <PostWorkoutFeedbackCard
                         treino={treinoRegistrado}
                         onVoltar={() => navigate(ROUTES.ATHLETE_HOME)}
+                        analysisView={analysisView}
                     />
                 ) : (
                     <ManualTrainingForm

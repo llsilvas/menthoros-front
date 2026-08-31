@@ -103,6 +103,17 @@ export function WeekAgendaRow({ dia, expanded, onToggle, onOpenDetail, onRegiste
             <>
               <Typography variant={hoje ? 'subtitle1' : 'body1'} sx={{ fontWeight: 600 }}>{w.title}</Typography>
               {metaLinha(dia) && <Typography variant="body2" sx={{ color: surface[400] }}>{metaLinha(dia)}</Typography>}
+              {w.analiseDisponivel && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: primary[500] }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" />
+                  </svg>
+                  <Typography variant="caption" sx={{ fontWeight: 600, color: 'inherit' }}>
+                    Análise pronta
+                  </Typography>
+                </Box>
+              )}
             </>
           ) : (
             <Typography variant="body1" sx={{ color: surface[400] }}>Descanso</Typography>

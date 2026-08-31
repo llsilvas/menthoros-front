@@ -19,6 +19,9 @@ export interface AgendaWorkout {
   distanceEstimated: boolean;
   zoneLabel?: string;
   temEtapas: boolean;
+  treinoRealizadoId?: string;
+  /** Análise pós-treino pronta para o atleta (flag do contrato do plano). */
+  analiseDisponivel: boolean;
   treino: TreinoPlanejado;
 }
 
@@ -107,6 +110,8 @@ export function buildWeekAgenda(plano: PlanoSemanal, hoje: Date = new Date()): W
         distanceEstimated: estimada,
         zoneLabel: treino.zonaAlvo || undefined,
         temEtapas: (treino.etapas?.length ?? 0) > 0,
+        treinoRealizadoId: treino.treinoRealizadoId,
+        analiseDisponivel: treino.analiseAtletaDisponivel === true,
         treino,
       },
     };
