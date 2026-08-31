@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { format } from 'date-fns';
 import { timeOfDayNow, buildNextWorkout } from './homeAdapter';
 import type { AthleteHome } from '../../../types/AthleteHome';
 
@@ -27,7 +28,9 @@ describe('homeAdapter', () => {
     });
 
     it('isToday: true quando a data do próximo treino é hoje, false quando é futura', () => {
-      const hojeIso = new Date().toISOString().slice(0, 10);
+      // Data LOCAL, não UTC: a implementação compara com isSameDay(new Date()) em horário
+      // local — com toISOString(), depois das 21h em GMT-3 o teste quebrava toda noite.
+      const hojeIso = format(new Date(), 'yyyy-MM-dd');
       const hoje = buildNextWorkout({ proximoTreino: { tipoTreino: 'FACIL', data: hojeIso } });
       const futuro = buildNextWorkout({ proximoTreino: { tipoTreino: 'FACIL', data: '2099-01-01' } });
       expect(hoje?.isToday).toBe(true);
