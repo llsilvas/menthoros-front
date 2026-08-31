@@ -119,7 +119,9 @@ test.describe('Atleta — análise do treino no Plano', () => {
       route.fulfill({ status: 204, body: '' }))
     await page.goto(PLAN_URL)
 
-    const linha = page.locator('[data-testid="week-agenda-row"]').first()
+    // Pela linha do treino (não .first()): o índice do concluído muda com o dia da semana —
+    // no CI de segunda-feira a primeira linha era "hoje" sem treino e o clique estourava timeout.
+    const linha = page.locator('[data-testid="week-agenda-row"]', { hasText: 'Análise pronta' })
     await linha.getByRole('button').click()
     const dialog = page.getByRole('dialog')
     await expect(dialog.getByText('Concluído')).toBeVisible()
