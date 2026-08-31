@@ -43,7 +43,8 @@ function StatusIcon({ status }: { status: AgendaDay['status'] }) {
 export function WeekAgendaRow({ dia, expanded, onToggle, onOpenDetail, onRegister }: WeekAgendaRowProps) {
   const hoje = dia.isToday;
   const w = dia.workout;
-  const abreDetalhe = w?.temEtapas ?? false;
+  // Concluído com realizado abre o detalhe mesmo sem etapas — é lá que a análise mora (QA/Codex).
+  const abreDetalhe = (w?.temEtapas ?? false) || (dia.status === 'concluido' && Boolean(w?.treinoRealizadoId));
   const clicavel = w !== null;
 
   const handleClick = () => {

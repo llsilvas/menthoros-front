@@ -80,6 +80,12 @@ export function WorkoutDetailDrawer({ dia, onClose, onRegister }: WorkoutDetailD
             <WorkoutAnalysisCard view={analysisView} />
           )}
 
+          {concluido && analysisStatus === 'error' && (
+            <Typography variant="caption" sx={{ color: surface[500] }}>
+              Não foi possível carregar a análise agora. Ela continua guardada neste treino.
+            </Typography>
+          )}
+
           {profile && <WorkoutProfile profile={profile} variant="full" />}
 
           <Box sx={{ display: 'flex', flexDirection: 'column' }}>

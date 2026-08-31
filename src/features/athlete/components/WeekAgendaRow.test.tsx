@@ -36,6 +36,13 @@ describe('WeekAgendaRow — sinal de análise', () => {
         expect(screen.getByText('Análise pronta')).toBeInTheDocument();
     });
 
+    it('concluído sem etapas ainda abre o detalhe — a análise mora lá', () => {
+        const d = diaConcluido(true);
+        d.workout!.temEtapas = false;
+        renderRow(d);
+        expect(screen.getByRole('button')).toHaveAttribute('aria-haspopup', 'dialog');
+    });
+
     it('sem a flag, a linha fica como era', () => {
         renderRow(diaConcluido(false));
         expect(screen.queryByText('Análise pronta')).toBeNull();

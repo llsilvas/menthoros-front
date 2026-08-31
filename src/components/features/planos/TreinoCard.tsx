@@ -318,8 +318,8 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                                     </Typography>
                                     {[analise.atletaReconhecimento, analise.atletaComoFoi, analise.atletaEsforco, analise.atletaProximoTreino]
                                         .filter(Boolean)
-                                        .map((texto) => (
-                                            <Typography key={texto} variant="body2" sx={{ color: surface[200], lineHeight: 1.5, mt: 0.5 }}>
+                                        .map((texto, idx) => (
+                                            <Typography key={`atleta-${idx}`} variant="body2" sx={{ color: surface[200], lineHeight: 1.5, mt: 0.5 }}>
                                                 {texto}
                                             </Typography>
                                         ))}
