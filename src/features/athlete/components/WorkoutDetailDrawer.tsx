@@ -1,14 +1,19 @@
 import { useMemo } from 'react';
 import { Box, Button, Drawer, IconButton, Link, Typography } from '@mui/material';
-import { Close as CloseIcon } from '@mui/icons-material';
+import { alpha } from '@mui/material/styles';
+import { Close as CloseIcon, CheckCircleOutline as DoneIcon } from '@mui/icons-material';
 import { Link as RouterLink } from 'react-router';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { primary, surface } from '../../../theme/tokens';
+import { primary, semantic, surface } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import { WorkoutProfile, buildProfileFromTreino } from '../../workout/profile';
 import { getSafeValue } from '../../../utils/safeValues';
 import { ROUTES } from '../../../constants/routes';
+import { rpeLabel } from '../../../types/Rpe';
+import { useAthleteWorkoutAnalysis } from '../hooks/useAthleteWorkoutAnalysis';
+import { buildWorkoutAnalysisView } from '../adapters/buildWorkoutAnalysisView';
+import { WorkoutAnalysisCard } from './WorkoutAnalysisCard';
 import type { AgendaDay } from '../adapters/buildWeekAgenda';
 
 export interface WorkoutDetailDrawerProps {
@@ -28,6 +33,13 @@ export function WorkoutDetailDrawer({ dia, onClose, onRegister }: WorkoutDetailD
   // Mesmo caminho do hero da Home — uma regra, duas telas.
   const profile = useMemo(() => (treino ? buildProfileFromTreino(treino.etapas, treino) ?? null : null), [treino]);
 
+  // Análise da IA para treino concluído (analise-ia-treino-atleta): id nulo desliga o hook.
+  const concluido = dia?.status === 'concluido';
+  const treinoRealizadoId = concluido ? dia?.workout?.treinoRealizadoId ?? null : null;
+  const { analysis, status: analysisStatus } = useAthleteWorkoutAnalysis(treinoRealizadoId);
+  const analysisView = useMemo(() => (analysis ? buildWorkoutAnalysisView(analysis) : null), [analysis]);
+  const rpeRealizado = dia?.workout?.treino.percepcaoEsforcoRealizado;
+
   const aberto = dia !== null && treino !== null;
 
   return (
@@ -44,8 +56,34 @@ export function WorkoutDetailDrawer({ dia, onClose, onRegister }: WorkoutDetailD
             <IconButton aria-label="Fechar" onClick={onClose} sx={{ color: surface[400] }}><CloseIcon /></IconButton>
           </Box>
 
+          {concluido && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, height: 24, px: 1, borderRadius: '100px', bgcolor: alpha(semantic.success[500], 0.14) }}>
+                <DoneIcon sx={{ fontSize: 14, color: semantic.success[500] }} />
+                <Typography variant="caption" sx={{ color: semantic.success[500], fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                  Concluído
+                </Typography>
+              </Box>
+              {rpeRealizado != null && (
+                <Typography variant="body2" sx={{ color: surface[400] }}>
+                  {`RPE ${rpeRealizado}/10 · ${rpeLabel(rpeRealizado)}`}
+                </Typography>
+              )}
+            </Box>
+          )}
+
           {dia.workout.description && (
             <Typography variant="body1" sx={{ color: surface[300] }}>{dia.workout.description}</Typography>
+          )}
+
+          {concluido && analysisView && (analysisStatus === 'done' || analysisStatus === 'pending') && (
+            <WorkoutAnalysisCard view={analysisView} />
+          )}
+
+          {concluido && analysisStatus === 'error' && (
+            <Typography variant="caption" sx={{ color: surface[500] }}>
+              Não foi possível carregar a análise agora. Ela continua guardada neste treino.
+            </Typography>
           )}
 
           {profile && <WorkoutProfile profile={profile} variant="full" />}
