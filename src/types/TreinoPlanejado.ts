@@ -21,6 +21,8 @@ export interface TreinoPlanejado {
   fonteDados?: string | { value: string; label: string; description?: string; color?: string };
   treinoRealizadoId?: string;
   percepcaoEsforcoRealizado?: number;
+  /** Há análise pós-treino pronta para o atleta neste treino (analise-ia-treino-atleta). */
+  analiseAtletaDisponivel?: boolean;
 }
 
 
