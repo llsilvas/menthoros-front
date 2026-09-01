@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useOutletContext } from 'react-router';
 import { parseISO } from 'date-fns';
 import { useDebounce } from '../../../shared/hooks/useDebounce';
 import {
@@ -57,6 +57,7 @@ import { MetricCell } from '../../../shared/components/MetricCell';
 import { useCoachRoster } from '../../../hooks/useCoachRoster';
 import { EncerrarLoteDialog } from '../../../components/features/planos/EncerrarLoteDialog';
 import { BatchPlanDialog } from '../../../components/features/planos/BatchPlanDialog';
+import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
 import { deriveRosterKpis, daysSinceLastActivity, INACTIVITY_THRESHOLD_DAYS } from '../adapters/rosterKpis';
 import { calcularAcwr, getAcwrZone } from '../adapters/coachInboxAdapters';
 import { resolveStatusVencimentoPlanoBadge, formatDataVencimentoPlano } from '../adapters/billingPlanAdapters';
@@ -219,6 +220,10 @@ type RosterActionType = 'plano' | 'projecao' | 'strava' | 'atleta-new' | 'atleta
 
 export default function CoachAthletesPage() {
   const navigate = useNavigate();
+  // O badge "Revisão de planos" da sidebar deriva das revisões carregadas no CoachLayout, que só
+  // as recarrega ao aprovar/rejeitar. Gerar plano aqui cria um AGUARDANDO_REVISAO que o shell não
+  // enxergaria sem reload manual — por isso a página avisa o layout depois de cada geração.
+  const { reviewFetchPendentes } = useOutletContext<CoachLayoutOutletContext>();
   const [searchRaw, setSearchRaw] = useState('');
   const [activeView, setActiveView] = useState<ViewKey>('all');
   const [statusFilter, setStatusFilter] = useState<CoachAtletaStatus | 'all'>('all');
@@ -800,6 +805,7 @@ export default function CoachAthletesPage() {
             onClose={() => { closeAction(); void fetchRoster(); }}
             atletaId={actionTarget.atletaId}
             atletaNome={actionTarget.nome}
+            onPlanoGerado={() => { void reviewFetchPendentes(); }}
           />
           {/* Projeção é read-only (gera snapshot de previsão) — não altera o roster, logo não recarrega. */}
           <GerarProjecaoDialog
@@ -870,6 +876,7 @@ export default function CoachAthletesPage() {
         onConcluido={() => {
           setSelection({ type: 'include', ids: new Set() });
           void fetchRoster();
+          void reviewFetchPendentes();
         }}
         resolveNomeAtleta={(id) => roster.find((a) => a.atletaId === id)?.nome ?? id}
       />
