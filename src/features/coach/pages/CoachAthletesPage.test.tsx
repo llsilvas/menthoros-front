@@ -1,14 +1,22 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import * as reactRouter from 'react-router';
 import { MemoryRouter } from 'react-router';
 import CoachAthletesPage from './CoachAthletesPage';
+import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
 import { useCoachRoster } from '../../../hooks/useCoachRoster';
 import { AtletasService } from '../../../api/services/AtletasService';
 import type { CoachAtletaResumo } from '../../../types/Coach';
 
 vi.mock('../../../hooks/useCoachRoster');
 vi.mock('../../../api/services/AtletasService');
+
+// A página lê o contexto do CoachLayout (refetch das revisões); fora do Outlet ele seria undefined.
+vi.mock('react-router', async () => {
+  const actual = await vi.importActual<typeof import('react-router')>('react-router');
+  return { ...actual, useOutletContext: vi.fn() };
+});
 
 // @mui/x-data-grid importa um .css que o vitest não resolve (por isso o projeto não testa DataGrid).
 // Stub que renderiza headers e, para a coluna `actions`, executa o `getActions` real desta página —
@@ -38,7 +46,8 @@ vi.mock('@mui/x-data-grid', () => ({
 
 // Dialogs legados reusados as-is — stub para isolar a página do fetch/serviços deles.
 vi.mock('../../../components/features/planos/planosDialog', () => ({
-  default: ({ open }: { open: boolean }) => (open ? <div>stub-planos</div> : null),
+  default: ({ open, onPlanoGerado }: { open: boolean; onPlanoGerado?: () => void }) =>
+    open ? <button onClick={onPlanoGerado}>stub-planos</button> : null,
 }));
 vi.mock('../../../components/features/projecao/GerarProjecaoDialog', () => ({
   default: ({ open }: { open: boolean }) => (open ? <div>stub-projecao</div> : null),
@@ -56,8 +65,12 @@ vi.mock('../../../shared/components/ConfirmDialog', () => ({
     open ? <button onClick={onConfirm}>stub-confirm</button> : null,
 }));
 vi.mock('../../../components/features/planos/BatchPlanDialog', () => ({
-  BatchPlanDialog: ({ open }: { open: boolean }) => (open ? <div>stub-batch</div> : null),
+  BatchPlanDialog: ({ open, onConcluido }: { open: boolean; onConcluido?: () => void }) =>
+    open ? <button onClick={onConcluido}>stub-batch</button> : null,
 }));
+
+const reviewFetchPendentes = vi.fn().mockResolvedValue(undefined);
+
 
 const ROSTER: CoachAtletaResumo[] = [
   { atletaId: 'a1', nome: 'Ana Silva', status: 'active', weeklyVolume: 32, ctl: 50, atl: 48, tsb: 2, fase: 'BASE', lastActivity: '2026-06-24' },
@@ -66,6 +79,9 @@ const ROSTER: CoachAtletaResumo[] = [
 describe('CoachAthletesPage — ações por atleta', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(reactRouter.useOutletContext).mockReturnValue({
+      reviewFetchPendentes,
+    } satisfies Partial<CoachLayoutOutletContext> as unknown as CoachLayoutOutletContext);
     vi.mocked(useCoachRoster).mockReturnValue({
       roster: ROSTER,
       loading: false,
@@ -103,6 +119,15 @@ describe('CoachAthletesPage — ações por atleta', () => {
     renderPage();
     fireEvent.click(screen.getByText('Plano'));
     expect(screen.getByText('stub-planos')).toBeInTheDocument();
+  });
+
+  // O badge "Revisão de planos" da sidebar vive no CoachLayout e só era recarregado por aprovar/
+  // rejeitar. Gerar um plano cria um item AGUARDANDO_REVISAO que o shell não enxergava sem reload.
+  it('gerar plano pelo dialog recarrega as revisões pendentes do layout', () => {
+    renderPage();
+    fireEvent.click(screen.getByText('Plano'));
+    fireEvent.click(screen.getByText('stub-planos'));
+    expect(reviewFetchPendentes).toHaveBeenCalledTimes(1);
   });
 
   it('clicar "Projeção de prova" abre o dialog de projeção', () => {
