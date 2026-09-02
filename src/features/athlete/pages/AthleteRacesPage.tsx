@@ -145,7 +145,7 @@ export default function AthleteRacesPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setCancelando(null)} disabled={saving}>Manter</Button>
-          <Button onClick={confirmarCancelamento} disabled={saving} color="error" variant="contained">Cancelar prova</Button>
+          <Button onClick={() => { void confirmarCancelamento(); }} disabled={saving} color="error" variant="contained">Cancelar prova</Button>
         </DialogActions>
       </Dialog>
     </Box>

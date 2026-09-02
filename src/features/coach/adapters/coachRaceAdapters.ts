@@ -14,6 +14,8 @@ export interface CoachRacePendingChip {
 export interface CoachRaceView {
   id: string;
   nome: string;
+  /** ISO `yyyy-MM-dd` — base da ordenação; o rótulo é só exibição. */
+  dataIso: string;
   dataLabel: string;
   distanciaLabel: string;
   alvo: boolean;
@@ -44,6 +46,7 @@ export function buildCoachRaceView(prova: Prova, hoje: Date = new Date()): Coach
   return {
     id: prova.id,
     nome: prova.nomeProva,
+    dataIso: prova.dataProva,
     dataLabel: format(parseISO(prova.dataProva), "d 'de' MMM 'de' yyyy", { locale: ptBR }),
     distanciaLabel: rotuloDistancia(distancia, prova.distanciaKm),
     alvo: prova.provaAlvo === true,
@@ -72,5 +75,5 @@ export function buildCoachRaceList(provas: Prova[], pendentes: Prova[], hoje: Da
     .sort((a, b) =>
       Number(b.pendente !== null) - Number(a.pendente !== null)
       || Number(b.alvo) - Number(a.alvo)
-      || a.dataLabel.localeCompare(b.dataLabel));
+      || a.dataIso.localeCompare(b.dataIso));
 }

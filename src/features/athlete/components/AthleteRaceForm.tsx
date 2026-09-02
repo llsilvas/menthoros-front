@@ -54,7 +54,7 @@ export function AthleteRaceForm({
 
   const amanha = format(addDays(hoje, 1), 'yyyy-MM-dd');
   const km = values.distanciaKm === '' ? undefined : Number(values.distanciaKm);
-  const kmValido = values.distancia !== 'CUSTOMIZADA' || (km != null && km > 0);
+  const kmValido = values.distancia !== 'CUSTOMIZADA' || (km != null && Number.isFinite(km) && km > 0);
   const dataValida = values.dataProva !== '' && values.dataProva >= amanha;
   const valido = values.nomeProva.trim() !== '' && dataValida && values.distancia != null && kmValido;
 

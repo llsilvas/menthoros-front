@@ -8,7 +8,7 @@ export interface AthleteRacesPanelProps {
   loading: boolean;
   error: Error | null;
   acting: boolean;
-  onCiente: (provaId: string) => void;
+  onCiente: (provaId: string) => Promise<void> | void;
   onRetry: () => void;
 }
 
@@ -76,7 +76,7 @@ export function AthleteRacesPanel({ races, loading, error, acting, onCiente, onR
               size="small"
               variant="outlined"
               disabled={acting}
-              onClick={() => onCiente(race.id)}
+              onClick={() => { void onCiente(race.id); }}
               sx={{ borderColor: primary[500], color: primary[500], whiteSpace: 'nowrap' }}
             >
               Ciente

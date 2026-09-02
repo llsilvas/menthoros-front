@@ -41,6 +41,14 @@ describe('buildCoachRaceList', () => {
   });
 });
 
+describe('buildCoachRaceList — ordem por data', () => {
+  it('ordena pela data ISO, não pelo rótulo formatado', () => {
+    const jan2: Prova = { id: 'x', nomeProva: 'Dois', dataProva: '2027-01-02', tipoProva: 'MEIA', distancia: 'KM_21', revisadaPeloCoach: true };
+    const jan10: Prova = { id: 'y', nomeProva: 'Dez', dataProva: '2027-01-10', tipoProva: 'MEIA', distancia: 'KM_21', revisadaPeloCoach: true };
+    expect(buildCoachRaceList([jan10, jan2], [], HOJE).map((r) => r.id)).toEqual(['x', 'y']);
+  });
+});
+
 describe('pendingChipLabel', () => {
   it('rotula cada motivo', () => {
     expect(pendingChipLabel('NOVA')).toBe('Nova');

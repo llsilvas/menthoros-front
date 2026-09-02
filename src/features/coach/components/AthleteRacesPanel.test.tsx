@@ -5,16 +5,16 @@ import { AthleteRacesPanel } from './AthleteRacesPanel';
 import type { CoachRaceView } from '../adapters/coachRaceAdapters';
 
 const pendente: CoachRaceView = {
-  id: 'a', nome: 'Maratona SP', dataLabel: '6 de dez de 2026', distanciaLabel: '42 km', alvo: true, cancelada: false,
+  id: 'a', nome: 'Maratona SP', dataIso: '2026-12-06', dataLabel: '6 de dez de 2026', distanciaLabel: '42 km', alvo: true, cancelada: false,
   semanasFaltando: 13, semanasMinimas: 16, preparacaoCurta: true, tempoObjetivo: '03:45:00',
   pendente: { motivo: 'ALVO_TROCADA', label: 'Alvo trocada (antes Meia do Rio)' },
 };
 const revisada: CoachRaceView = {
-  id: 'b', nome: 'Trilha', dataLabel: '25 de out de 2026', distanciaLabel: '30 km', alvo: false, cancelada: false,
+  id: 'b', nome: 'Trilha', dataIso: '2026-10-25', dataLabel: '25 de out de 2026', distanciaLabel: '30 km', alvo: false, cancelada: false,
   semanasFaltando: 7, semanasMinimas: 12, preparacaoCurta: false, pendente: null,
 };
 const cancelada: CoachRaceView = {
-  id: 'c', nome: 'Corrida do Parque', dataLabel: '20 de set de 2026', distanciaLabel: '5 km', alvo: false, cancelada: true,
+  id: 'c', nome: 'Corrida do Parque', dataIso: '2026-09-20', dataLabel: '20 de set de 2026', distanciaLabel: '5 km', alvo: false, cancelada: true,
   semanasFaltando: 2, preparacaoCurta: false, pendente: { motivo: 'CANCELADA', label: 'Cancelada pelo atleta' },
 };
 
