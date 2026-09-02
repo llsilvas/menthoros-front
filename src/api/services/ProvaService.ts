@@ -136,6 +136,53 @@ export class ProvaService {
     }
 
     /**
+     * Provas pendentes de ciência do coach (futuras ou canceladas que o atleta tocou)
+     * @param atletaId ID do atleta
+     * @returns Prova[] Lista de provas pendentes
+     * @throws ApiError
+     */
+    public static listarPendentesRevisao(
+        atletaId: string,
+    ): CancelablePromise<Array<Prova>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/atletas/{atletaId}/provas/pendentes-revisao',
+            path: {
+                'atletaId': atletaId,
+            },
+            errors: {
+                403: `Apenas treinador ou administrador`,
+                404: `Atleta não encontrado`,
+            },
+        });
+    }
+
+    /**
+     * Registrar ciência do coach sobre a última mudança do atleta na prova (idempotente)
+     * @param atletaId ID do atleta
+     * @param provaId ID da prova
+     * @returns Prova Prova com a ciência registrada
+     * @throws ApiError
+     */
+    public static marcarCiente(
+        atletaId: string,
+        provaId: string,
+    ): CancelablePromise<Prova> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/atletas/{atletaId}/provas/{provaId}/ciente',
+            path: {
+                'atletaId': atletaId,
+                'provaId': provaId,
+            },
+            errors: {
+                403: `Apenas treinador ou administrador`,
+                404: `Prova não encontrada`,
+            },
+        });
+    }
+
+    /**
      * Listar próximas provas
      * Retorna um lote de próximas provas dentro de um período de dias
      * @param dias Número de dias para buscar próximas provas (padrão: 15)

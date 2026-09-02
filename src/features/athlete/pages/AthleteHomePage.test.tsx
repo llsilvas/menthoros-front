@@ -349,7 +349,8 @@ describe('AthleteHomePage', () => {
     it('sem prova futura: CTA honesto; enquanto carrega, nenhum CTA', () => {
       mockHome();
       renderPage();
-      expect(screen.getByText(/peça ao seu coach para cadastrar sua próxima prova/i)).toBeInTheDocument();
+      expect(screen.getByText(/sem próxima prova/i)).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /^cadastrar$/i })).toHaveAttribute('href', '#/athlete/races/new');
     });
 
     it('mostra aviso com retry quando streak ou prova falham (não conflar com "sem dado")', () => {

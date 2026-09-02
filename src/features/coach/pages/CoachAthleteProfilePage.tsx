@@ -1,5 +1,5 @@
 import { lazy, Suspense, useMemo, useState } from 'react';
-import { useParams, useNavigate } from 'react-router';
+import { useParams, useNavigate, useOutletContext } from 'react-router';
 import {
     Alert,
     Box,
@@ -35,6 +35,10 @@ import { useWeeklyAthleteReview } from '../hooks/useWeeklyAthleteReview';
 import { buildWeeklyReviewFromDto } from '../adapters/weeklyReviewAdapters';
 import { WeeklyReviewCard } from '../components/WeeklyReviewCard';
 import { useEnviarKudos } from '../../../hooks/useEnviarKudos';
+import { useCoachAthleteRaces } from '../hooks/useCoachAthleteRaces';
+import { AthleteRacesPanel } from '../components/AthleteRacesPanel';
+import { buildCoachRaceList } from '../adapters/coachRaceAdapters';
+import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
 import { surface } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import type { MotivoKudos } from '../../../types/Kudos';
@@ -94,6 +98,22 @@ export default function CoachAthleteProfilePage() {
     } = useWeeklyAthleteReview(atletaId);
     const revisaoVm = useMemo(() => (revisao ? buildWeeklyReviewFromDto(revisao) : null), [revisao]);
     const { enviar: enviarKudo, loading: enviandoKudo, error: kudoError } = useEnviarKudos();
+    // Fora do CoachLayout (testes, rotas isoladas) não há contexto — a fila só é recarregada quando existe.
+    const layoutContext = useOutletContext<CoachLayoutOutletContext | undefined>();
+    const {
+        provas, pendentes, loading: provasLoading, acting: cienteActing, error: provasError,
+        fetchRaces, marcarCiente,
+    } = useCoachAthleteRaces(atletaId);
+    const provasVm = useMemo(() => buildCoachRaceList(provas, pendentes), [provas, pendentes]);
+
+    async function handleCiente(provaId: string) {
+        try {
+            await marcarCiente(provaId);
+            await layoutContext?.refetchQueue?.();
+        } catch {
+            // o erro já fica exposto pelo hook e renderizado no card
+        }
+    }
 
     async function handleEnviarKudo(motivo: MotivoKudos) {
         await enviarKudo(atletaId!, { motivo });
@@ -286,6 +306,20 @@ export default function CoachAthleteProfilePage() {
                     <Grid size={{ xs: 12, md: 6 }}>
                         <SectionCard title="Treinos recentes">
                             <RecentTrainingsPanel realizados={profile.realizadosRecentes ?? []} />
+                        </SectionCard>
+                    </Grid>
+
+                    {/* Provas — 6 colunas (atleta-cadastra-prova, D8) */}
+                    <Grid size={{ xs: 12, md: 6 }}>
+                        <SectionCard title="Provas">
+                            <AthleteRacesPanel
+                                races={provasVm}
+                                loading={provasLoading}
+                                error={provasError}
+                                acting={cienteActing}
+                                onCiente={handleCiente}
+                                onRetry={fetchRaces}
+                            />
                         </SectionCard>
                     </Grid>
 

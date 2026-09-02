@@ -1,4 +1,5 @@
-import { Box, Typography } from '@mui/material';
+import { Box, Link, Typography } from '@mui/material';
+import { Link as RouterLink } from 'react-router';
 import { alpha } from '@mui/material/styles';
 import { LocalFireDepartment as StreakIcon, Flag as ProvaIcon, Check as CheckIcon } from '@mui/icons-material';
 import { format } from 'date-fns';
@@ -8,6 +9,7 @@ import { radius } from '../../../shared/design-tokens/density';
 import { primary, surface, semantic } from '../../../theme/tokens';
 import type { DiaOverview, WeekOverview } from '../adapters/buildWeekOverview';
 import { formatKm } from '../../../utils/formatKm';
+import { ROUTES } from '../../../constants/routes';
 
 export interface WeekOverviewCardProps {
   overview: WeekOverview;
@@ -97,7 +99,7 @@ export function WeekOverviewCard({ overview, provaConhecida = true }: WeekOvervi
                   ? <><Box component="span" sx={{ color: surface[400] }}>{proximaProva.nomeProva} em</Box> <Box component="strong" sx={{ fontWeight: 600 }}>{proximaProva.diasFaltando} {proximaProva.diasFaltando === 1 ? 'dia' : 'dias'}</Box></>
                   : <>Sua próxima meta: {proximaProva.nomeProva}</>)
               : provaConhecida
-                ? <Box component="span" sx={{ color: surface[400] }}>Sem próxima meta — peça ao seu coach para cadastrar sua próxima prova.</Box>
+                ? <Box component="span" sx={{ color: surface[400] }}>Sem próxima prova · <Link component={RouterLink} to={ROUTES.ATHLETE_RACE_NEW} sx={{ color: primary[500], fontWeight: 600 }}>Cadastrar</Link></Box>
                 : <Box component="span" sx={{ color: surface[500] }}>Próxima prova indisponível no momento.</Box>}
           </Typography>
         </Box>

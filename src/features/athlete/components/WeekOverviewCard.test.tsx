@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render as rtlRender, screen } from '@testing-library/react';
+import { createHashRouter, RouterProvider } from 'react-router';
 import { WeekOverviewCard } from './WeekOverviewCard';
 import type { WeekOverview } from '../adapters/buildWeekOverview';
 
@@ -18,6 +19,12 @@ const base: WeekOverview = {
   proximaProva: { nomeProva: 'Meia de Floripa', diasFaltando: 39 },
 };
 
+// Router real: a linha "Sem próxima prova" tem um `Link` para o cadastro de prova.
+function render(ui: React.ReactElement) {
+  const router = createHashRouter([{ path: '/', element: ui }]);
+  return rtlRender(<RouterProvider router={router} />);
+}
+
 describe('WeekOverviewCard', () => {
   it('mostra volume com uma casa, streak (região única) e a próxima prova', () => {
     render(<WeekOverviewCard overview={base} />);
@@ -31,7 +38,9 @@ describe('WeekOverviewCard', () => {
 
   it('sem prova: CTA honesto; sem streak: não mostra "0 semanas"', () => {
     render(<WeekOverviewCard overview={{ ...base, streak: 0, proximaProva: null }} />);
-    expect(screen.getByText(/peça ao seu coach para cadastrar sua próxima prova/i)).toBeInTheDocument();
+    expect(screen.getByText(/sem próxima prova/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /cadastrar/i })).toHaveAttribute('href', '#/athlete/races/new');
+    expect(screen.queryByText(/peça ao seu coach/i)).toBeNull();
     expect(screen.queryByText(/0 semanas/)).toBeNull();
     expect(screen.getByTestId('home-streak')).toHaveTextContent(/sem sequência ainda/i);
   });

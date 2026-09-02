@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { createHashRouter, RouterProvider } from 'react-router';
 import AthletePlanPage from './AthletePlanPage';
 import { useAthletePlan } from '../../../hooks/useAthletePlan';
+import { useAthleteProvas } from '../../../hooks/useAthleteProvas';
 import type { PlanoSemanal } from '../../../types/PlanoSemanal';
 
 const navigateMock = vi.fn();
@@ -12,6 +13,7 @@ vi.mock('react-router', async (importOriginal) => {
   return { ...mod, useNavigate: () => navigateMock };
 });
 vi.mock('../../../hooks/useAthletePlan');
+vi.mock('../../../hooks/useAthleteProvas');
 
 // Router real (não MemoryRouter): o `WorkoutDetailDrawer` passou a ter um `Link` de
 // `react-router` para o modo treino — precisa de contexto de rota mesmo fora do App.
@@ -53,6 +55,7 @@ describe('AthletePlanPage', () => {
     vi.clearAllMocks();
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.setSystemTime(HOJE);
+    vi.mocked(useAthleteProvas).mockReturnValue({ provas: [], loading: false, error: null, fetchProvas: noop });
   });
   afterEach(() => vi.useRealTimers());
 
@@ -137,5 +140,28 @@ describe('AthletePlanPage', () => {
     mock(null, { loading: true });
     renderPage();
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
+  });
+
+  it('faixa da prova-alvo acima do plano: sem provas convida a cadastrar; com alvo mostra a prova', () => {
+    mock(PLANO);
+    renderPage();
+    expect(screen.getByTestId('race-target-banner')).toHaveAttribute('data-state', 'vazio');
+    expect(screen.getByRole('link', { name: /cadastrar prova/i })).toHaveAttribute('href', '#/athlete/races/new');
+
+    vi.mocked(useAthleteProvas).mockReturnValue({
+      provas: [{ id: 'r1', nomeProva: 'Maratona SP', dataProva: '2026-11-01', tipoProva: 'MARATONA', distancia: 'KM_42', provaAlvo: true, semanasFaltando: 17, semanasPreparacao: 16 }],
+      loading: false, error: null, fetchProvas: noop,
+    });
+    renderPage();
+    const banners = screen.getAllByTestId('race-target-banner');
+    expect(banners[banners.length - 1]).toHaveAttribute('data-state', 'alvo');
+    expect(banners[banners.length - 1]).toHaveTextContent('Maratona SP');
+  });
+
+  it('a faixa aparece mesmo sem plano aprovado', () => {
+    mock(null);
+    renderPage();
+    expect(screen.getByTestId('race-target-banner')).toBeInTheDocument();
+    expect(screen.getByText(/ainda não aprovou o plano/i)).toBeInTheDocument();
   });
 });
