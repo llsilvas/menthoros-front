@@ -10,6 +10,8 @@ import { WeekAgenda } from '../components/WeekAgenda';
 import { WorkoutDetailDrawer } from '../components/WorkoutDetailDrawer';
 import { buildWeekAgenda, type AgendaDay } from '../adapters/buildWeekAgenda';
 import { useAthletePlan } from '../../../hooks/useAthletePlan';
+import { useAthleteProvas } from '../../../hooks/useAthleteProvas';
+import { RaceTargetBanner } from '../components/RaceTargetBanner';
 import { ROUTES } from '../../../constants/routes';
 import { formatKm } from '../../../utils/formatKm';
 
@@ -20,12 +22,14 @@ function periodo(dias: AgendaDay[]): string {
 export default function AthletePlanPage() {
   const navigate = useNavigate();
   const { plano, loading, error, fetchPlano } = useAthletePlan();
+  const { provas, loading: provasLoading, error: provasError, fetchProvas } = useAthleteProvas();
   const [expandedIso, setExpandedIso] = useState<string | null>(null);
   const [detalhe, setDetalhe] = useState<AgendaDay | null>(null);
 
   useEffect(() => {
     fetchPlano();
-  }, [fetchPlano]);
+    fetchProvas();
+  }, [fetchPlano, fetchProvas]);
 
   const agenda = useMemo(() => (plano ? buildWeekAgenda(plano) : null), [plano]);
 
@@ -50,6 +54,9 @@ export default function AthletePlanPage() {
             : 'Treinos aprovados pelo seu coach'}
         </Typography>
       </Box>
+
+      {/* Faixa da prova-alvo: a entrada para "Minhas provas" (sem item no menu, D7). Independe do plano. */}
+      <RaceTargetBanner provas={provas} loading={provasLoading} error={provasError} />
 
       {error ? (
         <Alert severity="error" action={<Button color="inherit" size="small" onClick={fetchPlano}>Tentar novamente</Button>}>

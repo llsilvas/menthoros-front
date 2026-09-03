@@ -5,13 +5,16 @@ import { athleteTheme } from '../theme/athleteTheme';
 import { elevation } from '../../../shared/design-tokens';
 import { AthleteBottomNav } from '../../../shared/components/AthleteBottomNav';
 import { ErrorBoundary } from '../../../shared/components/ErrorBoundary';
-import type { AthleteRoute } from '../../../constants/routes';
+import { ROUTES, type AthleteRoute } from '../../../constants/routes';
 
 export default function AthleteLayout() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const activeRoute = location.pathname as AthleteRoute;
+  // As telas de prova não têm item próprio no menu: a entrada é a faixa do Plano, que fica ativo.
+  const activeRoute = location.pathname.startsWith(ROUTES.ATHLETE_RACES)
+    ? ROUTES.ATHLETE_PLAN
+    : (location.pathname as AthleteRoute);
 
   function handleNavigate(route: AthleteRoute) {
     navigate(route);

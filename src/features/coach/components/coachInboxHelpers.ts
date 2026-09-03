@@ -125,6 +125,7 @@ export const REASON_LABEL: Record<AttentionInfo['reason'], string> = {
   ADERENCIA: 'Aderência',
   INATIVIDADE: 'Inatividade',
   ZONAS_VENCIDAS: 'Zonas vencidas',
+  PROVA_ATLETA: 'Prova do atleta',
 };
 
 const MOTIVO_TEXTO: Record<AttentionInfo['reason'], string> = {
@@ -134,6 +135,7 @@ const MOTIVO_TEXTO: Record<AttentionInfo['reason'], string> = {
   ADERENCIA: 'queda na aderência ao plano',
   INATIVIDADE: 'ausência de treinos registrados',
   ZONAS_VENCIDAS: 'zonas de treino desatualizadas',
+  PROVA_ATLETA: 'uma prova cadastrada ou alterada por você que ainda não revisei',
 };
 
 /**

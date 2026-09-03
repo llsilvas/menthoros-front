@@ -7,7 +7,8 @@ import { OnboardingSectionLabel } from './OnboardingSectionLabel';
 import { OnboardingChipGroup } from './OnboardingChipGroup';
 
 const TIPOS = Object.keys(TIPO_PROVA_LABELS) as TipoProva[];
-const DISTANCIAS = Object.keys(DISTANCIA_PROVA_LABELS) as DistanciaProva[];
+// Distância livre fica fora do onboarding: só as quatro padrão, que dispensam quilometragem.
+const DISTANCIAS = (Object.keys(DISTANCIA_PROVA_LABELS) as DistanciaProva[]).filter((d) => d !== 'CUSTOMIZADA');
 
 export interface OnboardingProvaAlvoStepProps {
     value: Partial<OnboardingConclusaoInput>;
