@@ -23,8 +23,9 @@ export const useCoachAthleteRaces = (atletaId: string | undefined) => {
                 ProvaService.listarProvas(atletaId),
                 ProvaService.listarPendentesRevisao(atletaId),
             ]);
-            setProvas(lista);
-            setPendentes(pendentesLista);
+            // Resposta fora do contrato (não-lista) não pode derrubar a página inteira do perfil.
+            setProvas(Array.isArray(lista) ? lista : []);
+            setPendentes(Array.isArray(pendentesLista) ? pendentesLista : []);
         } catch (err) {
             setError(err instanceof Error ? err : new Error('Erro ao buscar provas do atleta'));
         } finally {

@@ -19,6 +19,9 @@ export interface RaceTargetBannerProps {
 /**
  * Faixa da prova-alvo no topo do Plano — a entrada para "Minhas provas" (não há item no menu,
  * design D7). Três estados: alvo definida, provas sem alvo, nenhuma prova.
+ *
+ * Os links levam `variant="body2"`: com `inherit` herdariam a fonte do `body` (Syne, do tema
+ * global) em vez da fonte de texto do shell do atleta.
  */
 export function RaceTargetBanner({ provas, loading = false, error = null, hoje }: RaceTargetBannerProps) {
   if (loading || error) return null;
@@ -52,7 +55,7 @@ export function RaceTargetBanner({ provas, loading = false, error = null, hoje }
             <Chip size="small" label="Preparação curta" sx={{ mt: 0.5, bgcolor: `${semantic.warning[500]}22`, color: semantic.warning[500], fontWeight: 600 }} />
           )}
         </Box>
-        <Link component={RouterLink} to={ROUTES.ATHLETE_RACES} sx={{ color: primary[500], fontWeight: 600, whiteSpace: 'nowrap' }}>
+        <Link component={RouterLink} variant="body2" to={ROUTES.ATHLETE_RACES} sx={{ color: primary[500], fontWeight: 600, whiteSpace: 'nowrap' }}>
           Minhas provas
         </Link>
       </Box>
@@ -69,7 +72,7 @@ export function RaceTargetBanner({ provas, loading = false, error = null, hoje }
             Você tem {futuras} {futuras === 1 ? 'prova cadastrada' : 'provas cadastradas'}. Escolha a que orienta o seu plano.
           </Typography>
         </Box>
-        <Link component={RouterLink} to={ROUTES.ATHLETE_RACES} sx={{ color: primary[500], fontWeight: 600, whiteSpace: 'nowrap' }}>
+        <Link component={RouterLink} variant="body2" to={ROUTES.ATHLETE_RACES} sx={{ color: primary[500], fontWeight: 600, whiteSpace: 'nowrap' }}>
           Escolher
         </Link>
       </Box>
@@ -83,7 +86,7 @@ export function RaceTargetBanner({ provas, loading = false, error = null, hoje }
         <Typography variant="body1" sx={{ fontWeight: 600, color: surface[50] }}>Nenhuma prova cadastrada</Typography>
         <Typography variant="body2" sx={{ color: surface[400] }}>A prova-alvo orienta o plano das próximas semanas.</Typography>
       </Box>
-      <Link component={RouterLink} to={ROUTES.ATHLETE_RACE_NEW} sx={{ color: primary[500], fontWeight: 600, whiteSpace: 'nowrap' }}>
+      <Link component={RouterLink} variant="body2" to={ROUTES.ATHLETE_RACE_NEW} sx={{ color: primary[500], fontWeight: 600, whiteSpace: 'nowrap' }}>
         Cadastrar prova
       </Link>
     </Box>

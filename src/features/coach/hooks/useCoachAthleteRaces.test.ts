@@ -24,6 +24,17 @@ describe('useCoachAthleteRaces', () => {
         expect(ProvaService.listarPendentesRevisao).toHaveBeenCalledWith('atleta-1');
     });
 
+    it('resposta fora do contrato (objeto em vez de lista) vira lista vazia', async () => {
+        vi.mocked(ProvaService.listarProvas).mockResolvedValue({} as unknown as Prova[]);
+        vi.mocked(ProvaService.listarPendentesRevisao).mockResolvedValue({} as unknown as Prova[]);
+        const { result } = renderHook(() => useCoachAthleteRaces('atleta-1'));
+
+        await waitFor(() => expect(result.current.loading).toBe(false));
+        expect(result.current.provas).toEqual([]);
+        expect(result.current.pendentes).toEqual([]);
+        expect(result.current.error).toBeNull();
+    });
+
     it('sem atletaId não chama o backend', () => {
         renderHook(() => useCoachAthleteRaces(undefined));
         expect(ProvaService.listarProvas).not.toHaveBeenCalled();
