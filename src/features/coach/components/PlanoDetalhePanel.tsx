@@ -63,7 +63,9 @@ function TreinoTag({
     onExcluir?: () => void;
 }) {
     const cor = workoutTypeColor(treino.tipoTreino);
-    const abbrev = treino.tipoTreino;
+    const isProva = treino.tipoTreino === 'PROVA';
+    // Nome da prova no lugar do rótulo genérico do tipo (mesmo destaque da agenda do atleta).
+    const abbrev = isProva ? (treino.descricao || 'PROVA') : treino.tipoTreino;
     const dia = resolverDiaSemana(treino.diaSemana).slice(0, 3).toUpperCase();
     const duracaoDisplay = treino.duracaoMin ? parseDuracao(treino.duracaoMin) : null;
 
@@ -100,6 +102,13 @@ function TreinoTag({
                 {/* Dia da semana — label primário */}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        {isProva && (
+                            <svg data-testid="icone-prova" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={cor}
+                                strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                                <path d="M5 3v18" />
+                                <path d="M5 4h11l-2.5 4L16 12H5" />
+                            </svg>
+                        )}
                         {treino.editadoPeloCoach && (
                             <Box
                                 data-testid="chip-editado-coach"
@@ -396,6 +405,12 @@ const STATUS_LABEL: Record<string, string> = {
     REJEITADO: 'Rejeitado',
 };
 
+/** prova-no-plano-semanal, D4: por que um plano aprovado voltou a aguardar revisão. */
+const REABERTURA_LABEL: Record<'PROVA_INSERIDA' | 'PROVA_REMOVIDA', string> = {
+    PROVA_INSERIDA: 'Reaberto: prova inserida',
+    PROVA_REMOVIDA: 'Reaberto: prova removida',
+};
+
 export function PlanoDetalhePanel({
     plano,
     isActing,
@@ -421,6 +436,7 @@ export function PlanoDetalhePanel({
     const isAguardando = reviewStatusValue === 'AGUARDANDO_REVISAO';
     const statusColor = STATUS_COLOR[reviewStatusValue] ?? STATUS_COLOR.AGUARDANDO_REVISAO;
     const statusLabel = STATUS_LABEL[reviewStatusValue] ?? reviewStatusValue;
+    const reaberturaLabel = plano.motivoReabertura ? REABERTURA_LABEL[plano.motivoReabertura] : null;
 
     const handleRejeitar = (motivo: string) => {
         setModalAberto(false);
@@ -464,6 +480,28 @@ export function PlanoDetalhePanel({
                         {periodo}
                     </Typography>
                 </Box>
+
+                {/* Reaberto por prova (prova-no-plano-semanal, D4) */}
+                {reaberturaLabel && (
+                    <Box
+                        data-testid="chip-reaberto"
+                        sx={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 0.5,
+                            px: 1,
+                            py: 0.375,
+                            mb: 1.25,
+                            borderRadius: '999px',
+                            border: `1px solid ${primary[500]}45`,
+                            bgcolor: `${primary[500]}10`,
+                        }}
+                    >
+                        <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: primary[500], letterSpacing: '0.04em' }}>
+                            {reaberturaLabel}
+                        </Typography>
+                    </Box>
+                )}
 
                 {/* Nome do atleta */}
                 <Typography

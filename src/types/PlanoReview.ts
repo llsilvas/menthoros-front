@@ -49,6 +49,7 @@ export interface TreinoPlanejadoDto {
     tipoTreino: string;
     distanciaKm: number;
     duracaoMin?: string;       // ISO-8601, e.g. "PT90M" ou "PT1H30M"
+    descricao?: string;
     zonaAlvo?: string;
     observacao?: string;
     justificativaIa?: string;
@@ -57,6 +58,8 @@ export interface TreinoPlanejadoDto {
     editadoPeloCoach?: boolean;
     adicionadoPeloCoach?: boolean;
     etapas?: EtapaTreinoDto[];
+    /** ID da prova vinculada, quando `tipoTreino = PROVA` (prova-no-plano-semanal). */
+    provaId?: string;
 }
 
 /** Payload para adicionar treino via POST /coach/planos/{planoId}/treinos. */
@@ -125,6 +128,12 @@ export interface PlanoSemanalDto {
     reviewStatus: string | PlanoReviewStatusDto;
     reviewComment?: string;
     atletaNome?: string;
+    /**
+     * Por que um plano aprovado voltou a AGUARDANDO_REVISAO sem o atleta ter mexido no plano —
+     * hoje só a prova causa isso (prova-no-plano-semanal, D4). `null`/ausente fora dessa
+     * reabertura.
+     */
+    motivoReabertura?: 'PROVA_INSERIDA' | 'PROVA_REMOVIDA' | null;
 }
 
 /** Payload do endpoint POST /{id}/rejeitar. */
