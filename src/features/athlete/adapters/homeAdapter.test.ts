@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { timeOfDayNow, homeWorkoutType, buildNextWorkout, buildHomeMetrics } from './homeAdapter';
+import { format } from 'date-fns';
+import { timeOfDayNow, buildNextWorkout } from './homeAdapter';
 import type { AthleteHome } from '../../../types/AthleteHome';
 
 describe('homeAdapter', () => {
@@ -13,15 +14,6 @@ describe('homeAdapter', () => {
     });
   });
 
-  describe('homeWorkoutType', () => {
-    it('mapeia tipoTreino do próximo treino', () => {
-      expect(homeWorkoutType({ proximoTreino: { tipoTreino: 'INTERVALADO' } })).toBe('intervals');
-    });
-    it('default seguro sem próximo treino', () => {
-      expect(homeWorkoutType(null)).toBe('easy_run');
-      expect(homeWorkoutType({})).toBe('easy_run');
-    });
-  });
 
   describe('buildNextWorkout', () => {
     it('retorna null sem próximo treino', () => {
@@ -33,6 +25,48 @@ describe('homeAdapter', () => {
       const workout = buildNextWorkout(home);
       expect(workout?.title).toBe('Longo');
       expect(workout?.description).toBe('Longão 18km Z2');
+    });
+
+    it('isToday: true quando a data do próximo treino é hoje, false quando é futura', () => {
+      // Data LOCAL, não UTC: a implementação compara com isSameDay(new Date()) em horário
+      // local — com toISOString(), depois das 21h em GMT-3 o teste quebrava toda noite.
+      const hojeIso = format(new Date(), 'yyyy-MM-dd');
+      const hoje = buildNextWorkout({ proximoTreino: { tipoTreino: 'FACIL', data: hojeIso } });
+      const futuro = buildNextWorkout({ proximoTreino: { tipoTreino: 'FACIL', data: '2099-01-01' } });
+      expect(hoje?.isToday).toBe(true);
+      expect(futuro?.isToday).toBe(false);
+    });
+
+    it('isToday: false quando o próximo treino não tem data', () => {
+      const workout = buildNextWorkout({ proximoTreino: { tipoTreino: 'FACIL' } });
+      expect(workout?.isToday).toBe(false);
+    });
+
+    it('monta o perfil pelo mesmo caminho do drawer do Plano: bloco 2× ganha repeat com total 2 e índice por posição', () => {
+      const workout = buildNextWorkout({
+        proximoTreino: {
+          tipoTreino: 'INTERVALADO', descricao: '2x(4/2)', duracaoMin: 45, zonaAlvo: 'Z4', tssPlanejado: 70, intensidadePlanejada: 0.95,
+          etapas: [
+            { ordem: 1, tipoEtapa: 'AQUECIMENTO', duracaoMin: 10 },
+            { ordem: 2, tipoEtapa: 'ESFORCO', duracaoMin: 4, blocoId: 'b1', blocoRepeticoes: 2 },
+            { ordem: 3, tipoEtapa: 'RECUPERACAO', duracaoMin: 2, blocoId: 'b1', blocoRepeticoes: 2 },
+            { ordem: 4, tipoEtapa: 'ESFORCO', duracaoMin: 4, blocoId: 'b1', blocoRepeticoes: 2 },
+            { ordem: 5, tipoEtapa: 'RECUPERACAO', duracaoMin: 2, blocoId: 'b1', blocoRepeticoes: 2 },
+          ],
+        },
+      })!;
+      expect(workout.estimatedDuration).toBe(45);
+      expect(workout.profile).toBeDefined();
+      const repeats = workout.profile!.blocks.filter((b) => b.repeat);
+      expect(repeats).toHaveLength(4);
+      expect(repeats.map((b) => b.repeat!.index)).toEqual([1, 1, 2, 2]);
+      expect(repeats.every((b) => b.repeat!.total === 2)).toBe(true);
+    });
+
+    it('sem etapas: sem perfil (nada de placeholder), duração ausente quando não prescrita', () => {
+      const workout = buildNextWorkout({ proximoTreino: { tipoTreino: 'FACIL', descricao: 'Trote' } })!;
+      expect(workout.profile).toBeUndefined();
+      expect(workout.estimatedDuration).toBeUndefined();
     });
 
     it('usa a cor canônica do tipo de treino (workoutTypeColor) — mesma fonte do DayCard/Plano', () => {
@@ -48,17 +82,4 @@ describe('homeAdapter', () => {
     });
   });
 
-  describe('buildHomeMetrics', () => {
-    it('mapeia tss/ctl/tsb/atl e formata forma com sinal', () => {
-      const metrics = buildHomeMetrics({ tss: 62, ctl: 74.4, tsb: 3.2, atl: 71.1 });
-      expect(metrics.map((m) => m.value)).toEqual(['62', '74', '+3', '71']);
-    });
-    it('mostra — para valores ausentes, nunca fabrica', () => {
-      const metrics = buildHomeMetrics(undefined);
-      expect(metrics.every((m) => m.value === '—')).toBe(true);
-    });
-    it('forma negativa mantém o sinal', () => {
-      expect(buildHomeMetrics({ tsb: -8 })[2].value).toBe('-8');
-    });
-  });
 });

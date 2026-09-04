@@ -10,12 +10,13 @@ describe('ManualTrainingForm', () => {
         vi.clearAllMocks();
     });
 
-    function renderForm(overrides?: Partial<{ loading: boolean; hasTreinoHoje: boolean; emCalibracao: boolean }>) {
+    function renderForm(overrides?: Partial<{ loading: boolean; hasTreinoHoje: boolean; emCalibracao: boolean; initial: { tipo?: string; duracaoMinutos?: number } }>) {
         return render(
             <ManualTrainingForm
                 loading={overrides?.loading ?? false}
                 hasTreinoHoje={overrides?.hasTreinoHoje ?? false}
                 emCalibracao={overrides?.emCalibracao ?? false}
+                initial={overrides?.initial}
                 onSubmit={onSubmit}
             />
         );
@@ -38,6 +39,18 @@ describe('ManualTrainingForm', () => {
             expect(screen.getByText('Corrida contínua')).toBeInTheDocument();
             expect(screen.getByText('Intervalado')).toBeInTheDocument();
             expect(screen.getByText('Regenerativo')).toBeInTheDocument();
+        });
+
+        it('lista o tipo Prova (prova-no-plano-semanal, 5.4)', () => {
+            renderForm();
+            expect(screen.getByText('Prova')).toBeInTheDocument();
+        });
+
+        it('com "initial", pré-preenche tipo e duração do treino planejado (CA3 do modo treino)', () => {
+            renderForm({ initial: { tipo: 'INTERVALADO', duracaoMinutos: 45 } });
+            const chip = screen.getByText('Intervalado').closest('[role="radio"]');
+            expect(chip).toHaveAttribute('aria-checked', 'true');
+            expect(screen.getByLabelText('Duração (minutos)')).toHaveValue(45);
         });
 
         it('chip CONTINUO está marcado como aria-checked=true por padrão', () => {
@@ -192,6 +205,19 @@ describe('ManualTrainingForm', () => {
             const continuoChip = screen.getByText('Corrida contínua').closest('[role="radio"]');
             expect(fartlekChip).toHaveAttribute('aria-checked', 'true');
             expect(continuoChip).toHaveAttribute('aria-checked', 'false');
+        });
+
+        it('selecionar Prova envia tipo=PROVA no payload (prova-no-plano-semanal, 5.4)', async () => {
+            const user = userEvent.setup();
+            renderForm();
+            await user.click(screen.getByText('Prova'));
+            const provaChip = screen.getByText('Prova').closest('[role="radio"]');
+            expect(provaChip).toHaveAttribute('aria-checked', 'true');
+
+            await user.click(screen.getByRole('button', { name: /Registrar treino/ }));
+
+            expect(onSubmit).toHaveBeenCalledOnce();
+            expect(onSubmit.mock.calls[0][0].tipo).toBe('PROVA');
         });
     });
 

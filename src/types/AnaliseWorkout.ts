@@ -29,4 +29,9 @@ export interface AnaliseWorkout {
     executionScore?: number;
     rationale?: string;
     analyzedAt?: string;
+    /** Bloco "o que o atleta leu" (analise-ia-treino-atleta) — ausente em análises antigas ou bloqueadas. */
+    atletaReconhecimento?: string;
+    atletaComoFoi?: string;
+    atletaEsforco?: string;
+    atletaProximoTreino?: string;
 }

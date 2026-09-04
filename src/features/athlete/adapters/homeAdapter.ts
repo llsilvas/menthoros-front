@@ -1,20 +1,20 @@
-import type { AthleteHome, AthleteMetricasChave } from '../../../types/AthleteHome';
+import { isSameDay, parseISO } from 'date-fns';
+import type { AthleteHome } from '../../../types/AthleteHome';
 import type { TimeOfDay } from '../../../shared/design-tokens/gradients';
-import { mapTipoTreino, type WorkoutType } from '../../coach/adapters/workoutType';
 import { workoutTypeColor } from '../../../theme/activeTheme';
+import { buildProfileFromTreino, type WorkoutProfileData } from '../../workout/profile';
 
-export interface HomeMetric {
-  label: string;
-  value: string;
-  unit: string;
-  tooltip: string;
-}
 
 export interface HomeNextWorkout {
   title: string;
   description: string;
-  /** Cor do tipo de treino — fonte única `workoutTypeColor()` (mesmo padrão do DayCard/Plano). */
+  /** Cor do tipo de treino — fonte única `workoutTypeColor()` (mesma fonte do Plano). */
   color: string;
+  estimatedDuration?: number;
+  /** Perfil do treino (mesmo caminho do `WorkoutDetailDrawer`); ausente sem etapas — sem placeholder. */
+  profile?: WorkoutProfileData;
+  /** `proximoTreino.data` é hoje — habilita a entrada para o modo treino. */
+  isToday: boolean;
 }
 
 /** Período do dia a partir do relógio local do usuário (dado real, não fabricado). */
@@ -25,10 +25,6 @@ export function timeOfDayNow(hora: number = new Date().getHours()): TimeOfDay {
   return 'night';
 }
 
-/** WorkoutType da UI a partir do tipo do próximo treino (default seguro quando ausente). */
-export function homeWorkoutType(home: AthleteHome | null): WorkoutType {
-  return mapTipoTreino(home?.proximoTreino?.tipoTreino);
-}
 
 const TIPO_TREINO_LABEL: Readonly<Record<string, string>> = {
   REGENERATIVO: 'Regenerativo',
@@ -53,33 +49,15 @@ export function tipoTreinoLabel(tipoTreino?: string): string {
 export function buildNextWorkout(home: AthleteHome | null): HomeNextWorkout | null {
   const p = home?.proximoTreino;
   if (!p) return null;
+  // Mesmo caminho do drawer do Plano — uma regra, duas telas.
+  const profile = buildProfileFromTreino(p.etapas, p);
   return {
     title: tipoTreinoLabel(p.tipoTreino),
     description: p.descricao ?? '',
     color: workoutTypeColor(p.tipoTreino),
+    estimatedDuration: p.duracaoMin,
+    profile,
+    isToday: Boolean(p.data) && isSameDay(parseISO(p.data!), new Date()),
   };
 }
 
-function fmt(value: number | undefined, digits = 0): string {
-  return value == null ? '—' : value.toFixed(digits);
-}
-
-function fmtSigned(value: number | undefined): string {
-  if (value == null) return '—';
-  const r = Math.round(value);
-  return r > 0 ? `+${r}` : `${r}`;
-}
-
-/** Métricas-chave do dia (grid da Home) a partir de `metricasChave` — nunca fabrica valor. */
-export function buildHomeMetrics(m: AthleteMetricasChave | undefined): HomeMetric[] {
-  return [
-    { label: 'Carga de treino', value: m?.tss != null ? String(m.tss) : '—', unit: 'TSS',
-      tooltip: 'Training Stress Score — quanto o treino custou para seu corpo.' },
-    { label: 'Condicionamento', value: fmt(m?.ctl), unit: 'pts',
-      tooltip: 'CTL (Chronic Training Load) — sua forma física dos últimos 42 dias.' },
-    { label: 'Forma', value: fmtSigned(m?.tsb), unit: 'pts',
-      tooltip: 'TSB — equilíbrio entre carga e recuperação. Positivo = fresco.' },
-    { label: 'Cansaço', value: fmt(m?.atl), unit: 'pts',
-      tooltip: 'ATL (Acute Training Load) — fadiga acumulada dos últimos 7 dias.' },
-  ];
-}

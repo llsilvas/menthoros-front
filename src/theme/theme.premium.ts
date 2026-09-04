@@ -105,6 +105,9 @@ export const trainingType = {
   REGENERATIVO: categorical.sage,
   FARTLEK:      categorical.violet,
   CONTINUO:     categorical.gold,
+  // lime da marca (não categorical): é o dia mais importante da semana, e a
+  // agenda já usa lime para "hoje" — prova-no-plano-semanal, design.md D7.
+  PROVA:        primary[500],
 } as const;
 
 // ── TrainingStage — categórico dedicado (sai do lime e de semantic) ──────────

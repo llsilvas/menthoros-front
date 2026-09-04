@@ -64,4 +64,19 @@ describe('PostWorkoutFeedbackCard', () => {
 
     expect(onVoltar).toHaveBeenCalled();
   });
+
+  it('com analysisView mostra o card da análise e some com a frase fixa', () => {
+    render(
+      <PostWorkoutFeedbackCard
+        treino={treino()}
+        onVoltar={vi.fn()}
+        analysisView={{ status: 'pending', stats: [{ label: 'Duração', value: '60 min' }] }}
+      />,
+    );
+
+    expect(screen.getByTestId('workout-analysis-card')).toBeInTheDocument();
+    expect(screen.getByText('Analisando o seu treino…')).toBeInTheDocument();
+    expect(screen.queryByText('Bom treino! Mantenha a consistência.')).toBeNull();
+    expect(screen.getByRole('button', { name: /voltar para home/i })).toBeInTheDocument();
+  });
 });

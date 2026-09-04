@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { format } from 'date-fns';
 import { selectAthletePlan } from './selectAthletePlan';
 import type { PlanoSemanal } from '../../../types/PlanoSemanal';
 
@@ -17,6 +18,20 @@ function plano(id: string, inicio: string, fim: string): PlanoSemanal {
 
 describe('selectAthletePlan', () => {
   const hoje = '2026-07-03';
+  afterEach(() => vi.useRealTimers());
+
+  it('usa a data LOCAL como hoje (não UTC): o plano escolhido contém a data local do aparelho', () => {
+    // 23:30 de domingo em UTC-3 já é segunda em UTC. Em qualquer fuso, o plano escolhido tem de
+    // conter a data LOCAL — o código anterior usava toISOString() e, em UTC-3, escolhia p2.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-30T23:30:00-03:00'));
+    const local = format(new Date(), 'yyyy-MM-dd');
+    const corrente = plano('p1', '2026-08-24', '2026-08-30');
+    const proxima = plano('p2', '2026-08-31', '2026-09-06');
+    const escolhido = selectAthletePlan([corrente, proxima]);
+    expect(escolhido).not.toBeNull();
+    expect(escolhido!.semanaInicio <= local && local <= escolhido!.semanaFim).toBe(true);
+  });
 
   it('retorna null para resposta vazia/nula', () => {
     expect(selectAthletePlan(null, hoje)).toBeNull();

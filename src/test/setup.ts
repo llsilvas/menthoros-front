@@ -5,8 +5,8 @@ import '@testing-library/jest-dom';
 import { afterEach, beforeEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 
-// jsdom não implementa scrollIntoView; componentes que fazem auto-scroll (ex.: WeeklyPlanList)
-// o chamam em efeitos de montagem. Stub global evita ruído nos testes de componente.
+// jsdom não implementa scrollIntoView; componentes que fazem auto-scroll o chamam em efeitos de
+// montagem. Stub global evita ruído nos testes de componente.
 if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = vi.fn();
 }

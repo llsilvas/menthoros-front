@@ -167,7 +167,8 @@ export function CoachDialog({
             // wizard — a AT não anuncia onde o usuário está. Não muda nada visualmente.
             component="h2"
             sx={{
-              fontFamily: 'Syne, sans-serif',
+              // Família da variante h4: Syne no coach, display no atleta — cada shell resolve a sua.
+              fontFamily: (t) => t.typography.h4.fontFamily,
               fontWeight: 800,
               lineHeight: 1.15,
               color: surface[50],

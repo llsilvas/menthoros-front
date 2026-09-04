@@ -311,6 +311,21 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                                 </Box>
                             )}
 
+                            {expandedInsight && analise.atletaComoFoi && (
+                                <Box sx={{ mt: 1, pt: 1, borderTop: `1px solid ${semantic.warning[500]}33` }}>
+                                    <Typography variant="caption" sx={{ fontWeight: 600, color: surface[400] }}>
+                                        O que o atleta leu
+                                    </Typography>
+                                    {[analise.atletaReconhecimento, analise.atletaComoFoi, analise.atletaEsforco, analise.atletaProximoTreino]
+                                        .filter(Boolean)
+                                        .map((texto, idx) => (
+                                            <Typography key={`atleta-${idx}`} variant="body2" sx={{ color: surface[200], lineHeight: 1.5, mt: 0.5 }}>
+                                                {texto}
+                                            </Typography>
+                                        ))}
+                                </Box>
+                            )}
+
                             <Button
                                 size="small"
                                 onClick={() => setExpandedInsight(!expandedInsight)}

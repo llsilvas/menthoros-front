@@ -2,7 +2,9 @@ import { surface, semantic, categorical } from '../theme/tokens';
 
 // Enum keys (usados no envio ao backend)
 export type TipoProva = 'CORRIDA_RUA' | 'TRAIL' | 'MEIA' | 'MARATONA';
-export type DistanciaProva = 'KM_5' | 'KM_10' | 'KM_21' | 'KM_42';
+export type DistanciaProva = 'KM_5' | 'KM_10' | 'KM_21' | 'KM_42' | 'CUSTOMIZADA';
+/** Por que uma prova está pendente de ciência do coach (atleta-cadastra-prova). */
+export type MotivoRevisaoProva = 'NOVA' | 'DATA_ALTERADA' | 'ALVO_TROCADA' | 'CANCELADA';
 export type ProvaStatus = 'PLANEJADA' | 'CONFIRMADA' | 'CONCLUIDA' | 'CANCELADA';
 
 export interface TipoProvaObj {
@@ -50,6 +52,7 @@ export const DISTANCIA_PROVA_LABELS: Record<DistanciaProva, string> = {
     KM_10: '10 km',
     KM_21: '21 km (Meia Maratona)',
     KM_42: '42 km (Maratona)',
+    CUSTOMIZADA: 'Outra',
 };
 
 export const PROVA_STATUS_LABELS: Record<ProvaStatus, string> = {
@@ -72,7 +75,7 @@ export const extractDistanciaKey = (value: unknown): DistanciaProva | undefined 
     if (typeof value === 'string') return value as DistanciaProva;
     if (typeof value === 'object' && value !== null && 'value' in value) {
         const v = (value as DistanciaProvaObj).value;
-        const map: Record<string, DistanciaProva> = { '5K': 'KM_5', '10K': 'KM_10', '21K': 'KM_21', '42K': 'KM_42' };
+        const map: Record<string, DistanciaProva> = { '5K': 'KM_5', '10K': 'KM_10', '21K': 'KM_21', '42K': 'KM_42', 'OUTRA': 'CUSTOMIZADA' };
         return map[v];
     }
     return undefined;
@@ -110,6 +113,29 @@ export interface Prova {
     semanasPreparacao?: number;
     inicioPreparacao?: string;
     diasFaltando?: number;     // campo computado, apenas na saída
+    /** Preparação já deveria ter começado (prazo menor que o mínimo da distância). */
+    preparacaoCurta?: boolean;
+    /** Semanas inteiras faltando até a prova (calculado no backend). */
+    semanasFaltando?: number;
+    /** `false` enquanto o coach não registra ciência da última mudança feita pelo atleta. */
+    revisadaPeloCoach?: boolean;
+    motivoRevisao?: MotivoRevisaoProva;
+    /** Nome da prova-alvo substituída, quando `motivoRevisao = 'ALVO_TROCADA'`. */
+    alvoAnteriorNome?: string;
+}
+
+/**
+ * Subconjunto que o próprio atleta grava (`ProvaAtletaInputDto` no backend): sem status,
+ * resultado nem campos derivados — o backend ignora qualquer outro campo vindo do atleta.
+ */
+export interface CreateProvaAtleta {
+    nomeProva: string;
+    dataProva: string;
+    tipoProva: TipoProva;
+    distancia: DistanciaProva;
+    distanciaKm?: number;
+    tempoObjetivo?: string;
+    provaAlvo: boolean;
 }
 
 // Input DTO (enviado ao backend — enums como string key)

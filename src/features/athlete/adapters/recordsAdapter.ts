@@ -1,9 +1,14 @@
+import { format, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import type { AthleteRecord } from '../../../types/AthleteProgress';
 
 export interface RecordRow {
   distancia: string;
   tempoFormatado: string;
-  data: string;
+  /** ISO cru do contrato (`RecordeDto.data`), para cálculo — ex.: recorde "novo". */
+  dataIso: string;
+  /** Para exibição ("12 de jul"). A tela anterior mostrava o ISO cru. */
+  dataFormatada: string;
 }
 
 function pad2(n: number): string {
@@ -23,6 +28,7 @@ export function buildRecordRows(records: AthleteRecord[]): RecordRow[] {
   return records.map((r) => ({
     distancia: r.distancia,
     tempoFormatado: formatTempoRecorde(r.tempoSegundos),
-    data: r.data,
+    dataIso: r.data,
+    dataFormatada: format(parseISO(r.data), "d 'de' MMM", { locale: ptBR }),
   }));
 }

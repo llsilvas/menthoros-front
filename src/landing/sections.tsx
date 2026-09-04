@@ -6,11 +6,10 @@ import CloseIcon from "@mui/icons-material/Close";
 import { Link as RouterLink } from "react-router";
 import { ROUTES } from "../constants/routes";
 import * as C from "./content";
-import { Reveal, Eyebrow, SectionHeading, SectionMark, CtaButton, LimeAura, CheckIcon, ArrowIcon, DashIcon, monoFont } from "./primitives";
+import { Reveal, Eyebrow, SectionHeading, SectionMark, CtaButton, LimeAura, CheckIcon, ArrowIcon, DashIcon, monoFont, NAV_HEIGHT_PX } from "./primitives";
 import { AttentionQueue, InterpretationCard } from "./ProductUI";
 import { AccessForm } from "./AccessForm";
 import logo from "../assets/landing/logo.png";
-import founderPhoto from "../assets/landing/founder-placeholder.jpg";
 import { radius } from "../theme/theme.premium";
 
 // Hash router: a rota já usa `#`. Para rolar até uma seção, scrollIntoView por id
@@ -74,8 +73,11 @@ export function Nav() {
     {/* Grade de três colunas no desktop: os links de seção ficam centrados no
         eixo da página, não encostados no bloco de ações. No mobile só restam
         logo e hambúrguer, então volta a ser flex. */}
-    <Container maxWidth="lg" sx={{ display: { xs: "flex", md: "grid" }, gridTemplateColumns: { md: "1fr auto 1fr" }, alignItems: "center", justifyContent: "space-between", py: stuck ? 1.5 : 2.75, transition: "padding .28s ease" }}>
-      <Box component="img" src={logo} alt="Menthoros · AI Coaching" sx={{ height: stuck ? 38 : 46, width: "auto", display: "block", transition: "height .28s ease" }} />
+    {/* py e altura do logo são fixos (não variam com `stuck`) — o hero usa NAV_HEIGHT_PX
+        (primitives.tsx) para centralizar verticalmente via calc(100vh - nav); se a nav
+        crescesse antes do primeiro scroll, esse calc ficaria errado no load inicial. */}
+    <Container maxWidth="lg" sx={{ display: { xs: "flex", md: "grid" }, gridTemplateColumns: { md: "1fr auto 1fr" }, alignItems: "center", justifyContent: "space-between", py: 1.5 }}>
+      <Box component="img" src={logo} alt="Menthoros · AI Coaching" sx={{ height: 38, width: "auto", display: "block" }} />
 
       {/* Desktop */}
       <Box component="nav" sx={{ display: { xs: "none", md: "flex" }, gap: 3.5, alignItems: "center", justifyContent: "center" }}>
@@ -138,7 +140,13 @@ export function Nav() {
 export function Hero() {
   const t = useTheme();
   return (
-    <Container maxWidth="lg" sx={{ pt: 7, pb: 10, position: "relative", overflow: "hidden" }}>
+    // position:relative + zIndex acima do vídeo de fundo (VideoShowcase, absoluto, zIndex 0 —
+    // ver LandingPage.tsx). minHeight/alignItems centralizam o bloco na dobra — calc() usa
+    // NAV_HEIGHT_PX (fixo) em vez da altura real da nav, que varia com o scroll. SEM
+    // overflow:hidden aqui: se o conteúdo for mais alto que a viewport (janela baixa, zoom),
+    // a seção cresce em vez de cortar título/CTA.
+    <Box sx={{ position: "relative", zIndex: 1, minHeight: { md: `calc(100vh - ${NAV_HEIGHT_PX}px)` }, display: "flex", alignItems: "center" }}>
+    <Container maxWidth="lg" sx={{ py: { xs: 7, md: 5 }, position: "relative", overflow: "hidden", width: "100%" }}>
       <LimeAura />
       {/* O halo é posicionado com zIndex 0 — sem este wrapper ele pintaria acima
           do conteúdo em fluxo, que não é posicionado. */}
@@ -150,12 +158,12 @@ export function Hero() {
           </Typography>
           <Box sx={{ width: 44, height: "1px", bgcolor: "primary.main", my: 3 }} />
           <Typography sx={{ color: "text.secondary", fontSize: 18, maxWidth: "42ch" }}>{C.hero.sub}</Typography>
-          <Box sx={{ mt: 3.75 }}><CtaButton onClick={() => scrollToId("acesso")}>{C.hero.cta}<ArrowIcon /></CtaButton></Box>
-          <Typography sx={{ fontFamily: monoFont, color: "text.disabled", fontSize: 12, mt: 2.25, letterSpacing: ".04em" }}>{C.hero.scarcity}</Typography>
+          <Box sx={{ mt: 5 }}><CtaButton onClick={() => scrollToId("acesso")}>{C.hero.cta}<ArrowIcon /></CtaButton></Box>
+          <Typography sx={{ fontFamily: monoFont, color: "text.secondary", fontSize: 12, mt: 2.25, letterSpacing: ".04em" }}>{C.hero.scarcity}</Typography>
           {/* Credencial acima da dobra. As mesmas chips voltam no Trust, ali como
               aprofundamento — repetir prova técnica não incomoda. */}
           <Box sx={{ mt: 3.25, pt: 2.5, borderTop: `1px solid ${t.palette.divider}` }}>
-            <Typography sx={{ fontFamily: monoFont, fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase", color: "text.disabled", mb: 1.25 }}>
+            <Typography sx={{ fontFamily: monoFont, fontSize: 10.5, letterSpacing: ".12em", textTransform: "uppercase", color: "text.secondary", mb: 1.25 }}>
               {C.hero.proofLabel}
             </Typography>
             <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
@@ -165,9 +173,10 @@ export function Hero() {
             </Box>
           </Box>
         </Box>
-        <Reveal><AttentionQueue /></Reveal>
+        <Reveal sx={{ mt: { md: 26 } }}><AttentionQueue /></Reveal>
       </Box>
     </Container>
+    </Box>
   );
 }
 
@@ -194,7 +203,6 @@ export function Pain() {
 }
 
 export function HowItWorks() {
-  const t = useTheme();
   return (
     <Section id="how">
       <Reveal sx={{ mb: 6 }}>
@@ -204,10 +212,18 @@ export function HowItWorks() {
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(3,1fr)" }, gap: 3 }}>
         {C.how.steps.map((s) => (
           <Reveal key={s.n}>
+            {/* Pílula mono no lugar do numeral grande em lime — o numeral colidia
+                visualmente com o numeral vazado da marca de seção (02) acima. */}
             <Box>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1.75, mb: 1.75 }}>
-                <Typography sx={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 30, fontWeight: 700, color: "primary.main" }}>{s.n}</Typography>
-                <Box sx={{ flex: 1, height: "1px", bgcolor: t.palette.divider }} />
+              <Box
+                component="span"
+                sx={{
+                  display: "inline-block", fontFamily: monoFont, fontSize: 11, letterSpacing: ".12em",
+                  color: "primary.contrastText", bgcolor: "primary.main", borderRadius: radius.sharp,
+                  px: 1, py: .375, fontWeight: 700, mb: 1.75,
+                }}
+              >
+                PASSO {s.n}
               </Box>
               <Typography variant="h3" sx={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 600, mb: 1 }}>{s.t}</Typography>
               <Typography sx={{ color: "text.secondary", fontSize: 14.5 }}>{s.b}</Typography>
@@ -218,7 +234,7 @@ export function HowItWorks() {
       {/* A legenda sozinha diz o que o arco tentava desenhar: o loop fecha do 03
           de volta no 01. O desenho competia com a régua dos numerais e não
           sobrevivia à quebra para uma coluna. */}
-      <Typography sx={{ fontFamily: monoFont, fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", color: "text.disabled", mt: 4 }}>
+      <Typography sx={{ fontFamily: monoFont, fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", color: "text.secondary", mt: 4 }}>
         {C.how.loopLabel}
       </Typography>
     </Section>
@@ -328,15 +344,15 @@ export function Trust() {
   return (
     <Section>
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1.05fr .95fr" }, gap: { xs: 4, md: 6 }, alignItems: "center" }}>
+        {/* Citação do fundador + avatar de iniciais — sem foto até existir uma foto real
+            (a anterior era um modelo de banco de imagens com "Leandro" escrito embaixo). */}
         <Reveal>
-          <Box sx={{ bgcolor: "background.paper", border: `1px solid ${t.palette.divider}`, borderRadius: radius.outer, overflow: "hidden" }}>
-            <Box sx={{ position: "relative" }}>
-              <Box component="img" src={founderPhoto} alt="Fundador do Menthoros" sx={{ width: "100%", aspectRatio: "4 / 5", maxHeight: 520, objectFit: "cover", objectPosition: "50% 6%", display: "block" }} />
-              <Box sx={{ position: "absolute", inset: 0, background: `linear-gradient(180deg, transparent 38%, ${t.palette.background.default}f0)` }} />
-              <Box sx={{ position: "absolute", left: 24, right: 24, bottom: 20 }}>
-                <Typography sx={{ fontSize: 14, color: "text.primary" }}>{C.trust.founderBio}</Typography>
-              </Box>
+          <Box sx={{ bgcolor: "background.paper", border: `1px solid ${t.palette.divider}`, borderRadius: radius.outer, p: 3.5, display: "flex", flexDirection: "column", gap: 2, height: "100%" }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+              <Box sx={{ width: 40, height: 40, borderRadius: "8px", bgcolor: t.palette.surfaceShift.raised, display: "grid", placeItems: "center", fontFamily: monoFont, fontSize: 14, fontWeight: 700, color: "primary.main", flexShrink: 0 }}>L</Box>
+              <Typography sx={{ fontFamily: monoFont, fontSize: 11, letterSpacing: ".14em", color: "text.secondary" }}>{C.trust.founderLabel}</Typography>
             </Box>
+            <Typography sx={{ fontSize: 16, lineHeight: 1.55, color: "text.primary" }}>{C.trust.founderBio}</Typography>
           </Box>
         </Reveal>
         <Reveal>
@@ -349,6 +365,57 @@ export function Trust() {
             ))}
           </Box>
         </Reveal>
+      </Box>
+    </Section>
+  );
+}
+
+function PlanCard({ nome, atletas, tecnicos, preco, destaque }: { nome: string; atletas: string; tecnicos: string; preco: string; destaque: boolean }) {
+  const t = useTheme();
+  return (
+    <Box sx={{ position: "relative", bgcolor: "background.paper", border: `1px solid ${destaque ? t.palette.primary.main : t.palette.divider}`, borderRadius: radius.outer, p: 2.75, display: "flex", flexDirection: "column", gap: 1.75, height: "100%" }}>
+      {destaque && (
+        <Box component="span" sx={{ position: "absolute", top: -11, left: 20, bgcolor: "primary.main", color: "primary.contrastText", fontFamily: monoFont, fontSize: 9.5, fontWeight: 700, letterSpacing: ".06em", borderRadius: radius.pill, px: 1.25, py: .375, whiteSpace: "nowrap" }}>
+          SEU PLANO APÓS O TRIAL
+        </Box>
+      )}
+      <Typography sx={{ fontFamily: monoFont, fontSize: 12, letterSpacing: ".14em", color: destaque ? "primary.main" : "text.secondary" }}>{nome}</Typography>
+      <Box sx={{ display: "flex", alignItems: "baseline", gap: .6 }}>
+        <Typography sx={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 28, fontWeight: 700 }}>{preco}</Typography>
+        <Typography sx={{ fontSize: 13, color: "text.secondary" }}>/mês</Typography>
+      </Box>
+      <Box sx={{ display: "flex", flexDirection: "column", gap: .75, pt: 1.5, borderTop: `1px solid ${t.palette.divider}` }}>
+        <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: 13.5 }}>
+          <Box component="span" sx={{ color: "text.secondary" }}>Atletas</Box>
+          <Box component="span" sx={{ fontWeight: 500 }}>{atletas}</Box>
+        </Box>
+        <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: 13.5 }}>
+          <Box component="span" sx={{ color: "text.secondary" }}>Técnicos</Box>
+          <Box component="span" sx={{ fontWeight: 500 }}>{tecnicos}</Box>
+        </Box>
+      </Box>
+    </Box>
+  );
+}
+
+export function Pricing() {
+  return (
+    <Section id="precos">
+      <Reveal sx={{ mb: 4.5 }}>
+        <SectionMark n="07" label={C.pricing.eyebrow} />
+        <SectionHeading sx={{ mt: 2, fontSize: "clamp(26px,3.4vw,34px)" }}>{C.pricing.title}</SectionHeading>
+        <Typography sx={{ color: "text.secondary", fontSize: 16, mt: 2, maxWidth: "60ch" }}>{C.pricing.intro}</Typography>
+        {/* Achado do pré-mortem (alto): quem lê só esta seção — sem abrir o FAQ — não pode
+            ver R$99–R$599 sem saber que os primeiros 60 dias são grátis. Declarado por
+            extenso aqui, não só no badge do card Basic. */}
+        <Typography sx={{ fontFamily: monoFont, fontSize: 12.5, color: "primary.main", mt: 1.5 }}>{C.pricing.trialNote}</Typography>
+      </Reveal>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(5, minmax(0,1fr))" }, gap: 2 }}>
+        {C.pricing.plans.map((p) => (
+          <Reveal key={p.nome} sx={{ mt: p.destaque ? { xs: 0, md: 1.5 } : 0 }}>
+            <PlanCard {...p} />
+          </Reveal>
+        ))}
       </Box>
     </Section>
   );
@@ -378,7 +445,7 @@ export function Faq() {
     <Section>
       <Container maxWidth="md" disableGutters>
         <Reveal sx={{ mb: 4.5 }}>
-          <SectionMark n="07" label={C.faq.eyebrow} />
+          <SectionMark n="08" label={C.faq.eyebrow} />
           <SectionHeading sx={{ mt: 2 }}>{C.faq.title}</SectionHeading>
         </Reveal>
         {C.faq.items.map((it) => <FaqItem key={it.q} q={it.q} a={it.a} />)}
@@ -410,7 +477,7 @@ export function Footer() {
     <Box component="footer" sx={{ borderTop: `1px solid ${t.palette.divider}`, py: 4.5 }}>
       <Container maxWidth="lg" sx={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 2, alignItems: "center" }}>
         <Box component="img" src={logo} alt="Menthoros" sx={{ height: 40, width: "auto", display: "block", opacity: 0.92 }} />
-        <Typography sx={{ fontFamily: monoFont, fontSize: 11, color: "text.disabled" }}>© {new Date().getFullYear()} Menthoros · a IA propõe, o treinador decide</Typography>
+        <Typography sx={{ fontFamily: monoFont, fontSize: 11, color: "text.secondary" }}>© {new Date().getFullYear()} Menthoros · a IA propõe, o treinador decide</Typography>
       </Container>
     </Box>
   );

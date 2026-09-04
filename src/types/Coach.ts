@@ -138,7 +138,8 @@ export type AttentionReason =
     | 'SEM_PLANO'
     | 'ADERENCIA'
     | 'INATIVIDADE'
-    | 'ZONAS_VENCIDAS';
+    | 'ZONAS_VENCIDAS'
+    | 'PROVA_ATLETA';
 
 export type ExplanationConfidence = 'HIGH' | 'MEDIUM' | 'LOW';
 

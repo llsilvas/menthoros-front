@@ -51,6 +51,11 @@ interface PlanosDialogProps {
     onClose: () => void;
     atletaNome: string;
     atletaId: string;
+    /**
+     * Chamado após uma geração bem-sucedida. O dialog só recarrega a própria lista; quem o monta
+     * pode ter estado derivado dos planos (ex.: badge de revisões pendentes) que ficaria defasado.
+     */
+    onPlanoGerado?: () => void;
 }
 
 const getDiaSemanaLabel = (diaSemana: TreinoPlanejado['diaSemana']): string => {
@@ -130,7 +135,8 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
     open,
     onClose,
     atletaNome,
-    atletaId
+    atletaId,
+    onPlanoGerado,
 }) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -196,6 +202,7 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
         try {
             await gerarPlanoSemanal(atletaId, modoGeracao);
             // Após gerar, recarrega a lista automaticamente
+            onPlanoGerado?.();
         } catch (err) {
             console.error('Erro ao gerar plano semanal:', err);
         }
@@ -506,7 +513,11 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                                                 <EncerrarSemanaButton
                                                     planoId={plano.id}
                                                     onEncerrado={() => { if (atletaId) fetchPlanosPorAtleta(atletaId); }}
-                                                    onGerarProximaSemana={() => { if (atletaId) gerarPlanoSemanal(atletaId, 'PROXIMA_SEMANA'); }}
+                                                    onGerarProximaSemana={async () => {
+                                                        if (!atletaId) return;
+                                                        await gerarPlanoSemanal(atletaId, 'PROXIMA_SEMANA');
+                                                        onPlanoGerado?.();
+                                                    }}
                                                 />
                                             </Box>
                                         )}

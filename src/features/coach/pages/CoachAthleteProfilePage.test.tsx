@@ -7,12 +7,15 @@ import { SugestaoService } from '../../../api/services/SugestaoService';
 import * as useAthleteProfileModule from '../../../hooks/useAthleteProfile';
 import * as useWeeklyReviewModule from '../hooks/useWeeklyAthleteReview';
 import { useEnviarKudos } from '../../../hooks/useEnviarKudos';
+import { useCoachAthleteRaces } from '../hooks/useCoachAthleteRaces';
+import type { Prova } from '../../../types/Prova';
 import type { AtletaPerfilCoachDto } from '../../../types/AtletaPerfilCoach';
 import type { RevisaoSemanalOutputDto } from '../../../types/RevisaoSemanal';
 
 vi.mock('../../../hooks/useAthleteProfile');
 vi.mock('../hooks/useWeeklyAthleteReview');
 vi.mock('../../../hooks/useEnviarKudos');
+vi.mock('../hooks/useCoachAthleteRaces');
 vi.mock('../../../api/services/SugestaoService');
 vi.mock('../../athlete/components/PMCChart', () => ({
     default: () => <div data-testid="pmc-chart" />,
@@ -75,6 +78,16 @@ function renderPage(atletaId = 'uuid-1') {
     );
 }
 
+function mockRaces(provas: Prova[], pendentes: Prova[], extra: Partial<ReturnType<typeof useCoachAthleteRaces>> = {}) {
+    const value = {
+        provas, pendentes, loading: false, acting: false, error: null,
+        fetchRaces: vi.fn(), marcarCiente: vi.fn().mockResolvedValue(undefined),
+        ...extra,
+    };
+    vi.mocked(useCoachAthleteRaces).mockReturnValue(value);
+    return value;
+}
+
 // ── Tests ──────────────────────────────────────────────────────────────────────
 
 describe('CoachAthleteProfilePage', () => {
@@ -85,6 +98,7 @@ describe('CoachAthleteProfilePage', () => {
             revisao: null, isLoading: false, error: null, naoDisponivel: true, fetchRevisao: vi.fn(),
         });
         vi.mocked(useEnviarKudos).mockReturnValue({ enviar: vi.fn().mockResolvedValue(undefined), loading: false, error: null });
+        mockRaces([], []);
         vi.mocked(SugestaoService.detalhe).mockResolvedValue({
             id: 'sug-1',
             atletaId: 'uuid-1',
@@ -184,6 +198,19 @@ describe('CoachAthleteProfilePage', () => {
         mockHook({ profile: STUB_PROFILE });
         renderPage();
         expect(screen.getByText(/Sugestões recentes/i)).toBeInTheDocument();
+    });
+
+    it('exibe seção Treinos recentes com o feedback do atleta', () => {
+        mockHook({ profile: {
+            ...STUB_PROFILE,
+            realizadosRecentes: [{
+                id: 'r1', dataTreino: '2026-08-27', tipoTreino: 'FACIL', fonteDados: 'MANUAL',
+                duracaoMin: 40, percepcaoEsforco: 6, feedbackRegistradoEm: '2026-08-27T19:00:00',
+            }],
+        } });
+        renderPage();
+        expect(screen.getByText(/Treinos recentes/i)).toBeInTheDocument();
+        expect(screen.getByText(/rpe 6/i)).toBeInTheDocument();
     });
 
     it('monta a revisão semanal — hook → adapter → card (props amarradas)', () => {
@@ -297,5 +324,46 @@ describe('CoachAthleteProfilePage', () => {
         await waitFor(() =>
             expect(screen.queryByText('Escolha o motivo do reconhecimento para este atleta.')).toBeNull(),
         );
+    });
+
+    describe('card Provas', () => {
+        const PENDENTE: Prova = {
+            id: 'prova-1', nomeProva: 'Maratona SP', dataProva: '2099-12-06', tipoProva: 'MARATONA', distancia: 'KM_42',
+            provaAlvo: true, semanasPreparacao: 16, semanasFaltando: 8, preparacaoCurta: true,
+            revisadaPeloCoach: false, motivoRevisao: 'NOVA',
+        };
+
+        it('item pendente mostra "Ciente"; clique chama marcarCiente e o marcador some', async () => {
+            const marcarCiente = vi.fn().mockResolvedValue(undefined);
+            const racesMock = mockRaces([PENDENTE], [PENDENTE], { marcarCiente });
+            mockHook({ profile: STUB_PROFILE });
+            const { unmount } = renderPage();
+
+            const row = screen.getByTestId('coach-race-row');
+            expect(row).toHaveAttribute('data-pendente', 'true');
+            expect(row).toHaveTextContent('Maratona SP');
+            expect(row).toHaveTextContent('Nova');
+            expect(row).toHaveTextContent('Preparação curta');
+
+            await userEvent.click(screen.getByRole('button', { name: /ciente/i }));
+            expect(marcarCiente).toHaveBeenCalledWith('prova-1');
+
+            racesMock.pendentes = [];
+            racesMock.provas = [{ ...PENDENTE, revisadaPeloCoach: true, motivoRevisao: undefined }];
+            vi.mocked(useCoachAthleteRaces).mockReturnValue({ ...racesMock });
+            unmount();
+            renderPage();
+            expect(screen.getByTestId('coach-race-row')).toHaveAttribute('data-pendente', 'false');
+            expect(screen.queryByRole('button', { name: /ciente/i })).toBeNull();
+        });
+
+        it('item revisado não mostra o botão', () => {
+            mockRaces([{ ...PENDENTE, revisadaPeloCoach: true, motivoRevisao: undefined }], []);
+            mockHook({ profile: STUB_PROFILE });
+            renderPage();
+
+            expect(screen.getByTestId('coach-race-row')).toHaveAttribute('data-pendente', 'false');
+            expect(screen.queryByRole('button', { name: /ciente/i })).toBeNull();
+        });
     });
 });

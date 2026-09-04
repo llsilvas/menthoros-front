@@ -1,0 +1,123 @@
+import { useMemo } from 'react';
+import { Box, Button, Drawer, IconButton, Link, Typography } from '@mui/material';
+import { alpha } from '@mui/material/styles';
+import { Close as CloseIcon, CheckCircleOutline as DoneIcon } from '@mui/icons-material';
+import { Link as RouterLink } from 'react-router';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { primary, semantic, surface } from '../../../theme/tokens';
+import { elevation } from '../../../shared/design-tokens';
+import { WorkoutProfile, buildProfileFromTreino } from '../../workout/profile';
+import { getSafeValue } from '../../../utils/safeValues';
+import { ROUTES } from '../../../constants/routes';
+import { rpeLabel } from '../../../types/Rpe';
+import { useAthleteWorkoutAnalysis } from '../hooks/useAthleteWorkoutAnalysis';
+import { buildWorkoutAnalysisView } from '../adapters/buildWorkoutAnalysisView';
+import { WorkoutAnalysisCard } from './WorkoutAnalysisCard';
+import type { AgendaDay } from '../adapters/buildWeekAgenda';
+
+export interface WorkoutDetailDrawerProps {
+  dia: AgendaDay | null;
+  onClose: () => void;
+  onRegister: () => void;
+}
+
+/**
+ * Detalhe do treino (design D2, treino com etapas): descrição, etapas e o mesmo `WorkoutProfile`
+ * que o coach vê no `DetalheTreinoDialog`. O índice das repetições é derivado por
+ * `indexarRepeticoes` — o contrato não o envia e o backend persiste a série já expandida.
+ */
+export function WorkoutDetailDrawer({ dia, onClose, onRegister }: WorkoutDetailDrawerProps) {
+  const treino = dia?.workout?.treino ?? null;
+  const etapas = useMemo(() => [...(treino?.etapas ?? [])].sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0)), [treino]);
+  // Mesmo caminho do hero da Home — uma regra, duas telas.
+  const profile = useMemo(() => (treino ? buildProfileFromTreino(treino.etapas, treino) ?? null : null), [treino]);
+
+  // Análise da IA para treino concluído (analise-ia-treino-atleta): id nulo desliga o hook.
+  const concluido = dia?.status === 'concluido';
+  const treinoRealizadoId = concluido ? dia?.workout?.treinoRealizadoId ?? null : null;
+  const { analysis, status: analysisStatus } = useAthleteWorkoutAnalysis(treinoRealizadoId);
+  const analysisView = useMemo(() => (analysis ? buildWorkoutAnalysisView(analysis) : null), [analysis]);
+  const rpeRealizado = dia?.workout?.treino.percepcaoEsforcoRealizado;
+
+  const aberto = dia !== null && treino !== null;
+
+  return (
+    <Drawer anchor="bottom" open={aberto} onClose={onClose} PaperProps={{ sx: { bgcolor: elevation.panel, borderTopLeftRadius: 16, borderTopRightRadius: 16, maxHeight: '90vh' } }}>
+      {aberto && dia.workout && (
+        <Box sx={{ p: 2, pb: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+              <Typography variant="overline" sx={{ color: surface[400] }}>
+                {format(dia.date, "EEEE, d 'de' MMMM", { locale: ptBR })}
+              </Typography>
+              <Typography variant="h4">{dia.workout.title}</Typography>
+            </Box>
+            <IconButton aria-label="Fechar" onClick={onClose} sx={{ color: surface[400] }}><CloseIcon /></IconButton>
+          </Box>
+
+          {concluido && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, height: 24, px: 1, borderRadius: '100px', bgcolor: alpha(semantic.success[500], 0.14) }}>
+                <DoneIcon sx={{ fontSize: 14, color: semantic.success[500] }} />
+                <Typography variant="caption" sx={{ color: semantic.success[500], fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                  Concluído
+                </Typography>
+              </Box>
+              {rpeRealizado != null && (
+                <Typography variant="body2" sx={{ color: surface[400] }}>
+                  {`RPE ${rpeRealizado}/10 · ${rpeLabel(rpeRealizado)}`}
+                </Typography>
+              )}
+            </Box>
+          )}
+
+          {dia.workout.description && (
+            <Typography variant="body1" sx={{ color: surface[300] }}>{dia.workout.description}</Typography>
+          )}
+
+          {concluido && analysisView && (analysisStatus === 'done' || analysisStatus === 'pending') && (
+            <WorkoutAnalysisCard view={analysisView} />
+          )}
+
+          {concluido && analysisStatus === 'error' && (
+            <Typography variant="caption" sx={{ color: surface[500] }}>
+              Não foi possível carregar a análise agora. Ela continua guardada neste treino.
+            </Typography>
+          )}
+
+          {profile && <WorkoutProfile profile={profile} variant="full" />}
+
+          <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+            {etapas.map((e, i) => (
+              <Box key={e.id ?? i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.25, borderBottom: i < etapas.length - 1 ? `1px solid ${surface[700]}` : 'none' }}>
+                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  <Typography variant="body1" sx={{ fontWeight: 600 }}>{e.descricaoEtapa || getSafeValue(e.tipoEtapa)}</Typography>
+                  {(e.fcAlvoEtapa || e.ritmoAlvo) && (
+                    <Typography variant="body2" sx={{ color: surface[400] }}>{[e.fcAlvoEtapa, e.ritmoAlvo].filter(Boolean).join(' · ')}</Typography>
+                  )}
+                </Box>
+                {e.duracaoMin != null && (
+                  <Typography variant="body1" sx={{ fontFamily: (t) => t.typography.h6.fontFamily, fontWeight: 600 }}>{e.duracaoMin} min</Typography>
+                )}
+              </Box>
+            ))}
+          </Box>
+
+          {dia.isToday && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+              <Link component={RouterLink} to={ROUTES.ATHLETE_WORKOUT_TODAY} onClick={onClose} variant="body2" underline="hover" sx={{ textAlign: 'center', color: primary[400], fontWeight: 600, py: 0.75 }}>
+                Ver etapas e começar →
+              </Link>
+              <Button variant="contained" fullWidth onClick={onRegister} sx={{ bgcolor: primary[500], color: elevation.base, minHeight: 48, fontWeight: 700, '&:hover': { bgcolor: primary[400] } }}>
+                Registrar treino
+              </Button>
+            </Box>
+          )}
+        </Box>
+      )}
+    </Drawer>
+  );
+}
+
+export default WorkoutDetailDrawer;

@@ -1,39 +1,55 @@
 import { Box } from '@mui/material';
 import { Outlet, useLocation, useNavigate } from 'react-router';
+import { ThemeProvider } from '@mui/material/styles';
+import { athleteTheme } from '../theme/athleteTheme';
 import { elevation } from '../../../shared/design-tokens';
 import { AthleteBottomNav } from '../../../shared/components/AthleteBottomNav';
 import { ErrorBoundary } from '../../../shared/components/ErrorBoundary';
-import type { AthleteRoute } from '../../../constants/routes';
+import { ROUTES, type AthleteRoute } from '../../../constants/routes';
 
 export default function AthleteLayout() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const activeRoute = location.pathname as AthleteRoute;
+  // As telas de prova não têm item próprio no menu: a entrada é a faixa do Plano, que fica ativo.
+  const activeRoute = location.pathname.startsWith(ROUTES.ATHLETE_RACES)
+    ? ROUTES.ATHLETE_PLAN
+    : (location.pathname as AthleteRoute);
 
   function handleNavigate(route: AthleteRoute) {
     navigate(route);
   }
 
+  // Tema ANINHADO: o provider de `App.tsx` declara Syne como família padrão para todas as rotas;
+  // aqui o shell do atleta resolve para `font.text`/`font.display` sem tocar coach nem landing.
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100vh',
-        bgcolor: elevation.base,
-        overflow: 'hidden',
-      }}
-    >
-      <ErrorBoundary>
-        <Box sx={{ flex: 1, overflow: 'auto' }}>
-          <Outlet />
-        </Box>
-      </ErrorBoundary>
-      <AthleteBottomNav
-        activeRoute={activeRoute}
-        onNavigate={handleNavigate}
-      />
-    </Box>
+    <ThemeProvider theme={athleteTheme}>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100vh',
+          bgcolor: elevation.base,
+          overflow: 'hidden',
+        }}
+      >
+        <ErrorBoundary>
+          <Box sx={{ flex: 1, overflow: 'auto' }}>
+            {/* Desktop: as telas são pensadas para o telefone; acima de 900px limitam-se a 640px
+                centralizados (athlete-plan-agenda D1) — sem voltar a layouts de largura total. */}
+            <Box sx={{ maxWidth: { xs: 'none', md: 640 }, mx: 'auto' }}>
+              <Outlet />
+            </Box>
+          </Box>
+        </ErrorBoundary>
+        <AthleteBottomNav
+          activeRoute={activeRoute}
+          onNavigate={handleNavigate}
+          // Ponto de injeção do badge do Coach: a contagem vem de `add-athlete-coach-messaging`
+          // (Sprint 28); até lá não há fonte — `0` é o valor honesto, não um mock.
+          unreadCoachMessages={0}
+        />
+      </Box>
+    </ThemeProvider>
   );
 }

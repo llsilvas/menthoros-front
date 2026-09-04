@@ -28,15 +28,36 @@ describe('AccessForm', () => {
     inscreverMock.mockReset();
   });
 
-  it('mantém o envio desabilitado até aceitar a LGPD', async () => {
+  it('botão nasce habilitado — consentimento vira erro no submit, não desabilita o botão', async () => {
+    renderForm();
+    expect(screen.getByRole('button', { name: /solicitar acesso/i })).toBeEnabled();
+  });
+
+  it('não envia sem aceitar a LGPD — nem por clique nem por Enter — e mostra o erro', async () => {
     const user = userEvent.setup();
     renderForm();
 
-    const submit = screen.getByRole('button', { name: /solicitar acesso/i });
-    expect(submit).toBeDisabled();
+    await user.type(screen.getByRole('textbox', { name: 'Nome' }), 'Maria');
+    await user.type(screen.getByRole('textbox', { name: 'Email' }), 'maria@exemplo.com');
+    await user.type(screen.getByRole('spinbutton', { name: 'Número de atletas' }), '15');
+
+    await user.click(screen.getByRole('button', { name: /solicitar acesso/i }));
+    expect(inscreverMock).not.toHaveBeenCalled();
+    expect(screen.getByText('É preciso aceitar para continuar.')).toBeInTheDocument();
+
+    await user.type(screen.getByRole('textbox', { name: 'Nome' }), '{Enter}');
+    expect(inscreverMock).not.toHaveBeenCalled();
+  });
+
+  it('limpa o erro de consentimento assim que o checkbox é marcado', async () => {
+    const user = userEvent.setup();
+    renderForm();
+
+    await user.click(screen.getByRole('button', { name: /solicitar acesso/i }));
+    expect(screen.getByText('É preciso aceitar para continuar.')).toBeInTheDocument();
 
     await user.click(screen.getByRole('checkbox'));
-    expect(submit).toBeEnabled();
+    expect(screen.queryByText('É preciso aceitar para continuar.')).not.toBeInTheDocument();
   });
 
   it('valida os campos e não envia quando inválidos', async () => {

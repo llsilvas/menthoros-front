@@ -2,14 +2,18 @@ import { Box, Button, Typography } from '@mui/material';
 import { surface, primary } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import { buildPostWorkoutFeedback } from '../adapters/postWorkoutFeedbackAdapter';
+import type { WorkoutAnalysisView } from '../adapters/buildWorkoutAnalysisView';
+import { WorkoutAnalysisCard } from './WorkoutAnalysisCard';
 import type { TreinoRealizadoDto } from '../../../types/TreinoManual';
 
 export interface PostWorkoutFeedbackCardProps {
   treino: TreinoRealizadoDto;
   onVoltar: () => void;
+  /** Análise do treino (pending/done); presente, substitui a frase fixa por faixa de RPE. */
+  analysisView?: WorkoutAnalysisView | null;
 }
 
-export function PostWorkoutFeedbackCard({ treino, onVoltar }: PostWorkoutFeedbackCardProps) {
+export function PostWorkoutFeedbackCard({ treino, onVoltar, analysisView }: PostWorkoutFeedbackCardProps) {
   const { tipoLabel, duracaoLabel, distanciaLabel, tssLabel, mensagem } = buildPostWorkoutFeedback(treino);
 
   return (
@@ -23,7 +27,7 @@ export function PostWorkoutFeedbackCard({ treino, onVoltar }: PostWorkoutFeedbac
         gap: 2,
       }}
     >
-      <Typography sx={{ color: surface[50], fontSize: '1.1rem', fontWeight: 800, fontFamily: 'Syne, sans-serif' }}>
+      <Typography variant="h6" sx={{ color: surface[50] }}>
         {tipoLabel}
       </Typography>
 
@@ -39,9 +43,13 @@ export function PostWorkoutFeedbackCard({ treino, onVoltar }: PostWorkoutFeedbac
         )}
       </Box>
 
-      <Typography sx={{ color: surface[400], fontSize: '0.9rem', fontStyle: 'italic', lineHeight: 1.4 }}>
-        {mensagem}
-      </Typography>
+      {analysisView ? (
+        <WorkoutAnalysisCard view={analysisView} />
+      ) : (
+        <Typography sx={{ color: surface[400], fontSize: '0.9rem', fontStyle: 'italic', lineHeight: 1.4 }}>
+          {mensagem}
+        </Typography>
+      )}
 
       <Button
         variant="contained"

@@ -1,0 +1,80 @@
+import { describe, expect, it } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { createHashRouter, RouterProvider } from 'react-router';
+import { RaceTargetBanner, type RaceTargetBannerProps } from './RaceTargetBanner';
+import type { Prova } from '../../../types/Prova';
+
+const HOJE = new Date(2026, 8, 2);
+
+function renderBanner(props: Partial<RaceTargetBannerProps> = {}) {
+  const router = createHashRouter([{ path: '/', element: <RaceTargetBanner provas={[]} hoje={HOJE} {...props} /> }]);
+  return render(<RouterProvider router={router} />);
+}
+
+const alvo: Prova = {
+  id: 'a', nomeProva: 'Maratona SP', dataProva: '2026-12-06', tipoProva: 'MARATONA', distancia: 'KM_42',
+  provaAlvo: true, semanasPreparacao: 16, semanasFaltando: 13, preparacaoCurta: true,
+};
+const semAlvo: Prova = { id: 'b', nomeProva: 'Trilha', dataProva: '2026-10-25', tipoProva: 'TRAIL', distancia: 'KM_10', provaAlvo: false };
+// HOJE é quarta 02/09/2026; a semana corrente vai de segunda 31/08 a domingo 06/09.
+const provaNaSemana: Prova = { id: 'c', nomeProva: '10K de Domingo', dataProva: '2026-09-06', tipoProva: 'CORRIDA_RUA', distancia: 'KM_10', provaAlvo: false };
+
+describe('RaceTargetBanner — prova nesta semana (prova-no-plano-semanal)', () => {
+  it('prova na semana corrente tem prioridade sobre a prova-alvo', () => {
+    renderBanner({ provas: [alvo, provaNaSemana] });
+    const banner = screen.getByTestId('race-target-banner');
+    expect(banner).toHaveAttribute('data-state', 'semana-atual');
+    expect(banner).toHaveTextContent('10K de Domingo');
+    expect(banner).toHaveTextContent('domingo');
+    expect(banner).toHaveTextContent('faltam 4 dias');
+    expect(banner).not.toHaveTextContent('Maratona SP');
+  });
+
+  it('sem prova na semana corrente, cai para o estado de prova-alvo', () => {
+    renderBanner({ provas: [alvo] });
+    expect(screen.getByTestId('race-target-banner')).toHaveAttribute('data-state', 'alvo');
+  });
+
+  it('prova cancelada na semana não conta — cai para o próximo estado', () => {
+    renderBanner({ provas: [alvo, { ...provaNaSemana, statusProva: 'CANCELADA' }] });
+    expect(screen.getByTestId('race-target-banner')).toHaveAttribute('data-state', 'alvo');
+  });
+
+  it('prova já realizada na semana não conta', () => {
+    renderBanner({ provas: [alvo, { ...provaNaSemana, foiRealizada: true }] });
+    expect(screen.getByTestId('race-target-banner')).toHaveAttribute('data-state', 'alvo');
+  });
+});
+
+describe('RaceTargetBanner', () => {
+  it('com prova-alvo: nome, data, "faltam N de M semanas", chip de preparação curta e link para Minhas provas', () => {
+    renderBanner({ provas: [alvo, semAlvo] });
+    const banner = screen.getByTestId('race-target-banner');
+    expect(banner).toHaveAttribute('data-state', 'alvo');
+    expect(banner).toHaveTextContent('Maratona SP');
+    expect(banner).toHaveTextContent('6 de dez de 2026');
+    expect(banner).toHaveTextContent('faltam 13 semanas de 16');
+    expect(screen.getByText('Preparação curta')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /minhas provas/i })).toHaveAttribute('href', '#/athlete/races');
+  });
+
+  it('provas sem alvo: convida a escolher', () => {
+    renderBanner({ provas: [semAlvo] });
+    expect(screen.getByTestId('race-target-banner')).toHaveAttribute('data-state', 'sem-alvo');
+    expect(screen.getByText(/nenhuma prova-alvo/i)).toBeInTheDocument();
+    expect(screen.getByText(/1 prova cadastrada/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /escolher/i })).toHaveAttribute('href', '#/athlete/races');
+  });
+
+  it('nenhuma prova: CTA para cadastrar', () => {
+    renderBanner({ provas: [] });
+    expect(screen.getByTestId('race-target-banner')).toHaveAttribute('data-state', 'vazio');
+    expect(screen.getByText(/nenhuma prova cadastrada/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /cadastrar prova/i })).toHaveAttribute('href', '#/athlete/races/new');
+  });
+
+  it('carregando ou com erro não afirma nada', () => {
+    renderBanner({ provas: [], loading: true });
+    expect(screen.queryByTestId('race-target-banner')).toBeNull();
+  });
+});

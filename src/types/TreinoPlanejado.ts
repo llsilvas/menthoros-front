@@ -9,6 +9,7 @@ export interface TreinoPlanejado {
   dataRealizacao?: string; // ISO date string
   fcAlvo?: string; // Faixa de Frequência Cardíaca Alvo
   ritmoAlvo?: string; // Ritmo Alvo (ex: "5:00 min/km")
+  zonaAlvo?: string; // Zona alvo declarada no treino (ex: "Z2") — `TreinoPlanejadoOutputDto.zonaAlvo`
   percepcaoEsforcoEsperada?: number; // Percepção de Esforço Esperada (1-10)
   descricao?: string;
   dataTreino?: string;
@@ -20,6 +21,10 @@ export interface TreinoPlanejado {
   fonteDados?: string | { value: string; label: string; description?: string; color?: string };
   treinoRealizadoId?: string;
   percepcaoEsforcoRealizado?: number;
+  /** Há análise pós-treino pronta para o atleta neste treino (analise-ia-treino-atleta). */
+  analiseAtletaDisponivel?: boolean;
+  /** ID da prova vinculada, quando `tipoTreino = PROVA` (prova-no-plano-semanal). */
+  provaId?: string;
 }
 
 
@@ -47,4 +52,8 @@ export interface EtapaTreino {
   ritmoAlvo?: string;
   intensidade?: string;
   observacao?: string;
+  /** UUID do bloco repetido; o backend persiste a série já expandida (N cópias com o mesmo id). */
+  blocoId?: string;
+  /** Total de repetições do bloco. Não há índice de repetição no contrato — ver `indexarRepeticoes`. */
+  blocoRepeticoes?: number;
 }

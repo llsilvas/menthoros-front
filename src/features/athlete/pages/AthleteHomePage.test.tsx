@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { format } from 'date-fns';
-import { MemoryRouter } from 'react-router';
+import { createHashRouter, RouterProvider } from 'react-router';
 import AthleteHomePage from './AthleteHomePage';
 import { useAthleteHome } from '../../../hooks/useAthleteHome';
+import { useAthleteFeedback } from '../hooks/useAthleteFeedback';
 import { useAthleteReadiness } from '../../../hooks/useAthleteReadiness';
 import { useAthleteProvas } from '../../../hooks/useAthleteProvas';
 import { useCheckinAtual } from '../../../hooks/useCheckinAtual';
@@ -15,8 +15,18 @@ import { useUserInfo } from '../../../hooks/useUserInfo';
 import { useAthletePlan } from '../../../hooks/useAthletePlan';
 import { useCalibracao } from '../../../hooks/useCalibracao';
 import type { PlanoSemanal } from '../../../types/PlanoSemanal';
+import type { CheckinProntidaoOutput } from '../../../types/Checkin';
+
+// Links usam o router real (href em hash); só o `navigate` do botão é espiado — a navegação de
+// dados do createHashRouter tropeça no jsdom (AbortSignal de outro realm).
+const navigateMock = vi.fn();
+vi.mock('react-router', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('react-router')>();
+  return { ...mod, useNavigate: () => navigateMock };
+});
 
 vi.mock('../../../hooks/useAthleteHome');
+vi.mock('../hooks/useAthleteFeedback');
 vi.mock('../../../hooks/useAthleteReadiness');
 vi.mock('../../../hooks/useAthleteProvas');
 vi.mock('../../../hooks/useCheckinAtual');
@@ -28,25 +38,57 @@ vi.mock('../../../hooks/useAthletePlan');
 vi.mock('../../../hooks/useCalibracao');
 
 const noop = vi.fn();
+const HOJE = new Date(2026, 7, 26, 8, 0, 0); // quarta, 26 de agosto, manhã
+
+const HOJE_ISO = '2026-08-26';
 
 function mockHome(overrides: Partial<ReturnType<typeof useAthleteHome>> = {}) {
   vi.mocked(useAthleteHome).mockReturnValue({
-    home: { proximoTreino: { tipoTreino: 'INTERVALADO', descricao: 'Tiros de 400m' },
-            metricasChave: { ctl: 74, atl: 71, tsb: 3, tss: 62 } },
+    home: { hoje: HOJE_ISO,
+            proximoTreino: { data: HOJE_ISO, tipoTreino: 'INTERVALADO', descricao: 'Tiros de 400m', statusTreino: 'PENDENTE' },
+            metricasChave: { ctl: 74, atl: 71, tsb: 3, tss: 62, statusForma: 'FORMA_IDEAL' } },
     loading: false, error: null, fetchHome: noop, ...overrides,
   });
 }
 
+const feedbackEnviar = vi.fn().mockResolvedValue(undefined);
+
+function mockFeedback(overrides: Partial<ReturnType<typeof useAthleteFeedback>> = {}) {
+  vi.mocked(useAthleteFeedback).mockReturnValue({ enviar: feedbackEnviar, enviando: false, error: null, ...overrides });
+}
+
+function mockPlano(plano: PlanoSemanal | null, extra: Partial<ReturnType<typeof useAthletePlan>> = {}) {
+  vi.mocked(useAthletePlan).mockReturnValue({
+    plano, loading: false, error: null, fetchPlano: vi.fn().mockResolvedValue(undefined), ...extra,
+  });
+}
+
+const CHECKIN_HOJE: CheckinProntidaoOutput = {
+  id: 'c1', atletaId: 'a1', data: '2026-08-26',
+  qualidadeSono: 9, humor: 8, doresMusculares: 1, nivelEnergia: 8, estresse: 2,
+  observacoes: 'Dormi bem', readinessScore: 0.85, nivelProntidao: 'PRONTO',
+};
+
 function renderPage() {
-  return render(<MemoryRouter><AthleteHomePage /></MemoryRouter>);
+  const router = createHashRouter([
+    { path: '/', element: <AthleteHomePage /> },
+    // Destinos reais do shell — só stubs para o router resolver `navigate`/`Link`.
+    { path: '/athlete/training/log', element: <div>registro</div> },
+    { path: '/athlete/plan', element: <div>plano</div> },
+    { path: '/athlete/progress', element: <div>progresso</div> },
+  ]);
+  return render(<RouterProvider router={router} />);
 }
 
 describe('AthleteHomePage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(HOJE);
     vi.mocked(useUserInfo).mockReturnValue({ name: 'Carlos Silva' });
+    mockFeedback();
     vi.mocked(useAthleteReadiness).mockReturnValue({
-      readiness: { score: 78, nota: 'Provisório.' }, loading: false, error: null, fetchReadiness: noop,
+      readiness: { score: 78, nota: 'Provisório.' }, loading: false, error: null, fetchReadiness: vi.fn().mockResolvedValue(undefined),
     });
     vi.mocked(useManualTraining).mockReturnValue({
       recentes: [], isFetching: false, isSubmitting: false, fetchError: null,
@@ -64,22 +106,13 @@ describe('AthleteHomePage', () => {
     vi.mocked(useKudosRecentes).mockReturnValue({
       kudos: [], loading: false, error: null, fetchKudos: vi.fn().mockResolvedValue(undefined),
     });
-    // Default: sem plano → banner de semana encerrada não aparece.
-    vi.mocked(useAthletePlan).mockReturnValue({
-      plano: null, loading: false, error: null, fetchPlano: vi.fn().mockResolvedValue(undefined),
-    });
-    // Default: sem calibração → CalibrationBanner não aparece.
+    mockPlano(null);
     vi.mocked(useCalibracao).mockReturnValue({
       status: null, justExited: false, loading: false, error: null,
       fetchStatus: vi.fn().mockResolvedValue(undefined), dismissJustExited: vi.fn(),
     });
   });
-
-  function mockPlano(plano: PlanoSemanal | null) {
-    vi.mocked(useAthletePlan).mockReturnValue({
-      plano, loading: false, error: null, fetchPlano: vi.fn().mockResolvedValue(undefined),
-    });
-  }
+  afterEach(() => vi.useRealTimers());
 
   const planoEncerrado = (statusTreinos: string[]): PlanoSemanal => ({
     atletaId: 'a1', semanaInicio: '2026-06-29', semanaFim: '2026-07-05',
@@ -90,22 +123,102 @@ describe('AthleteHomePage', () => {
     })),
   });
 
-  it('renderiza métricas reais e o primeiro nome do atleta (JWT), sem mock', () => {
-    mockHome();
-    renderPage();
+  describe('cabeçalho e hero', () => {
+    it('mostra a data por extenso, a saudação por período com o primeiro nome e o treino de hoje', () => {
+      mockHome();
+      renderPage();
+      expect(screen.getByText('Quarta-feira, 26 de agosto')).toBeInTheDocument();
+      expect(screen.getByText('Bom dia, Carlos')).toBeInTheDocument();
+      expect(screen.getByTestId('home-next-workout')).toHaveTextContent('Tiros de 400m');
+      expect(screen.queryByText(/consistência constrói/i)).toBeNull();
+    });
 
-    expect(screen.getByText('62')).toBeInTheDocument(); // TSS real
-    expect(screen.getByText('+3')).toBeInTheDocument(); // forma com sinal
-    expect(screen.getByText(/Carlos/)).toBeInTheDocument(); // saudação com o nome do JWT
-    expect(screen.getByText('Tiros de 400m')).toBeInTheDocument();
-    // não deve haver o conteúdo mockado antigo
-    expect(screen.queryByText(/Corrida Fácil/)).toBeNull();
+    it('a única ação primária sólida é "Registrar treino", que navega para o registro', async () => {
+      mockHome();
+      renderPage();
+      const contidos = screen.getAllByRole('button').filter((b) => b.className.includes('MuiButton-contained'));
+      expect(contidos).toHaveLength(1);
+      expect(contidos[0]).toHaveTextContent(/registrar treino/i);
+      await userEvent.click(contidos[0]);
+      expect(navigateMock).toHaveBeenCalledWith('/athlete/training/log');
+    });
+
+    it('não expõe jargão de métricas (CTL/ATL/TSB/pts); mostra a forma em palavras e o link para o progresso', () => {
+      mockHome();
+      renderPage();
+      expect(screen.queryByText(/\b(CTL|ATL|TSB)\b/)).toBeNull();
+      expect(screen.queryByText(/\bpts\b/)).toBeNull();
+      expect(screen.getByTestId('home-form')).toHaveTextContent('Forma ideal');
+      expect(screen.getByRole('link', { name: /ver progresso/i })).toHaveAttribute('href', '#/athlete/progress');
+    });
+
+    it('streak, próximo treino e forma aparecem em uma região cada', () => {
+      mockHome();
+      renderPage();
+      expect(screen.getAllByTestId('home-streak')).toHaveLength(1);
+      expect(screen.getAllByTestId('home-next-workout')).toHaveLength(1);
+      expect(screen.getAllByTestId('home-form')).toHaveLength(1);
+    });
+
+    it('realizado hoje sem feedback: "Como foi?" no lugar do hero, sem "Registrar treino"', () => {
+      mockHome({ home: {
+        hoje: HOJE_ISO,
+        realizadoHoje: { id: 'r1', fonteDados: 'INTERVALS_ICU', tipoTreino: 'FACIL', duracaoMin: 40 },
+        metricasChave: { ctl: 74, atl: 71, tsb: 3, tss: 62, statusForma: 'FORMA_IDEAL' },
+      } });
+      renderPage();
+      expect(screen.getByText(/como foi\?/i)).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /registrar treino/i })).toBeNull();
+    });
+
+    it('realizado hoje com feedback: resumo do feito com sensações e comentário, sem o formulário nem "Registrar treino"', () => {
+      mockHome({ home: {
+        hoje: HOJE_ISO,
+        realizadoHoje: {
+          id: 'r1', fonteDados: 'MANUAL', tipoTreino: 'FACIL', duracaoMin: 40, percepcaoEsforco: 6,
+          sensacoes: ['PERNAS_PESADAS'], feedbackAtleta: 'Difícil no final',
+          feedbackRegistradoEm: '2026-08-26T19:00:00',
+        },
+        metricasChave: { ctl: 74, atl: 71, tsb: 3, tss: 62, statusForma: 'FORMA_IDEAL' },
+      } });
+      renderPage();
+      expect(screen.getByText(/treino feito/i)).toBeInTheDocument();
+      expect(screen.getByText(/6\/10/)).toBeInTheDocument();
+      expect(screen.getByText(/pernas pesadas/i)).toBeInTheDocument();
+      expect(screen.getByText('Difícil no final')).toBeInTheDocument();
+      expect(screen.queryByRole('radiogroup', { name: /percepção de esforço/i })).toBeNull();
+      expect(screen.queryByRole('button', { name: /registrar treino/i })).toBeNull();
+    });
+
+    it('planejado de hoje pulado: "Hoje você pulou" no lugar do hero', () => {
+      mockHome({ home: {
+        hoje: HOJE_ISO,
+        proximoTreino: { data: HOJE_ISO, tipoTreino: 'FACIL', statusTreino: 'PERDIDO', motivoPulo: 'DOR' },
+        metricasChave: { ctl: 74, atl: 71, tsb: 3, tss: 62, statusForma: 'FORMA_IDEAL' },
+      } });
+      renderPage();
+      expect(screen.getByText(/hoje você pulou/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /registrar mesmo assim/i })).toBeInTheDocument();
+    });
+
+    it('enviar o feedback chama o hook com o realizado do dia e recarrega a Home', async () => {
+      mockHome({ home: {
+        hoje: HOJE_ISO,
+        realizadoHoje: { id: 'r1', fonteDados: 'INTERVALS_ICU', tipoTreino: 'FACIL', duracaoMin: 40 },
+        metricasChave: {},
+      }, fetchHome: noop });
+      renderPage();
+
+      await userEvent.click(screen.getByRole('radio', { name: '6' }));
+      await userEvent.click(screen.getByRole('button', { name: /enviar/i }));
+
+      expect(feedbackEnviar).toHaveBeenCalledWith('r1', { percepcaoEsforco: 6, sensacoes: [], comentario: undefined });
+    });
   });
 
   it('mostra estado de erro com retry quando a Home falha', () => {
     mockHome({ home: null, error: new Error('boom') });
     renderPage();
-
     expect(screen.getByText(/não foi possível carregar/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /tentar novamente/i })).toBeInTheDocument();
   });
@@ -113,340 +226,241 @@ describe('AthleteHomePage', () => {
   it('mostra spinner enquanto carrega sem dado', () => {
     mockHome({ home: null, loading: true });
     renderPage();
-
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
-  it('mostra aviso de prontidão indisponível quando readiness falha (não engole erro)', () => {
-    mockHome();
-    vi.mocked(useAthleteReadiness).mockReturnValue({
-      readiness: null, loading: false, error: new Error('boom'), fetchReadiness: noop,
+  describe('prontidão', () => {
+    it('mostra aviso de prontidão indisponível quando readiness falha (não engole erro)', () => {
+      mockHome();
+      vi.mocked(useAthleteReadiness).mockReturnValue({ readiness: null, loading: false, error: new Error('x'), fetchReadiness: noop });
+      renderPage();
+      expect(screen.getByRole('alert')).toHaveTextContent(/alguns dados não carregaram: prontidão/i);
+      expect(screen.getByRole('button', { name: /recarregar/i })).toBeInTheDocument();
+      expect(screen.queryByText(/prontidão (ótima|alta|moderada|baixa)/i)).toBeNull();
     });
-    renderPage();
 
-    expect(screen.getByText(/prontidão indisponível/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /recarregar/i })).toBeInTheDocument();
-  });
-
-  it('oculta o ReadinessCard quando score é null (não fabrica)', () => {
-    mockHome();
-    vi.mocked(useAthleteReadiness).mockReturnValue({
-      readiness: { score: undefined, nota: 'Sem sinais.' }, loading: false, error: null, fetchReadiness: noop,
+    it('oculta a prontidão quando score é null (não fabrica)', () => {
+      mockHome();
+      vi.mocked(useAthleteReadiness).mockReturnValue({ readiness: { score: undefined, nota: 'Sem sinais.' }, loading: false, error: null, fetchReadiness: noop });
+      renderPage();
+      expect(screen.queryByText(/prontidão (ótima|alta|moderada|baixa)/i)).toBeNull();
     });
-    renderPage();
-
-    // ReadinessCard não renderiza sem score → a nota do readiness não aparece
-    expect(screen.queryByText('Sem sinais.')).toBeNull();
   });
 
-  it('mostra o card de streak quando há semanas consecutivas com treino', () => {
-    mockHome();
-    vi.mocked(useManualTraining).mockReturnValue({
-      recentes: [
-        { id: '1', dataTreino: format(new Date(), 'yyyy-MM-dd'), tipoTreino: 'CONTINUO', duracaoMin: '00:30:00', fonteDados: { value: 'MANUAL', label: 'Manual' }, status: { value: 'CONCLUIDO', label: 'Concluído' } },
-      ],
-      isFetching: false, isSubmitting: false, fetchError: null, registrar: noop, fetchRecentes: noop,
+  describe('check-in', () => {
+    it('sem check-in: linha "Fazer check-in" abre o inline; nada é enviado antes dos cinco itens', async () => {
+      mockHome();
+      const registrar = vi.fn().mockResolvedValue(CHECKIN_HOJE);
+      vi.mocked(useRegistrarCheckin).mockReturnValue({ registrar, loading: false, error: null });
+      renderPage();
+      await userEvent.click(screen.getByRole('button', { name: /fazer check-in/i }));
+      expect(screen.getByText('Como você acordou?')).toBeInTheDocument();
+      for (const nome of [/sono/i, /humor/i, /dores/i, /energia/i]) {
+        await userEvent.click(screen.getByRole('button', { name: nome }));
+      }
+      expect(registrar).not.toHaveBeenCalled();
+      expect(screen.getByText('4 de 5')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: /estresse/i }));
+      await waitFor(() => expect(registrar).toHaveBeenCalledTimes(1));
+      expect(registrar).toHaveBeenCalledWith({ qualidadeSono: 3, humor: 3, doresMusculares: 8, nivelEnergia: 3, estresse: 8 });
     });
-    renderPage();
 
-    expect(screen.getByText(/semana seguida treinando|semanas seguidas treinando/i)).toBeInTheDocument();
-  });
+    it('com check-in de hoje: linha "feito" sem horário; "Editar" abre o inline derivado e um toque envia o DTO completo', async () => {
+      mockHome();
+      const registrar = vi.fn().mockResolvedValue(CHECKIN_HOJE);
+      vi.mocked(useRegistrarCheckin).mockReturnValue({ registrar, loading: false, error: null });
+      vi.mocked(useCheckinAtual).mockReturnValue({ checkinHoje: CHECKIN_HOJE, loading: false, error: null, fetchCheckinAtual: vi.fn().mockResolvedValue(undefined) });
+      renderPage();
+      expect(screen.getByText(/check-in de hoje feito/i)).toBeInTheDocument();
+      expect(screen.queryByText(/\bàs\b/)).toBeNull();
+      expect(screen.queryByRole('button', { name: /iniciar treino|editado hoje/i })).toBeNull();
+      expect(screen.getByText(/com base no seu check-in/i)).toBeInTheDocument();
 
-  it('oculta o card de streak quando streak é 0 (não mostra "0 semanas")', () => {
-    mockHome();
-    // useManualTraining mockado no beforeEach já retorna recentes: [] → streak 0
-    renderPage();
+      await userEvent.click(screen.getByRole('button', { name: /^editar$/i }));
+      expect(screen.getByText('Como você acordou?')).toBeInTheDocument();
+      expect(screen.getByText('Salvo')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /sono/i })).toHaveAttribute('aria-pressed', 'true');
 
-    expect(screen.queryByText(/semanas? seguidas? treinando/i)).toBeNull();
-  });
+      await userEvent.click(screen.getByRole('button', { name: /humor/i })); // 3 → 1
+      await waitFor(() => expect(registrar).toHaveBeenCalledTimes(1));
+      expect(registrar).toHaveBeenCalledWith({ qualidadeSono: 9, humor: 3, doresMusculares: 0, nivelEnergia: 9, estresse: 0 });
 
-  it('mostra aviso com retry quando o streak falha (não engole erro como "sem streak")', () => {
-    mockHome();
-    vi.mocked(useManualTraining).mockReturnValue({
-      recentes: [], isFetching: false, isSubmitting: false, fetchError: new Error('boom'),
-      registrar: noop, fetchRecentes: noop,
+      // O modal continua como caminho de precisão, pré-preenchido.
+      await userEvent.click(screen.getByRole('button', { name: /mais detalhes/i }));
+      expect(screen.getByText('Como você está hoje?')).toBeInTheDocument();
+      expect(screen.getByRole('slider', { name: /qualidade do sono/i })).toHaveAttribute('aria-valuenow', '9');
+      expect(screen.getByDisplayValue('Dormi bem')).toBeInTheDocument();
     });
-    renderPage();
 
-    expect(screen.getByText(/não foi possível carregar seu streak/i)).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: /recarregar/i }).length).toBeGreaterThan(0);
-  });
-
-  it('mostra a próxima prova real (nome + diasFaltando do DTO)', () => {
-    mockHome();
-    vi.mocked(useAthleteProvas).mockReturnValue({
-      provas: [{ id: '1', nomeProva: 'Maratona de SP', dataProva: '2099-08-18', tipoProva: 'MARATONA', distancia: 'KM_42', diasFaltando: 45 }],
-      loading: false, error: null, fetchProvas: noop,
+    it('"Mais detalhes" do inline abre o modal; submeter chama registrar, refetcha prontidão e fecha', async () => {
+      mockHome();
+      const registrar = vi.fn().mockResolvedValue(CHECKIN_HOJE);
+      const fetchReadiness = vi.fn().mockResolvedValue(undefined);
+      vi.mocked(useRegistrarCheckin).mockReturnValue({ registrar, loading: false, error: null });
+      vi.mocked(useAthleteReadiness).mockReturnValue({ readiness: { score: 78, nota: 'x' }, loading: false, error: null, fetchReadiness });
+      renderPage();
+      await userEvent.click(screen.getByRole('button', { name: /fazer check-in/i }));
+      await userEvent.click(screen.getByRole('button', { name: /mais detalhes/i }));
+      expect(screen.getByText('Como você está hoje?')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: /registrar/i }));
+      expect(registrar).toHaveBeenCalledWith(expect.objectContaining({ qualidadeSono: 5 }));
+      await waitFor(() => expect(fetchReadiness).toHaveBeenCalled());
+      await waitFor(() => expect(screen.queryByText('Como você está hoje?')).toBeNull());
     });
-    renderPage();
 
-    expect(screen.getByText(/faltam 45 dias para maratona de sp/i)).toBeInTheDocument();
-  });
-
-  it('mostra CTA honesto quando não há prova futura cadastrada, sem inventar', () => {
-    mockHome();
-    // useAthleteProvas mockado no beforeEach já retorna provas: [] → sem próxima meta
-    renderPage();
-
-    expect(screen.getByText(/peça ao seu coach para cadastrar sua próxima prova/i)).toBeInTheDocument();
-  });
-
-  it('não mostra o CTA de "sem meta" enquanto a próxima prova ainda está carregando', () => {
-    mockHome();
-    vi.mocked(useAthleteProvas).mockReturnValue({ provas: [], loading: true, error: null, fetchProvas: noop });
-    renderPage();
-
-    expect(screen.queryByText(/peça ao seu coach/i)).toBeNull();
-  });
-
-  it('mostra aviso com retry quando a próxima prova falha (não conflar com "sem meta")', () => {
-    mockHome();
-    vi.mocked(useAthleteProvas).mockReturnValue({ provas: [], loading: false, error: new Error('boom'), fetchProvas: noop });
-    renderPage();
-
-    expect(screen.getByText(/não foi possível carregar sua próxima prova/i)).toBeInTheDocument();
-    expect(screen.queryByText(/peça ao seu coach/i)).toBeNull();
-  });
-
-  it('submete o check-in real: chama registrar, refetch de readiness e fecha o modal', async () => {
-    mockHome();
-    const registrar = vi.fn().mockResolvedValue(undefined);
-    const fetchReadiness = vi.fn();
-    vi.mocked(useRegistrarCheckin).mockReturnValue({ registrar, loading: false, error: null });
-    vi.mocked(useAthleteReadiness).mockReturnValue({
-      readiness: { score: 78, nota: 'Provisório.' }, loading: false, error: null, fetchReadiness,
+    it('mantém o modal aberto com erro quando o check-in falha (não fecha silenciosamente)', async () => {
+      mockHome();
+      const registrar = vi.fn().mockRejectedValue(new Error('500'));
+      vi.mocked(useRegistrarCheckin).mockReturnValue({ registrar, loading: false, error: new Error('500') });
+      vi.mocked(useCheckinAtual).mockReturnValue({ checkinHoje: CHECKIN_HOJE, loading: false, error: null, fetchCheckinAtual: vi.fn().mockResolvedValue(undefined) });
+      renderPage();
+      await userEvent.click(screen.getByRole('button', { name: /^editar$/i }));
+      await userEvent.click(screen.getByRole('button', { name: /mais detalhes/i }));
+      await userEvent.click(screen.getByRole('button', { name: /^registrar$/i }));
+      expect(await screen.findByText(/não foi possível salvar seu check-in/i)).toBeInTheDocument();
+      expect(screen.getByText('Como você está hoje?')).toBeInTheDocument();
     });
-    const user = userEvent.setup();
-    renderPage();
-
-    await user.click(screen.getByRole('button', { name: /iniciar treino/i }));
-    expect(screen.getByText('Como você está hoje?')).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: /^registrar$/i }));
-
-    expect(registrar).toHaveBeenCalledWith(expect.objectContaining({
-      qualidadeSono: expect.any(Number), humor: expect.any(Number),
-      doresMusculares: expect.any(Number), nivelEnergia: expect.any(Number), estresse: expect.any(Number),
-    }));
-    await waitFor(() => expect(fetchReadiness).toHaveBeenCalled());
-    await waitFor(() => expect(screen.queryByText('Como você está hoje?')).toBeNull());
   });
 
-  it('mantém o modal aberto com erro quando o check-in falha (não fecha silenciosamente)', async () => {
-    mockHome();
-    const registrar = vi.fn().mockRejectedValue(new Error('boom'));
-    vi.mocked(useRegistrarCheckin).mockReturnValue({ registrar, loading: false, error: new Error('boom') });
-    const user = userEvent.setup();
-    renderPage();
-
-    await user.click(screen.getByRole('button', { name: /iniciar treino/i }));
-    await user.click(screen.getByRole('button', { name: /^registrar$/i }));
-
-    expect(await screen.findByText(/não foi possível salvar seu check-in/i)).toBeInTheDocument();
-    expect(screen.getByText('Como você está hoje?')).toBeInTheDocument(); // modal continua aberto
-  });
-
-  it('mostra "Editado hoje" no botão quando já existe check-in de hoje', () => {
-    mockHome();
-    vi.mocked(useCheckinAtual).mockReturnValue({
-      checkinHoje: {
-        id: 'c1', atletaId: 'a1', data: '2026-07-04', qualidadeSono: 8, humor: 7,
-        doresMusculares: 2, nivelEnergia: 6, estresse: 3, readinessScore: 0.82, nivelProntidao: 'PRONTO',
-      },
-      loading: false, error: null, fetchCheckinAtual: vi.fn().mockResolvedValue(undefined),
+  describe('sua semana', () => {
+    it('mostra streak, volume e próxima prova num só card', () => {
+      mockHome();
+      vi.mocked(useManualTraining).mockReturnValue({
+        recentes: [
+          { id: '1', dataTreino: '2026-08-24', distanciaKm: 5, duracaoMin: 30, tipoTreino: 'FACIL' },
+          { id: '2', dataTreino: '2026-08-17', distanciaKm: 5, duracaoMin: 30, tipoTreino: 'FACIL' },
+          { id: '3', dataTreino: '2026-08-10', distanciaKm: 5, duracaoMin: 30, tipoTreino: 'FACIL' },
+        ] as never,
+        isFetching: false, isSubmitting: false, fetchError: null, registrar: noop, fetchRecentes: noop,
+      });
+      vi.mocked(useAthleteProvas).mockReturnValue({
+        provas: [{ id: 'p1', nomeProva: 'Maratona de SP', dataProva: '2026-10-10', diasFaltando: 45 }] as never,
+        loading: false, error: null, fetchProvas: noop,
+      });
+      renderPage();
+      expect(screen.getByText('Sua semana')).toBeInTheDocument();
+      expect(screen.getByTestId('home-streak')).toHaveTextContent(/3 semanas/);
+      expect(screen.getByText('5,0')).toBeInTheDocument();
+      expect(screen.getByText(/maratona de sp/i)).toBeInTheDocument();
+      expect(screen.getByText(/45 dias/)).toBeInTheDocument();
+      expect(screen.getAllByText(/seguidas treinando/i)).toHaveLength(1);
     });
-    renderPage();
 
-    expect(screen.getByRole('button', { name: /editado hoje/i })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^iniciar treino$/i })).toBeNull();
+    it('sem prova futura: CTA honesto; enquanto carrega, nenhum CTA', () => {
+      mockHome();
+      renderPage();
+      expect(screen.getByText(/sem próxima prova/i)).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /^cadastrar$/i })).toHaveAttribute('href', '#/athlete/races/new');
+    });
+
+    it('mostra aviso com retry quando streak ou prova falham (não conflar com "sem dado")', () => {
+      mockHome();
+      vi.mocked(useManualTraining).mockReturnValue({ recentes: [], isFetching: false, isSubmitting: false, fetchError: new Error('x'), registrar: noop, fetchRecentes: noop });
+      vi.mocked(useAthleteProvas).mockReturnValue({ provas: [], loading: false, error: new Error('y'), fetchProvas: noop });
+      renderPage();
+      expect(screen.getAllByRole('alert')).toHaveLength(1);
+      expect(screen.getByRole('alert')).toHaveTextContent(/streak, próxima prova/i);
+      expect(screen.queryByText(/peça ao seu coach/i)).toBeNull();
+    });
+
+    it('não mostra o card enquanto os treinos ainda carregam', () => {
+      mockHome();
+      vi.mocked(useManualTraining).mockReturnValue({ recentes: [], isFetching: true, isSubmitting: false, fetchError: null, registrar: noop, fetchRecentes: noop });
+      renderPage();
+      expect(screen.queryByText('Sua semana')).toBeNull();
+    });
   });
 
-  it('pré-preenche o modal com o check-in de hoje ao reabrir (edição, não recomeça do zero)', async () => {
-    mockHome();
-    vi.mocked(useCheckinAtual).mockReturnValue({
-      checkinHoje: {
-        id: 'c1', atletaId: 'a1', data: '2026-07-04', qualidadeSono: 9, humor: 8,
-        doresMusculares: 1, nivelEnergia: 7, estresse: 2, readinessScore: 0.9, nivelProntidao: 'PRONTO',
-        observacoes: 'Dormi bem',
-      },
-      loading: false, error: null, fetchCheckinAtual: vi.fn().mockResolvedValue(undefined),
+  describe('kudos', () => {
+    it('mostra os kudos quando há reconhecimentos recentes', () => {
+      mockHome();
+      vi.mocked(useKudosRecentes).mockReturnValue({
+        kudos: [{ id: 'k1', motivo: 'CONSISTENCIA', createdAt: '2026-08-25T10:00:00Z' }] as never,
+        loading: false, error: null, fetchKudos: noop,
+      });
+      renderPage();
+      expect(screen.getByText('Seu coach reconheceu sua consistência!')).toBeInTheDocument();
     });
-    const user = userEvent.setup();
-    renderPage();
 
-    await user.click(screen.getByRole('button', { name: /editado hoje/i }));
-
-    expect(screen.getByRole('slider', { name: /qualidade do sono/i })).toHaveAttribute('aria-valuenow', '9');
-    expect(screen.getByDisplayValue('Dormi bem')).toBeInTheDocument();
-  });
-
-  it('mostra o card de kudos quando há reconhecimentos recentes', () => {
-    mockHome();
-    vi.mocked(useKudosRecentes).mockReturnValue({
-      kudos: [{ id: 'k1', motivo: 'CONSISTENCIA', createdAt: '2026-07-04T12:00:00Z' }],
-      loading: false, error: null, fetchKudos: vi.fn().mockResolvedValue(undefined),
+    it('mostra aviso com retry quando os kudos falham', () => {
+      mockHome();
+      vi.mocked(useKudosRecentes).mockReturnValue({ kudos: [], loading: false, error: new Error('x'), fetchKudos: noop });
+      renderPage();
+      expect(screen.getByRole('alert')).toHaveTextContent(/reconhecimentos do coach/i);
     });
-    renderPage();
-
-    expect(screen.getByText('Seu coach reconheceu sua consistência!')).toBeInTheDocument();
-  });
-
-  it('mostra aviso com retry quando os kudos falham (não conflar com "sem kudos")', () => {
-    mockHome();
-    vi.mocked(useKudosRecentes).mockReturnValue({
-      kudos: [], loading: false, error: new Error('boom'), fetchKudos: vi.fn().mockResolvedValue(undefined),
-    });
-    renderPage();
-
-    expect(screen.getByText(/não foi possível carregar seus reconhecimentos/i)).toBeInTheDocument();
-  });
-
-  it('mostra o resumo semanal com treinos, volume, streak, forma e próximo treino', () => {
-    mockHome({
-      home: {
-        proximoTreino: { tipoTreino: 'INTERVALADO', descricao: 'Tiros de 400m' },
-        metricasChave: { ctl: 74, atl: 71, tsb: 3, tss: 62, statusForma: 'FORMA_IDEAL' },
-      },
-    });
-    const hoje = format(new Date(), 'yyyy-MM-dd');
-    vi.mocked(useManualTraining).mockReturnValue({
-      recentes: [
-        { id: '1', dataTreino: hoje, tipoTreino: 'CONTINUO', duracaoMin: '00:30:00', distanciaKm: 5,
-          fonteDados: { value: 'MANUAL', label: 'Manual' }, status: { value: 'CONCLUIDO', label: 'Concluído' } },
-      ],
-      isFetching: false, isSubmitting: false, fetchError: null, registrar: noop, fetchRecentes: noop,
-    });
-    renderPage();
-
-    expect(screen.getByText('Seu resumo da semana')).toBeInTheDocument();
-    expect(screen.getByText('5.0 km')).toBeInTheDocument();
-    expect(screen.getByText('Forma ideal')).toBeInTheDocument();
-  });
-
-  it('resumo semanal mostra estado vazio honesto quando não há treinos na semana', () => {
-    mockHome();
-    renderPage();
-
-    expect(screen.getByText(/você ainda não registrou treinos esta semana/i)).toBeInTheDocument();
-  });
-
-  it('não mostra o resumo semanal (nem o estado vazio) enquanto os treinos ainda carregam (achado do QA gate)', () => {
-    mockHome();
-    vi.mocked(useManualTraining).mockReturnValue({
-      recentes: [], isFetching: true, isSubmitting: false, fetchError: null,
-      registrar: noop, fetchRecentes: noop,
-    });
-    renderPage();
-
-    expect(screen.queryByText('Seu resumo da semana')).toBeNull();
-    expect(screen.queryByText(/você ainda não registrou treinos esta semana/i)).toBeNull();
   });
 
   describe('banner de semana encerrada', () => {
     it('exibe o banner quando a semana está CONCLUIDO com treinos PERDIDO', () => {
-      mockHome();
-      mockPlano(planoEncerrado(['PERDIDO', 'PERDIDO', 'REALIZADO']));
+      mockHome(); mockPlano(planoEncerrado(['PERDIDO', 'PERDIDO', 'REALIZADO']));
       renderPage();
-
       expect(screen.getByText(/Sua semana foi encerrada/)).toBeInTheDocument();
       expect(screen.getByText(/2 treinos ficaram para trás/)).toBeInTheDocument();
     });
 
-    it('não exibe o banner sem treinos PERDIDO', () => {
-      mockHome();
-      mockPlano(planoEncerrado(['REALIZADO', 'PENDENTE']));
-      renderPage();
-
+    it('não exibe o banner sem treinos PERDIDO nem sem plano', () => {
+      mockHome(); mockPlano(planoEncerrado(['REALIZADO']));
+      const { unmount } = renderPage();
       expect(screen.queryByText(/Sua semana foi encerrada/)).toBeNull();
-    });
-
-    it('não exibe o banner sem plano (null)', () => {
-      mockHome();
+      unmount();
       mockPlano(null);
       renderPage();
-
       expect(screen.queryByText(/Sua semana foi encerrada/)).toBeNull();
     });
 
     it('some ao dispensar (X)', async () => {
-      mockHome();
-      mockPlano(planoEncerrado(['PERDIDO']));
+      mockHome(); mockPlano(planoEncerrado(['PERDIDO']));
       renderPage();
-
       expect(screen.getByText(/Sua semana foi encerrada/)).toBeInTheDocument();
-      await userEvent.click(screen.getByRole('button', { name: /close/i }));
+      await userEvent.click(within(screen.getByText(/Sua semana foi encerrada/).closest('.MuiAlert-root') as HTMLElement).getByRole('button', { name: /close/i }));
       expect(screen.queryByText(/Sua semana foi encerrada/)).toBeNull();
     });
 
-    it('não exibe o banner enquanto o plano carrega', () => {
-      mockHome();
-      vi.mocked(useAthletePlan).mockReturnValue({
-        plano: null, loading: true, error: null, fetchPlano: vi.fn().mockResolvedValue(undefined),
-      });
-      renderPage();
-
+    it('não exibe o banner enquanto o plano carrega; mostra alerta com retry quando falha', () => {
+      mockHome(); mockPlano(null, { loading: true });
+      const { unmount } = renderPage();
       expect(screen.queryByText(/Sua semana foi encerrada/)).toBeNull();
-    });
-
-    it('mostra alerta de erro (com retry) e não exibe o banner quando o plano falha', () => {
-      mockHome();
-      vi.mocked(useAthletePlan).mockReturnValue({
-        plano: null, loading: false, error: new Error('boom'), fetchPlano: vi.fn().mockResolvedValue(undefined),
-      });
+      unmount();
+      mockPlano(null, { error: new Error('x') });
       renderPage();
-
-      expect(screen.queryByText(/Sua semana foi encerrada/)).toBeNull();
-      expect(screen.getByText(/Não foi possível verificar o status da sua semana/)).toBeInTheDocument();
+      expect(screen.getByRole('alert')).toHaveTextContent(/status da semana/i);
     });
   });
 
-  describe('banner de calibração (task 8.2/8.5)', () => {
+  describe('banner de calibração', () => {
     it('exibe o banner informativo quando o atleta está em calibração', () => {
       mockHome();
-      vi.mocked(useCalibracao).mockReturnValue({
-        status: { phase: 'CALIBRATION', stage: 'OBSERVATION', weekNumber: 1, confidenceScore: 20 },
-        justExited: false, loading: false, error: null,
-        fetchStatus: vi.fn().mockResolvedValue(undefined), dismissJustExited: vi.fn(),
-      });
+      vi.mocked(useCalibracao).mockReturnValue({ status: { weekNumber: 1, stage: 'OBSERVATION' } as never, justExited: false, loading: false, error: null, fetchStatus: noop, dismissJustExited: vi.fn() });
       renderPage();
-
       expect(screen.getByText('Semana 1 de calibração')).toBeInTheDocument();
     });
 
-    it('exibe o banner de saída quando o atleta acabou de sair da calibração', () => {
+    it('exibe o banner de saída quando acabou de sair, e some ao dispensar chamando dismissJustExited', async () => {
       mockHome();
-      vi.mocked(useCalibracao).mockReturnValue({
-        status: null, justExited: true, loading: false, error: null,
-        fetchStatus: vi.fn().mockResolvedValue(undefined), dismissJustExited: vi.fn(),
-      });
+      const dismissJustExited = vi.fn();
+      vi.mocked(useCalibracao).mockReturnValue({ status: null, justExited: true, loading: false, error: null, fetchStatus: noop, dismissJustExited });
       renderPage();
-
       expect(screen.getByText(/calibração concluída/i)).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: /close/i }));
+      expect(screen.queryByText(/calibração concluída/i)).toBeNull();
+      expect(dismissJustExited).toHaveBeenCalled();
+    });
+
+    it('erro de calibração entra no Alert consolidado (antes era silencioso)', async () => {
+      mockHome();
+      const fetchStatus = vi.fn().mockResolvedValue(undefined);
+      vi.mocked(useCalibracao).mockReturnValue({ status: null, justExited: false, loading: false, error: new Error('x'), fetchStatus, dismissJustExited: vi.fn() });
+      renderPage();
+      expect(screen.getAllByRole('alert')).toHaveLength(1);
+      expect(screen.getByRole('alert')).toHaveTextContent(/calibração/i);
+      await userEvent.click(screen.getByRole('button', { name: /recarregar/i }));
+      expect(fetchStatus).toHaveBeenCalledTimes(2); // montagem + retry
     });
 
     it('não exibe nenhum banner de calibração fora de CALIBRATION', () => {
       mockHome();
       renderPage();
-
       expect(screen.queryByText(/de calibração/i)).toBeNull();
-      expect(screen.queryByText(/calibração concluída/i)).toBeNull();
-    });
-
-    it('some ao dispensar e chama dismissJustExited', async () => {
-      mockHome();
-      const dismissJustExited = vi.fn();
-      vi.mocked(useCalibracao).mockReturnValue({
-        status: { phase: 'CALIBRATION', stage: 'CALIBRATION', weekNumber: 2, confidenceScore: 40 },
-        justExited: false, loading: false, error: null,
-        fetchStatus: vi.fn().mockResolvedValue(undefined), dismissJustExited,
-      });
-      renderPage();
-
-      expect(screen.getByText('Semana 2 de calibração')).toBeInTheDocument();
-      await userEvent.click(screen.getAllByRole('button', { name: /close/i })[0]);
-
-      expect(screen.queryByText('Semana 2 de calibração')).toBeNull();
-      expect(dismissJustExited).toHaveBeenCalled();
     });
   });
 });

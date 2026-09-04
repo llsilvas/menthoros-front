@@ -30,7 +30,16 @@ export const ROUTES = {
     ATHLETE_PROFILE:      '/athlete/profile',
     ATHLETE_TRAINING_LOG: '/athlete/training/log',
     ATHLETE_ONBOARDING:   '/athlete/onboarding',
+    ATHLETE_WORKOUT_TODAY: '/athlete/workout/today',
+    // Provas do atleta (atleta-cadastra-prova) — sem item no menu; a entrada é a faixa do Plano
+    ATHLETE_RACES:        '/athlete/races',
+    ATHLETE_RACE_NEW:     '/athlete/races/new',
 } as const;
+
+/** Rota de edição de uma prova do atleta. */
+export function athleteRaceEditRoute(provaId: string): string {
+    return `${ROUTES.ATHLETE_RACES}/${provaId}/edit`;
+}
 
 export type CoachRoute =
     | '/coach/inbox'
@@ -47,4 +56,7 @@ export type AthleteRoute =
     | '/athlete/coach'
     | '/athlete/profile'
     | '/athlete/training/log'
-    | '/athlete/onboarding';
+    | '/athlete/onboarding'
+    | '/athlete/workout/today'
+    | '/athlete/races'
+    | '/athlete/races/new';

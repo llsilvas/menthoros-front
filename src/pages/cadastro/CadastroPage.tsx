@@ -12,7 +12,9 @@ import {
   Typography,
 } from '@mui/material';
 import { useCoachSignup } from '../../hooks/useCoachSignup';
+import { useInviteToken } from '../../hooks/useInviteToken';
 import { useAuth } from '../../context/auth/useAuth';
+import { ROUTES } from '../../constants/routes';
 import { gradients, glassAzulSx, surface } from '../../theme/tokens';
 import { overlayWhite } from '../../theme/overlays';
 
@@ -33,7 +35,12 @@ function sugerirSlug(nome: string): string {
 }
 
 /**
- * Auto-cadastro público de assessoria.
+ * Auto-cadastro público de assessoria — e aceite do convite de assessoria fundadora.
+ *
+ * <p>Modo convite: com `?convite=<token>` no fragmento, a página consulta o convite, pré-preenche e
+ * bloqueia nome e e-mail, e envia o token junto com o cadastro. O token vive só no fragmento (que o
+ * browser não envia ao servidor nem no `Referer`) e na memória da página: ele é lido no primeiro
+ * render e removido da URL em seguida, para não ficar no histórico. Nunca vai para storage.</p>
  *
  * <p>Não há checkbox de aceite, e a ausência é deliberada: o aceite auditável e versionado pertence
  * à change `add-coach-lgpd-consent` e acontece na primeira sessão autenticada. Aqui ficam apenas
@@ -41,8 +48,11 @@ function sugerirSlug(nome: string): string {
  * competindo com o que vale juridicamente.</p>
  */
 export default function CadastroPage() {
-  const { status, error, resultado, cadastrar, reiniciarTentativa } = useCoachSignup();
+  const { status, error, resultado, convite, cadastrar, reiniciarTentativa, consultarConvite } =
+    useCoachSignup();
   const { login } = useAuth();
+  // Lido uma vez, no primeiro render, e removido da URL pelo próprio hook.
+  const inviteToken = useInviteToken();
 
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
@@ -54,6 +64,22 @@ export default function CadastroPage() {
 
   const sucessoRef = useRef<HTMLElement>(null);
   const submitting = status === 'submitting';
+  const porConvite = inviteToken !== null;
+  // No convite, nome e e-mail vêm do próprio convite e ficam bloqueados: o backend exige o e-mail
+  // convidado. Derivados, não copiados para o estado — não há segundo render nem chance de edição.
+  const nomeFinal = porConvite ? (convite.dados?.nome ?? '') : nome;
+  const emailFinal = porConvite ? (convite.dados?.email ?? '') : email;
+
+  // Consulta o convite uma vez. Sob StrictMode (dev) o efeito roda duas vezes e dispara dois GETs
+  // idempotentes — inofensivo, e dentro do rate limit (10/min/IP).
+  useEffect(() => {
+    if (!porConvite) {
+      return;
+    }
+    void consultarConvite(inviteToken);
+    // Só no mount: o token é fixo para a vida da página.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Move o foco para a confirmação: sem isso, quem usa leitor de tela não percebe a mudança.
   useEffect(() => {
@@ -80,7 +106,7 @@ export default function CadastroPage() {
   const slugInvalido = slug.length > 0 && !FORMATO_DO_SLUG.test(slug);
   const senhaCurta = senha.length > 0 && senha.length < TAMANHO_MINIMO_DA_SENHA;
   const podeEnviar =
-    !submitting && nome && email && senha && !senhaCurta && nomeAssessoria && slug && !slugInvalido;
+    !submitting && nomeFinal && emailFinal && senha && !senhaCurta && nomeAssessoria && slug && !slugInvalido;
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -88,13 +114,207 @@ export default function CadastroPage() {
       return;
     }
     void cadastrar({
-      nome,
-      email,
+      nome: nomeFinal,
+      email: emailFinal,
       senha,
       nomeAssessoria,
       slug,
       website: website || undefined,
+      inviteToken: inviteToken ?? undefined,
     });
+  };
+
+  const conteudo = () => {
+    if (porConvite && convite.status !== 'valido') {
+      return convite.status === 'invalido' ? (
+        <ConviteInvalido />
+      ) : (
+        <Stack alignItems="center" spacing={2} sx={{ py: 4 }} role="status">
+          <CircularProgress size={28} />
+          <Typography variant="body2" sx={{ color: overlayWhite[70] }}>
+            Conferindo seu convite…
+          </Typography>
+        </Stack>
+      );
+    }
+
+    if (status === 'fechado') {
+      return <CadastroPorConvite />;
+    }
+
+    if (status === 'success' && resultado) {
+      return (
+        <Stack spacing={2} alignItems="center" textAlign="center">
+          <Typography
+            ref={sucessoRef}
+            tabIndex={-1}
+            variant="h5"
+            sx={{ fontWeight: 700, color: surface[0], outline: 'none' }}
+          >
+            Assessoria criada!
+          </Typography>
+          <Typography variant="body2" sx={{ color: overlayWhite[70] }}>
+            {resultado.proximoPasso}
+          </Typography>
+          {!porConvite && (
+            <Typography variant="body2" sx={{ color: overlayWhite[70] }}>
+              Enviamos para <strong>{resultado.email}</strong>.
+            </Typography>
+          )}
+          {/*
+            O login só começa por ação do usuário. No cadastro público, redirecionar sozinho levaria
+            a uma tela de verificação pendente que ele ainda não tem como resolver — o e-mail acabou
+            de sair. No convite não há verificação, mas a decisão continua dele.
+          */}
+          <Button variant="contained" onClick={() => void login()} sx={{ mt: 1 }}>
+            Ir para o login
+          </Button>
+        </Stack>
+      );
+    }
+
+    return (
+      <Stack spacing={2.5} component="form" onSubmit={handleSubmit} noValidate>
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 700, color: surface[0], mb: 0.5 }}>
+            {porConvite ? 'Bem-vinda à turma fundadora' : 'Crie sua assessoria'}
+          </Typography>
+          <Typography variant="body2" sx={{ color: overlayWhite[70] }}>
+            {porConvite
+              ? 'Escolha o nome da sua assessoria e uma senha. Leva menos de dois minutos.'
+              : 'Comece a usar o Menthoros com seus atletas.'}
+          </Typography>
+        </Box>
+
+        {status === 'error' && error && (
+          <Alert severity="error" role="alert">
+            {error}
+          </Alert>
+        )}
+
+        <TextField
+          label="Seu nome"
+          value={nomeFinal}
+          onChange={(e) => aoEditar(setNome)(e.target.value)}
+          required
+          disabled={submitting || porConvite}
+          fullWidth
+          inputProps={{ maxLength: 120 }}
+        />
+
+        <TextField
+          label="Seu e-mail"
+          type="email"
+          value={emailFinal}
+          onChange={(e) => aoEditar(setEmail)(e.target.value)}
+          required
+          disabled={submitting || porConvite}
+          fullWidth
+          inputProps={{ maxLength: 100 }}
+          helperText={porConvite ? 'O mesmo e-mail que recebeu o convite.' : undefined}
+        />
+
+        <TextField
+          label="Senha"
+          type="password"
+          value={senha}
+          onChange={(e) => aoEditar(setSenha)(e.target.value)}
+          required
+          disabled={submitting}
+          fullWidth
+          error={senhaCurta}
+          helperText={
+            senhaCurta
+              ? `Use ao menos ${TAMANHO_MINIMO_DA_SENHA} caracteres.`
+              : `Ao menos ${TAMANHO_MINIMO_DA_SENHA} caracteres.`
+          }
+          inputProps={{ maxLength: 128, minLength: TAMANHO_MINIMO_DA_SENHA }}
+          autoComplete="new-password"
+        />
+
+        <TextField
+          label="Nome da assessoria"
+          value={nomeAssessoria}
+          onChange={(e) => aoMudarNomeAssessoria(e.target.value)}
+          required
+          disabled={submitting}
+          fullWidth
+          inputProps={{ maxLength: 200 }}
+        />
+
+        <TextField
+          label="Identificador"
+          value={slug}
+          onChange={(e) => {
+            setSlugEditado(true);
+            aoEditar(setSlug)(e.target.value);
+          }}
+          required
+          disabled={submitting}
+          fullWidth
+          error={slugInvalido}
+          helperText={
+            slugInvalido
+              ? 'Use apenas letras minúsculas, números e hífens entre eles.'
+              : 'Como sua assessoria aparece no endereço. Ex.: corridasserra'
+          }
+          inputProps={{ maxLength: 100 }}
+        />
+
+        {/* Honeypot anti-spam: oculto e fora da ordem de tabulação. */}
+        <Box
+          component="input"
+          type="text"
+          name="website"
+          value={website}
+          onChange={(e) => setWebsite((e.target as HTMLInputElement).value)}
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+          sx={{
+            position: 'absolute',
+            width: 1,
+            height: 1,
+            p: 0,
+            m: '-1px',
+            overflow: 'hidden',
+            clip: 'rect(0 0 0 0)',
+            whiteSpace: 'nowrap',
+            border: 0,
+          }}
+        />
+
+        {/*
+          Links informativos, NÃO aceite. O consentimento versionado é coletado depois do login,
+          pela change add-coach-lgpd-consent.
+        */}
+        <Typography variant="body2" sx={{ color: overlayWhite[70] }}>
+          Ao criar sua assessoria, você poderá consultar nossos{' '}
+          <Link component={RouterLink} to={ROUTES.TERMOS} underline="always">
+            Termos de Uso
+          </Link>{' '}
+          e a{' '}
+          <Link component={RouterLink} to={ROUTES.PRIVACIDADE} underline="always">
+            Política de Privacidade
+          </Link>
+          .
+        </Typography>
+
+        <Button
+          type="submit"
+          variant="contained"
+          size="large"
+          disabled={!podeEnviar}
+          startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : undefined}
+        >
+          {submitting ? 'Criando…' : 'Criar assessoria'}
+        </Button>
+
+        <Button component={RouterLink} to={ROUTES.LOGIN} variant="text" size="small">
+          Já tenho conta
+        </Button>
+      </Stack>
+    );
   };
 
   return (
@@ -112,170 +332,50 @@ export default function CadastroPage() {
         elevation={0}
         sx={{ width: '100%', maxWidth: 480, p: { xs: 3, sm: 4 }, borderRadius: 2, ...glassAzulSx }}
       >
-        {status === 'success' && resultado ? (
-          <Stack spacing={2} alignItems="center" textAlign="center">
-            <Typography
-              ref={sucessoRef}
-              tabIndex={-1}
-              variant="h5"
-              sx={{ fontWeight: 700, color: surface[0], outline: 'none' }}
-            >
-              Assessoria criada!
-            </Typography>
-            <Typography variant="body2" sx={{ color: overlayWhite[70] }}>
-              {resultado.proximoPasso}
-            </Typography>
-            <Typography variant="body2" sx={{ color: overlayWhite[70] }}>
-              Enviamos para <strong>{resultado.email}</strong>.
-            </Typography>
-            {/*
-              O login só começa por ação do usuário. Redirecionar sozinho levaria a uma tela de
-              verificação pendente que ele ainda não tem como resolver — o e-mail acabou de sair.
-            */}
-            <Button variant="contained" onClick={() => void login()} sx={{ mt: 1 }}>
-              Ir para o login
-            </Button>
-          </Stack>
-        ) : (
-          <Stack spacing={2.5} component="form" onSubmit={handleSubmit} noValidate>
-            <Box>
-              <Typography variant="h5" sx={{ fontWeight: 700, color: surface[0], mb: 0.5 }}>
-                Crie sua assessoria
-              </Typography>
-              <Typography variant="body2" sx={{ color: overlayWhite[70] }}>
-                Comece a usar o Menthoros com seus atletas.
-              </Typography>
-            </Box>
-
-            {status === 'error' && error && (
-              <Alert severity="error" role="alert">
-                {error}
-              </Alert>
-            )}
-
-            <TextField
-              label="Seu nome"
-              value={nome}
-              onChange={(e) => aoEditar(setNome)(e.target.value)}
-              required
-              disabled={submitting}
-              fullWidth
-              inputProps={{ maxLength: 120 }}
-            />
-
-            <TextField
-              label="Seu e-mail"
-              type="email"
-              value={email}
-              onChange={(e) => aoEditar(setEmail)(e.target.value)}
-              required
-              disabled={submitting}
-              fullWidth
-              inputProps={{ maxLength: 100 }}
-            />
-
-            <TextField
-              label="Senha"
-              type="password"
-              value={senha}
-              onChange={(e) => aoEditar(setSenha)(e.target.value)}
-              required
-              disabled={submitting}
-              fullWidth
-              error={senhaCurta}
-              helperText={
-                senhaCurta
-                  ? `Use ao menos ${TAMANHO_MINIMO_DA_SENHA} caracteres.`
-                  : `Ao menos ${TAMANHO_MINIMO_DA_SENHA} caracteres.`
-              }
-              inputProps={{ maxLength: 128, minLength: TAMANHO_MINIMO_DA_SENHA }}
-              autoComplete="new-password"
-            />
-
-            <TextField
-              label="Nome da assessoria"
-              value={nomeAssessoria}
-              onChange={(e) => aoMudarNomeAssessoria(e.target.value)}
-              required
-              disabled={submitting}
-              fullWidth
-              inputProps={{ maxLength: 200 }}
-            />
-
-            <TextField
-              label="Identificador"
-              value={slug}
-              onChange={(e) => {
-                setSlugEditado(true);
-                aoEditar(setSlug)(e.target.value);
-              }}
-              required
-              disabled={submitting}
-              fullWidth
-              error={slugInvalido}
-              helperText={
-                slugInvalido
-                  ? 'Use apenas letras minúsculas, números e hífens entre eles.'
-                  : 'Como sua assessoria aparece no endereço. Ex.: corridasserra'
-              }
-              inputProps={{ maxLength: 100 }}
-            />
-
-            {/* Honeypot anti-spam: oculto e fora da ordem de tabulação. */}
-            <Box
-              component="input"
-              type="text"
-              name="website"
-              value={website}
-              onChange={(e) => setWebsite((e.target as HTMLInputElement).value)}
-              tabIndex={-1}
-              autoComplete="off"
-              aria-hidden="true"
-              sx={{
-                position: 'absolute',
-                width: 1,
-                height: 1,
-                p: 0,
-                m: '-1px',
-                overflow: 'hidden',
-                clip: 'rect(0 0 0 0)',
-                whiteSpace: 'nowrap',
-                border: 0,
-              }}
-            />
-
-            {/*
-              Links informativos, NÃO aceite. O consentimento versionado é coletado depois do login,
-              pela change add-coach-lgpd-consent.
-            */}
-            <Typography variant="body2" sx={{ color: overlayWhite[70] }}>
-              Ao criar sua assessoria, você poderá consultar nossos{' '}
-              <Link component={RouterLink} to="/termos" underline="always">
-                Termos de Uso
-              </Link>{' '}
-              e a{' '}
-              <Link component={RouterLink} to="/privacidade" underline="always">
-                Política de Privacidade
-              </Link>
-              .
-            </Typography>
-
-            <Button
-              type="submit"
-              variant="contained"
-              size="large"
-              disabled={!podeEnviar}
-              startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : undefined}
-            >
-              {submitting ? 'Criando…' : 'Criar assessoria'}
-            </Button>
-
-            <Button component={RouterLink} to="/auth/login" variant="text" size="small">
-              Já tenho conta
-            </Button>
-          </Stack>
-        )}
+        {conteudo()}
       </Paper>
     </Box>
+  );
+}
+
+/** Token inexistente, expirado, invalidado ou já usado — o backend não distingue, e a tela também não. */
+function ConviteInvalido() {
+  return (
+    <Stack spacing={2} alignItems="center" textAlign="center">
+      <Typography variant="h5" sx={{ fontWeight: 700, color: surface[0] }}>
+        Convite inválido ou expirado
+      </Typography>
+      <Typography variant="body2" sx={{ color: overlayWhite[70] }}>
+        Este link não vale mais. Se você recebeu um convite, peça um novo — ou entre na lista de
+        espera.
+      </Typography>
+      <Button component={RouterLink} to={ROUTES.WAITLIST} variant="contained" sx={{ mt: 1 }}>
+        Entrar na lista de espera
+      </Button>
+      <Button component={RouterLink} to={ROUTES.LOGIN} variant="text" size="small">
+        Já tenho conta
+      </Button>
+    </Stack>
+  );
+}
+
+/** O auto-cadastro público está desligado: a porta de entrada é o convite. */
+function CadastroPorConvite() {
+  return (
+    <Stack spacing={2} alignItems="center" textAlign="center">
+      <Typography variant="h5" sx={{ fontWeight: 700, color: surface[0] }}>
+        O cadastro é por convite
+      </Typography>
+      <Typography variant="body2" sx={{ color: overlayWhite[70] }}>
+        Estamos abrindo o Menthoros para uma turma fundadora de assessorias. Entre na lista de
+        espera e avisamos quando for a sua vez.
+      </Typography>
+      <Button component={RouterLink} to={ROUTES.WAITLIST} variant="contained" sx={{ mt: 1 }}>
+        Entrar na lista de espera
+      </Button>
+      <Button component={RouterLink} to={ROUTES.LOGIN} variant="text" size="small">
+        Já tenho conta
+      </Button>
+    </Stack>
   );
 }

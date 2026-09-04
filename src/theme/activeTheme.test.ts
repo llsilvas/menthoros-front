@@ -37,4 +37,10 @@ describe('activeTheme — palette premium consolidado', () => {
     expect(workoutTypeColor('desconhecido')).toBe(map.DEFAULT);
     expect(workoutTypeColor(undefined)).toBe(map.DEFAULT);
   });
+
+  it('trainingType.PROVA usa o lime de marca (prova-no-plano-semanal, D7)', () => {
+    const map = activeTheme.trainingType as Record<string, string>;
+    expect(map.PROVA).toBe(brandLime[500]);
+    expect(workoutTypeColor('prova')).toBe(map.PROVA);
+  });
 });

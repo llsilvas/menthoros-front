@@ -11,20 +11,13 @@ import {
 import { format, subDays } from 'date-fns';
 import type { TipoTreino, TreinoManualInput, CalibracaoExtras } from '../../../types/TreinoManual';
 import { TIPO_TREINO_LABELS, CALIBRACAO_EXTRAS_DEFAULT } from '../../../types/TreinoManual';
+import { RPE_LABELS } from '../../../types/Rpe';
 import { primary, surface, content, backgrounds } from '../../../theme/tokens';
 import { onboardingInputSx } from './onboardingFormStyles';
 import { OnboardingSectionLabel } from './OnboardingSectionLabel';
 import { CalibrationExtrasFields } from './CalibrationExtrasFields';
 
 const TIPOS = Object.keys(TIPO_TREINO_LABELS) as Array<keyof typeof TIPO_TREINO_LABELS>;
-
-const RPE_LABELS: Record<number, string> = {
-    1: 'Muito fácil', 2: 'Muito fácil',
-    3: 'Fácil', 4: 'Fácil',
-    5: 'Moderado', 6: 'Moderado',
-    7: 'Difícil', 8: 'Difícil',
-    9: 'Máximo', 10: 'Máximo',
-};
 
 function estimarTss(duracaoMinutos: number, rpe: number): number {
     return Math.round((duracaoMinutos / 60) * Math.pow(rpe / 10, 2) * 100);
@@ -39,19 +32,27 @@ export interface ManualTrainingFormProps {
      * só RPE é perguntado.
      */
     emCalibracao?: boolean;
+    /** Pré-preenche a partir do treino planejado de hoje (modo treino, "Concluí o treino"). */
+    initial?: { tipo?: string; duracaoMinutos?: number };
     onSubmit: (input: TreinoManualInput) => Promise<void>;
 }
 
-export function ManualTrainingForm({ loading, hasTreinoHoje, emCalibracao = false, onSubmit }: ManualTrainingFormProps) {
+export function ManualTrainingForm({ loading, hasTreinoHoje, emCalibracao = false, initial, onSubmit }: ManualTrainingFormProps) {
     const [hoje, minData] = useMemo(() => {
         const today = format(new Date(), 'yyyy-MM-dd');
         const min = format(subDays(new Date(), 7), 'yyyy-MM-dd');
         return [today, min];
     }, []);
 
-    const [tipo, setTipo] = useState<TipoTreino>('CONTINUO');
+    // O tipo vindo do modo treino é o mesmo enum do backend (TipoTreino); fora da lista, o
+    // default de sempre — não trava o formulário por um valor que a UI não reconhece.
+    const tipoInicial: TipoTreino = initial?.tipo && (initial.tipo in TIPO_TREINO_LABELS)
+        ? (initial.tipo as TipoTreino)
+        : 'CONTINUO';
+
+    const [tipo, setTipo] = useState<TipoTreino>(tipoInicial);
     const [data, setData] = useState(hoje);
-    const [duracaoMinutos, setDuracaoMinutos] = useState<number | ''>(45);
+    const [duracaoMinutos, setDuracaoMinutos] = useState<number | ''>(initial?.duracaoMinutos ?? 45);
     const [distanciaKm, setDistanciaKm] = useState<number | ''>('');
     const [rpe, setRpe] = useState<number>(6);
     const [observacoes, setObservacoes] = useState('');

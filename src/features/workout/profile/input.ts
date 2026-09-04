@@ -35,19 +35,25 @@ function tipoDe(tipoEtapa: EtapaTreino['tipoEtapa']): string {
   return tipoEtapa?.value ?? tipoEtapa?.label ?? '';
 }
 
-/** Detalhe do treino — `src/types/TreinoPlanejado.ts`. Sem `blocoId`, logo sem série. */
+/**
+ * Detalhe do treino — `src/types/TreinoPlanejado.ts`. Leva `blocoId`/`blocoRepeticoes` quando o
+ * contrato os traz, mas **não** o índice da repetição, que não existe no contrato: para a série
+ * ganhar o bracket "N×" use `indexarRepeticoes` sobre a lista, que deriva o índice por posição.
+ */
 export function fromEtapaTreino(e: EtapaTreino): ProfileEtapaInput {
   return {
-    id:          e.id,
-    ordem:       e.ordem,
-    tipo:        tipoDe(e.tipoEtapa),
-    descricao:   e.descricaoEtapa,
-    duracaoMin:  e.duracaoMin,
-    fcAlvo:      e.fcAlvoEtapa,
-    ritmoAlvo:   e.ritmoAlvo,
-    intensidade: e.intensidade,
-    repeticoes:  e.repeticoes,
-    observacao:  e.observacao,
+    id:              e.id,
+    ordem:           e.ordem,
+    tipo:            tipoDe(e.tipoEtapa),
+    descricao:       e.descricaoEtapa,
+    duracaoMin:      e.duracaoMin,
+    fcAlvo:          e.fcAlvoEtapa,
+    ritmoAlvo:       e.ritmoAlvo,
+    intensidade:     e.intensidade,
+    repeticoes:      e.repeticoes,
+    observacao:      e.observacao,
+    blocoId:         e.blocoId,
+    blocoRepeticoes: e.blocoRepeticoes,
   };
 }
 
@@ -124,4 +130,42 @@ export function fromEtapaItens(itens: EtapaItem[]): ProfileEtapaInput[] {
 function minutosDe(valor: string): number | undefined {
   const n = parseInt(valor, 10);
   return Number.isFinite(n) ? n : undefined;
+}
+
+/**
+ * Deriva `blocoRepeticaoIndex` por posição sobre uma série **já expandida** pelo backend
+ * (`expandirBloco` grava N × sub-etapas linhas com o mesmo `blocoId`): num grupo consecutivo de
+ * tamanho `k` com `N = blocoRepeticoes`, o ciclo é `c = k / N` e o índice é `⌊pos / c⌋ + 1`.
+ * Grupo com `k` não múltiplo de `N` é inválido: as etapas **perdem** `blocoId`/`blocoRepeticoes`,
+ * porque o `selectWorkoutProfile` criaria `repeat` com `index ?? 1` e desenharia um bracket
+ * falso. Nunca reexpande — um 4×2 já chega como 8 linhas.
+ */
+export function indexarRepeticoes(etapas: ProfileEtapaInput[]): ProfileEtapaInput[] {
+  const semBloco = (e: ProfileEtapaInput): ProfileEtapaInput =>
+    ({ ...e, blocoId: undefined, blocoRepeticoes: undefined, blocoRepeticaoIndex: undefined });
+
+  // Segmentos consecutivos por blocoId. O mesmo id em dois segmentos separados é inválido: o
+  // ProfilePlot desenha o bracket da primeira à última ocorrência e cobriria etapas alheias.
+  const segmentos: Array<{ id?: string; itens: ProfileEtapaInput[] }> = [];
+  for (const e of etapas) {
+    const ultimo = segmentos[segmentos.length - 1];
+    if (ultimo && e.blocoId && ultimo.id === e.blocoId) ultimo.itens.push(e);
+    else segmentos.push({ id: e.blocoId, itens: [e] });
+  }
+  const ocorrencias = new Map<string, number>();
+  for (const s of segmentos) if (s.id) ocorrencias.set(s.id, (ocorrencias.get(s.id) ?? 0) + 1);
+
+  const saida: ProfileEtapaInput[] = [];
+  for (const seg of segmentos) {
+    const reps = seg.itens[0].blocoRepeticoes ?? 0;
+    const k = seg.itens.length;
+    // Sem id: passa. Com id mas sem N (ou N ≤ 1), id repetido ou k não múltiplo de N: o bloco não
+    // é uma série válida — perde os metadados, senão bloqueia a inferência do perfil e/ou desenha
+    // bracket falso.
+    if (!seg.id) { saida.push(...seg.itens); continue; }
+    if (reps <= 1 || (ocorrencias.get(seg.id) ?? 0) > 1 || k % reps !== 0) { saida.push(...seg.itens.map(semBloco)); continue; }
+    const ciclo = k / reps;
+    seg.itens.forEach((e, pos) => saida.push({ ...e, blocoRepeticaoIndex: Math.floor(pos / ciclo) + 1 }));
+  }
+  return saida;
 }
