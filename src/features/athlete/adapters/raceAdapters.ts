@@ -1,4 +1,4 @@
-import { format, parseISO } from 'date-fns';
+import { differenceInCalendarDays, format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { extractDistanciaKey, extractStatusKey, extractTipoKey } from '../../../types/Prova';
 import type { DistanciaProva, Prova, TipoProva } from '../../../types/Prova';
@@ -80,4 +80,55 @@ export function selectTargetRace(provas: Prova[], hoje: Date = new Date()): Athl
 export function countUpcomingRaces(provas: Prova[], hoje: Date = new Date()): number {
   const hojeIso = format(hoje, 'yyyy-MM-dd');
   return provas.filter((p) => p.foiRealizada !== true && p.dataProva >= hojeIso).length;
+}
+
+/** Segunda-feira da semana que contém `d`, hora zerada. */
+function startOfWeekMonday(d: Date): Date {
+  const dia = d.getDay(); // 0=domingo..6=sábado
+  const diff = (dia === 0 ? -6 : 1) - dia;
+  const segunda = new Date(d);
+  segunda.setDate(d.getDate() + diff);
+  segunda.setHours(0, 0, 0, 0);
+  return segunda;
+}
+
+/** View model da faixa "Prova nesta semana" (prova-no-plano-semanal, design.md D7). */
+export interface RaceThisWeekView {
+  id: string;
+  nome: string;
+  dataIso: string;
+  /** "domingo" — nome do dia da semana da prova. */
+  diaSemanaLabel: string;
+  /** Dias até a prova, nunca negativo (prova hoje = 0). */
+  diasFaltando: number;
+}
+
+/**
+ * Prova não cancelada nem realizada cuja data cai na semana corrente (segunda→domingo). Tem
+ * prioridade sobre a prova-alvo na faixa do Plano — é o que está prestes a acontecer, alvo ou não.
+ */
+export function selectRaceThisWeek(provas: Prova[], hoje: Date = new Date()): RaceThisWeekView | null {
+  const inicio = startOfWeekMonday(hoje);
+  const fim = new Date(inicio);
+  fim.setDate(inicio.getDate() + 6);
+  const inicioIso = format(inicio, 'yyyy-MM-dd');
+  const fimIso = format(fim, 'yyyy-MM-dd');
+
+  const candidatas = provas
+    .filter((p) => p.foiRealizada !== true
+      && extractStatusKey(p.statusProva) !== 'CANCELADA'
+      && p.dataProva >= inicioIso && p.dataProva <= fimIso)
+    .sort((a, b) => a.dataProva.localeCompare(b.dataProva));
+
+  const candidata = candidatas[0];
+  if (!candidata) return null;
+
+  const dataProva = parseISO(candidata.dataProva);
+  return {
+    id: candidata.id,
+    nome: candidata.nomeProva,
+    dataIso: candidata.dataProva,
+    diaSemanaLabel: format(dataProva, 'EEEE', { locale: ptBR }),
+    diasFaltando: Math.max(0, differenceInCalendarDays(dataProva, hoje)),
+  };
 }

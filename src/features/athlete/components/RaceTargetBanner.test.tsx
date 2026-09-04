@@ -16,6 +16,35 @@ const alvo: Prova = {
   provaAlvo: true, semanasPreparacao: 16, semanasFaltando: 13, preparacaoCurta: true,
 };
 const semAlvo: Prova = { id: 'b', nomeProva: 'Trilha', dataProva: '2026-10-25', tipoProva: 'TRAIL', distancia: 'KM_10', provaAlvo: false };
+// HOJE é quarta 02/09/2026; a semana corrente vai de segunda 31/08 a domingo 06/09.
+const provaNaSemana: Prova = { id: 'c', nomeProva: '10K de Domingo', dataProva: '2026-09-06', tipoProva: 'CORRIDA_RUA', distancia: 'KM_10', provaAlvo: false };
+
+describe('RaceTargetBanner — prova nesta semana (prova-no-plano-semanal)', () => {
+  it('prova na semana corrente tem prioridade sobre a prova-alvo', () => {
+    renderBanner({ provas: [alvo, provaNaSemana] });
+    const banner = screen.getByTestId('race-target-banner');
+    expect(banner).toHaveAttribute('data-state', 'semana-atual');
+    expect(banner).toHaveTextContent('10K de Domingo');
+    expect(banner).toHaveTextContent('domingo');
+    expect(banner).toHaveTextContent('faltam 4 dias');
+    expect(banner).not.toHaveTextContent('Maratona SP');
+  });
+
+  it('sem prova na semana corrente, cai para o estado de prova-alvo', () => {
+    renderBanner({ provas: [alvo] });
+    expect(screen.getByTestId('race-target-banner')).toHaveAttribute('data-state', 'alvo');
+  });
+
+  it('prova cancelada na semana não conta — cai para o próximo estado', () => {
+    renderBanner({ provas: [alvo, { ...provaNaSemana, statusProva: 'CANCELADA' }] });
+    expect(screen.getByTestId('race-target-banner')).toHaveAttribute('data-state', 'alvo');
+  });
+
+  it('prova já realizada na semana não conta', () => {
+    renderBanner({ provas: [alvo, { ...provaNaSemana, foiRealizada: true }] });
+    expect(screen.getByTestId('race-target-banner')).toHaveAttribute('data-state', 'alvo');
+  });
+});
 
 describe('RaceTargetBanner', () => {
   it('com prova-alvo: nome, data, "faltam N de M semanas", chip de preparação curta e link para Minhas provas', () => {

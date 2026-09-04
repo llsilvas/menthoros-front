@@ -10,6 +10,11 @@ import { premiumTokens, primary } from './theme.premium';
 // mas são a mesma categoria "primary-action"/"brand" que o texto do CA2
 // permite; nenhum outro papel da sidebar (hoverBg/divider/text/textHover)
 // resolve para lime hoje, então a allowlist continua estrita nesses 3 extras.
+//
+// `trainingType.PROVA` (prova-no-plano-semanal, design.md D7): exceção deliberada, não
+// vazamento — é o dia mais importante da semana, e a agenda do atleta já usa lime como sinal de
+// "hoje"; reaproveitar o mesmo lime para "prova" mantém esse vocabulário de cor em vez de
+// introduzir um terceiro hue "importante" na paleta.
 const LIME_SET = new Set<string>([primary[400], primary[500], primary[600]]);
 
 // `sidebar.selectedBg` é `rgba(...)`, não hex — nunca bate com LIME_SET (só hex
@@ -20,6 +25,7 @@ const ALLOWLISTED_ROLES = new Set([
   'sidebar.selectedBorder',
   'sidebar.selectedIcon',
   'sidebar.headerColor',
+  'trainingType.PROVA',
 ]);
 
 function isAllowlisted(groupName: string, role: string): boolean {

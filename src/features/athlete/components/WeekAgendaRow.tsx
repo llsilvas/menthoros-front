@@ -33,6 +33,28 @@ function metaLinha(dia: AgendaDay): string {
   return partes.join(' · ');
 }
 
+/** "N km · Prova · meta hh:mm:ss" — meta só quando o treino tem duração (design.md D7). */
+function metaLinhaProva(dia: AgendaDay): string {
+  const w = dia.workout;
+  if (!w) return '';
+  const partes: string[] = [];
+  if (w.distanceKm != null) partes.push(`${formatKm(w.distanceKm)} km`);
+  partes.push('Prova');
+  if (w.duracaoMinRaw) partes.push(`meta ${w.duracaoMinRaw}`);
+  return partes.join(' · ');
+}
+
+/** Bandeira no lugar do dot de tipo — só a prova ganha esse indicador (design.md D7). */
+function FlagIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={primary[500]}
+      strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ flexShrink: 0 }}>
+      <path d="M5 3v18" />
+      <path d="M5 4h11l-2.5 4L16 12H5" />
+    </svg>
+  );
+}
+
 function StatusIcon({ status }: { status: AgendaDay['status'] }) {
   if (status === 'concluido') return <DoneIcon sx={{ fontSize: 20, color: semantic.success[500] }} />;
   if (status === 'pulado') return <SkippedIcon sx={{ fontSize: 20, color: surface[600] }} />;
@@ -43,6 +65,7 @@ function StatusIcon({ status }: { status: AgendaDay['status'] }) {
 export function WeekAgendaRow({ dia, expanded, onToggle, onOpenDetail, onRegister }: WeekAgendaRowProps) {
   const hoje = dia.isToday;
   const w = dia.workout;
+  const isProva = w?.treino.tipoTreino === 'PROVA';
   // Concluído com realizado abre o detalhe mesmo sem etapas — é lá que a análise mora (QA/Codex).
   const abreDetalhe = (w?.temEtapas ?? false) || (dia.status === 'concluido' && Boolean(w?.treinoRealizadoId));
   const clicavel = w !== null;
@@ -58,10 +81,13 @@ export function WeekAgendaRow({ dia, expanded, onToggle, onOpenDetail, onRegiste
       data-testid="week-agenda-row"
       data-status={dia.status}
       data-today={hoje ? 'true' : undefined}
+      data-prova={isProva ? 'true' : undefined}
       sx={{
         borderBottom: `1px solid ${surface[700]}`,
-        bgcolor: hoje ? alpha(primary[500], 0.06) : 'transparent',
-        boxShadow: hoje ? `inset 0 0 0 1px ${alpha(primary[500], 0.35)}` : 'none',
+        bgcolor: isProva ? alpha(primary[500], 0.10) : hoje ? alpha(primary[500], 0.06) : 'transparent',
+        boxShadow: isProva
+          ? `inset 0 0 0 1px ${alpha(primary[500], 0.45)}`
+          : hoje ? `inset 0 0 0 1px ${alpha(primary[500], 0.35)}` : 'none',
         '&:last-of-type': { borderBottom: 'none' },
       }}
     >
@@ -70,7 +96,7 @@ export function WeekAgendaRow({ dia, expanded, onToggle, onOpenDetail, onRegiste
         type={clicavel ? 'button' : undefined}
         aria-expanded={clicavel && !abreDetalhe ? expanded : undefined}
         aria-haspopup={clicavel && abreDetalhe ? 'dialog' : undefined}
-        aria-label={w ? `${format(dia.date, 'EEEE d', { locale: ptBR })}, ${w.title}` : undefined}
+        aria-label={w ? `${format(dia.date, 'EEEE d', { locale: ptBR })}, ${isProva ? (w.description || w.title) : w.title}` : undefined}
         onClick={clicavel ? handleClick : undefined}
         sx={{
           width: '100%', textAlign: 'left', border: 'none', background: 'none', p: 0,
@@ -94,7 +120,7 @@ export function WeekAgendaRow({ dia, expanded, onToggle, onOpenDetail, onRegiste
         </Box>
 
         {w ? (
-          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: w.color, flexShrink: 0 }} />
+          isProva ? <FlagIcon /> : <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: w.color, flexShrink: 0 }} />
         ) : (
           <Box sx={{ width: 8, height: 2, borderRadius: 1, bgcolor: surface[600], flexShrink: 0 }} />
         )}
@@ -102,8 +128,12 @@ export function WeekAgendaRow({ dia, expanded, onToggle, onOpenDetail, onRegiste
         <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0.25 }}>
           {w ? (
             <>
-              <Typography variant={hoje ? 'subtitle1' : 'body1'} sx={{ fontWeight: 600 }}>{w.title}</Typography>
-              {metaLinha(dia) && <Typography variant="body2" sx={{ color: surface[400] }}>{metaLinha(dia)}</Typography>}
+              <Typography variant={hoje ? 'subtitle1' : 'body1'} sx={{ fontWeight: 600 }}>
+                {isProva ? (w.description || w.title) : w.title}
+              </Typography>
+              {isProva
+                ? metaLinhaProva(dia) && <Typography variant="body2" sx={{ color: surface[400] }}>{metaLinhaProva(dia)}</Typography>
+                : metaLinha(dia) && <Typography variant="body2" sx={{ color: surface[400] }}>{metaLinha(dia)}</Typography>}
               {w.analiseDisponivel && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: primary[500] }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"

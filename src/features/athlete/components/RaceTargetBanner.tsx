@@ -6,7 +6,7 @@ import { radius } from '../../../shared/design-tokens/density';
 import { primary, semantic, surface } from '../../../theme/tokens';
 import { ROUTES } from '../../../constants/routes';
 import type { Prova } from '../../../types/Prova';
-import { countUpcomingRaces, selectTargetRace } from '../adapters/raceAdapters';
+import { countUpcomingRaces, selectRaceThisWeek, selectTargetRace } from '../adapters/raceAdapters';
 
 export interface RaceTargetBannerProps {
   provas: Prova[];
@@ -18,7 +18,8 @@ export interface RaceTargetBannerProps {
 
 /**
  * Faixa da prova-alvo no topo do Plano — a entrada para "Minhas provas" (não há item no menu,
- * design D7). Três estados: alvo definida, provas sem alvo, nenhuma prova.
+ * design D7). Quatro estados: prova nesta semana (prioridade — prova-no-plano-semanal), alvo
+ * definida, provas sem alvo, nenhuma prova.
  *
  * Os links levam `variant="body2"`: com `inherit` herdariam a fonte do `body` (Syne, do tema
  * global) em vez da fonte de texto do shell do atleta.
@@ -26,6 +27,7 @@ export interface RaceTargetBannerProps {
 export function RaceTargetBanner({ provas, loading = false, error = null, hoje }: RaceTargetBannerProps) {
   if (loading || error) return null;
 
+  const semanaAtual = selectRaceThisWeek(provas, hoje);
   const alvo = selectTargetRace(provas, hoje);
   const futuras = countUpcomingRaces(provas, hoje);
 
@@ -39,6 +41,24 @@ export function RaceTargetBanner({ provas, loading = false, error = null, hoje }
     bgcolor: elevation.card,
     border: `1px solid ${surface[700]}`,
   };
+
+  if (semanaAtual) {
+    return (
+      <Box data-testid="race-target-banner" data-state="semana-atual" sx={{ ...base, borderColor: `${primary[500]}55` }}>
+        <FlagIcon sx={{ color: primary[500], fontSize: 22 }} />
+        <Box sx={{ minWidth: 0, flex: 1 }}>
+          <Typography variant="caption" sx={{ color: primary[500], fontWeight: 700, letterSpacing: 0.5 }}>PROVA NESTA SEMANA</Typography>
+          <Typography variant="body1" sx={{ fontWeight: 600, color: surface[50] }} noWrap>{semanaAtual.nome}</Typography>
+          <Typography variant="body2" sx={{ color: surface[400] }}>
+            {semanaAtual.diaSemanaLabel} · faltam {semanaAtual.diasFaltando} {semanaAtual.diasFaltando === 1 ? 'dia' : 'dias'}
+          </Typography>
+        </Box>
+        <Link component={RouterLink} variant="body2" to={ROUTES.ATHLETE_RACES} sx={{ color: primary[500], fontWeight: 600, whiteSpace: 'nowrap' }}>
+          Minhas provas
+        </Link>
+      </Box>
+    );
+  }
 
   if (alvo) {
     return (
