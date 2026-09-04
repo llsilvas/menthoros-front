@@ -4,6 +4,7 @@ import {
   RemoveCircleOutline as SkippedIcon,
   ChevronRight as ChevronIcon,
   ExpandMore as ExpandIcon,
+  Flag as FlagIcon,
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -42,17 +43,6 @@ function metaLinhaProva(dia: AgendaDay): string {
   partes.push('Prova');
   if (w.duracaoMinRaw) partes.push(`meta ${w.duracaoMinRaw}`);
   return partes.join(' · ');
-}
-
-/** Bandeira no lugar do dot de tipo — só a prova ganha esse indicador (design.md D7). */
-function FlagIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={primary[500]}
-      strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ flexShrink: 0 }}>
-      <path d="M5 3v18" />
-      <path d="M5 4h11l-2.5 4L16 12H5" />
-    </svg>
-  );
 }
 
 function StatusIcon({ status }: { status: AgendaDay['status'] }) {
@@ -120,7 +110,7 @@ export function WeekAgendaRow({ dia, expanded, onToggle, onOpenDetail, onRegiste
         </Box>
 
         {w ? (
-          isProva ? <FlagIcon /> : <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: w.color, flexShrink: 0 }} />
+          isProva ? <FlagIcon sx={{ fontSize: 14, color: primary[500], flexShrink: 0 }} /> : <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: w.color, flexShrink: 0 }} />
         ) : (
           <Box sx={{ width: 8, height: 2, borderRadius: 1, bgcolor: surface[600], flexShrink: 0 }} />
         )}

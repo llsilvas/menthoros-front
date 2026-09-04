@@ -10,6 +10,7 @@ import {
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import AddIcon from '@mui/icons-material/Add';
+import FlagIcon from '@mui/icons-material/Flag';
 import { resolveReviewStatus } from '../../../types/PlanoReview';
 import type { DiaSemanaDto, PlanoSemanalDto, TreinoPlanejadoDto } from '../../../types/PlanoReview';
 import { primary, surface, semantic, content } from '../../../theme/tokens';
@@ -103,11 +104,7 @@ function TreinoTag({
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         {isProva && (
-                            <svg data-testid="icone-prova" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={cor}
-                                strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                                <path d="M5 3v18" />
-                                <path d="M5 4h11l-2.5 4L16 12H5" />
-                            </svg>
+                            <FlagIcon data-testid="icone-prova" sx={{ fontSize: 10, color: cor }} aria-hidden />
                         )}
                         {treino.editadoPeloCoach && (
                             <Box

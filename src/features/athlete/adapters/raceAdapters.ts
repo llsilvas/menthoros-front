@@ -1,4 +1,4 @@
-import { differenceInCalendarDays, format, parseISO } from 'date-fns';
+import { differenceInCalendarDays, format, parseISO, startOfWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { extractDistanciaKey, extractStatusKey, extractTipoKey } from '../../../types/Prova';
 import type { DistanciaProva, Prova, TipoProva } from '../../../types/Prova';
@@ -83,15 +83,6 @@ export function countUpcomingRaces(provas: Prova[], hoje: Date = new Date()): nu
 }
 
 /** Segunda-feira da semana que contém `d`, hora zerada. */
-function startOfWeekMonday(d: Date): Date {
-  const dia = d.getDay(); // 0=domingo..6=sábado
-  const diff = (dia === 0 ? -6 : 1) - dia;
-  const segunda = new Date(d);
-  segunda.setDate(d.getDate() + diff);
-  segunda.setHours(0, 0, 0, 0);
-  return segunda;
-}
-
 /** View model da faixa "Prova nesta semana" (prova-no-plano-semanal, design.md D7). */
 export interface RaceThisWeekView {
   id: string;
@@ -108,7 +99,7 @@ export interface RaceThisWeekView {
  * prioridade sobre a prova-alvo na faixa do Plano — é o que está prestes a acontecer, alvo ou não.
  */
 export function selectRaceThisWeek(provas: Prova[], hoje: Date = new Date()): RaceThisWeekView | null {
-  const inicio = startOfWeekMonday(hoje);
+  const inicio = startOfWeek(hoje, { weekStartsOn: 1 });
   const fim = new Date(inicio);
   fim.setDate(inicio.getDate() + 6);
   const inicioIso = format(inicio, 'yyyy-MM-dd');
