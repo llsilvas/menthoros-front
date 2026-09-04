@@ -22,6 +22,12 @@ export interface AgendaWorkout {
   treinoRealizadoId?: string;
   /** Análise pós-treino pronta para o atleta (flag do contrato do plano). */
   analiseDisponivel: boolean;
+  /** ID da prova vinculada, quando `tipoTreino = PROVA` (prova-no-plano-semanal). */
+  provaId?: string;
+  /** Ritmo alvo bruto do treino (ex: "4:59 min/km"); a linha de meta da PROVA usa `duracaoMinRaw`. */
+  ritmoAlvo?: string;
+  /** Duração como o backend enviou ("HH:MM:SS"/"MM:SS"), para a meta "N km · Prova · meta hh:mm:ss". */
+  duracaoMinRaw?: string;
   treino: TreinoPlanejado;
 }
 
@@ -112,6 +118,9 @@ export function buildWeekAgenda(plano: PlanoSemanal, hoje: Date = new Date()): W
         temEtapas: (treino.etapas?.length ?? 0) > 0,
         treinoRealizadoId: treino.treinoRealizadoId,
         analiseDisponivel: treino.analiseAtletaDisponivel === true,
+        provaId: treino.provaId,
+        ritmoAlvo: treino.ritmoAlvo,
+        duracaoMinRaw: typeof treino.duracaoMin === 'string' ? treino.duracaoMin : undefined,
         treino,
       },
     };

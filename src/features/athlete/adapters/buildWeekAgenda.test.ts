@@ -82,6 +82,25 @@ describe('buildWeekAgenda', () => {
     expect(ter.workout?.analiseDisponivel).toBe(false);
   });
 
+  it('provaId, ritmoAlvo e duracaoMinRaw chegam do contrato (prova-no-plano-semanal)', () => {
+    const comProva = { ...plano, treinosPlanejados: [
+      treino({
+        tipoTreino: 'PROVA', distanciaKm: 21.1, duracaoMin: '01:45:00', dataTreino: '2026-08-24',
+        statusTreino: 'PENDENTE', descricao: 'Meia Maratona de SP', ritmoAlvo: '4:59', provaId: 'prova-1',
+      }),
+    ] };
+    const [seg] = buildWeekAgenda(comProva, HOJE).dias;
+    expect(seg.workout?.provaId).toBe('prova-1');
+    expect(seg.workout?.ritmoAlvo).toBe('4:59');
+    expect(seg.workout?.duracaoMinRaw).toBe('01:45:00');
+  });
+
+  it('sem provaId (treino comum): os três campos novos ficam undefined', () => {
+    const [seg] = buildWeekAgenda(plano, HOJE).dias;
+    expect(seg.workout?.provaId).toBeUndefined();
+    expect(seg.workout?.duracaoMinRaw).toBeUndefined();
+  });
+
   it('weekDatesFromInicio gera segunda→domingo em horário local', () => {
     const dias = weekDatesFromInicio('2026-08-24');
     expect(dias[0].getDate()).toBe(24);

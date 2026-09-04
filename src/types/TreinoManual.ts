@@ -6,7 +6,8 @@ export type TipoTreino =
     | 'TREINO_LONGO'
     | 'HILL_REPEAT'
     | 'STRIDES'
-    | 'TRAIL';
+    | 'TRAIL'
+    | 'PROVA';
 
 export const TIPO_TREINO_LABELS: Record<TipoTreino, string> = {
     CONTINUO:     'Corrida contínua',
@@ -17,6 +18,9 @@ export const TIPO_TREINO_LABELS: Record<TipoTreino, string> = {
     HILL_REPEAT:  'Subidas (hill repeat)',
     STRIDES:      'Strides',
     TRAIL:        'Trail',
+    // prova-no-plano-semanal, 5.4: o seletor do registro manual é fechado (enum), então PROVA
+    // precisa entrar aqui para o atleta poder registrar a execução da prova.
+    PROVA:        'Prova',
 };
 
 /** Corpo enviado para POST /api/v1/atletas/me/treinos */

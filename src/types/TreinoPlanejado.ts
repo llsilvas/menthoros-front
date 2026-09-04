@@ -23,6 +23,8 @@ export interface TreinoPlanejado {
   percepcaoEsforcoRealizado?: number;
   /** Há análise pós-treino pronta para o atleta neste treino (analise-ia-treino-atleta). */
   analiseAtletaDisponivel?: boolean;
+  /** ID da prova vinculada, quando `tipoTreino = PROVA` (prova-no-plano-semanal). */
+  provaId?: string;
 }
 
 

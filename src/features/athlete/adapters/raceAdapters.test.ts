@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildAthleteRaceList, buildAthleteRaceView, countUpcomingRaces, selectTargetRace, tipoProvaDerivado } from './raceAdapters';
+import { buildAthleteRaceList, buildAthleteRaceView, countUpcomingRaces, selectRaceThisWeek, selectTargetRace, tipoProvaDerivado } from './raceAdapters';
 import type { Prova } from '../../../types/Prova';
 
 const HOJE = new Date(2026, 8, 2);
@@ -56,6 +56,35 @@ describe('selectTargetRace / countUpcomingRaces', () => {
 
   it('sem alvo devolve null', () => {
     expect(selectTargetRace([secundaria], HOJE)).toBeNull();
+  });
+});
+
+describe('selectRaceThisWeek (prova-no-plano-semanal, D7)', () => {
+  // HOJE é quarta 02/09/2026; semana corrente: segunda 31/08 → domingo 06/09.
+  const naSemana: Prova = { id: 'd', nomeProva: '10K de Domingo', dataProva: '2026-09-06', tipoProva: 'CORRIDA_RUA', distancia: 'KM_10' };
+
+  it('encontra prova cuja data cai na semana corrente, com dia e dias faltando', () => {
+    const v = selectRaceThisWeek([alvo, naSemana], HOJE);
+    expect(v?.id).toBe('d');
+    expect(v?.diaSemanaLabel).toBe('domingo');
+    expect(v?.diasFaltando).toBe(4);
+  });
+
+  it('fora da semana corrente, devolve null', () => {
+    expect(selectRaceThisWeek([alvo, secundaria], HOJE)).toBeNull();
+  });
+
+  it('prova cancelada na semana não conta', () => {
+    expect(selectRaceThisWeek([{ ...naSemana, statusProva: 'CANCELADA' }], HOJE)).toBeNull();
+  });
+
+  it('prova já realizada na semana não conta', () => {
+    expect(selectRaceThisWeek([{ ...naSemana, foiRealizada: true }], HOJE)).toBeNull();
+  });
+
+  it('duas provas futuras na semana: escolhe a mais próxima (quinta antes de domingo)', () => {
+    const quintaFeira: Prova = { ...naSemana, id: 'e', nomeProva: 'Prova de Quinta', dataProva: '2026-09-03' };
+    expect(selectRaceThisWeek([naSemana, quintaFeira], HOJE)?.id).toBe('e');
   });
 });
 
