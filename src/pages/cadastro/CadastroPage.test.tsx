@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createHashRouter, RouterProvider } from 'react-router';
 import CadastroPage from './CadastroPage';
+import { limparTokenEmMemoria } from '../../hooks/useInviteToken';
 
 const login = vi.fn();
 vi.mock('../../context/auth/useAuth', () => ({
@@ -55,6 +56,8 @@ describe('CadastroPage', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+    // O cache de módulo do token sobrevive entre testes do mesmo arquivo — limpar isola cada um.
+    limparTokenEmMemoria();
   });
 
   it('não exibe checkbox de aceite — o consentimento versionado vem depois do login', () => {
@@ -321,13 +324,15 @@ describe('CadastroPage', () => {
       expect(body).toMatchObject({ inviteToken: 'tok-1', email: 'maria@exemplo.com', nome: 'Maria Treinadora' });
     });
 
-    it('convite inválido: mostra o aviso com link para a waitlist e NÃO mostra o formulário', async () => {
-      fetchSpy.mockResolvedValueOnce(respostaErro(404));
+    it('convite inválido nos DOIS lookups (coach e atleta): mostra o aviso com link para a waitlist', async () => {
+      // O token é opaco: o 404 do lookup de coach dispara o fallback para o de atleta.
+      fetchSpy.mockResolvedValueOnce(respostaErro(404)).mockResolvedValueOnce(respostaErro(404));
       renderizarComConvite('tok-x');
 
       expect(await screen.findByText(/convite inválido ou expirado/i)).toBeInTheDocument();
       expect(screen.getByRole('link', { name: /lista de espera/i })).toHaveAttribute('href', '#/waitlist');
       expect(screen.queryByLabelText(/nome da assessoria/i)).not.toBeInTheDocument();
+      expect(fetchSpy.mock.calls[1][0]).toMatch(/\/api\/public\/athlete-invites\/tok-x$/);
     });
 
     it('não grava o token em storage', async () => {
@@ -338,6 +343,110 @@ describe('CadastroPage', () => {
 
       expect(setItem).not.toHaveBeenCalled();
       expect(sessionStorage.length).toBe(0);
+    });
+
+    describe('convite de ATLETA (fallback quando o lookup de coach responde 404)', () => {
+      function respostaConviteAtleta() {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            nomeAtleta: 'Ana Corredora',
+            assessoria: 'Corrida na Serra',
+            emailSugerido: 'ana@exemplo.com',
+          }),
+        } as Response;
+      }
+
+      function respostaAceite() {
+        return { ok: true, status: 201, json: async () => ({}) } as Response;
+      }
+
+      it('mostra o formulário de atleta com nome e e-mail EDITÁVEIS pré-preenchidos', async () => {
+        fetchSpy.mockResolvedValueOnce(respostaErro(404)).mockResolvedValueOnce(respostaConviteAtleta());
+        renderizarComConvite('tok-atleta');
+
+        expect(await screen.findByText(/seu treinador te convidou/i)).toBeInTheDocument();
+        expect(screen.getByText(/corrida na serra/i)).toBeInTheDocument();
+        const nome = screen.getByLabelText(/seu nome/i);
+        const email = screen.getByLabelText(/seu e-mail/i);
+        expect(nome).toHaveValue('Ana Corredora');
+        expect(nome).not.toBeDisabled();
+        // Diferença deliberada do fluxo de coach: o vínculo é pelo token, o e-mail pode mudar.
+        expect(email).toHaveValue('ana@exemplo.com');
+        expect(email).not.toBeDisabled();
+      });
+
+      it('aceita com e-mail TROCADO: envia o token + email novo e avisa da verificação', async () => {
+        const user = userEvent.setup();
+        fetchSpy
+          .mockResolvedValueOnce(respostaErro(404))
+          .mockResolvedValueOnce(respostaConviteAtleta())
+          .mockResolvedValueOnce(respostaAceite());
+        renderizarComConvite('tok-atleta');
+        await screen.findByText(/seu treinador te convidou/i);
+
+        const email = screen.getByLabelText(/seu e-mail/i);
+        await user.clear(email);
+        await user.type(email, 'outro@exemplo.com');
+        await user.type(screen.getByLabelText(/^senha/i), 'senha-forte-o-suficiente');
+        await user.click(screen.getByRole('button', { name: /criar minha conta/i }));
+
+        expect(await screen.findByText(/conta criada/i)).toBeInTheDocument();
+        expect(screen.getByText(/e-mail de verificação/i)).toBeInTheDocument();
+        const body = JSON.parse((fetchSpy.mock.calls[2][1] as RequestInit).body as string);
+        expect(body).toMatchObject({ token: 'tok-atleta', email: 'outro@exemplo.com', nome: 'Ana Corredora' });
+        expect(fetchSpy.mock.calls[2][0]).toMatch(/\/api\/public\/athlete-invites\/aceitar$/);
+      });
+
+      it('aceite com o e-mail do convite NÃO envia o campo email (vale o do convite)', async () => {
+        const user = userEvent.setup();
+        fetchSpy
+          .mockResolvedValueOnce(respostaErro(404))
+          .mockResolvedValueOnce(respostaConviteAtleta())
+          .mockResolvedValueOnce(respostaAceite());
+        renderizarComConvite('tok-atleta');
+        await screen.findByText(/seu treinador te convidou/i);
+
+        await user.type(screen.getByLabelText(/^senha/i), 'senha-forte-o-suficiente');
+        await user.click(screen.getByRole('button', { name: /criar minha conta/i }));
+
+        expect(await screen.findByText(/conta criada/i)).toBeInTheDocument();
+        expect(screen.queryByText(/e-mail de verificação/i)).not.toBeInTheDocument();
+        const body = JSON.parse((fetchSpy.mock.calls[2][1] as RequestInit).body as string);
+        expect(body.email).toBeUndefined();
+        expect(body.token).toBe('tok-atleta');
+      });
+
+      it('410 no aceite (duplo submit ou convite consumido) orienta a fazer login', async () => {
+        const user = userEvent.setup();
+        fetchSpy
+          .mockResolvedValueOnce(respostaErro(404))
+          .mockResolvedValueOnce(respostaConviteAtleta())
+          .mockResolvedValueOnce(respostaErro(410));
+        renderizarComConvite('tok-atleta');
+        await screen.findByText(/seu treinador te convidou/i);
+
+        await user.type(screen.getByLabelText(/^senha/i), 'senha-forte-o-suficiente');
+        await user.click(screen.getByRole('button', { name: /criar minha conta/i }));
+
+        expect(await screen.findByRole('alert')).toHaveTextContent(/faça login|peça um novo convite/i);
+      });
+
+      it('409 no aceite (e-mail já tem conta) mostra a mensagem de conflito', async () => {
+        const user = userEvent.setup();
+        fetchSpy
+          .mockResolvedValueOnce(respostaErro(404))
+          .mockResolvedValueOnce(respostaConviteAtleta())
+          .mockResolvedValueOnce(respostaErro(409));
+        renderizarComConvite('tok-atleta');
+        await screen.findByText(/seu treinador te convidou/i);
+
+        await user.type(screen.getByLabelText(/^senha/i), 'senha-forte-o-suficiente');
+        await user.click(screen.getByRole('button', { name: /criar minha conta/i }));
+
+        expect(await screen.findByRole('alert')).toHaveTextContent(/já possui conta|já está vinculado/i);
+      });
     });
   });
 

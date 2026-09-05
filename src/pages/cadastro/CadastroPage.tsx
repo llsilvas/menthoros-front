@@ -12,7 +12,9 @@ import {
   Typography,
 } from '@mui/material';
 import { useCoachSignup } from '../../hooks/useCoachSignup';
+import { useAthleteInvite } from '../../hooks/useAthleteInvite';
 import { useInviteToken } from '../../hooks/useInviteToken';
+import AceiteConviteAtleta from './AceiteConviteAtleta';
 import { useAuth } from '../../context/auth/useAuth';
 import { ROUTES } from '../../constants/routes';
 import { gradients, glassAzulSx, surface } from '../../theme/tokens';
@@ -50,6 +52,7 @@ function sugerirSlug(nome: string): string {
 export default function CadastroPage() {
   const { status, error, resultado, convite, cadastrar, reiniciarTentativa, consultarConvite } =
     useCoachSignup();
+  const conviteAtleta = useAthleteInvite();
   const { login } = useAuth();
   // Lido uma vez, no primeiro render, e removido da URL pelo próprio hook.
   const inviteToken = useInviteToken();
@@ -80,6 +83,16 @@ export default function CadastroPage() {
     // Só no mount: o token é fixo para a vida da página.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // O token é opaco — não diz se o convite é de coach ou de atleta. A página tenta o lookup de
+  // coach primeiro (fluxo mais antigo) e, no 404, o de atleta; só quando os dois falham a tela de
+  // "convite inválido" aparece.
+  useEffect(() => {
+    if (porConvite && convite.status === 'invalido' && conviteAtleta.convite.status === 'ocioso') {
+      void conviteAtleta.consultarConvite(inviteToken);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [convite.status, conviteAtleta.convite.status]);
 
   // Move o foco para a confirmação: sem isso, quem usa leitor de tela não percebe a mudança.
   useEffect(() => {
@@ -124,11 +137,38 @@ export default function CadastroPage() {
     });
   };
 
+  // A árvore de decisão dos DOIS lookups (coach primeiro; 404 dele dispara o de atleta — o token
+  // é opaco) mora aqui, num valor só, para o render e o efeito de fallback lerem a mesma coisa.
+  const estadoConvite: 'coach' | 'atleta' | 'invalido' | 'carregando' = !porConvite
+    ? 'coach'
+    : convite.status === 'valido'
+      ? 'coach'
+      : convite.status !== 'invalido'
+        ? 'carregando'
+        : conviteAtleta.convite.status === 'valido'
+          ? 'atleta'
+          : conviteAtleta.convite.status === 'invalido'
+            ? 'invalido'
+            : 'carregando';
+
   const conteudo = () => {
-    if (porConvite && convite.status !== 'valido') {
-      return convite.status === 'invalido' ? (
-        <ConviteInvalido />
-      ) : (
+    if (porConvite && estadoConvite !== 'coach') {
+      if (estadoConvite === 'atleta' && conviteAtleta.convite.dados) {
+        return (
+          <AceiteConviteAtleta
+            token={inviteToken as string}
+            dados={conviteAtleta.convite.dados}
+            status={conviteAtleta.status}
+            error={conviteAtleta.error}
+            onAceitar={(input) => void conviteAtleta.aceitar(input)}
+            onIrParaLogin={() => void login()}
+          />
+        );
+      }
+      if (estadoConvite === 'invalido') {
+        return <ConviteInvalido />;
+      }
+      return (
         <Stack alignItems="center" spacing={2} sx={{ py: 4 }} role="status">
           <CircularProgress size={28} />
           <Typography variant="body2" sx={{ color: overlayWhite[70] }}>
