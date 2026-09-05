@@ -13,7 +13,7 @@ import {
 } from '@mui/material';
 import { useCoachSignup } from '../../hooks/useCoachSignup';
 import { useAthleteInvite } from '../../hooks/useAthleteInvite';
-import { useInviteToken } from '../../hooks/useInviteToken';
+import { limparTokenEmMemoria, useInviteToken } from '../../hooks/useInviteToken';
 import AceiteConviteAtleta from './AceiteConviteAtleta';
 import { useAuth } from '../../context/auth/useAuth';
 import { ROUTES } from '../../constants/routes';
@@ -101,6 +101,18 @@ export default function CadastroPage() {
     }
   }, [status]);
 
+  /**
+   * O login pós-aceite NÃO pode voltar para /cadastro: o `login()` guarda o hash atual como
+   * destino, e o retorno cairia nesta página com o convite já consumido — a tela vira "convite
+   * inválido" para quem acabou de criar a conta (bug do ensaio de 2026-09-05). Limpa o token da
+   * memória e aponta o destino para a raiz; o redirect por papel decide o shell.
+   */
+  const irParaLoginPosCadastro = () => {
+    limparTokenEmMemoria();
+    window.history.replaceState(window.history.state, '', '#/');
+    void login();
+  };
+
   /** Toda edição descarta a chave de idempotência: a intenção deixou de ser a mesma. */
   const aoEditar = <T,>(set: (v: T) => void) => (valor: T) => {
     if (status === 'error') {
@@ -161,7 +173,7 @@ export default function CadastroPage() {
             status={conviteAtleta.status}
             error={conviteAtleta.error}
             onAceitar={(input) => void conviteAtleta.aceitar(input)}
-            onIrParaLogin={() => void login()}
+            onIrParaLogin={irParaLoginPosCadastro}
           />
         );
       }
@@ -206,7 +218,7 @@ export default function CadastroPage() {
             a uma tela de verificação pendente que ele ainda não tem como resolver — o e-mail acabou
             de sair. No convite não há verificação, mas a decisão continua dele.
           */}
-          <Button variant="contained" onClick={() => void login()} sx={{ mt: 1 }}>
+          <Button variant="contained" onClick={irParaLoginPosCadastro} sx={{ mt: 1 }}>
             Ir para o login
           </Button>
         </Stack>
