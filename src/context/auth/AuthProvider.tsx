@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import type { User } from 'oidc-client-ts';
 import { AuthContext } from './authContext';
-import { haConvitePendente } from '../../hooks/useInviteToken';
+import { haConvitePendente } from '../../utils/inviteTokenFragment';
 import {
   definirRenovacaoPendente,
   definirUsuario,

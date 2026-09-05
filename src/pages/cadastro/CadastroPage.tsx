@@ -137,25 +137,36 @@ export default function CadastroPage() {
     });
   };
 
+  // A árvore de decisão dos DOIS lookups (coach primeiro; 404 dele dispara o de atleta — o token
+  // é opaco) mora aqui, num valor só, para o render e o efeito de fallback lerem a mesma coisa.
+  const estadoConvite: 'coach' | 'atleta' | 'invalido' | 'carregando' = !porConvite
+    ? 'coach'
+    : convite.status === 'valido'
+      ? 'coach'
+      : convite.status !== 'invalido'
+        ? 'carregando'
+        : conviteAtleta.convite.status === 'valido'
+          ? 'atleta'
+          : conviteAtleta.convite.status === 'invalido'
+            ? 'invalido'
+            : 'carregando';
+
   const conteudo = () => {
-    if (porConvite && convite.status !== 'valido') {
-      // Fallback: convite não é de coach — pode ser de atleta (o token é opaco).
-      if (convite.status === 'invalido') {
-        if (conviteAtleta.convite.status === 'valido' && conviteAtleta.convite.dados) {
-          return (
-            <AceiteConviteAtleta
-              token={inviteToken as string}
-              dados={conviteAtleta.convite.dados}
-              status={conviteAtleta.status}
-              error={conviteAtleta.error}
-              onAceitar={(input) => void conviteAtleta.aceitar(input)}
-              onIrParaLogin={() => void login()}
-            />
-          );
-        }
-        if (conviteAtleta.convite.status === 'invalido') {
-          return <ConviteInvalido />;
-        }
+    if (porConvite && estadoConvite !== 'coach') {
+      if (estadoConvite === 'atleta' && conviteAtleta.convite.dados) {
+        return (
+          <AceiteConviteAtleta
+            token={inviteToken as string}
+            dados={conviteAtleta.convite.dados}
+            status={conviteAtleta.status}
+            error={conviteAtleta.error}
+            onAceitar={(input) => void conviteAtleta.aceitar(input)}
+            onIrParaLogin={() => void login()}
+          />
+        );
+      }
+      if (estadoConvite === 'invalido') {
+        return <ConviteInvalido />;
       }
       return (
         <Stack alignItems="center" spacing={2} sx={{ py: 4 }} role="status">
