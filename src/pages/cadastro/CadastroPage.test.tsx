@@ -433,6 +433,27 @@ describe('CadastroPage', () => {
         expect(await screen.findByRole('alert')).toHaveTextContent(/faça login|peça um novo convite/i);
       });
 
+      it('"Ir para o login" pós-aceite limpa o convite e aponta o destino para a raiz — não volta ao /cadastro', async () => {
+        const user = userEvent.setup();
+        fetchSpy
+          .mockResolvedValueOnce(respostaErro(404))
+          .mockResolvedValueOnce(respostaConviteAtleta())
+          .mockResolvedValueOnce(respostaAceite());
+        renderizarComConvite('tok-atleta');
+        await screen.findByText(/seu treinador te convidou/i);
+        await user.type(screen.getByLabelText(/^senha/i), 'senha-forte-o-suficiente');
+        await user.click(screen.getByRole('button', { name: /criar minha conta/i }));
+        await screen.findByText(/conta criada/i);
+
+        await user.click(screen.getByRole('button', { name: /ir para o login/i }));
+
+        expect(login).toHaveBeenCalledTimes(1);
+        // O destino que o login() captura é o hash atual: precisa ser a raiz, não o /cadastro —
+        // voltar para cá com o convite consumido mostrava "convite inválido" a quem acabou de
+        // criar a conta (bug do ensaio de 2026-09-05).
+        expect(window.location.hash).toBe('#/');
+      });
+
       it('409 no aceite (e-mail já tem conta) mostra a mensagem de conflito', async () => {
         const user = userEvent.setup();
         fetchSpy
