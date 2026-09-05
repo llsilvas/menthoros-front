@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { renderHook } from '@testing-library/react';
-import { lerTokenDoFragmento, removerTokenDoFragmento, useInviteToken } from './useInviteToken';
+import { lerTokenDoFragmento, limparTokenEmMemoria, removerTokenDoFragmento, useInviteToken } from './useInviteToken';
 
 describe('useInviteToken', () => {
   afterEach(() => {
+    limparTokenEmMemoria();
     window.history.replaceState(null, '', window.location.pathname);
   });
 
