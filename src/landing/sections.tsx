@@ -63,7 +63,12 @@ export function Nav() {
       component="header"
       sx={{
         position: "sticky", top: 0, zIndex: 50,
-        bgcolor: stuck ? alpha(t.palette.background.default, 0.72) : "transparent",
+        // Mesmo sem `stuck`, a nav fica sobre o vídeo do hero (VideoShowcase) — o degradê dele
+        // sozinho deixa o lado direito (login/CTA) com pouco contraste dependendo do frame.
+        // Este scrim garante um piso de legibilidade antes do primeiro scroll.
+        background: stuck
+          ? alpha(t.palette.background.default, 0.72)
+          : `linear-gradient(180deg, ${alpha(t.palette.background.default, 0.55)} 0%, transparent 100%)`,
         backdropFilter: stuck ? blur : "none",
         WebkitBackdropFilter: stuck ? blur : "none",
         borderBottom: `1px solid ${stuck ? t.palette.divider : "transparent"}`,
@@ -183,7 +188,9 @@ export function Hero() {
 export function Pain() {
   const t = useTheme();
   return (
-    <Section>
+    // pt reduzido: o Hero já fecha com seu próprio py (bloco 1), e o py padrão do Section
+    // (bloco 2) somava a esse espaço — ficava alto demais entre os dois primeiros blocos.
+    <Section sx={{ pt: { xs: 5, md: 6 } }}>
       <Reveal>
         <SectionMark n="01" label={C.pain.eyebrow} />
         <SectionHeading sx={{ my: 2, maxWidth: 520, mb: 5 }}>{C.pain.title}</SectionHeading>
@@ -373,7 +380,10 @@ export function Trust() {
 function PlanCard({ nome, atletas, tecnicos, preco, destaque }: { nome: string; atletas: string; tecnicos: string; preco: string; destaque: boolean }) {
   const t = useTheme();
   return (
-    <Box sx={{ position: "relative", bgcolor: "background.paper", border: `1px solid ${destaque ? t.palette.primary.main : t.palette.divider}`, borderRadius: radius.outer, p: 2.75, display: "flex", flexDirection: "column", gap: 1.75, height: "100%" }}>
+    // Achado da avaliação: 5 cards do mesmo tamanho dividem atenção com a única oferta que vale
+    // pro fundador. Os 4 que não são o Basic ficam com opacidade reduzida — ainda legíveis
+    // (não é a "letra miúda" que o título da seção promete não ter), só não competem.
+    <Box sx={{ position: "relative", bgcolor: "background.paper", border: `1px solid ${destaque ? t.palette.primary.main : t.palette.divider}`, borderRadius: radius.outer, p: 2.75, display: "flex", flexDirection: "column", gap: 1.75, height: "100%", opacity: destaque ? 1 : 0.62 }}>
       {destaque && (
         <Box component="span" sx={{ position: "absolute", top: -11, left: 20, bgcolor: "primary.main", color: "primary.contrastText", fontFamily: monoFont, fontSize: 9.5, fontWeight: 700, letterSpacing: ".06em", borderRadius: radius.pill, px: 1.25, py: .375, whiteSpace: "nowrap" }}>
           SEU PLANO APÓS O TRIAL

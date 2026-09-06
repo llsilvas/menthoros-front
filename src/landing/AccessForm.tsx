@@ -44,7 +44,7 @@ export function AccessForm() {
         <Box sx={{ fontSize: 30, color: "primary.main" }}>✓</Box>
         <Typography variant="h3" sx={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 20, fontWeight: 600, my: 1 }}>Inscrição recebida</Typography>
         <Typography sx={{ color: "text.secondary", fontSize: 14.5 }}>
-          Você está na lista da turma fundadora. Entramos em contato em breve — obrigado pelo interesse.
+          Você está na lista da turma fundadora. Vamos entrar em contato pelo email informado. Obrigado pelo interesse.
         </Typography>
       </Box>
     );
@@ -53,22 +53,22 @@ export function AccessForm() {
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 460, mx: "auto", textAlign: "left" }}>
       <TextField
-        placeholder="Seu nome" value={nome}
+        label="Nome" placeholder="Seu nome" value={nome}
         onChange={(e) => setNome(e.target.value)}
         error={!!errors.nome} helperText={errors.nome}
-        fullWidth size="medium" inputProps={{ maxLength: 120, "aria-label": "Nome" }} sx={fieldSx(t)}
+        fullWidth size="medium" inputProps={{ maxLength: 120 }} sx={fieldSx(t)}
       />
       <TextField
-        type="email" placeholder="Seu melhor email" value={email}
+        type="email" label="Email" placeholder="Seu melhor email" value={email}
         onChange={(e) => setEmail(e.target.value)}
         error={!!errors.email} helperText={errors.email}
-        fullWidth size="medium" inputProps={{ maxLength: 180, "aria-label": "Email" }} sx={{ ...fieldSx(t), mt: 1.75 }}
+        fullWidth size="medium" inputProps={{ maxLength: 180 }} sx={{ ...fieldSx(t), mt: 1.75 }}
       />
       <TextField
-        type="number" placeholder="Quantos atletas você acompanha?" value={qtdAtletasRaw}
+        type="number" label="Número de atletas" placeholder="Quantos atletas você acompanha?" value={qtdAtletasRaw}
         onChange={(e) => setQtdAtletasRaw(e.target.value)}
         error={!!errors.qtdAtletas} helperText={errors.qtdAtletas}
-        inputProps={{ min: 1, "aria-label": "Número de atletas" }} fullWidth size="medium"
+        inputProps={{ min: 1 }} fullWidth size="medium"
         sx={{ ...fieldSx(t), mt: 1.75 }}
       />
 
