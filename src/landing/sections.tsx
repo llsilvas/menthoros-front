@@ -151,7 +151,7 @@ export function Hero() {
     // overflow:hidden aqui: se o conteúdo for mais alto que a viewport (janela baixa, zoom),
     // a seção cresce em vez de cortar título/CTA.
     <Box sx={{ position: "relative", zIndex: 1, minHeight: { md: `calc(100vh - ${NAV_HEIGHT_PX}px)` }, display: "flex", alignItems: "center" }}>
-    <Container maxWidth="lg" sx={{ py: { xs: 7, md: 5 }, position: "relative", overflow: "hidden", width: "100%" }}>
+    <Container maxWidth="lg" sx={{ py: { xs: 5, md: 3 }, position: "relative", overflow: "hidden", width: "100%" }}>
       <LimeAura />
       {/* O halo é posicionado com zIndex 0 — sem este wrapper ele pintaria acima
           do conteúdo em fluxo, que não é posicionado. */}
@@ -188,9 +188,9 @@ export function Hero() {
 export function Pain() {
   const t = useTheme();
   return (
-    // pt reduzido: o Hero já fecha com seu próprio py (bloco 1), e o py padrão do Section
-    // (bloco 2) somava a esse espaço — ficava alto demais entre os dois primeiros blocos.
-    <Section sx={{ pt: { xs: 5, md: 6 } }}>
+    // pt reduzido: no desktop o Hero é minHeight:100vh (Hero() acima), então o py dele não
+    // afeta esse espaço — quem controla a distância visível até aqui é só este pt.
+    <Section sx={{ pt: { xs: 3, md: 3 } }}>
       <Reveal>
         <SectionMark n="01" label={C.pain.eyebrow} />
         <SectionHeading sx={{ my: 2, maxWidth: 520, mb: 5 }}>{C.pain.title}</SectionHeading>
