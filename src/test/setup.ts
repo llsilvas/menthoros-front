@@ -11,6 +11,21 @@ if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = vi.fn();
 }
 
+// jsdom também não implementa IntersectionObserver — o componente `Reveal` da landing
+// (src/landing/primitives.tsx) cria um em efeito de montagem para animar a entrada de seções ao
+// rolar a página. Sem o stub, qualquer teste que renderize algo dentro de `<Reveal>` (Hero,
+// Pricing, Pain, ...) falha com "IntersectionObserver is not defined" — o comportamento real (a
+// seção aparece) não depende dele em teste, só a animação de entrada.
+if (typeof globalThis.IntersectionObserver === 'undefined') {
+  class IntersectionObserverStub {
+    observe = vi.fn();
+    unobserve = vi.fn();
+    disconnect = vi.fn();
+    takeRecords = () => [];
+  }
+  vi.stubGlobal('IntersectionObserver', IntersectionObserverStub);
+}
+
 /**
  * Storage em memória para `localStorage` e `sessionStorage`.
  *
