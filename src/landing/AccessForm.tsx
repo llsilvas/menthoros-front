@@ -142,7 +142,7 @@ export function AccessForm() {
           {submitting ? "Enviando…" : "Solicitar acesso →"}
         </CtaButton>
       </Box>
-      {/* RF-05/6.2: repete a condição de continuidade junto à ação, em texto legível (não
+{/* RF-05/6.2: repete a condição de continuidade junto à ação, em texto legível (não
           depende de D-03 — é a mesma condição já pública na oferta fundadora). */}
       <Typography sx={{ fontFamily: monoFont, color: "text.secondary", fontSize: 11, mt: 1.75, textAlign: "center" }}>
         Sem compromisso · 60 dias grátis, sem cartão · 10 vagas no programa fundador
