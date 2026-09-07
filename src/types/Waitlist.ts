@@ -11,6 +11,11 @@ export interface WaitlistInput {
   aceiteLgpd: boolean;
   /** Campo honeypot anti-spam — deve permanecer vazio. */
   website?: string;
+  /** Parâmetros UTM da URL de origem do signup (link da bio, campanhas) — opcionais. */
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  utmContent?: string;
 }
 
 export interface WaitlistResult {

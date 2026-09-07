@@ -4,6 +4,7 @@ import { Link as RouterLink } from "react-router";
 import { CtaButton, monoFont } from "./primitives";
 import { faixaDeAtletas } from "./athleteRange";
 import { validate, type AccessFormErrors } from "./accessFormValidation";
+import { parseUtmParams } from "./parseUtm";
 import { useWaitlist } from "../hooks/useWaitlist";
 import type { PerfilWaitlist, WaitlistInput } from "../types/Waitlist";
 import { radius } from "../theme/theme.premium";
@@ -34,6 +35,9 @@ export function AccessForm() {
       qtdAtletas: faixaDeAtletas(Number(qtdAtletasRaw)),
       aceiteLgpd,
       website: website || undefined,
+      // `window.location.search` (query ANTES do `#`) — o app usa createHashRouter, então
+      // useSearchParams não enxergaria os parâmetros UTM do link da bio.
+      ...parseUtmParams(window.location.search),
     };
     inscrever(payload);
   };
