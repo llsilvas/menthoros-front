@@ -34,7 +34,7 @@ describe('WaitlistPage', () => {
     const user = userEvent.setup();
     renderPage();
 
-    const submit = screen.getByRole('button', { name: /entrar na lista/i });
+    const submit = screen.getByRole('button', { name: /reservar minha vaga/i });
     expect(submit).toBeDisabled();
 
     await selecionarPerfil(user, /^atleta$/i);
@@ -73,9 +73,9 @@ describe('WaitlistPage', () => {
     await user.type(screen.getByRole('textbox', { name: 'E-mail' }), 'maria@exemplo.com');
     await selecionarPerfil(user, /treinador/i);
     await user.click(screen.getByRole('checkbox'));
-    await user.click(screen.getByRole('button', { name: /entrar na lista/i }));
+    await user.click(screen.getByRole('button', { name: /reservar minha vaga/i }));
 
-    expect(await screen.findByText(/você está na lista/i)).toBeInTheDocument();
+    expect(await screen.findByText(/você está na fila/i)).toBeInTheDocument();
     expect(inscreverMock).toHaveBeenCalledOnce();
   });
 
@@ -88,7 +88,7 @@ describe('WaitlistPage', () => {
     await user.type(screen.getByRole('textbox', { name: 'E-mail' }), 'maria@exemplo.com');
     await selecionarPerfil(user, /^atleta$/i);
     await user.click(screen.getByRole('checkbox'));
-    await user.click(screen.getByRole('button', { name: /entrar na lista/i }));
+    await user.click(screen.getByRole('button', { name: /reservar minha vaga/i }));
 
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
     // valores preservados (o formulário não é resetado em erro)
