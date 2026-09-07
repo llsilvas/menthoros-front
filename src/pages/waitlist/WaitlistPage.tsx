@@ -85,10 +85,10 @@ export default function WaitlistPage() {
               variant="h5"
               sx={{ fontWeight: 700, color: surface[0], outline: 'none' }}
             >
-              Você está na lista!
+              Você está na fila!
             </Typography>
             <Typography variant="body2" sx={{ color: overlayWhite[70] }}>
-              Recebemos seu cadastro. Em breve entraremos em contato sobre o acesso ao beta do Menthoros.
+              Você entrou na fila da turma fundadora. Entramos em contato em breve.
             </Typography>
             <Button component={RouterLink} to="/" variant="text" sx={{ mt: 1 }}>
               Voltar ao início
@@ -98,10 +98,10 @@ export default function WaitlistPage() {
           <Stack spacing={2.5} component="form" onSubmit={handleSubmit}>
             <Box>
               <Typography variant="h5" sx={{ fontWeight: 700, color: surface[0], mb: 0.5 }}>
-                Entre para a lista de espera
+                Turma fundadora — 10 vagas
               </Typography>
               <Typography variant="body2" sx={{ color: overlayWhite[70] }}>
-                Seja um dos primeiros a testar o Menthoros. Conte um pouco sobre você.
+                Treinadores testando o Menthoros antes do lançamento. Preencha para reservar a sua.
               </Typography>
             </Box>
 
@@ -221,7 +221,7 @@ export default function WaitlistPage() {
               disabled={submitting || !aceiteLgpd || !perfil}
               startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : undefined}
             >
-              {submitting ? 'Enviando…' : 'Entrar na lista'}
+              {submitting ? 'Enviando…' : 'Reservar minha vaga'}
             </Button>
           </Stack>
         )}
