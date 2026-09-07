@@ -63,7 +63,12 @@ export function Nav() {
       component="header"
       sx={{
         position: "sticky", top: 0, zIndex: 50,
-        bgcolor: stuck ? alpha(t.palette.background.default, 0.72) : "transparent",
+        // Mesmo sem `stuck`, a nav fica sobre o vídeo do hero (VideoShowcase) — o degradê dele
+        // sozinho deixa o lado direito (login/CTA) com pouco contraste dependendo do frame.
+        // Este scrim garante um piso de legibilidade antes do primeiro scroll.
+        background: stuck
+          ? alpha(t.palette.background.default, 0.72)
+          : `linear-gradient(180deg, ${alpha(t.palette.background.default, 0.55)} 0%, transparent 100%)`,
         backdropFilter: stuck ? blur : "none",
         WebkitBackdropFilter: stuck ? blur : "none",
         borderBottom: `1px solid ${stuck ? t.palette.divider : "transparent"}`,
@@ -146,7 +151,7 @@ export function Hero() {
     // overflow:hidden aqui: se o conteúdo for mais alto que a viewport (janela baixa, zoom),
     // a seção cresce em vez de cortar título/CTA.
     <Box sx={{ position: "relative", zIndex: 1, minHeight: { md: `calc(100vh - ${NAV_HEIGHT_PX}px)` }, display: "flex", alignItems: "center" }}>
-    <Container maxWidth="lg" sx={{ py: { xs: 7, md: 5 }, position: "relative", overflow: "hidden", width: "100%" }}>
+    <Container maxWidth="lg" sx={{ py: { xs: 5, md: 3 }, position: "relative", overflow: "hidden", width: "100%" }}>
       <LimeAura />
       {/* O halo é posicionado com zIndex 0 — sem este wrapper ele pintaria acima
           do conteúdo em fluxo, que não é posicionado. */}
@@ -160,6 +165,12 @@ export function Hero() {
           <Typography sx={{ color: "text.secondary", fontSize: 18, maxWidth: "42ch" }}>{C.hero.sub}</Typography>
           <Box sx={{ mt: 5 }}><CtaButton onClick={() => scrollToId("acesso")}>{C.hero.cta}<ArrowIcon /></CtaButton></Box>
           <Typography sx={{ fontFamily: monoFont, color: "text.secondary", fontSize: 12, mt: 2.25, letterSpacing: ".04em" }}>{C.hero.scarcity}</Typography>
+          {/* RF-01: continuidade paga citada já no hero, com link para a seção de preços — o
+              clique do CTA acima continua indo só para o formulário, nunca para um checkout. */}
+          <MuiLink component="button" type="button" onClick={() => scrollToId("precos")} underline="always"
+            sx={{ display: "block", fontFamily: monoFont, fontSize: 12, color: "text.secondary", mt: .75, letterSpacing: ".04em", cursor: "pointer", textAlign: "left" }}>
+            {C.hero.continuityHint}
+          </MuiLink>
           {/* Credencial acima da dobra. As mesmas chips voltam no Trust, ali como
               aprofundamento — repetir prova técnica não incomoda. */}
           <Box sx={{ mt: 3.25, pt: 2.5, borderTop: `1px solid ${t.palette.divider}` }}>
@@ -183,7 +194,9 @@ export function Hero() {
 export function Pain() {
   const t = useTheme();
   return (
-    <Section>
+    // pt reduzido: no desktop o Hero é minHeight:100vh (Hero() acima), então o py dele não
+    // afeta esse espaço — quem controla a distância visível até aqui é só este pt.
+    <Section sx={{ pt: { xs: 3, md: 3 } }}>
       <Reveal>
         <SectionMark n="01" label={C.pain.eyebrow} />
         <SectionHeading sx={{ my: 2, maxWidth: 520, mb: 5 }}>{C.pain.title}</SectionHeading>
@@ -370,15 +383,42 @@ export function Trust() {
   );
 }
 
-function PlanCard({ nome, atletas, tecnicos, preco, destaque }: { nome: string; atletas: string; tecnicos: string; preco: string; destaque: boolean }) {
+// RF-02: bloco dedicado à oferta fundadora — o elemento PRINCIPAL da seção de preços agora, não
+// mais a tabela de comparação. Ordem fixa: programa+vagas → período de teste → condição pós-teste
+// → aviso de contratação → ação.
+function FounderOfferCard() {
   const t = useTheme();
   return (
+    <Box sx={{ bgcolor: "background.paper", border: `1px solid ${t.palette.primary.main}`, borderRadius: radius.outer, p: { xs: 3, md: 4 }, mb: 4, display: "flex", flexDirection: "column", gap: 1.5 }}>
+      <Typography sx={{ fontFamily: monoFont, fontSize: 12.5, letterSpacing: ".1em", color: "primary.main", fontWeight: 700 }}>
+        {C.founderOffer.badge}
+      </Typography>
+      <Typography sx={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: { xs: 20, md: 24 }, fontWeight: 600 }}>
+        {C.founderOffer.trialLine}
+      </Typography>
+      <Typography sx={{ color: "text.secondary", fontSize: 15.5, maxWidth: "62ch" }}>
+        {C.founderOffer.afterTrialPre}
+        <Box component="strong" sx={{ color: "text.primary" }}>{C.founderOffer.afterTrialPrice}</Box>
+        {C.founderOffer.afterTrialPost}
+      </Typography>
+      <Typography sx={{ color: "text.secondary", fontSize: 13.5, maxWidth: "62ch" }}>
+        {C.founderOffer.continuityNote}
+      </Typography>
+      <Box sx={{ mt: 1 }}>
+        <CtaButton onClick={() => scrollToId("acesso")}>{C.founderOffer.cta}<ArrowIcon /></CtaButton>
+      </Box>
+    </Box>
+  );
+}
+
+function PlanCard({ nome, atletas, tecnicos, preco, destaque, status }: { nome: string; atletas: string; tecnicos: string; preco: string; destaque: boolean; status: string }) {
+  const t = useTheme();
+  return (
+    // RF-03: sem opacidade global simulando indisponibilidade e sem o selo "SEU PLANO APÓS O
+    // TRIAL" (a relação com o fundador já está no FounderOfferCard, acima). A diferenciação entre
+    // a oferta vigente (Basic) e os planos futuros é só por texto (`status`), plena legibilidade
+    // nos 4 cards.
     <Box sx={{ position: "relative", bgcolor: "background.paper", border: `1px solid ${destaque ? t.palette.primary.main : t.palette.divider}`, borderRadius: radius.outer, p: 2.75, display: "flex", flexDirection: "column", gap: 1.75, height: "100%" }}>
-      {destaque && (
-        <Box component="span" sx={{ position: "absolute", top: -11, left: 20, bgcolor: "primary.main", color: "primary.contrastText", fontFamily: monoFont, fontSize: 9.5, fontWeight: 700, letterSpacing: ".06em", borderRadius: radius.pill, px: 1.25, py: .375, whiteSpace: "nowrap" }}>
-          SEU PLANO APÓS O TRIAL
-        </Box>
-      )}
       <Typography sx={{ fontFamily: monoFont, fontSize: 12, letterSpacing: ".14em", color: destaque ? "primary.main" : "text.secondary" }}>{nome}</Typography>
       <Box sx={{ display: "flex", alignItems: "baseline", gap: .6 }}>
         <Typography sx={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 28, fontWeight: 700 }}>{preco}</Typography>
@@ -394,6 +434,9 @@ function PlanCard({ nome, atletas, tecnicos, preco, destaque }: { nome: string; 
           <Box component="span" sx={{ fontWeight: 500 }}>{tecnicos}</Box>
         </Box>
       </Box>
+      <Typography sx={{ fontSize: 12, color: destaque ? "primary.main" : "text.secondary", mt: "auto", pt: .5 }}>
+        {status}
+      </Typography>
     </Box>
   );
 }
@@ -404,15 +447,16 @@ export function Pricing() {
       <Reveal sx={{ mb: 4.5 }}>
         <SectionMark n="07" label={C.pricing.eyebrow} />
         <SectionHeading sx={{ mt: 2, fontSize: "clamp(26px,3.4vw,34px)" }}>{C.pricing.title}</SectionHeading>
-        <Typography sx={{ color: "text.secondary", fontSize: 16, mt: 2, maxWidth: "60ch" }}>{C.pricing.intro}</Typography>
-        {/* Achado do pré-mortem (alto): quem lê só esta seção — sem abrir o FAQ — não pode
-            ver R$99–R$599 sem saber que os primeiros 60 dias são grátis. Declarado por
-            extenso aqui, não só no badge do card Basic. */}
-        <Typography sx={{ fontFamily: monoFont, fontSize: 12.5, color: "primary.main", mt: 1.5 }}>{C.pricing.trialNote}</Typography>
       </Reveal>
-      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(5, minmax(0,1fr))" }, gap: 2 }}>
+      <Reveal><FounderOfferCard /></Reveal>
+      <Reveal sx={{ mb: 2.5 }}>
+        <Typography sx={{ fontFamily: monoFont, fontSize: 12.5, letterSpacing: ".08em", textTransform: "uppercase", color: "text.secondary" }}>
+          {C.pricing.plansHeading}
+        </Typography>
+      </Reveal>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(4, minmax(0,1fr))" }, gap: 2 }}>
         {C.pricing.plans.map((p) => (
-          <Reveal key={p.nome} sx={{ mt: p.destaque ? { xs: 0, md: 1.5 } : 0 }}>
+          <Reveal key={p.nome}>
             <PlanCard {...p} />
           </Reveal>
         ))}
