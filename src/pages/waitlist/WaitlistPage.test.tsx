@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router';
+import { createHashRouter, RouterProvider } from 'react-router';
 import WaitlistPage from './WaitlistPage';
 import { WaitlistService } from '../../services/WaitlistService';
 
@@ -13,11 +13,11 @@ vi.mock('../../services/WaitlistService', async (importOriginal) => ({
 const inscreverMock = WaitlistService.inscrever as unknown as Mock;
 
 function renderPage() {
-  return render(
-    <MemoryRouter>
-      <WaitlistPage />
-    </MemoryRouter>,
-  );
+  // Router REAL, não MemoryRouter: o app usa createHashRouter, e o MemoryRouter renderiza
+  // href="/privacidade" em vez de "#/privacidade" — a asserção de link passaria em código
+  // quebrado no browser (ver CLAUDE.md do front; o repo já perdeu um link assim).
+  const router = createHashRouter([{ path: '/', element: <WaitlistPage /> }]);
+  return render(<RouterProvider router={router} />);
 }
 
 async function selecionarPerfil(user: ReturnType<typeof userEvent.setup>, nome: RegExp) {
@@ -94,5 +94,16 @@ describe('WaitlistPage', () => {
     // valores preservados (o formulário não é resetado em erro)
     expect(screen.getByRole('textbox', { name: 'Nome' })).toHaveValue('Maria');
     expect(screen.getByRole('textbox', { name: 'E-mail' })).toHaveValue('maria@exemplo.com');
+  });
+
+  it('o link da Política fica FORA do label e com href de hash — dentro do label viraria toggle', () => {
+    renderPage();
+
+    const link = screen.getByRole('link', { name: /ler a política de privacidade/i });
+    // href de hash: com MemoryRouter esta asserção passaria em código quebrado (CLAUDE.md).
+    expect(link).toHaveAttribute('href', '#/privacidade');
+    // A ESTRUTURA é o bug: um link dentro de <label> tem o clique encaminhado ao checkbox pelo
+    // browser (nativo, stopPropagation não resolve) e nunca navega. Fora do label, navega.
+    expect(link.closest('label')).toBeNull();
   });
 });
