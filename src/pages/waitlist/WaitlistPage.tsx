@@ -15,6 +15,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useWaitlist } from '../../hooks/useWaitlist';
+import { parseUtmParams } from '../../landing/parseUtm';
 import type { FaixaAtletas, PerfilWaitlist } from '../../types/Waitlist';
 import { gradients, glassAzulSx, surface } from '../../theme/tokens';
 import { overlayWhite } from '../../theme/overlays';
@@ -59,6 +60,8 @@ export default function WaitlistPage() {
       qtdAtletas: perfil === 'TREINADOR' && qtdAtletas ? qtdAtletas : undefined,
       aceiteLgpd,
       website: website || undefined,
+      // query ANTES do `#` (createHashRouter) — mesma captura do AccessForm da landing
+      ...parseUtmParams(window.location.search),
     });
   };
 
