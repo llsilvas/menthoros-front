@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import type { User } from 'oidc-client-ts';
 import { AuthContext } from './authContext';
+import { haConvitePendente } from '../../utils/inviteTokenFragment';
 import {
   definirRenovacaoPendente,
   definirUsuario,
@@ -124,7 +125,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
          * A guarda existe porque isto é um redirect: falhar e tentar de novo produziria laço
          * infinito, com a tela piscando sem parar.
          */
-        if (!jaTentouRestaurar()) {
+        // Com convite pendente, a restauração é pulada: quem abre um link de convite não tem
+        // sessão para restaurar, e este redirect é navegação de página inteira — o token do
+        // fragmento (já movido para a memória pelo useInviteToken) não sobreviveria à volta.
+        // Encontrado pelo E2E do convite de atleta; valia igualmente para o convite de coach.
+        if (!jaTentouRestaurar() && !haConvitePendente()) {
           marcarTentativaDeRestauracao();
           guardarRotaDeOrigem();
           await userManager.signinRedirect({

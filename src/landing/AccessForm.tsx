@@ -4,6 +4,7 @@ import { Link as RouterLink } from "react-router";
 import { CtaButton, monoFont } from "./primitives";
 import { faixaDeAtletas } from "./athleteRange";
 import { validate, type AccessFormErrors } from "./accessFormValidation";
+import { parseUtmParams } from "./parseUtm";
 import { useWaitlist } from "../hooks/useWaitlist";
 import type { PerfilWaitlist, WaitlistInput } from "../types/Waitlist";
 import { radius } from "../theme/theme.premium";
@@ -34,6 +35,9 @@ export function AccessForm() {
       qtdAtletas: faixaDeAtletas(Number(qtdAtletasRaw)),
       aceiteLgpd,
       website: website || undefined,
+      // `window.location.search` (query ANTES do `#`) — o app usa createHashRouter, então
+      // useSearchParams não enxergaria os parâmetros UTM do link da bio.
+      ...parseUtmParams(window.location.search),
     };
     inscrever(payload);
   };
@@ -44,7 +48,7 @@ export function AccessForm() {
         <Box sx={{ fontSize: 30, color: "primary.main" }}>✓</Box>
         <Typography variant="h3" sx={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 20, fontWeight: 600, my: 1 }}>Inscrição recebida</Typography>
         <Typography sx={{ color: "text.secondary", fontSize: 14.5 }}>
-          Você está na lista da turma fundadora. Entramos em contato em breve — obrigado pelo interesse.
+          Você está na lista da turma fundadora. Vamos entrar em contato pelo email informado. Obrigado pelo interesse.
         </Typography>
       </Box>
     );
@@ -53,22 +57,22 @@ export function AccessForm() {
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 460, mx: "auto", textAlign: "left" }}>
       <TextField
-        placeholder="Seu nome" value={nome}
+        label="Nome" placeholder="Seu nome" value={nome}
         onChange={(e) => setNome(e.target.value)}
         error={!!errors.nome} helperText={errors.nome}
-        fullWidth size="medium" inputProps={{ maxLength: 120, "aria-label": "Nome" }} sx={fieldSx(t)}
+        fullWidth size="medium" inputProps={{ maxLength: 120 }} sx={fieldSx(t)}
       />
       <TextField
-        type="email" placeholder="Seu melhor email" value={email}
+        type="email" label="Email" placeholder="Seu melhor email" value={email}
         onChange={(e) => setEmail(e.target.value)}
         error={!!errors.email} helperText={errors.email}
-        fullWidth size="medium" inputProps={{ maxLength: 180, "aria-label": "Email" }} sx={{ ...fieldSx(t), mt: 1.75 }}
+        fullWidth size="medium" inputProps={{ maxLength: 180 }} sx={{ ...fieldSx(t), mt: 1.75 }}
       />
       <TextField
-        type="number" placeholder="Quantos atletas você acompanha?" value={qtdAtletasRaw}
+        type="number" label="Número de atletas" placeholder="Quantos atletas você acompanha?" value={qtdAtletasRaw}
         onChange={(e) => setQtdAtletasRaw(e.target.value)}
         error={!!errors.qtdAtletas} helperText={errors.qtdAtletas}
-        inputProps={{ min: 1, "aria-label": "Número de atletas" }} fullWidth size="medium"
+        inputProps={{ min: 1 }} fullWidth size="medium"
         sx={{ ...fieldSx(t), mt: 1.75 }}
       />
 
@@ -138,8 +142,13 @@ export function AccessForm() {
           {submitting ? "Enviando…" : "Solicitar acesso →"}
         </CtaButton>
       </Box>
+{/* RF-05/6.2: repete a condição de continuidade junto à ação, em texto legível (não
+          depende de D-03 — é a mesma condição já pública na oferta fundadora). */}
       <Typography sx={{ fontFamily: monoFont, color: "text.secondary", fontSize: 11, mt: 1.75, textAlign: "center" }}>
         Sem compromisso · 60 dias grátis, sem cartão · 10 vagas no programa fundador
+      </Typography>
+      <Typography sx={{ fontFamily: monoFont, color: "text.secondary", fontSize: 11, mt: .5, textAlign: "center" }}>
+        Continuidade mediante contratação, ao fim do teste
       </Typography>
     </Box>
   );

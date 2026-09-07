@@ -93,6 +93,41 @@ describe('AccessForm', () => {
     });
   });
 
+  it('inclui os parâmetros UTM da URL no payload (window.location.search, não useSearchParams)', async () => {
+    window.history.pushState({}, '', '/?utm_source=instagram&utm_campaign=turma-fundadora');
+    const user = userEvent.setup();
+    renderForm();
+
+    await user.type(screen.getByRole('textbox', { name: 'Nome' }), 'Maria');
+    await user.type(screen.getByRole('textbox', { name: 'Email' }), 'maria@exemplo.com');
+    await user.type(screen.getByRole('spinbutton', { name: 'Número de atletas' }), '15');
+    await user.click(screen.getByRole('checkbox'));
+    await user.click(screen.getByRole('button', { name: /solicitar acesso/i }));
+
+    expect(inscreverMock).toHaveBeenCalledWith(
+      expect.objectContaining({ utmSource: 'instagram', utmCampaign: 'turma-fundadora' }),
+    );
+
+    window.history.pushState({}, '', '/');
+  });
+
+  it('não inclui campos UTM no payload quando a URL não tem nenhum', async () => {
+    const user = userEvent.setup();
+    renderForm();
+
+    await user.type(screen.getByRole('textbox', { name: 'Nome' }), 'Maria');
+    await user.type(screen.getByRole('textbox', { name: 'Email' }), 'maria@exemplo.com');
+    await user.type(screen.getByRole('spinbutton', { name: 'Número de atletas' }), '15');
+    await user.click(screen.getByRole('checkbox'));
+    await user.click(screen.getByRole('button', { name: /solicitar acesso/i }));
+
+    const payload = inscreverMock.mock.calls[0][0];
+    expect(payload).not.toHaveProperty('utmSource');
+    expect(payload).not.toHaveProperty('utmMedium');
+    expect(payload).not.toHaveProperty('utmCampaign');
+    expect(payload).not.toHaveProperty('utmContent');
+  });
+
   it('mostra erro do hook e preserva os valores digitados', async () => {
     mockStatus = 'error';
     mockError = 'Não foi possível concluir agora. Tente novamente em instantes.';
