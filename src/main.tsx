@@ -6,6 +6,7 @@ import { OpenAPI } from './api/core/OpenAPI'
 import { runtimeConfig } from './config/env'
 import { AuthProvider } from './context/auth/AuthProvider'
 import { getAccessToken, getTenantId } from './context/auth/session'
+import { redirectPathDeepLink } from './config/deepLinkRedirect'
 
 // Sobrescreve o BASE gerado pelo openapi-typescript-codegen ANTES do React renderizar.
 // OpenAPI é um objeto mutável — compatível com regeneração via npm run generate:api.
@@ -20,10 +21,14 @@ OpenAPI.HEADERS = async (): Promise<Record<string, string>> => {
   return tenantId ? { 'X-Tenant-ID': tenantId } : {}
 }
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <AuthProvider>
-      <App />
-    </AuthProvider>
-  </StrictMode>,
-)
+// Deep link de PATH (link de bio/marketing, ex.: /waitlist?utm=…) → rota de hash, antes do React.
+// Quando redireciona, o replace() dispara o reload e não montamos o app nesta passada.
+if (!redirectPathDeepLink()) {
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </StrictMode>,
+  )
+}

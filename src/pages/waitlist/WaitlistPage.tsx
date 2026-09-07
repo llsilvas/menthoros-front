@@ -194,25 +194,39 @@ export default function WaitlistPage() {
               }}
             />
 
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={aceiteLgpd}
-                  onChange={(e) => setAceiteLgpd(e.target.checked)}
-                  disabled={submitting}
-                />
-              }
-              label={
-                <Typography variant="body2" sx={{ color: overlayWhite[70] }}>
-                  Concordo em receber comunicações do Menthoros sobre o acesso ao beta e com o uso dos meus
-                  dados conforme a{' '}
-                  <Link component={RouterLink} to="/privacidade" underline="always">
-                    Política de Privacidade
-                  </Link>
-                  .
-                </Typography>
-              }
-            />
+            {/*
+              Link FORA do label, de propósito: o label é um <label> nativo e encaminha QUALQUER
+              clique interno para o checkbox — um link ali dentro vira toggle e nunca navega
+              (mesmo bug já corrigido no AccessForm da landing e no CoachConsentDialog; ver
+              CLAUDE.md do front).
+            */}
+            <Box>
+              <FormControlLabel
+                sx={{ alignItems: 'flex-start' }}
+                control={
+                  <Checkbox
+                    checked={aceiteLgpd}
+                    onChange={(e) => setAceiteLgpd(e.target.checked)}
+                    disabled={submitting}
+                  />
+                }
+                label={
+                  <Typography variant="body2" sx={{ color: overlayWhite[70] }}>
+                    Concordo em receber comunicações do Menthoros sobre o acesso ao beta e com o
+                    uso dos meus dados pessoais.
+                  </Typography>
+                }
+              />
+              <Link
+                component={RouterLink}
+                to="/privacidade"
+                underline="always"
+                variant="body2"
+                sx={{ display: 'inline-block', ml: 4, mt: -0.5 }}
+              >
+                Ler a Política de Privacidade
+              </Link>
+            </Box>
 
             <Button
               type="submit"
