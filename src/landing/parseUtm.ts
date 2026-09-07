@@ -1,11 +1,9 @@
+import type { WaitlistInput } from '../types/Waitlist';
+
 const UTM_MAX_LENGTH = 255;
 
-export interface UtmParams {
-  utmSource: string;
-  utmMedium: string;
-  utmCampaign: string;
-  utmContent: string;
-}
+/** Só os 4 campos UTM de `WaitlistInput` — não duplica a forma, reaproveita o tipo do contrato. */
+export type UtmParams = Pick<WaitlistInput, 'utmSource' | 'utmMedium' | 'utmCampaign' | 'utmContent'>;
 
 const UTM_KEYS: { param: string; field: keyof UtmParams }[] = [
   { param: 'utm_source', field: 'utmSource' },
