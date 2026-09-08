@@ -110,6 +110,18 @@ describe('PlanosDialog — geração de plano (assíncrona)', () => {
         expect(screen.getByRole('button', { name: /gerando/i })).toBeDisabled();
     });
 
+    it('tela legada (sem PlanGenerationProvider): dispara a geração normalmente, sem erro (AC7)', async () => {
+        mockPlanoHook();
+        const batch = mockBatchHook();
+
+        // Renderizado SEM o PlanGenerationProvider (como em AtletasList): as ações do provider caem
+        // no nullStore (iniciar → true, anexarJob/liberar → no-op) e o fluxo local segue como antes.
+        render(<PlanosDialog open onClose={vi.fn()} atletaId="a1" atletaNome="Ana" />);
+        await userEvent.click(screen.getByRole('button', { name: /gerar plano/i }));
+
+        expect(batch.gerarLote).toHaveBeenCalledWith(['a1'], 'PROXIMA_SEMANA');
+    });
+
     it('reseta a geração ao trocar de atleta — não contamina o novo atleta com o job do anterior', () => {
         mockPlanoHook();
         const batch = mockBatchHook();

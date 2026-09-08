@@ -49,11 +49,8 @@ import { AtletasService } from '../../../api/services/AtletasService';
 import type { Atleta, CreateAtleta, UpdateAtleta } from '../../../types/Atleta';
 import { primary, surface, semantic, glassSx } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
-import { CoachAthleteAvatar } from '../components/CoachAthleteAvatar';
-import {
-  useAtletaPlanGeneration,
-  useRegisterPlanGenerationReload,
-} from '../context/planGenerationContext';
+import { AthleteNameCell } from '../components/AthleteNameCell';
+import { useRegisterPlanGenerationReload } from '../context/planGenerationContext';
 import { PhaseIndicator } from '../../../shared/components/PhaseIndicator';
 import type { TrainingPhase } from '../../../shared/components/PhaseIndicator';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
@@ -133,68 +130,6 @@ const VIEWS: ViewDef[] = [
   { key: 'at-risk', label: 'Em risco', filter: (a) => a.status === 'danger' || a.status === 'warning' },
   { key: 'taper',   label: 'Em taper', filter: (a) => a.phase === 'TAPER' },
 ];
-
-// ── Célula do atleta (nome + sinal de "plano em geração") ─────────────────────
-// Lê o estado de geração por atletaId via assinatura seletiva: só a linha em geração re-renderiza
-// a cada tick do polling (change plano-em-geracao-no-roster, design Opção B "linha viva").
-
-function AthleteNameCell({ id, name }: { id: string; name: string }) {
-  const gen = useAtletaPlanGeneration(id);
-  const gerando = gen?.status === 'gerando';
-  const concluido = gen?.status === 'concluido';
-  const erro = gen?.status === 'erro';
-  const accent = gerando ? primary[500] : concluido ? semantic.success[500] : erro ? semantic.danger[500] : undefined;
-
-  return (
-    <Box
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1,
-        height: '100%',
-        width: '100%',
-        position: 'relative',
-        ...(accent
-          ? {
-              pl: 1.25,
-              backgroundColor: `${accent}0F`, // tint sutil (~6%)
-              '&::before': {
-                content: '""',
-                position: 'absolute',
-                left: 0,
-                top: 6,
-                bottom: 6,
-                width: 3,
-                borderRadius: 1,
-                backgroundColor: accent, // faixa "viva" na borda esquerda
-              },
-            }
-          : {}),
-      }}
-    >
-      <CoachAthleteAvatar athlete={{ id, name }} size="xs" status="none" />
-      <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        <Typography sx={{ fontSize: '0.8rem', fontWeight: 500, color: surface[50] }} noWrap>
-          {name}
-        </Typography>
-        {gerando && (
-          <Typography sx={{ fontSize: '0.66rem', color: primary[500], lineHeight: 1.2 }}>Gerando plano…</Typography>
-        )}
-        {concluido && (
-          <Typography sx={{ fontSize: '0.66rem', color: semantic.success[500], lineHeight: 1.2 }}>
-            Plano gerado agora
-          </Typography>
-        )}
-        {erro && (
-          <Typography sx={{ fontSize: '0.66rem', color: semantic.danger[500], lineHeight: 1.2 }} title={gen?.mensagem}>
-            Falha ao gerar
-          </Typography>
-        )}
-      </Box>
-      {gerando && <CircularProgress size={13} sx={{ color: primary[500], ml: 0.5, flexShrink: 0 }} />}
-    </Box>
-  );
-}
 
 // ── KPI Card ──────────────────────────────────────────────────────────────────
 
