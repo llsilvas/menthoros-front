@@ -49,7 +49,8 @@ import { AtletasService } from '../../../api/services/AtletasService';
 import type { Atleta, CreateAtleta, UpdateAtleta } from '../../../types/Atleta';
 import { primary, surface, semantic, glassSx } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
-import { CoachAthleteAvatar } from '../components/CoachAthleteAvatar';
+import { AthleteNameCell } from '../components/AthleteNameCell';
+import { useRegisterPlanGenerationReload } from '../context/planGenerationContext';
 import { PhaseIndicator } from '../../../shared/components/PhaseIndicator';
 import type { TrainingPhase } from '../../../shared/components/PhaseIndicator';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
@@ -245,6 +246,14 @@ export default function CoachAthletesPage() {
     fetchRoster();
   }, [fetchRoster]);
 
+  // No terminal de sucesso da geração, o provider recarrega o roster (vencimento novo na linha) e as
+  // revisões pendentes — independente de o PlanosDialog estar aberto ou não.
+  const recarregarAposGeracao = useCallback(() => {
+    void fetchRoster();
+    void reviewFetchPendentes();
+  }, [fetchRoster, reviewFetchPendentes]);
+  useRegisterPlanGenerationReload(recarregarAposGeracao);
+
   const [loteDialogOpen, setLoteDialogOpen] = useState(false);
   const [batchDialogOpen, setBatchDialogOpen] = useState(false);
 
@@ -364,14 +373,7 @@ export default function CoachAthletesPage() {
       headerName: 'Atleta',
       flex: 1.8,
       minWidth: 160,
-      renderCell: ({ row }) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, height: '100%' }}>
-          <CoachAthleteAvatar athlete={{ id: row.id, name: row.name }} size="xs" status="none" />
-          <Typography sx={{ fontSize: '0.8rem', fontWeight: 500, color: surface[50] }}>
-            {row.name}
-          </Typography>
-        </Box>
-      ),
+      renderCell: ({ row }) => <AthleteNameCell id={row.id} name={row.name} />,
     },
     {
       field: 'phase',
