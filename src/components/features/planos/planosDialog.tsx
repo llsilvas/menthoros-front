@@ -27,6 +27,7 @@ import {
 import { useTheme } from '@mui/material/styles';
 import { usePlanoSemanal } from '../../../hooks/usePlanoSemanal';
 import { useBatchPlanGeneration } from '../../../hooks/useBatchPlanGeneration';
+import { usePlanGenerationActions } from '../../../features/coach/context/planGenerationContext';
 import { isBatchJobTerminal } from '../../../types/BatchPlanJob';
 import { AtletasService } from '../../../api/services/AtletasService';
 import { TreinoService } from '../../../api/services/TreinoService';
@@ -163,6 +164,11 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
         reset: resetGeracao,
     } = useBatchPlanGeneration();
 
+    // Acompanhamento no nível do coach: a linha do roster reflete a geração mesmo com o dialog
+    // fechado (change plano-em-geracao-no-roster). Fora do PlanGenerationProvider (tela legada
+    // AtletasList) as ações são no-op e `iniciar` retorna true — o fluxo cai no estado local abaixo.
+    const { iniciar, anexarJob, liberar } = usePlanGenerationActions();
+
     const [modoGeracao, setModoGeracao] = useState<MetodoGeracaoPlano>('PROXIMA_SEMANA');
 
     // Estados para o modal de conclusão de treino
@@ -214,9 +220,14 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
             return;
         }
         if (gerando) return;
+        // Reserva ANTES do POST: bloqueia um segundo disparo do mesmo atleta antes de o 202 chegar
+        // (dois cliques rápidos criariam dois jobs). Sem provider, `iniciar` sempre libera.
+        if (!iniciar(atletaId)) return;
         try {
-            await gerarLote([atletaId], modo);
+            const aceito = await gerarLote([atletaId], modo);
+            anexarJob(atletaId, aceito.jobId);
         } catch (err) {
+            liberar(atletaId);
             console.error('Erro ao iniciar a geração do plano:', err);
         }
     };
