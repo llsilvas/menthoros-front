@@ -67,12 +67,19 @@ export const useBatchPlanGeneration = () => {
     const gerarLote = useCallback(
         async (atletaIds: string[], modo: ModoGeracaoPlano = 'PROXIMA_SEMANA'): Promise<BatchLoteAceito> => {
             pararPolling();
+            // Captura a geração ANTES do await: se um reset/novo disparo acontecer enquanto o POST
+            // está em voo, `geracaoRef` avança e o guard abaixo descarta este 202 tardio — sem ele,
+            // capturar depois do await pegaria o valor já incrementado pelo reset e o polling
+            // reiniciaria para uma geração abortada (BLOCKER do DoR, corrida coach fecha o dialog).
+            const geracao = geracaoRef.current;
             setError(null);
             setStatus(null);
             setLoading(true);
             try {
                 const aceito = await BatchPlanService.gerarEmLote(atletaIds, modo);
-                const geracao = geracaoRef.current;
+                if (geracao !== geracaoRef.current) {
+                    return aceito; // reset/novo disparo durante o await — não toca estado nem inicia polling
+                }
                 setJobId(aceito.jobId);
                 void consultar(aceito.jobId, geracao); // leitura imediata; auto-agenda as próximas
                 safetyTimeoutRef.current = setTimeout(() => {
@@ -83,6 +90,7 @@ export const useBatchPlanGeneration = () => {
                 }, calcularTimeoutMs(aceito.totalAtletas));
                 return aceito;
             } catch (err) {
+                if (geracao !== geracaoRef.current) throw err; // resposta obsoleta: não sobrescreve estado
                 setLoading(false);
                 setError(err instanceof Error ? err.message : 'Falha ao iniciar a geração em lote.');
                 throw err;

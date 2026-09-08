@@ -446,6 +446,7 @@ const AtletasList: React.FC = () => {
                       >
                         <IconButton
                           size="small"
+                          aria-label={`Planos de ${atleta.nome}`}
                           onClick={() => handleViewPlanos(atleta.id)}
                           sx={{
                             width: 32, height: 32,
