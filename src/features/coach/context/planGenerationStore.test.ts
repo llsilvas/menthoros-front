@@ -160,6 +160,55 @@ describe('PlanGenerationStore', () => {
         expect(store.getEntry('a1')).toMatchObject({ status: 'gerando' });
     });
 
+    it('lote: um jobId cobre N atletas e o terminal resolve cada um por geradosDetalhes/errosDetalhes', async () => {
+        const reload = vi.fn();
+        store.setOnPlanoGerado(reload);
+        consultar.mockResolvedValue(
+            statusJob({
+                status: 'CONCLUIDO_COM_ERROS',
+                totalAtletas: 3,
+                gerados: 2,
+                erros: 1,
+                geradosDetalhes: [
+                    { atletaId: 'a1', planoId: 'p1', atletaNome: 'A' },
+                    { atletaId: 'a3', planoId: 'p3', atletaNome: 'C' },
+                ],
+                errosDetalhes: [{ atletaId: 'a2', motivo: 'Já existe plano para a semana.' }],
+            }),
+        );
+
+        const reservados = store.iniciarLote(['a1', 'a2', 'a3']);
+        expect(reservados).toEqual(['a1', 'a2', 'a3']);
+        store.anexarJobLote(reservados, 'job-lote');
+        await flush();
+
+        expect(store.getEntry('a1')).toMatchObject({ status: 'concluido' });
+        expect(store.getEntry('a3')).toMatchObject({ status: 'concluido' });
+        expect(store.getEntry('a2')).toMatchObject({ status: 'erro', mensagem: 'Já existe plano para a semana.' });
+        // um único poller para o lote inteiro
+        expect(consultar).toHaveBeenCalledTimes(1);
+        // houve sucesso no lote → recarrega uma vez
+        expect(reload).toHaveBeenCalledTimes(1);
+    });
+
+    it('lote: getJobStatus expõe o progresso agregado durante o polling', async () => {
+        consultar.mockResolvedValue(statusJob({ status: 'EM_PROGRESSO', totalAtletas: 2, gerados: 1, erros: 0 }));
+
+        const reservados = store.iniciarLote(['a1', 'a2']);
+        store.anexarJobLote(reservados, 'job-lote');
+        await flush();
+
+        expect(store.getJobStatus('job-lote')).toMatchObject({ gerados: 1, totalAtletas: 2 });
+        expect(store.getEntry('a1')).toMatchObject({ status: 'gerando' });
+        expect(store.getEntry('a2')).toMatchObject({ status: 'gerando' });
+    });
+
+    it('iniciarLote pula atletas já em geração', () => {
+        store.iniciar('a1');
+        const reservados = store.iniciarLote(['a1', 'a2']);
+        expect(reservados).toEqual(['a2']); // a1 já estava gerando
+    });
+
     it('notifica assinantes e getEntry mantém referência estável quando nada muda', () => {
         const listener = vi.fn();
         const unsub = store.subscribe(listener);

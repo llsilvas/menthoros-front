@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useSyncExternalStore } from 'react';
+import type { BatchPlanJobStatus } from '../../../types/BatchPlanJob';
 import type { PlanGenerationEntry, PlanGenerationReadable } from './planGenerationStore';
 
 /**
@@ -11,18 +12,28 @@ import type { PlanGenerationEntry, PlanGenerationReadable } from './planGenerati
  * PlanosDialog cai no fluxo local do `useBatchPlanGeneration`.
  */
 export interface PlanGenerationContextValue extends PlanGenerationReadable {
+    /** true no provider real; false no `nullStore` (telas sem provider, ex.: AtletasList legada). */
+    readonly hasProvider: boolean;
     iniciar(atletaId: string): boolean;
+    iniciarLote(atletaIds: string[]): string[];
     anexarJob(atletaId: string, jobId: string): void;
+    anexarJobLote(atletaIds: string[], jobId: string): void;
     liberar(atletaId: string): void;
+    liberarLote(atletaIds: string[]): void;
     setOnPlanoGerado(cb?: () => void): void;
 }
 
 const nullStore: PlanGenerationContextValue = {
+    hasProvider: false,
     subscribe: () => () => {},
     getEntry: () => undefined,
+    getJobStatus: () => null,
     iniciar: () => true,
+    iniciarLote: (ids) => ids,
     anexarJob: () => {},
+    anexarJobLote: () => {},
     liberar: () => {},
+    liberarLote: () => {},
     setOnPlanoGerado: () => {},
 };
 
@@ -40,6 +51,12 @@ export function usePlanGenerationActions(): PlanGenerationContextValue {
 export function useAtletaPlanGeneration(atletaId: string): PlanGenerationEntry | undefined {
     const store = useContext(PlanGenerationContext);
     return useSyncExternalStore(store.subscribe, () => store.getEntry(atletaId));
+}
+
+/** Progresso agregado de um job (para o BatchPlanDialog). null fora do provider ou job desconhecido. */
+export function useJobProgress(jobId: string | null): BatchPlanJobStatus | null {
+    const store = useContext(PlanGenerationContext);
+    return useSyncExternalStore(store.subscribe, () => (jobId ? store.getJobStatus(jobId) : null));
 }
 
 /** Registra a recarga a disparar no terminal de sucesso (ex.: fetchRoster), independente do dialog. */

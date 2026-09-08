@@ -15,6 +15,8 @@ import {
 } from '@mui/material';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { useBatchPlanGeneration } from '../../../hooks/useBatchPlanGeneration';
+import { usePlanGenerationActions, useJobProgress } from '../../../features/coach/context/planGenerationContext';
+import { BatchPlanService } from '../../../api/services/BatchPlanService';
 import { isBatchJobTerminal, type ModoGeracaoPlano } from '../../../types/BatchPlanJob';
 
 interface BatchPlanDialogProps {
@@ -44,30 +46,48 @@ export const BatchPlanDialog: React.FC<BatchPlanDialogProps> = ({
     resolveNomeAtleta,
     onConcluido,
 }) => {
-    const { jobId, status, loading, error, gerarLote, reset } = useBatchPlanGeneration();
+    // Legado (sem provider): estado local do hook. Com provider: o acompanhamento é do
+    // PlanGenerationStore (um só poller), e cada atleta do lote reflete na SUA linha do roster —
+    // o coach pode FECHAR o dialog e ver o progresso nas linhas (change plano-em-geracao-no-roster).
+    const local = useBatchPlanGeneration();
+    const { iniciarLote, anexarJobLote, liberarLote, hasProvider } = usePlanGenerationActions();
+    const [provJobId, setProvJobId] = useState<string | null>(null);
+    const [provDisparando, setProvDisparando] = useState(false);
+    const [provErro, setProvErro] = useState<string | null>(null);
+    const provStatus = useJobProgress(provJobId);
+
     const [modo, setModo] = useState<ModoGeracaoPlano>('PROXIMA_SEMANA');
     const [mostrarErros, setMostrarErros] = useState(false);
-    // Guarda a referência mais recente de onConcluido sem re-disparar o efeito de conclusão.
     const onConcluidoRef = useRef(onConcluido);
     onConcluidoRef.current = onConcluido;
-    // Garante que onConcluido dispara uma única vez por job (não em loop de re-render).
     const notificadoJobRef = useRef<string | null>(null);
 
-    const total = status?.totalAtletas ?? atletaIds.length;
+    // Fonte única por caminho.
+    const jobId = hasProvider ? provJobId : local.jobId;
+    const status = hasProvider ? provStatus : local.status;
+    const error = hasProvider ? provErro : local.error;
     const terminal = status ? isBatchJobTerminal(status.status) : false;
-    const emConfirmacao = jobId === null;
+    const loading = hasProvider ? provDisparando || (!!provJobId && !terminal) : local.loading;
+    const emConfirmacao = jobId === null && !loading;
+
+    const total = status?.totalAtletas ?? atletaIds.length;
 
     // Reinicia o estado ao abrir; para o polling ao fechar (o dialog não desmonta).
     useEffect(() => {
         if (open) {
-            reset();
+            local.reset();
             setModo('PROXIMA_SEMANA');
             setMostrarErros(false);
+            setProvJobId(null);
+            setProvDisparando(false);
+            setProvErro(null);
             notificadoJobRef.current = null;
         } else {
-            reset();
+            local.reset();
         }
-    }, [open, reset]);
+        // `local.reset` é estável (useCallback no hook); demais setters são estáveis.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open]);
 
     // Notifica a conclusão uma única vez por job.
     useEffect(() => {
@@ -78,12 +98,28 @@ export const BatchPlanDialog: React.FC<BatchPlanDialogProps> = ({
     }, [terminal, status]);
 
     const handleConfirmar = useCallback(async () => {
+        if (hasProvider) {
+            setProvErro(null);
+            setProvDisparando(true);
+            const reservados = iniciarLote(atletaIds);
+            try {
+                const aceito = await BatchPlanService.gerarEmLote(atletaIds, modo);
+                setProvJobId(aceito.jobId);
+                anexarJobLote(reservados.length ? reservados : atletaIds, aceito.jobId);
+            } catch {
+                liberarLote(reservados);
+                setProvErro('Não foi possível iniciar a geração em lote.');
+            } finally {
+                setProvDisparando(false);
+            }
+            return;
+        }
         try {
-            await gerarLote(atletaIds, modo);
+            await local.gerarLote(atletaIds, modo);
         } catch {
             // erro é o canal observável (Alert abaixo)
         }
-    }, [gerarLote, atletaIds, modo]);
+    }, [hasProvider, iniciarLote, anexarJobLote, liberarLote, local, atletaIds, modo]);
 
     const progresso = useMemo(() => {
         if (!status || status.totalAtletas === 0) return 0;
@@ -115,7 +151,9 @@ export const BatchPlanDialog: React.FC<BatchPlanDialogProps> = ({
             title="Gerar planos em lote"
             subtitle={terminal ? 'Resultado da geração' : emConfirmacao ? 'Confirme os atletas do lote' : 'Gerando planos…'}
             maxWidth="sm"
-            disableClose={loading && !terminal}
+            // Com provider o coach pode fechar durante a geração — o progresso segue nas linhas do
+            // roster. Sem provider, mantém o bloqueio (o polling vive no dialog).
+            disableClose={!hasProvider && loading && !terminal}
             actions={actions}
         >
             {error && (
@@ -152,6 +190,11 @@ export const BatchPlanDialog: React.FC<BatchPlanDialogProps> = ({
                         {status ? status.gerados + status.erros : 0} de {total} processado(s)
                         {status && status.erros > 0 ? ` (${status.erros} com erro)` : ''}
                     </Typography>
+                    {hasProvider && (
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                            Você pode fechar — o progresso de cada atleta aparece na linha dele no roster.
+                        </Typography>
+                    )}
                 </Box>
             )}
 

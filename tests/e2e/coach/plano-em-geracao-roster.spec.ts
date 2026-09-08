@@ -24,7 +24,9 @@ const LOTE_API = '**/api/v1/coach/planos/gerar-lote'
 const JOB_API = '**/api/v1/coach/planos/lote/*'
 const SYNC_API = '**/api/v1/planos/atletas/*/gerar'
 
-async function mockarShell(page: Page) {
+type AtletaMock = { atletaId: string; nome: string }
+
+async function mockarShell(page: Page, atletas: AtletaMock[]) {
   await page.route(ME_API, (route) =>
     route.fulfill({
       json: {
@@ -45,9 +47,7 @@ async function mockarShell(page: Page) {
   await page.route(QUEUE_API, (route) => route.fulfill({ json: [] }))
   await page.route(REVIEW_API, (route) => route.fulfill({ json: [] }))
   await page.route(ROSTER_API, (route) =>
-    route.fulfill({
-      json: [{ atletaId: ATLETA_ID, nome: ATLETA_NOME, status: 'active', weeklyVolume: 48 }],
-    }),
+    route.fulfill({ json: atletas.map((a) => ({ ...a, status: 'active', weeklyVolume: 48 })) }),
   )
   // Sem planos → o dialog mostra "Gerar Plano".
   await page.route(PLANOS_ATLETA_API, (route) => route.fulfill({ json: [] }))
@@ -55,7 +55,7 @@ async function mockarShell(page: Page) {
 
 test.describe('Plano em geração na linha do roster', () => {
   test('dispara, FECHA o dialog e a linha conclui sozinha; um único gerar-lote, nunca o síncrono', async ({ page }) => {
-    await mockarShell(page)
+    await mockarShell(page, [{ atletaId: ATLETA_ID, nome: ATLETA_NOME }])
     await autenticarComPkce(page, { roles: ['TECNICO'] })
 
     let baterNoSincrono = false
@@ -116,5 +116,71 @@ test.describe('Plano em geração na linha do roster', () => {
     // Um único POST de lote; o endpoint síncrono nunca foi chamado.
     expect(lotePosts).toBe(1)
     expect(baterNoSincrono).toBe(false)
+  })
+
+  test('lote: seleciona, dispara, FECHA o dialog e as duas linhas concluem sozinhas', async ({ page }) => {
+    const A2_ID = 'atleta-e2e-2'
+    const A2_NOME = 'Carla Souza'
+    await mockarShell(page, [
+      { atletaId: ATLETA_ID, nome: ATLETA_NOME },
+      { atletaId: A2_ID, nome: A2_NOME },
+    ])
+    await autenticarComPkce(page, { roles: ['TECNICO'] })
+
+    let lotePosts = 0
+    await page.route(LOTE_API, async (route) => {
+      lotePosts += 1
+      await route.fulfill({
+        status: 202,
+        contentType: 'application/json',
+        body: JSON.stringify({ jobId: JOB_ID, totalAtletas: 2 }),
+      })
+    })
+
+    // Terminal por tempo (~3s): antes disso, EM_PROGRESSO; depois, os DOIS concluídos.
+    let t0 = 0
+    await page.route(JOB_API, async (route) => {
+      if (t0 === 0) t0 = Date.now()
+      const terminal = Date.now() - t0 > 3000
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          jobId: JOB_ID,
+          status: terminal ? 'CONCLUIDO' : 'EM_PROGRESSO',
+          totalAtletas: 2,
+          gerados: terminal ? 2 : 0,
+          erros: 0,
+          geradosDetalhes: terminal
+            ? [
+                { atletaId: ATLETA_ID, planoId: 'p1', atletaNome: ATLETA_NOME },
+                { atletaId: A2_ID, planoId: 'p2', atletaNome: A2_NOME },
+              ]
+            : [],
+          errosDetalhes: [],
+        }),
+      })
+    })
+
+    await page.setViewportSize({ width: 1600, height: 900 })
+    await page.goto(ATLETAS_URL)
+    await expect(page.getByText(ATLETA_NOME)).toBeVisible()
+
+    // Seleciona as duas linhas (checkboxes nas linhas; o índice 0 é o "selecionar todos" do header).
+    const checks = page.locator('[data-field="__check__"] input[type="checkbox"]')
+    await checks.nth(1).check()
+    await checks.nth(2).check()
+    await page.getByRole('button', { name: /gerar planos \(2\)/i }).click()
+    await page.getByRole('button', { name: /gerar 2 plano\(s\)/i }).click()
+
+    // Fecha o dialog do lote no meio da geração; o progresso segue nas linhas.
+    await page.keyboard.press('Escape')
+
+    await expect(page.getByText('Gerando plano…').first()).toBeVisible()
+    // As duas linhas concluem sozinhas pelo polling do provider.
+    await expect(page.getByText(/plano gerado agora/i).first()).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByText(/plano gerado agora/i)).toHaveCount(2)
+
+    expect(lotePosts).toBe(1)
   })
 })

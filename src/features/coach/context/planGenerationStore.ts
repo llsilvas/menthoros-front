@@ -2,16 +2,17 @@ import { BatchPlanService } from '../../../api/services/BatchPlanService';
 import { isBatchJobTerminal, type BatchPlanJobStatus } from '../../../types/BatchPlanJob';
 
 /**
- * Store da geração de plano no nível do coach — vive fora do PlanosDialog para que a linha do
- * roster reflita o estado mesmo com o dialog fechado (change plano-em-geracao-no-roster).
+ * Store da geração de plano no nível do coach — vive fora dos dialogs para que a linha do roster
+ * reflita o estado mesmo com o dialog fechado (change plano-em-geracao-no-roster).
+ *
+ * Centrado em `jobId`: um job pode cobrir 1 (gerar-de-um) ou N atletas (gerar em lote). Há UM poller
+ * por `jobId` sobre `BatchPlanService.consultarStatus`; no terminal, cada atleta é resolvido pelos
+ * `geradosDetalhes`/`errosDetalhes` do job. As linhas leem por `atletaId` (assinatura seletiva) e os
+ * dialogs leem o agregado do job por `jobId` — fonte única de verdade, um só polling.
  *
  * Decisão de arquitetura (DoR): NÃO reusa `useBatchPlanGeneration` — aquele hook é estado singleton
- * por instância e não acompanha múltiplos jobs. Aqui há um poller próprio por `jobId` sobre
- * `BatchPlanService.consultarStatus`, um mapa por `atletaId`, e assinatura seletiva (o Provider expõe
- * `getEntry`/`subscribe` a `useSyncExternalStore`, de forma que só as linhas em geração re-renderizem).
- *
- * Sem persistência: recarregar a página ou sair da área do coach descarta o estado (o job segue no
- * servidor). É limitação aceita da change.
+ * por instância. Sem persistência: recarregar a página ou sair da área do coach descarta o estado
+ * (o job segue no servidor). Limitação aceita da change.
  */
 
 export type PlanGenerationStatus = 'gerando' | 'concluido' | 'erro';
@@ -43,17 +44,32 @@ interface Poller {
     safety: ReturnType<typeof setTimeout> | null;
 }
 
+interface Job {
+    atletaIds: string[];
+    /** Último status do polling — alimenta o progresso agregado lido pelos dialogs. */
+    status: BatchPlanJobStatus | null;
+    poller: Poller;
+}
+
 /** Leitura reativa consumida pelo `useSyncExternalStore`. */
 export interface PlanGenerationReadable {
     getEntry(atletaId: string): PlanGenerationEntry | undefined;
+    getJobStatus(jobId: string): BatchPlanJobStatus | null;
     subscribe(listener: () => void): () => void;
 }
 
 export class PlanGenerationStore implements PlanGenerationReadable {
-    private entries = new Map<string, PlanGenerationEntry>();
-    private listeners = new Set<() => void>();
-    private pollers = new Map<string, Poller>(); // por jobId — garante idempotência (StrictMode)
+    private entries = new Map<string, PlanGenerationEntry>(); // por atletaId (linha do roster)
+    private jobs = new Map<string, Job>(); // por jobId (poller + agregado)
     private janelas = new Map<string, ReturnType<typeof setTimeout>>(); // limpeza terminal por atletaId
+    private listeners = new Set<() => void>();
+
+    /** Marca este store como o provider real (o `nullStore` do contexto usa `false`). */
+    readonly hasProvider = true;
+
+    // Single-slot proposital: só o ÚLTIMO callback registrado é chamado — não é um barramento de
+    // eventos. Hoje só o CoachAthletesPage registra (fetchRoster + reviewFetchPendentes). Se um dia
+    // dois consumidores precisarem reagir ao terminal, trocar por um Set<() => void>.
     private onPlanoGerado?: () => void;
 
     setOnPlanoGerado = (cb?: () => void): void => {
@@ -69,6 +85,8 @@ export class PlanGenerationStore implements PlanGenerationReadable {
 
     getEntry = (atletaId: string): PlanGenerationEntry | undefined => this.entries.get(atletaId);
 
+    getJobStatus = (jobId: string): BatchPlanJobStatus | null => this.jobs.get(jobId)?.status ?? null;
+
     private emit(): void {
         this.listeners.forEach((l) => l());
     }
@@ -83,82 +101,126 @@ export class PlanGenerationStore implements PlanGenerationReadable {
     }
 
     /**
-     * Reserva ANTES do POST. Bloqueia redisparo do mesmo atleta (dois cliques rápidos → um único
-     * gerar-lote). Retorna false se já há geração em andamento para o atleta.
+     * Reserva ANTES do POST (lote de 1). Bloqueia redisparo do mesmo atleta. Retorna false se já há
+     * geração em andamento para o atleta.
      */
-    iniciar = (atletaId: string): boolean => {
-        const cur = this.entries.get(atletaId);
-        if (cur && cur.status === 'gerando') return false;
-        this.limparJanela(atletaId);
-        this.set(atletaId, { atletaId, jobId: null, status: 'gerando' });
-        return true;
+    iniciar = (atletaId: string): boolean => this.iniciarLote([atletaId]).length > 0;
+
+    /**
+     * Reserva ANTES do POST para vários atletas. Pula os que já estão gerando; devolve os IDs
+     * efetivamente reservados (os que o `anexarJobLote` deve associar ao jobId).
+     */
+    iniciarLote = (atletaIds: string[]): string[] => {
+        const reservados: string[] = [];
+        for (const id of atletaIds) {
+            const cur = this.entries.get(id);
+            if (cur && cur.status === 'gerando') continue;
+            this.limparJanela(id);
+            this.set(id, { atletaId: id, jobId: null, status: 'gerando' });
+            reservados.push(id);
+        }
+        return reservados;
     };
 
-    /** Anexa o jobId do 202 e inicia o poller. Ainda funciona se o dialog já foi fechado. */
-    anexarJob = (atletaId: string, jobId: string): void => {
-        const cur = this.entries.get(atletaId);
-        if (!cur || cur.status !== 'gerando') return; // reserva liberada/sumiu
-        this.set(atletaId, { ...cur, jobId });
-        this.startPoller(atletaId, jobId);
+    /** Anexa o jobId do 202 (lote de 1) e inicia o poller. */
+    anexarJob = (atletaId: string, jobId: string): void => this.anexarJobLote([atletaId], jobId);
+
+    /** Anexa o jobId do 202 a vários atletas e inicia UM poller para o job. */
+    anexarJobLote = (atletaIds: string[], jobId: string): void => {
+        const alvo = atletaIds.filter((id) => {
+            const c = this.entries.get(id);
+            return c && c.status === 'gerando';
+        });
+        if (alvo.length === 0) return;
+        alvo.forEach((id) => this.set(id, { ...this.entries.get(id)!, jobId }));
+        this.startPoller(jobId, alvo);
     };
 
-    /** Libera a reserva quando o POST falha (só se ainda pendente, sem jobId). */
+    /** Libera a reserva quando o POST falha (só as ainda pendentes, sem jobId). */
     liberar = (atletaId: string): void => {
         const cur = this.entries.get(atletaId);
         if (!cur || cur.status !== 'gerando' || cur.jobId !== null) return;
         this.remove(atletaId);
     };
 
-    private startPoller(atletaId: string, jobId: string): void {
-        if (this.pollers.has(jobId)) return; // idempotente — não inicia 2º poller pro mesmo jobId
+    liberarLote = (atletaIds: string[]): void => atletaIds.forEach((id) => this.liberar(id));
+
+    private startPoller(jobId: string, atletaIds: string[]): void {
+        if (this.jobs.has(jobId)) return; // idempotente — não inicia 2º poller pro mesmo jobId
         const poller: Poller = { cancelled: false, retries: 0, next: null, safety: null };
-        this.pollers.set(jobId, poller);
-        poller.safety = setTimeout(() => this.falhaTerminal(atletaId, jobId, TIMEOUT_MSG), TIMEOUT_MS);
-        void this.consultar(atletaId, jobId, poller);
+        this.jobs.set(jobId, { atletaIds, status: null, poller });
+        poller.safety = setTimeout(() => this.falharJob(jobId, TIMEOUT_MSG), TIMEOUT_MS);
+        void this.consultar(jobId);
     }
 
-    private async consultar(atletaId: string, jobId: string, poller: Poller): Promise<void> {
+    private async consultar(jobId: string): Promise<void> {
+        const job = this.jobs.get(jobId);
+        if (!job || job.poller.cancelled) return;
         try {
             const atual = await BatchPlanService.consultarStatus(jobId);
-            if (poller.cancelled) return;
-            poller.retries = 0;
+            const j = this.jobs.get(jobId);
+            if (!j || j.poller.cancelled) return;
+            j.poller.retries = 0;
+            j.status = atual;
+            this.emit(); // agregado atualizado (progresso dos dialogs)
             if (isBatchJobTerminal(atual.status)) {
-                this.terminal(atletaId, jobId, atual);
+                this.terminal(jobId, atual);
                 return;
             }
-            poller.next = setTimeout(() => void this.consultar(atletaId, jobId, poller), POLL_INTERVALO_MS);
+            j.poller.next = setTimeout(() => void this.consultar(jobId), POLL_INTERVALO_MS);
         } catch {
-            if (poller.cancelled) return;
-            poller.retries += 1;
-            if (poller.retries > MAX_RETRIES) {
-                this.falhaTerminal(atletaId, jobId, ERRO_CONSULTA);
+            const j = this.jobs.get(jobId);
+            if (!j || j.poller.cancelled) return;
+            j.poller.retries += 1;
+            if (j.poller.retries > MAX_RETRIES) {
+                this.falharJob(jobId, ERRO_CONSULTA);
                 return;
             }
-            poller.next = setTimeout(() => void this.consultar(atletaId, jobId, poller), POLL_INTERVALO_MS);
+            j.poller.next = setTimeout(() => void this.consultar(jobId), POLL_INTERVALO_MS);
         }
     }
 
-    private terminal(atletaId: string, jobId: string, st: BatchPlanJobStatus): void {
+    private terminal(jobId: string, st: BatchPlanJobStatus): void {
+        const job = this.jobs.get(jobId);
+        if (!job) return;
         this.stopPoller(jobId);
-        const cur = this.entries.get(atletaId);
-        if (!cur || cur.jobId !== jobId) return; // um job sucessor assumiu — ignora este terminal
-        const comErro = st.status === 'CONCLUIDO_COM_ERROS' || st.erros > 0 || st.gerados === 0;
-        if (comErro) {
-            const motivo = st.errosDetalhes[0]?.motivo ?? ERRO_FALLBACK;
-            this.set(atletaId, { ...cur, status: 'erro', mensagem: motivo, terminalEm: Date.now() });
-        } else {
-            this.set(atletaId, { ...cur, status: 'concluido', terminalEm: Date.now() });
-            this.onPlanoGerado?.();
-        }
-        this.agendarLimpeza(atletaId, jobId);
+        const gerados = new Set(st.geradosDetalhes.map((g) => g.atletaId));
+        const erros = new Map(st.errosDetalhes.map((e) => [e.atletaId, e.motivo] as const));
+        // Fallback para lote de 1 sem detalhes por atleta: usa o agregado do job.
+        const comErroAgregado = st.status === 'CONCLUIDO_COM_ERROS' || st.erros > 0 || st.gerados === 0;
+        let algumSucesso = false;
+
+        job.atletaIds.forEach((id) => {
+            const cur = this.entries.get(id);
+            if (!cur || cur.jobId !== jobId) return; // um job sucessor assumiu este atleta — ignora
+            if (gerados.has(id)) {
+                this.set(id, { ...cur, status: 'concluido', terminalEm: Date.now() });
+                algumSucesso = true;
+            } else if (erros.has(id)) {
+                this.set(id, { ...cur, status: 'erro', mensagem: erros.get(id) ?? ERRO_FALLBACK, terminalEm: Date.now() });
+            } else if (comErroAgregado) {
+                this.set(id, { ...cur, status: 'erro', mensagem: st.errosDetalhes[0]?.motivo ?? ERRO_FALLBACK, terminalEm: Date.now() });
+            } else {
+                this.set(id, { ...cur, status: 'concluido', terminalEm: Date.now() });
+                algumSucesso = true;
+            }
+            this.agendarLimpeza(id, jobId);
+        });
+
+        if (algumSucesso) this.onPlanoGerado?.();
     }
 
-    private falhaTerminal(atletaId: string, jobId: string, msg: string): void {
+    /** Falha o job inteiro (esgotou retentativas de rede ou timeout): marca todos os atletas em erro. */
+    private falharJob(jobId: string, msg: string): void {
+        const job = this.jobs.get(jobId);
+        if (!job) return;
         this.stopPoller(jobId);
-        const cur = this.entries.get(atletaId);
-        if (!cur || cur.jobId !== jobId) return;
-        this.set(atletaId, { ...cur, status: 'erro', mensagem: msg, terminalEm: Date.now() });
-        this.agendarLimpeza(atletaId, jobId);
+        job.atletaIds.forEach((id) => {
+            const cur = this.entries.get(id);
+            if (!cur || cur.jobId !== jobId) return;
+            this.set(id, { ...cur, status: 'erro', mensagem: msg, terminalEm: Date.now() });
+            this.agendarLimpeza(id, jobId);
+        });
     }
 
     /** Agenda a limpeza da entrada terminal; não apaga se um job sucessor já assumiu o atleta. */
@@ -180,23 +242,23 @@ export class PlanGenerationStore implements PlanGenerationReadable {
         }
     }
 
+    /** Para o poller do job (mantém a entrada `jobs` com o status final para o agregado dos dialogs). */
     private stopPoller(jobId: string): void {
-        const p = this.pollers.get(jobId);
-        if (!p) return;
-        p.cancelled = true;
-        if (p.next) clearTimeout(p.next);
-        if (p.safety) clearTimeout(p.safety);
-        this.pollers.delete(jobId);
+        const job = this.jobs.get(jobId);
+        if (!job) return;
+        job.poller.cancelled = true;
+        if (job.poller.next) clearTimeout(job.poller.next);
+        if (job.poller.safety) clearTimeout(job.poller.safety);
     }
 
     /** Cancela todos os pollers/timers e zera o estado — chamado no unmount do Provider. */
     dispose = (): void => {
-        this.pollers.forEach((p) => {
-            p.cancelled = true;
-            if (p.next) clearTimeout(p.next);
-            if (p.safety) clearTimeout(p.safety);
+        this.jobs.forEach((job) => {
+            job.poller.cancelled = true;
+            if (job.poller.next) clearTimeout(job.poller.next);
+            if (job.poller.safety) clearTimeout(job.poller.safety);
         });
-        this.pollers.clear();
+        this.jobs.clear();
         this.janelas.forEach((t) => clearTimeout(t));
         this.janelas.clear();
         this.entries.clear();
