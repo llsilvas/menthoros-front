@@ -89,6 +89,18 @@ describe('PlanGenerationStore', () => {
         expect(reload).not.toHaveBeenCalled();
     });
 
+    it('fallback agregado: CONCLUIDO_COM_ERROS sem errosDetalhes marca o atleta em erro', async () => {
+        // Ramo de segurança do terminal(): o backend deveria mandar errosDetalhes por atleta, mas se
+        // vier vazio num terminal com erro, o atleta ainda cai em `erro` (não vira sucesso por omissão).
+        consultar.mockResolvedValue(statusJob({ status: 'CONCLUIDO_COM_ERROS', gerados: 0, erros: 1, errosDetalhes: [] }));
+
+        store.iniciar('a1');
+        store.anexarJob('a1', 'job-1');
+        await flush();
+
+        expect(store.getEntry('a1')).toMatchObject({ status: 'erro' });
+    });
+
     it('retenta em falha até esgotar e então marca erro (não fica preso em gerando)', async () => {
         consultar.mockRejectedValue(new Error('offline'));
 

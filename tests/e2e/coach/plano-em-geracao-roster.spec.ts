@@ -137,11 +137,12 @@ test.describe('Plano em geração na linha do roster', () => {
       })
     })
 
-    // Terminal por tempo (~3s): antes disso, EM_PROGRESSO; depois, os DOIS concluídos.
+    // Terminal por tempo (~8s): folga para reabrir o dialog durante a geração antes de concluir
+    // (o onConcluido limpa a seleção, então a reabertura precisa acontecer com o lote em andamento).
     let t0 = 0
     await page.route(JOB_API, async (route) => {
       if (t0 === 0) t0 = Date.now()
-      const terminal = Date.now() - t0 > 3000
+      const terminal = Date.now() - t0 > 8000
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -173,10 +174,19 @@ test.describe('Plano em geração na linha do roster', () => {
     await page.getByRole('button', { name: /gerar planos \(2\)/i }).click()
     await page.getByRole('button', { name: /gerar 2 plano\(s\)/i }).click()
 
-    // Fecha o dialog do lote no meio da geração; o progresso segue nas linhas.
-    await page.keyboard.press('Escape')
+    // Fecha o dialog do lote no meio da geração (botão Fechar, habilitado com provider); o
+    // progresso segue nas linhas.
+    await page.locator('.MuiDialogActions-root').getByRole('button', { name: /fechar/i }).click()
 
     await expect(page.getByText('Gerando plano…').first()).toBeVisible()
+
+    // Reabrir com a mesma seleção durante o lote em andamento mostra o PROGRESSO (não a
+    // confirmação) e NÃO dispara um segundo gerar-lote (evita job duplicado no backend).
+    await page.getByRole('button', { name: /gerar planos \(2\)/i }).click()
+    await expect(page.getByText(/você pode fechar/i)).toBeVisible()
+    await expect(page.getByRole('button', { name: /gerar 2 plano\(s\)/i })).toHaveCount(0)
+    expect(lotePosts).toBe(1)
+    await page.locator('.MuiDialogActions-root').getByRole('button', { name: /fechar/i }).click()
     // As duas linhas concluem sozinhas pelo polling do provider.
     await expect(page.getByText(/plano gerado agora/i).first()).toBeVisible({ timeout: 15_000 })
     await expect(page.getByText(/plano gerado agora/i)).toHaveCount(2)
