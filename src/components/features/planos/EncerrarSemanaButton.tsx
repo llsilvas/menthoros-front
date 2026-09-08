@@ -11,6 +11,8 @@ interface EncerrarSemanaButtonProps {
     onEncerrado?: () => void;
     /** CTA "Gerar plano da próxima semana" (só quando o plano ficou concluído). */
     onGerarProximaSemana?: () => void;
+    /** Geração de plano em andamento (assíncrona): desabilita o CTA e mostra progresso. */
+    gerando?: boolean;
 }
 
 /**
@@ -21,6 +23,7 @@ export const EncerrarSemanaButton: React.FC<EncerrarSemanaButtonProps> = ({
     planoId,
     onEncerrado,
     onGerarProximaSemana,
+    gerando = false,
 }) => {
     const { encerrarSemana, loading, error } = useEncerrarSemana();
     const [resultado, setResultado] = useState<EncerramentoSemanaResult | null>(null);
@@ -55,6 +58,7 @@ export const EncerrarSemanaButton: React.FC<EncerrarSemanaButtonProps> = ({
                 <EncerramentoSemanaResumo
                     resultado={resultado}
                     onGerarProximaSemana={resultado.prontoParaProximaSemana ? onGerarProximaSemana : undefined}
+                    gerando={gerando}
                 />
             )}
         </>

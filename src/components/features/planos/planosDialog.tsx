@@ -26,6 +26,8 @@ import {
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import { usePlanoSemanal } from '../../../hooks/usePlanoSemanal';
+import { useBatchPlanGeneration } from '../../../hooks/useBatchPlanGeneration';
+import { isBatchJobTerminal } from '../../../types/BatchPlanJob';
 import { AtletasService } from '../../../api/services/AtletasService';
 import { TreinoService } from '../../../api/services/TreinoService';
 import {
@@ -146,10 +148,20 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
         loading,
         error,
         fetchPlanosPorAtleta,
-        gerarPlanoSemanal,
         deletePlano,
         clearPlanos
     } = usePlanoSemanal();
+
+    // Geração de plano é assíncrona: o síncrono levava ~35-70s (cold-start) e estourava o
+    // proxy_read_timeout de 60s do nginx -> 504. Reusa o fluxo de lote (lote de 1 + polling);
+    // ver change gerar-plano-individual-assincrono.
+    const {
+        status: geracaoStatus,
+        loading: gerando,
+        error: geracaoError,
+        gerarLote,
+        reset: resetGeracao,
+    } = useBatchPlanGeneration();
 
     const [modoGeracao, setModoGeracao] = useState<MetodoGeracaoPlano>('PROXIMA_SEMANA');
 
@@ -193,20 +205,39 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [planos]);
 
-    const handleGerarPlano = async () => {
-        if(!atletaId) {
+    // Dispara a geração de UM atleta pelo fluxo assíncrono (lote de 1). Bloqueia redisparo enquanto
+    // um job está em andamento (o backend só deduplica dentro de um lote, não entre requisições).
+    const dispararGeracao = async (modo: MetodoGeracaoPlano) => {
+        if (!atletaId) {
             console.error('ID do atleta não fornecido');
             return;
         }
-
+        if (gerando) return;
         try {
-            await gerarPlanoSemanal(atletaId, modoGeracao);
-            // Após gerar, recarrega a lista automaticamente
-            onPlanoGerado?.();
+            await gerarLote([atletaId], modo);
         } catch (err) {
-            console.error('Erro ao gerar plano semanal:', err);
+            console.error('Erro ao iniciar a geração do plano:', err);
         }
     };
+
+    const handleGerarPlano = () => void dispararGeracao(modoGeracao);
+
+    // Quando o job termina: sucesso relista o plano; erro fica visível pelo geracaoError/alertas.
+    useEffect(() => {
+        if (geracaoStatus && isBatchJobTerminal(geracaoStatus.status) && geracaoStatus.gerados > 0) {
+            if (atletaId) fetchPlanosPorAtleta(atletaId);
+            onPlanoGerado?.();
+            resetGeracao();
+        }
+    }, [geracaoStatus, atletaId, fetchPlanosPorAtleta, onPlanoGerado, resetGeracao]);
+
+    // Mensagem de falha do job: erro de disparo, ou terminal com erros (inclui plano já existe).
+    const erroDetalhe = geracaoStatus?.errosDetalhes?.[0]?.motivo;
+    const mensagemGeracao =
+        geracaoError ??
+        (geracaoStatus && geracaoStatus.erros > 0 && geracaoStatus.gerados === 0
+            ? (erroDetalhe ?? 'Não foi possível gerar o plano. Tente novamente.')
+            : null);
 
     const handleDeletePlano = async (planoSemanalId: string) => {
         if(!planoSemanalId) {
@@ -378,9 +409,9 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                     </Button>
                     <Button
                         variant='contained'
-                        startIcon={<AddIcon />}
+                        startIcon={gerando ? <CircularProgress size={16} color="inherit" /> : <AddIcon />}
                         onClick={handleGerarPlano}
-                        disabled={loading || temPlanoAtivo}
+                        disabled={loading || gerando || temPlanoAtivo}
                         size="small"
                         sx={{
                             ...PRIMARY_BTN_SX,
@@ -389,7 +420,7 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                             minHeight: { xs: 38, md: 32 },
                         }}
                     >
-                        {loading ? 'Gerando...' : 'Gerar Plano'}
+                        {gerando ? 'Gerando…' : 'Gerar Plano'}
                     </Button>
                 </Box>
     );
@@ -423,6 +454,21 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                 {error && (
                     <Alert severity="error" sx={{ m: 3 }}>
                         {error.message}
+                    </Alert>
+                )}
+
+                {gerando && (
+                    <Box sx={{ m: 3 }}>
+                        <Alert severity="info" icon={<CircularProgress size={18} />}>
+                            Gerando o plano com IA — isto pode levar cerca de um minuto. Você pode
+                            fechar e voltar depois.
+                        </Alert>
+                    </Box>
+                )}
+
+                {mensagemGeracao && (
+                    <Alert severity="error" sx={{ m: 3 }} onClose={resetGeracao}>
+                        {mensagemGeracao}
                     </Alert>
                 )}
 
@@ -513,11 +559,8 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                                                 <EncerrarSemanaButton
                                                     planoId={plano.id}
                                                     onEncerrado={() => { if (atletaId) fetchPlanosPorAtleta(atletaId); }}
-                                                    onGerarProximaSemana={async () => {
-                                                        if (!atletaId) return;
-                                                        await gerarPlanoSemanal(atletaId, 'PROXIMA_SEMANA');
-                                                        onPlanoGerado?.();
-                                                    }}
+                                                    gerando={gerando}
+                                                    onGerarProximaSemana={() => void dispararGeracao('PROXIMA_SEMANA')}
                                                 />
                                             </Box>
                                         )}

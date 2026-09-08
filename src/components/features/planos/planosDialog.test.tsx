@@ -3,20 +3,25 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PlanosDialog from './planosDialog';
 import { usePlanoSemanal } from '../../../hooks/usePlanoSemanal';
+import { useBatchPlanGeneration } from '../../../hooks/useBatchPlanGeneration';
+import type { BatchPlanJobStatus } from '../../../types/BatchPlanJob';
 
 vi.mock('../../../hooks/usePlanoSemanal');
+vi.mock('../../../hooks/useBatchPlanGeneration');
 vi.mock('../../../api/services/AtletasService');
 vi.mock('../../../api/services/TreinoService');
 
-type HookReturn = ReturnType<typeof usePlanoSemanal>;
+type PlanoHook = ReturnType<typeof usePlanoSemanal>;
+type BatchHook = ReturnType<typeof useBatchPlanGeneration>;
 
-const mockHook = (over: Partial<HookReturn>): void => {
+const fetchPlanosPorAtleta = vi.fn().mockResolvedValue(undefined);
+
+const mockPlanoHook = (over: Partial<PlanoHook> = {}): void => {
     vi.mocked(usePlanoSemanal).mockReturnValue({
         planos: [],
         loading: false,
         error: null,
-        fetchPlanosPorAtleta: vi.fn().mockResolvedValue(undefined),
-        gerarPlanoSemanal: vi.fn().mockResolvedValue(undefined),
+        fetchPlanosPorAtleta,
         deletePlano: vi.fn().mockResolvedValue(undefined),
         clearError: vi.fn(),
         clearPlanos: vi.fn(),
@@ -24,39 +29,84 @@ const mockHook = (over: Partial<HookReturn>): void => {
     });
 };
 
-describe('PlanosDialog — geração de plano', () => {
+const mockBatchHook = (over: Partial<BatchHook> = {}): BatchHook => {
+    const hook: BatchHook = {
+        jobId: null,
+        status: null,
+        loading: false,
+        error: null,
+        gerarLote: vi.fn().mockResolvedValue({ jobId: 'job-1', totalAtletas: 1 }),
+        reset: vi.fn(),
+        ...over,
+    };
+    vi.mocked(useBatchPlanGeneration).mockReturnValue(hook);
+    return hook;
+};
+
+const statusTerminal = (over: Partial<BatchPlanJobStatus>): BatchPlanJobStatus => ({
+    jobId: 'job-1',
+    status: 'CONCLUIDO',
+    totalAtletas: 1,
+    gerados: 1,
+    erros: 0,
+    geradosDetalhes: [],
+    errosDetalhes: [],
+    ...over,
+});
+
+describe('PlanosDialog — geração de plano (assíncrona)', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         vi.spyOn(console, 'log').mockImplementation(() => {});
     });
 
-    it('avisa o pai via onPlanoGerado depois que a geração conclui', async () => {
-        const gerarPlanoSemanal = vi.fn().mockResolvedValue(undefined);
-        mockHook({ gerarPlanoSemanal });
-        const onPlanoGerado = vi.fn();
+    it('dispara a geração como lote de 1 pelo fluxo assíncrono (não mais o síncrono)', async () => {
+        mockPlanoHook();
+        const batch = mockBatchHook();
 
-        render(
-            <PlanosDialog open onClose={vi.fn()} atletaId="a1" atletaNome="Ana" onPlanoGerado={onPlanoGerado} />,
-        );
-
+        render(<PlanosDialog open onClose={vi.fn()} atletaId="a1" atletaNome="Ana" />);
         await userEvent.click(screen.getByRole('button', { name: /gerar plano/i }));
 
-        await waitFor(() => expect(onPlanoGerado).toHaveBeenCalledTimes(1));
-        expect(gerarPlanoSemanal).toHaveBeenCalledWith('a1', 'PROXIMA_SEMANA');
+        expect(batch.gerarLote).toHaveBeenCalledWith(['a1'], 'PROXIMA_SEMANA');
     });
 
-    it('não avisa o pai quando a geração falha', async () => {
-        mockHook({ gerarPlanoSemanal: vi.fn().mockRejectedValue(new Error('boom')) });
-        vi.spyOn(console, 'error').mockImplementation(() => {});
+    it('avisa o pai e relista quando o job conclui com sucesso', async () => {
+        mockPlanoHook();
+        // status terminal de sucesso já presente no render — o efeito de conclusão dispara.
+        mockBatchHook({ status: statusTerminal({}) });
         const onPlanoGerado = vi.fn();
 
-        render(
-            <PlanosDialog open onClose={vi.fn()} atletaId="a1" atletaNome="Ana" onPlanoGerado={onPlanoGerado} />,
-        );
+        render(<PlanosDialog open onClose={vi.fn()} atletaId="a1" atletaNome="Ana" onPlanoGerado={onPlanoGerado} />);
 
-        await userEvent.click(screen.getByRole('button', { name: /gerar plano/i }));
+        await waitFor(() => expect(onPlanoGerado).toHaveBeenCalledTimes(1));
+        expect(fetchPlanosPorAtleta).toHaveBeenCalledWith('a1');
+    });
 
-        await waitFor(() => expect(console.error).toHaveBeenCalled());
+    it('NÃO avisa o pai quando o job termina com erro (CONCLUIDO_COM_ERROS)', async () => {
+        mockPlanoHook();
+        mockBatchHook({
+            status: statusTerminal({
+                status: 'CONCLUIDO_COM_ERROS',
+                gerados: 0,
+                erros: 1,
+                errosDetalhes: [{ atletaId: 'a1', motivo: 'Já existe plano para a semana.' }],
+            }),
+        });
+        const onPlanoGerado = vi.fn();
+
+        render(<PlanosDialog open onClose={vi.fn()} atletaId="a1" atletaNome="Ana" onPlanoGerado={onPlanoGerado} />);
+
+        // a mensagem de erro do job aparece e o pai não é avisado
+        expect(await screen.findByText(/já existe plano para a semana/i)).toBeInTheDocument();
         expect(onPlanoGerado).not.toHaveBeenCalled();
+    });
+
+    it('bloqueia o botão de gerar enquanto o job está em andamento', () => {
+        mockPlanoHook();
+        mockBatchHook({ loading: true });
+
+        render(<PlanosDialog open onClose={vi.fn()} atletaId="a1" atletaNome="Ana" />);
+
+        expect(screen.getByRole('button', { name: /gerando/i })).toBeDisabled();
     });
 });
