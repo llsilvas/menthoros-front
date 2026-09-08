@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import PlanosDialog from './planosDialog';
 import { usePlanoSemanal } from '../../../hooks/usePlanoSemanal';
 import { useBatchPlanGeneration } from '../../../hooks/useBatchPlanGeneration';
@@ -108,5 +108,21 @@ describe('PlanosDialog — geração de plano (assíncrona)', () => {
         render(<PlanosDialog open onClose={vi.fn()} atletaId="a1" atletaNome="Ana" />);
 
         expect(screen.getByRole('button', { name: /gerando/i })).toBeDisabled();
+    });
+
+    it('reseta a geração ao trocar de atleta — não contamina o novo atleta com o job do anterior', () => {
+        mockPlanoHook();
+        const batch = mockBatchHook();
+
+        const { rerender } = render(
+            <PlanosDialog open onClose={vi.fn()} atletaId="a1" atletaNome="Ana" />,
+        );
+        const resetMock = batch.reset as unknown as Mock;
+        const chamadasNoMount = resetMock.mock.calls.length;
+
+        rerender(<PlanosDialog open onClose={vi.fn()} atletaId="a2" atletaNome="Bruno" />);
+
+        // A troca de atleta dispara um reset adicional (para o polling do job do atleta anterior).
+        expect(resetMock.mock.calls.length).toBeGreaterThan(chamadasNoMount);
     });
 });

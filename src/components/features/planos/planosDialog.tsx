@@ -174,19 +174,20 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
     const [detalheModalOpen, setDetalheModalOpen] = useState(false);
     const [treinoDetalhe, setTreinoDetalhe] = useState<TreinoPlanejado | null>(null);
 
-    // Carrega os planos quando o dialog abre e atletaId está disponível
+    // Carrega os planos quando o dialog abre e atletaId está disponível.
+    // O PlanosDialog é UMA instância reusada para todos os atletas (AtletasList não usa key), e o
+    // job de geração é assíncrono: sem resetar ao trocar de atleta ou fechar, uma conclusão do
+    // atleta A cairia no contexto do atleta B (relist/alerta no atleta errado). resetGeracao para
+    // o polling e zera o estado — o job segue no backend e o plano aparece ao reabrir aquele atleta.
     useEffect(() => {
-        console.log('PlanosDialog useEffect - open:', open, 'atletaId:', atletaId);
+        resetGeracao();
         if (open && atletaId) {
-            console.log('Carregando planos para atleta:', atletaId);
             fetchPlanosPorAtleta(atletaId);
         }
-        // Limpa os planos quando o dialog fecha
         if (!open) {
-            console.log('Dialog fechado, limpando planos');
             clearPlanos();
         }
-    }, [open, atletaId, fetchPlanosPorAtleta, clearPlanos]);
+    }, [open, atletaId, fetchPlanosPorAtleta, clearPlanos, resetGeracao]);
 
     // Debug dos estados
     useEffect(() => {
@@ -232,6 +233,7 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
     }, [geracaoStatus, atletaId, fetchPlanosPorAtleta, onPlanoGerado, resetGeracao]);
 
     // Mensagem de falha do job: erro de disparo, ou terminal com erros (inclui plano já existe).
+    // Lote de 1: há no máximo um erro, então errosDetalhes[0] basta.
     const erroDetalhe = geracaoStatus?.errosDetalhes?.[0]?.motivo;
     const mensagemGeracao =
         geracaoError ??
