@@ -15,6 +15,8 @@ import { resolveReviewStatus } from '../../../types/PlanoReview';
 import type { DiaSemanaDto, PlanoSemanalDto, TreinoPlanejadoDto } from '../../../types/PlanoReview';
 import { primary, surface, semantic, content } from '../../../theme/tokens';
 import { workoutTypeColor } from '../../../theme/activeTheme';
+import { StatusBadge } from '../../../shared/components/StatusBadge';
+import { resolvePlannerReviewBadge, resolvePlannerReviewReasons } from '../adapters/plannerReviewAdapters';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { DANGER_BTN_SX, GHOST_BTN_SX } from '../../../shared/components/actionButtonSx';
 
@@ -434,6 +436,9 @@ export function PlanoDetalhePanel({
     const statusColor = STATUS_COLOR[reviewStatusValue] ?? STATUS_COLOR.AGUARDANDO_REVISAO;
     const statusLabel = STATUS_LABEL[reviewStatusValue] ?? reviewStatusValue;
     const reaberturaLabel = plano.motivoReabertura ? REABERTURA_LABEL[plano.motivoReabertura] : null;
+    // planner-engine-enforcement §7.2: destaque de revisão obrigatória por divergência do planner.
+    const plannerBadge = resolvePlannerReviewBadge(plano);
+    const plannerReasons = resolvePlannerReviewReasons(plano);
 
     const handleRejeitar = (motivo: string) => {
         setModalAberto(false);
@@ -497,6 +502,37 @@ export function PlanoDetalhePanel({
                         <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: primary[500], letterSpacing: '0.04em' }}>
                             {reaberturaLabel}
                         </Typography>
+                    </Box>
+                )}
+
+                {/* Revisão obrigatória do planner (planner-engine-enforcement §7.2) */}
+                {plannerBadge && (
+                    <Box data-testid="planner-review-block" sx={{ mb: 1.25 }}>
+                        <StatusBadge variant={plannerBadge.variant} label={plannerBadge.label} size="sm" />
+                        {plannerReasons.length > 0 && (
+                            <Box
+                                component="ul"
+                                sx={{
+                                    listStyle: 'none',
+                                    m: 0,
+                                    mt: 0.75,
+                                    p: 0,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 0.375,
+                                }}
+                            >
+                                {plannerReasons.map((motivo, i) => (
+                                    <Typography
+                                        key={i}
+                                        component="li"
+                                        sx={{ fontSize: '0.72rem', color: surface[400], lineHeight: 1.4 }}
+                                    >
+                                        • {motivo}
+                                    </Typography>
+                                ))}
+                            </Box>
+                        )}
                     </Box>
                 )}
 

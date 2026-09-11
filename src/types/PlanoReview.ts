@@ -134,7 +134,26 @@ export interface PlanoSemanalDto {
      * reabertura.
      */
     motivoReabertura?: 'PROVA_INSERIDA' | 'PROVA_REMOVIDA' | null;
+    /**
+     * planner-engine-enforcement §7.1: status de compliance do plano frente ao skeleton do planner.
+     * `FAILED` = plano diverge e precisa de revisão; ausente/null em plano legado sem avaliação.
+     */
+    plannerComplianceStatus?: PlannerComplianceStatusDto | null;
+    /** Exige revisão do coach por divergência do planner (`FAILED` ou requiresCoachReview). */
+    plannerRequiresCoachReview?: boolean | null;
+    /** Motivos legíveis da divergência (uma frase por violação), para o badge de revisão. */
+    plannerReviewReasons?: string[] | null;
 }
+
+/** Espelha `PlannerComplianceStatus.java` (planner-engine-enforcement). */
+export type PlannerComplianceStatusDto =
+    | 'NOT_EVALUATED'
+    | 'COMPLIANT'
+    | 'VIOLATIONS_DETECTED'
+    | 'PASSED'
+    | 'RETRIED_PASSED'
+    | 'FALLBACK'
+    | 'FAILED';
 
 /** Payload do endpoint POST /{id}/rejeitar. */
 export interface PlanoRejectionInput {
