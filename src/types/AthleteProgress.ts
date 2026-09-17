@@ -32,3 +32,23 @@ export interface AthleteAderencia {
   totalRealizado: number;
   percentual: number;
 }
+
+/** Janela de tempo pro cálculo de melhores esforços — mesma sintaxe de curva do intervals.icu. */
+export type MelhoresEsforcosJanela = '42d' | '1y' | 'all';
+
+/**
+ * Melhor tempo contínuo por distância de referência (400m-10k) — diferente de {@link AthleteRecord}
+ * (PR de treino inteiro): distâncias curtas acontecem dentro de um treino maior.
+ */
+export interface AthleteMelhorEsforco {
+  distanciaLabel: string;
+  distanciaMetros: number;
+  tempoSegundos: number;
+  paceLabel: string;
+}
+
+/** Resposta de GET /me/melhores-esforcos — integracaoConectada=false não é erro, é estado válido. */
+export interface AthleteMelhoresEsforcos {
+  marcas: AthleteMelhorEsforco[];
+  integracaoConectada: boolean;
+}

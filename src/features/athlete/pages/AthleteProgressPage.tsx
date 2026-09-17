@@ -1,4 +1,4 @@
-import { useEffect, useMemo, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Alert, Box, Button, Skeleton, Typography } from '@mui/material';
 import { surface } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
@@ -8,16 +8,20 @@ import { useAthleteZones } from '../../../hooks/useAthleteZones';
 import { useAthleteRecordes } from '../../../hooks/useAthleteRecordes';
 import { useAthleteAderencia } from '../../../hooks/useAthleteAderencia';
 import { useAthleteProvas } from '../../../hooks/useAthleteProvas';
+import { useAthleteMelhoresEsforcos } from '../../../hooks/useAthleteMelhoresEsforcos';
 import { useAggregatedFetchErrors } from '../hooks/useAggregatedFetchErrors';
 import { buildPmcDataPoints } from '../adapters/pmcAdapter';
 import {
   ADERENCIA_SEMANAS, buildStrongerReading, buildZonesReading, buildAdherenceReading, buildRecordsReading,
 } from '../adapters/buildProgressReadings';
+import { buildEffortsReading } from '../adapters/effortsAdapter';
 import { ProgressBlockCard } from '../components/progress/ProgressBlockCard';
 import { StrongerBlock } from '../components/progress/StrongerBlock';
 import { ZonesBlock } from '../components/progress/ZonesBlock';
 import { AdherenceBlock } from '../components/progress/AdherenceBlock';
 import { RecordsBlock } from '../components/progress/RecordsBlock';
+import { EffortsBlock } from '../components/progress/EffortsBlock';
+import type { MelhoresEsforcosJanela } from '../../../types/AthleteProgress';
 
 const ZONAS_PERIOD_LABEL = '90 dias'; // default do backend quando from/to omitidos
 
@@ -64,7 +68,8 @@ function BlockState({ pergunta, testId, error, errorMessage, onRetry, loading, e
 }
 
 /**
- * Progresso em quatro perguntas, sem abas (design D1). Cada bloco carrega, falha e esvazia por
+ * Progresso em cinco perguntas, sem abas (design D1; 5ª pergunta — melhores esforços —
+ * acrescentada em add-athlete-best-efforts, 2026-09-18). Cada bloco carrega, falha e esvazia por
  * conta própria (D4); só quando tudo falha há um Alert consolidado. A UI descreve; o coach
  * interpreta — nenhum bloco emite veredito.
  */
@@ -74,6 +79,10 @@ export default function AthleteProgressPage() {
   const { recordes, loading: recordesLoading, error: recordesError, fetchRecordes } = useAthleteRecordes();
   const { aderencia, loading: aderenciaLoading, error: aderenciaError, fetchAderencia } = useAthleteAderencia();
   const { provas, loading: provasLoading, error: provasError, fetchProvas } = useAthleteProvas();
+  const {
+    marcas, integracaoConectada, loading: esforcosLoading, error: esforcosError, fetchMelhoresEsforcos,
+  } = useAthleteMelhoresEsforcos();
+  const [janela, setJanela] = useState<MelhoresEsforcosJanela>('42d');
 
   useEffect(() => {
     fetchPmc();
@@ -82,6 +91,11 @@ export default function AthleteProgressPage() {
     fetchAderencia(ADERENCIA_SEMANAS);
     fetchProvas();
   }, [fetchPmc, fetchZones, fetchRecordes, fetchAderencia, fetchProvas]);
+
+  // Efeito próprio: refaz sozinho quando a janela muda, sem re-disparar os outros blocos.
+  useEffect(() => {
+    fetchMelhoresEsforcos(janela);
+  }, [janela, fetchMelhoresEsforcos]);
 
   const refetchAderencia = () => fetchAderencia(ADERENCIA_SEMANAS);
   // Provas entra no retry consolidado (senão "tentar novamente" deixaria a próxima prova quebrada),
@@ -92,6 +106,7 @@ export default function AthleteProgressPage() {
     { label: 'aderência', error: aderenciaError, refetch: refetchAderencia },
     { label: 'recordes', error: recordesError, refetch: fetchRecordes },
     { label: 'próxima prova', error: provasError, refetch: fetchProvas },
+    { label: 'melhores esforços', error: esforcosError, refetch: () => fetchMelhoresEsforcos(janela) },
   ]);
   const tudoFalhou = [pmcError, zonesError, aderenciaError, recordesError].every((e) => e !== null);
 
@@ -100,12 +115,13 @@ export default function AthleteProgressPage() {
   const zonesReading = useMemo(() => buildZonesReading(zones), [zones]);
   const adherence = useMemo(() => buildAdherenceReading(aderencia), [aderencia]);
   const records = useMemo(() => buildRecordsReading(recordes, provasLoading || provasError ? [] : provas), [recordes, provas, provasLoading, provasError]);
+  const efforts = useMemo(() => buildEffortsReading(marcas, integracaoConectada), [marcas, integracaoConectada]);
 
   return (
     <Box sx={{ minHeight: '100%', bgcolor: elevation.base, p: 2, pt: 2.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
         <Typography variant="h3">Progresso</Typography>
-        <Typography variant="body2" sx={{ color: surface[400] }}>Quatro perguntas sobre o seu treino</Typography>
+        <Typography variant="body2" sx={{ color: surface[400] }}>Cinco perguntas sobre o seu treino</Typography>
       </Box>
 
       {tudoFalhou ? (
@@ -142,6 +158,13 @@ export default function AthleteProgressPage() {
             <RecordsBlock reading={records} provaConhecida={!provasLoading && !provasError} />
           </BlockState>
           {provasError && <BlockError message="Não foi possível carregar sua próxima prova." onRetry={fetchProvas} />}
+
+          {/* O bloco 5 nunca é "vazio" pelo BlockState — ele mesmo mostra o CTA de conexão ou "sem dado nessa janela". */}
+          <BlockState pergunta="Quais são meus melhores tempos?" testId="progress-efforts"
+            error={esforcosError} errorMessage="Não foi possível carregar seus melhores esforços." onRetry={() => fetchMelhoresEsforcos(janela)}
+            loading={esforcosLoading && marcas.length === 0} empty={false} emptyMessage="">
+            <EffortsBlock reading={efforts} janela={janela} onJanelaChange={setJanela} />
+          </BlockState>
         </>
       )}
     </Box>
