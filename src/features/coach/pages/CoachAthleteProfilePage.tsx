@@ -27,6 +27,7 @@ import { CurrentWeekPlan } from '../components/CurrentWeekPlan';
 import { RecentSignalsPanel } from '../components/RecentSignalsPanel';
 import { RecentSuggestionsPanel } from '../components/RecentSuggestionsPanel';
 import { RecentTrainingsPanel } from '../components/RecentTrainingsPanel';
+import { MelhoresEsforcosPanel } from '../components/MelhoresEsforcosPanel';
 import { KudosDialog } from '../components/KudosDialog';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { resolveStatusVencimentoPlanoBadge, formatDataVencimentoPlano } from '../adapters/billingPlanAdapters';
@@ -306,6 +307,13 @@ export default function CoachAthleteProfilePage() {
                     <Grid size={{ xs: 12, md: 6 }}>
                         <SectionCard title="Treinos recentes">
                             <RecentTrainingsPanel realizados={profile.realizadosRecentes ?? []} />
+                        </SectionCard>
+                    </Grid>
+
+                    {/* Melhores esforços — 6 colunas */}
+                    <Grid size={{ xs: 12, md: 6 }}>
+                        <SectionCard title="Melhores esforços">
+                            <MelhoresEsforcosPanel marcas={profile.melhoresEsforcos} />
                         </SectionCard>
                     </Grid>
 

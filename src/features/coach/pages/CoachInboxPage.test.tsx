@@ -45,6 +45,7 @@ const makeProfile = (pmc: PmcPontoRaw[] = []): AtletaPerfilCoachDto => ({
     { id: 's1', tipo: 'AJUSTE_PLANO', status: 'PENDING', criadoEm: '2026-06-24T13:30:00Z' },
   ],
   recordes: [],
+  melhoresEsforcos: [],
   geradoEm: '2026-06-24T13:32:25Z',
   avisos: null,
 });

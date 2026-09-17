@@ -21,6 +21,7 @@ const STUB: AtletaPerfilCoachDto = {
     sinaisRecentes: [],
     sugestoesRecentes: [],
     recordes: [],
+    melhoresEsforcos: [],
     geradoEm: '2026-06-20T12:00:00Z',
     avisos: null,
 };

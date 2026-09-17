@@ -73,6 +73,18 @@ export interface RecordeDto {
     treinoId: string;
 }
 
+/**
+ * Melhor tempo contínuo do atleta por distância de referência (400m-10k), janela rolante de 42
+ * dias — diferente de {@link RecordeDto} (PR de treino inteiro): distâncias curtas acontecem
+ * dentro de um treino maior.
+ */
+export interface MelhorEsforcoDto {
+    distanciaLabel: string;
+    distanciaMetros: number;
+    tempoSegundos: number;
+    paceLabel: string;
+}
+
 /** Limiares de treinamento inferidos pela IA (FC e pace limiar). */
 export interface LimiareisInferidosDto {
     fcLimiarEstimado?: number | null;
@@ -97,6 +109,8 @@ export interface AtletaPerfilCoachDto {
     sinaisRecentes: SinalRecenteDto[];
     sugestoesRecentes: SugestaoRecenteDto[];
     recordes: RecordeDto[];
+    /** Melhores esforços por distância (400m-10k), janela de 42 dias; vazio sem intervals.icu. */
+    melhoresEsforcos: MelhorEsforcoDto[];
     geradoEm: string;
     avisos: string[] | null;
     limiareisInferidos?: LimiareisInferidosDto | null;
