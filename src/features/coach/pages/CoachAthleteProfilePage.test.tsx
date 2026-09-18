@@ -49,6 +49,8 @@ const STUB_PROFILE: AtletaPerfilCoachDto = {
         { id: 'sug-1', tipo: 'NOVO_PLANO', status: 'PENDING', criadoEm: '2026-06-14T08:00:00Z' },
     ],
     recordes: [],
+    melhoresEsforcos: [],
+    melhoresEsforcosIntegracaoConectada: true,
     geradoEm: '2026-06-20T12:00:00Z',
     avisos: null,
 };

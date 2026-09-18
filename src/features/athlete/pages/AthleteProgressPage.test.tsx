@@ -8,12 +8,14 @@ import { useAthleteZones } from '../../../hooks/useAthleteZones';
 import { useAthleteRecordes } from '../../../hooks/useAthleteRecordes';
 import { useAthleteAderencia } from '../../../hooks/useAthleteAderencia';
 import { useAthleteProvas } from '../../../hooks/useAthleteProvas';
+import { useAthleteMelhoresEsforcos } from '../../../hooks/useAthleteMelhoresEsforcos';
 
 vi.mock('../../../hooks/useAthletePmc');
 vi.mock('../../../hooks/useAthleteZones');
 vi.mock('../../../hooks/useAthleteRecordes');
 vi.mock('../../../hooks/useAthleteAderencia');
 vi.mock('../../../hooks/useAthleteProvas');
+vi.mock('../../../hooks/useAthleteMelhoresEsforcos');
 vi.mock('../components/PMCChart', () => ({ PMCChart: () => <div data-testid="pmc-chart-mock">CTL ATL TSB</div> }));
 
 const noop = vi.fn();
@@ -30,6 +32,10 @@ function mockAllReady() {
   vi.mocked(useAthleteRecordes).mockReturnValue({ recordes: [{ distancia: '10k', tempoSegundos: 2730, data: '2026-08-10', treinoRealizadoId: 'abc' }], loading: false, error: null, fetchRecordes: noop });
   vi.mocked(useAthleteAderencia).mockReturnValue({ aderencia: [{ semanaInicio: '2026-08-24', totalPlanejado: 3, totalRealizado: 2, percentual: 67 }], loading: false, error: null, fetchAderencia: noop });
   vi.mocked(useAthleteProvas).mockReturnValue({ provas: [{ id: '1', nomeProva: 'Maratona de SP', dataProva: '2026-10-10', tipoProva: 'MARATONA', distancia: 'KM_42', diasFaltando: 45 }] as never, loading: false, error: null, fetchProvas: noop });
+  vi.mocked(useAthleteMelhoresEsforcos).mockReturnValue({
+    marcas: [{ distanciaLabel: '5k', distanciaMetros: 5000, tempoSegundos: 1796, paceLabel: '5:59/km' }],
+    integracaoConectada: true, loading: false, error: null, fetchMelhoresEsforcos: noop,
+  });
 }
 
 function renderPage() {
@@ -46,13 +52,13 @@ describe('AthleteProgressPage', () => {
   });
   afterEach(() => vi.useRealTimers());
 
-  it('quatro blocos no fluxo, sem abas, sem jargão fora do gráfico, com "Falar com o coach" em cada um', () => {
+  it('cinco blocos no fluxo, sem abas, sem jargão fora do gráfico, com "Falar com o coach" em cada um', () => {
     renderPage();
     expect(screen.queryAllByRole('tab')).toHaveLength(0);
-    for (const id of ['progress-stronger', 'progress-zones', 'progress-adherence', 'progress-records']) {
+    for (const id of ['progress-stronger', 'progress-zones', 'progress-adherence', 'progress-records', 'progress-efforts']) {
       expect(screen.getByTestId(id)).toBeInTheDocument();
     }
-    expect(screen.getAllByRole('link', { name: /falar com o coach/i })).toHaveLength(4);
+    expect(screen.getAllByRole('link', { name: /falar com o coach/i })).toHaveLength(5);
     expect(screen.queryByText(/\b(CTL|ATL|TSB)\b/)).toBeNull();
     expect(screen.queryByText(/\bpts\b/)).toBeNull();
     expect(screen.getByTestId('progress-stronger-reading')).toHaveTextContent('Sua carga subiu +6');
@@ -100,12 +106,31 @@ describe('AthleteProgressPage', () => {
     expect(screen.getByText(/sem plano aprovado nas últimas semanas/i)).toBeInTheDocument();
     expect(screen.getByText(/ainda sem recordes/i)).toBeInTheDocument();
     // vazio também tem saída para o coach (D1)
-    expect(screen.getAllByRole('link', { name: /falar com o coach/i })).toHaveLength(4);
+    expect(screen.getAllByRole('link', { name: /falar com o coach/i })).toHaveLength(5);
   });
 
   it('PMC curto: "Ainda cedo para comparar" sem inventar delta', () => {
     vi.mocked(useAthletePmc).mockReturnValue({ pmc: [PMC[1]], loading: false, error: null, fetchPmc: noop });
     renderPage();
     expect(screen.getByTestId('progress-stronger-reading')).toHaveTextContent('Ainda cedo para comparar');
+  });
+
+  it('sem integração intervals.icu: CTA de conexão no bloco de esforços', () => {
+    vi.mocked(useAthleteMelhoresEsforcos).mockReturnValue({
+      marcas: [], integracaoConectada: false, loading: false, error: null, fetchMelhoresEsforcos: noop,
+    });
+    renderPage();
+    expect(screen.getByRole('link', { name: /conectar intervals\.icu/i })).toBeInTheDocument();
+  });
+
+  it('trocar a janela refaz a busca de melhores esforços com o valor novo', async () => {
+    const fetchMelhoresEsforcos = vi.fn();
+    vi.mocked(useAthleteMelhoresEsforcos).mockReturnValue({
+      marcas: [{ distanciaLabel: '5k', distanciaMetros: 5000, tempoSegundos: 1796, paceLabel: '5:59/km' }],
+      integracaoConectada: true, loading: false, error: null, fetchMelhoresEsforcos,
+    });
+    renderPage();
+    await userEvent.click(screen.getByRole('button', { name: '1 ano' }));
+    expect(fetchMelhoresEsforcos).toHaveBeenCalledWith('1y');
   });
 });

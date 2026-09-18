@@ -2,9 +2,10 @@ import { test, expect, type Page } from '@playwright/test'
 import { autenticarComPkce } from '../../fixtures/pkceAuth'
 
 /**
- * Progresso do atleta — gate da change `athlete-progress-questions`.
+ * Progresso do atleta — gate da change `athlete-progress-questions` (ampliada em
+ * `add-athlete-best-efforts` pro 5º bloco de melhores esforços).
  *
- * O que só aqui se prova: quatro blocos no fluxo, sem abas; a leitura descreve e nunca julga;
+ * O que só aqui se prova: cinco blocos no fluxo, sem abas; a leitura descreve e nunca julga;
  * o gráfico completo expande inline (mesmo componente); nenhum texto do shell em Syne nem fora
  * da escala — com a varredura limitada ao que está fora do gráfico expandido (Recharts tem
  * fontes próprias).
@@ -38,6 +39,7 @@ async function mockarProgresso(page: Page) {
   await page.route('**/api/v1/atletas/me/aderencia**', (r) => r.fulfill(json([{ semanaInicio: segundaDaSemanaCorrente(), totalPlanejado: 4, totalRealizado: 3, percentual: 75 }])))
   await page.route('**/api/v1/atletas/me/recordes**', (r) => r.fulfill(json([{ distancia: '5 km', tempoSegundos: 1471, data: isoDiasAtras(10), treinoRealizadoId: 't1' }])))
   await page.route('**/api/v1/atletas/me/provas**', (r) => r.fulfill(json([])))
+  await page.route('**/api/v1/atletas/me/melhores-esforcos**', (r) => r.fulfill(json({ marcas: [], integracaoConectada: true })))
 }
 
 test.use({ viewport: { width: 390, height: 844 } })
@@ -50,12 +52,12 @@ test.describe('Atleta — Progresso', () => {
     await page.getByTestId('progress-stronger').waitFor()
   })
 
-  test('quatro blocos no fluxo, sem abas, sem jargão, leitura que descreve e "Falar com o coach" em cada um', async ({ page }) => {
+  test('cinco blocos no fluxo, sem abas, sem jargão, leitura que descreve e "Falar com o coach" em cada um', async ({ page }) => {
     await expect(page.getByRole('tab')).toHaveCount(0)
-    for (const id of ['progress-stronger', 'progress-zones', 'progress-adherence', 'progress-records']) {
+    for (const id of ['progress-stronger', 'progress-zones', 'progress-adherence', 'progress-records', 'progress-efforts']) {
       await expect(page.getByTestId(id)).toBeVisible()
     }
-    await expect(page.getByRole('link', { name: /falar com o coach/i })).toHaveCount(4)
+    await expect(page.getByRole('link', { name: /falar com o coach/i })).toHaveCount(5)
     // CTL 30 → 51 em 84 dias (0,25/dia): D−28 = 44, hoje = 51 → +7; valor exato para pegar erro de limiar/arredondamento
     await expect(page.getByTestId('progress-stronger-reading')).toHaveText('Sua carga subiu +7')
     await expect(page.getByText(/^(Sim|Não)$/)).toHaveCount(0)
