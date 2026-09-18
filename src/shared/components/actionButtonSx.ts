@@ -53,3 +53,14 @@ export const GHOST_BTN_SX = {
   color: surface[400],
   '&:hover': { color: surface[50], bgcolor: content.cardBgHover },
 } as const;
+
+/**
+ * Mixin pra `variant="outlined"` neutro — accent (lime) fica restrito ao CTA primário e à nav
+ * ativa (polish-inbox-visual-semantics). Sem isso, `outlined` sem `color` cai no `primary.main`
+ * do MUI (lime).
+ */
+export const SECONDARY_OUTLINE_SX = {
+  color: surface[400],
+  borderColor: surface[600],
+  '&:hover': { color: surface[50], borderColor: surface[500], bgcolor: content.cardBgHover },
+} as const;

@@ -82,13 +82,15 @@ describe('QueueRow', () => {
      * primário da informação.
      */
     it('o estado é legível sem depender de cor', () => {
+      // getAllByText: o chip agora também segue o rótulo do sinal (task 1.2,
+      // polish-inbox-visual-semantics), então o texto aparece duas vezes — no motivo e no chip.
       const { rerender } = render(
         <QueueRow athlete={atleta()} attention={atencao({ severity: 'CRITICA' })} selected={false} onClick={vi.fn()} />,
       );
-      expect(screen.getByText(/alerta/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/alerta/i).length).toBeGreaterThan(0);
 
       rerender(<QueueRow athlete={atleta()} attention={atencao({ severity: 'MEDIA' })} selected={false} onClick={vi.fn()} />);
-      expect(screen.getByText(/atenção/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/atenção/i).length).toBeGreaterThan(0);
     });
 
     /** Texto funcional abaixo de 11px é o defeito nº 2 da auditoria; a linha nova não pode repetí-lo. */
@@ -140,6 +142,39 @@ describe('QueueRow', () => {
     it('atenção usa âmbar e alerta usa vermelho', () => {
       expect(corDoChip('warning')).toBe(hexParaRgb(semantic.warning[500]));
       expect(corDoChip('danger')).toBe(hexParaRgb(semantic.danger[500]));
+    });
+
+    /**
+     * polish-inbox-visual-semantics (achado 2): `athlete.status` (backend, roster) e
+     * `attention.severity` (fila) são fontes independentes e podem divergir pro MESMO atleta — um
+     * atleta com `status='warning'` (chip âmbar) pode ter uma sinalização `severity='CRITICA'` na
+     * fila (moldura do card vermelha). O chip precisa acompanhar o sinal quando ele existe, senão o
+     * coach vê "Alerta" vermelho na moldura e "Atenção" âmbar no chip do mesmo card.
+     */
+    it('com sinal de atenção crítico/alto, o chip usa vermelho mesmo se o status do atleta for warning', () => {
+      render(
+        <QueueRow
+          athlete={atleta({ status: 'warning', statusLabel: 'Atenção' })}
+          attention={atencao({ severity: 'CRITICA' })}
+          selected={false}
+          onClick={vi.fn()}
+        />,
+      );
+      const chip = screen.getByText('Alerta').closest('.MuiChip-root') as HTMLElement;
+      expect(getComputedStyle(chip).color).toBe(hexParaRgb(semantic.danger[500]));
+    });
+
+    it('com sinal de atenção médio, o chip usa âmbar mesmo se o status do atleta for danger', () => {
+      render(
+        <QueueRow
+          athlete={atleta({ status: 'danger', statusLabel: 'Alerta' })}
+          attention={atencao({ severity: 'MEDIA' })}
+          selected={false}
+          onClick={vi.fn()}
+        />,
+      );
+      const chip = screen.getByText('Atenção').closest('.MuiChip-root') as HTMLElement;
+      expect(getComputedStyle(chip).color).toBe(hexParaRgb(semantic.warning[500]));
     });
   });
 });

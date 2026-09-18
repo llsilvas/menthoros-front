@@ -31,6 +31,13 @@ export const QueueRow = memo(function QueueRow({ athlete, selected, onClick, att
   // ativo: a cor contradizia o texto ao lado dela.
   const cores = statusPalette(athlete.status);
   const sinal = attention ? severidadeVisual(attention.severity) : null;
+  // `athlete.status` (roster, backend) e `attention.severity` (fila) são fontes independentes e
+  // podem divergir pro mesmo atleta (achado de QA, polish-inbox-visual-semantics): sem isso, o
+  // chip mostrava "Atenção" âmbar no mesmo card cuja moldura já ia vermelha por um sinal crítico.
+  // O sinal já domina a moldura (comentário acima); o chip passa a segui-lo também.
+  const insignia = sinal
+    ? { rotulo: sinal.rotulo, fg: sinal.cor, bg: `${sinal.cor}1A`, border: `${sinal.cor}44` }
+    : { rotulo: athlete.statusLabel, fg: cores.fg, bg: cores.bg, border: cores.border };
 
   return (
     <ButtonBase
@@ -88,14 +95,14 @@ export const QueueRow = memo(function QueueRow({ athlete, selected, onClick, att
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.25, flexShrink: 0 }}>
           <Chip
             size="small"
-            label={athlete.statusLabel}
+            label={insignia.rotulo}
             sx={{
               height: { xs: 20, xl: 24 },
               fontSize: { xs: '0.6875rem', sm: '0.6875rem', xl: '0.6875rem' },
               fontWeight: 700,
-              color: cores.fg,
-              bgcolor: cores.bg,
-              border: `1px solid ${cores.border}`,
+              color: insignia.fg,
+              bgcolor: insignia.bg,
+              border: `1px solid ${insignia.border}`,
               '& .MuiChip-label': { px: { xs: 0.7, sm: 0.8, xl: 1 } },
             }}
           />

@@ -17,6 +17,7 @@ import CadastroPage from './pages/cadastro/CadastroPage';
 import PrivacidadePage from './pages/waitlist/PrivacidadePage';
 import TermosPage from './pages/legal/TermosPage';
 import CoachLayout from './features/coach/layout/CoachLayout';
+import ErrorPage from './pages/error/ErrorPage';
 // CoachAttentionQueuePage: sem rota em v1 — aguardando add-coach-queue-route
 const CoachInboxPage = lazy(() => import('./features/coach/pages/CoachInboxPage'));
 import CoachAthletesPage from './features/coach/pages/CoachAthletesPage';
@@ -94,6 +95,7 @@ const router = createHashRouter([
   },
   {
     element: <ProtectedRoute />,
+    errorElement: <ErrorPage />,
     children: [
       // Shell legado — apenas ADMIN; TECNICO e outros vão para coach/inbox
       {
@@ -157,6 +159,9 @@ const router = createHashRouter([
       },
     ],
   },
+  // Catch-all: qualquer hash sem rota correspondente (link quebrado, hash antigo) cai aqui em vez
+  // do "Unexpected Application Error!" default do React Router.
+  { path: '*', element: <ErrorPage kind="not-found" /> },
 ]);
 
 function App() {
