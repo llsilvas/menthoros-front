@@ -36,7 +36,7 @@ import { MetricTile } from '../components/MetricTile';
 import { QueueRow } from '../components/QueueRow';
 import { AttentionOnlyRow } from '../components/AttentionOnlyRow';
 import { formatKm, formatPercent, statusPalette } from '../components/coachInboxHelpers';
-import { ACTION_BTN_START_ICON_SX, ACTION_BTN_END_ICON_SX } from '../../../shared/components/actionButtonSx';
+import { ACTION_BTN_START_ICON_SX, ACTION_BTN_END_ICON_SX, SECONDARY_OUTLINE_SX } from '../../../shared/components/actionButtonSx';
 import { DiagnosisTabPanel } from '../components/panels/DiagnosisTabPanel';
 import { PlanTabPanel } from '../components/panels/PlanTabPanel';
 import { RacesSuggestionsTabPanel } from '../components/panels/RacesSuggestionsTabPanel';
@@ -914,7 +914,7 @@ function CoachInboxPage() {
                   variant="outlined"
                   startIcon={<ChatBubbleOutlineIcon />}
                   onClick={() => setFeedback('Mensagem preparada para o atleta.')}
-                  sx={ACTION_BTN_START_ICON_SX}
+                  sx={{ ...ACTION_BTN_START_ICON_SX, ...SECONDARY_OUTLINE_SX }}
                 >
                   Enviar mensagem
                 </Button>
@@ -923,7 +923,7 @@ function CoachInboxPage() {
                   variant="outlined"
                   startIcon={<TuneIcon />}
                   onClick={() => setActiveTab('plan')}
-                  sx={ACTION_BTN_START_ICON_SX}
+                  sx={{ ...ACTION_BTN_START_ICON_SX, ...SECONDARY_OUTLINE_SX }}
                 >
                   Ajustar plano
                 </Button>
@@ -932,7 +932,7 @@ function CoachInboxPage() {
                   variant="outlined"
                   onClick={(event) => setMenuAnchor(event.currentTarget)}
                   endIcon={<MoreHorizIcon />}
-                  sx={ACTION_BTN_END_ICON_SX}
+                  sx={{ ...ACTION_BTN_END_ICON_SX, ...SECONDARY_OUTLINE_SX }}
                 >
                   Mais ações
                 </Button>

@@ -97,12 +97,12 @@ function ToggleButton({ label, active, onClick, small = false }: ToggleButtonPro
         cursor: 'pointer',
         border: 'none',
         borderRadius: 1,
-        bgcolor: active ? primary[500] : 'transparent',
-        color: active ? surface[900] : surface[400],
+        bgcolor: active ? surface[700] : 'transparent',
+        color: active ? surface[50] : surface[400],
         transition: 'all 0.15s ease',
         '&:hover': {
-          bgcolor: active ? primary[500] : `${primary[500]}1A`,
-          color: active ? surface[900] : surface[50],
+          bgcolor: active ? surface[700] : surface[800],
+          color: active ? surface[50] : surface[50],
         },
       }}
     >
