@@ -33,7 +33,7 @@ function JanelaSelector({ janela, onJanelaChange }: Pick<EffortsBlockProps, 'jan
             sx={{
               px: 1,
               py: 0.25,
-              fontSize: '0.72rem',
+              fontSize: '11px',
               fontWeight: active ? 700 : 500,
               cursor: 'pointer',
               border: 'none',
