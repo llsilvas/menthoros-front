@@ -192,6 +192,11 @@ function CoachInboxPage() {
   // null e a UI exibe '—' (degrada sem quebrar).
   const currentFormDisplay = selected?.quickStats.statusForma ? FAIXA_APRESENTACAO[selected.quickStats.statusForma] : null;
   const acwrZone = getAcwrZone(selected?.quickStats.acwr ?? null);
+  // Sem dado na janela (sem PMC sincronizado): aderência/carga vêm do roster com fallback
+  // numérico (`?? 0`), e forma pode cair no `roster.statusForma` mesmo sem série — nenhum dos
+  // dois distingue "zero real" de "nunca sincronizou" sozinho. `hasWindowData` é o mesmo sinal já
+  // usado pela grade de diagnóstico (task 1.3, polish-inbox-visual-semantics).
+  const semDadoNaJanela = selected != null && !selected.quickStats.hasWindowData;
 
   // A seleção acompanha a lista COMPOSTA, não só o roster: um atleta fixado pela fila de atenção
   // não está em `rosterItems`, e comparar com ele revertia a seleção para o primeiro do roster no
@@ -783,21 +788,33 @@ function CoachInboxPage() {
                   borderBottom: `1px solid ${content.divider}`,
                 }}
               >
-                <MetricTile compact label="Aderência" value={formatPercent(selected.adherence)} delta="Últimas 4 semanas" tone={selected.adherence >= 85 ? 'success' : selected.adherence >= 70 ? 'neutral' : 'warning'} />
-                <MetricTile compact label="Carga (7d)" value={formatKm(selected.load7d)} delta={`${selected.loadDelta >= 0 ? '+' : ''}${selected.loadDelta}% vs. ant.`} tone={selected.loadDelta >= 10 ? 'warning' : 'success'} />
+                <MetricTile
+                  compact
+                  label="Aderência"
+                  value={semDadoNaJanela ? '—' : formatPercent(selected.adherence)}
+                  delta={semDadoNaJanela ? 'Sem dado na janela' : 'Últimas 4 semanas'}
+                  tone={semDadoNaJanela ? 'neutral' : selected.adherence >= 85 ? 'success' : selected.adherence >= 70 ? 'neutral' : 'warning'}
+                />
+                <MetricTile
+                  compact
+                  label="Carga (7d)"
+                  value={semDadoNaJanela ? '—' : formatKm(selected.load7d)}
+                  delta={semDadoNaJanela ? 'Sem dado na janela' : `${selected.loadDelta >= 0 ? '+' : ''}${selected.loadDelta}% vs. ant.`}
+                  tone={semDadoNaJanela ? 'neutral' : selected.loadDelta >= 10 ? 'warning' : 'success'}
+                />
                 <MetricTile
                   compact
                   label="Forma"
-                  value={currentFormDisplay?.label ?? '—'}
-                  delta={selected.quickStats.tsb != null ? `TSB ${selected.quickStats.tsb}` : 'TSB não disponível'}
-                  tone={currentFormDisplay?.tone ?? 'neutral'}
+                  value={semDadoNaJanela ? '—' : currentFormDisplay?.label ?? '—'}
+                  delta={semDadoNaJanela ? 'Sem dado na janela' : selected.quickStats.tsb != null ? `TSB ${selected.quickStats.tsb}` : 'TSB não disponível'}
+                  tone={semDadoNaJanela ? 'neutral' : currentFormDisplay?.tone ?? 'neutral'}
                 />
                 <MetricTile
                   compact
                   label="ACWR"
-                  value={selected.quickStats.acwr != null ? selected.quickStats.acwr.toFixed(2) : '—'}
-                  delta={selected.quickStats.acwr != null ? acwrZone.label : 'Dado insuficiente'}
-                  tone={acwrZone.tone}
+                  value={semDadoNaJanela || selected.quickStats.acwr == null ? '—' : selected.quickStats.acwr.toFixed(2)}
+                  delta={semDadoNaJanela ? 'Sem dado na janela' : selected.quickStats.acwr != null ? acwrZone.label : 'Dado insuficiente'}
+                  tone={semDadoNaJanela ? 'neutral' : acwrZone.tone}
                 />
                 <MetricTile compact label={isTargetRace ? 'Prova Alvo' : 'Próxima Prova'} delta={selected.raceCalendar[0]?.date ?? '—'} value={selected.raceCalendar[0]?.label ?? 'Sem prova'} tone={isTargetRace ? 'warning' : 'neutral'} highlight={isTargetRace} />
               </Box>
