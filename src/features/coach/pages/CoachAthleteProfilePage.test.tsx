@@ -50,6 +50,7 @@ const STUB_PROFILE: AtletaPerfilCoachDto = {
     ],
     recordes: [],
     melhoresEsforcos: [],
+    melhoresEsforcosIntegracaoConectada: true,
     geradoEm: '2026-06-20T12:00:00Z',
     avisos: null,
 };

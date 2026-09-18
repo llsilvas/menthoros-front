@@ -46,6 +46,7 @@ const makeProfile = (pmc: PmcPontoRaw[] = []): AtletaPerfilCoachDto => ({
   ],
   recordes: [],
   melhoresEsforcos: [],
+  melhoresEsforcosIntegracaoConectada: true,
   geradoEm: '2026-06-24T13:32:25Z',
   avisos: null,
 });

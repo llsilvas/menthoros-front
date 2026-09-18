@@ -111,6 +111,8 @@ export interface AtletaPerfilCoachDto {
     recordes: RecordeDto[];
     /** Melhores esforços por distância (400m-10k), janela de 42 dias; vazio sem intervals.icu. */
     melhoresEsforcos: MelhorEsforcoDto[];
+    /** Distingue "atleta sem PRs ainda" (true, `melhoresEsforcos` vazio) de "nunca conectou" (false). */
+    melhoresEsforcosIntegracaoConectada: boolean;
     geradoEm: string;
     avisos: string[] | null;
     limiareisInferidos?: LimiareisInferidosDto | null;

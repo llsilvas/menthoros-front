@@ -313,7 +313,10 @@ export default function CoachAthleteProfilePage() {
                     {/* Melhores esforços — 6 colunas */}
                     <Grid size={{ xs: 12, md: 6 }}>
                         <SectionCard title="Melhores esforços">
-                            <MelhoresEsforcosPanel marcas={profile.melhoresEsforcos} />
+                            <MelhoresEsforcosPanel
+                                marcas={profile.melhoresEsforcos}
+                                integracaoConectada={profile.melhoresEsforcosIntegracaoConectada}
+                            />
                         </SectionCard>
                     </Grid>
 
