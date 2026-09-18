@@ -805,6 +805,9 @@ function CoachInboxPage() {
                 <MetricTile
                   compact
                   label="Forma"
+                  // '—' por dois caminhos válidos: sem dado na janela, ou faixa de statusForma
+                  // fora do mapa de FAIXA_APRESENTACAO — os dois casos mostram o mesmo travessão
+                  // de propósito, não é o mesmo branch duplicado por acidente.
                   value={semDadoNaJanela ? '—' : currentFormDisplay?.label ?? '—'}
                   delta={semDadoNaJanela ? 'Sem dado na janela' : selected.quickStats.tsb != null ? `TSB ${selected.quickStats.tsb}` : 'TSB não disponível'}
                   tone={semDadoNaJanela ? 'neutral' : currentFormDisplay?.tone ?? 'neutral'}
@@ -812,6 +815,9 @@ function CoachInboxPage() {
                 <MetricTile
                   compact
                   label="ACWR"
+                  // Checagem extra (os outros 3 tiles usam só semDadoNaJanela): ACWR pode faltar
+                  // mesmo com hasWindowData=true — calcularAcwr(atl,ctl) só usa o ÚLTIMO ponto do
+                  // PMC, que pode não ter ATL/CTL calculado ainda mesmo havendo série.
                   value={semDadoNaJanela || selected.quickStats.acwr == null ? '—' : selected.quickStats.acwr.toFixed(2)}
                   delta={semDadoNaJanela ? 'Sem dado na janela' : selected.quickStats.acwr != null ? acwrZone.label : 'Dado insuficiente'}
                   tone={semDadoNaJanela ? 'neutral' : acwrZone.tone}

@@ -1,6 +1,7 @@
 import { Box, Button, Typography } from '@mui/material';
 import { Link as RouterLink, isRouteErrorResponse, useRouteError } from 'react-router';
-import { elevation, surface } from '../../shared/design-tokens';
+import { surface } from '../../theme/tokens';
+import { elevation } from '../../shared/design-tokens';
 import { PRIMARY_BTN_SX } from '../../shared/components/actionButtonSx';
 import { ROUTES } from '../../constants/routes';
 
@@ -23,6 +24,13 @@ export function ErrorPage({ kind }: ErrorPageProps) {
   const error = useRouteError();
   const rotaInexistente = kind === 'not-found' || (isRouteErrorResponse(error) && error.status === 404);
 
+  // Sem observabilidade de erro de front ainda (achado de QA): sem isso, um crash de render vira
+  // uma tela bonita sem NENHUM rastro — pior que o fallback default do React Router, que ao menos
+  // aparece no console. Não loga 404 (não é uma falha, é navegação normal).
+  if (!rotaInexistente) {
+    console.error('[ErrorPage] erro de render capturado pelo errorElement:', error);
+  }
+
   return (
     <Box
       sx={{
@@ -37,7 +45,7 @@ export function ErrorPage({ kind }: ErrorPageProps) {
         textAlign: 'center',
       }}
     >
-      <Typography variant="h4">
+      <Typography variant="h4" sx={{ color: surface[0] }}>
         {rotaInexistente ? 'Página não encontrada' : 'Algo deu errado'}
       </Typography>
       <Typography variant="body1" sx={{ color: surface[400], maxWidth: 420 }}>
