@@ -6,10 +6,13 @@ import { elevation } from '../../../shared/design-tokens';
 import { AthleteBottomNav } from '../../../shared/components/AthleteBottomNav';
 import { ErrorBoundary } from '../../../shared/components/ErrorBoundary';
 import { ROUTES, type AthleteRoute } from '../../../constants/routes';
+import { useInstallPrompt } from '../hooks/useInstallPrompt';
+import { InstallPromptBanner } from './InstallPromptBanner';
 
 export default function AthleteLayout() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { canInstall, promptInstall, dismiss } = useInstallPrompt();
 
   // As telas de prova não têm item próprio no menu: a entrada é a faixa do Plano, que fica ativo.
   const activeRoute = location.pathname.startsWith(ROUTES.ATHLETE_RACES)
@@ -42,6 +45,8 @@ export default function AthleteLayout() {
             </Box>
           </Box>
         </ErrorBoundary>
+        {/* Acima da barra: único lugar visível em toda tela sem disputar com o conteúdo (grill Q9). */}
+        {canInstall && <InstallPromptBanner onInstall={promptInstall} onDismiss={dismiss} />}
         <AthleteBottomNav
           activeRoute={activeRoute}
           onNavigate={handleNavigate}
