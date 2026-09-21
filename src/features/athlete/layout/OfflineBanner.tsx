@@ -1,6 +1,6 @@
 import { Box, Typography } from '@mui/material';
-import { elevation } from '../../../shared/design-tokens';
-import { content, text } from '../../../theme/tokens';
+import { text } from '../../../theme/tokens';
+import { shellBannerSx } from './shellBannerSx';
 
 /**
  * Estado offline do shell do atleta — só apresentação, sem ação. Tom neutro, não `semantic.danger`:
@@ -12,13 +12,7 @@ export function OfflineBanner() {
     <Box
       role="status"
       aria-live="polite"
-      sx={{
-        flexShrink: 0,
-        px: 2,
-        py: 1,
-        bgcolor: elevation.panel,
-        borderTop: `1px solid ${content.divider}`,
-      }}
+      sx={shellBannerSx}
     >
       <Typography variant="body2" sx={{ color: text.secondary }}>
         Você está offline — os dados vão atualizar quando a conexão voltar

@@ -1,6 +1,6 @@
 import { Box, Button, Typography } from '@mui/material';
-import { elevation } from '../../../shared/design-tokens';
-import { content, text } from '../../../theme/tokens';
+import { text } from '../../../theme/tokens';
+import { shellBannerRowSx } from './shellBannerSx';
 
 interface InstallPromptBannerProps {
   onInstall: () => void;
@@ -16,16 +16,7 @@ export function InstallPromptBanner({ onInstall, onDismiss }: InstallPromptBanne
     <Box
       component="section"
       aria-label="Instalar aplicativo"
-      sx={{
-        flexShrink: 0,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1,
-        px: 2,
-        py: 1,
-        bgcolor: elevation.panel,
-        borderTop: `1px solid ${content.divider}`,
-      }}
+      sx={shellBannerRowSx}
     >
       <Typography variant="body2" sx={{ flex: 1, color: text.primary }}>
         Instalar o Menthoros na tela inicial

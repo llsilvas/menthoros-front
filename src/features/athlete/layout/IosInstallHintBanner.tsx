@@ -1,6 +1,6 @@
 import { Box, Button, Typography } from '@mui/material';
-import { elevation } from '../../../shared/design-tokens';
-import { content, text } from '../../../theme/tokens';
+import { text } from '../../../theme/tokens';
+import { shellBannerRowSx } from './shellBannerSx';
 
 interface IosInstallHintBannerProps {
   onDismiss: () => void;
@@ -16,16 +16,7 @@ export function IosInstallHintBanner({ onDismiss }: IosInstallHintBannerProps) {
     <Box
       component="section"
       aria-label="Instalar no iPhone"
-      sx={{
-        flexShrink: 0,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1,
-        px: 2,
-        py: 1,
-        bgcolor: elevation.panel,
-        borderTop: `1px solid ${content.divider}`,
-      }}
+      sx={shellBannerRowSx}
     >
       <Typography variant="body2" sx={{ flex: 1, color: text.primary }}>
         No iPhone: toque em Compartilhar e depois em &apos;Adicionar à Tela de Início&apos;
