@@ -114,6 +114,9 @@ describe('CobrancaAtletaSection', () => {
             ],
         });
         vi.mocked(ContratoAtletaService.getContract).mockResolvedValue(contract);
+        vi.mocked(ContratoAtletaService.cancelInvoice).mockResolvedValue({
+            ...contract.invoices[0], status: 'CANCELLED',
+        });
         const user = userEvent.setup();
         render(<CobrancaAtletaSection athleteId="uuid-1" />);
 
