@@ -50,17 +50,15 @@ describe('useAthleteProfile', () => {
     it('reflete dados de cobrança do perfil sem invalidação extra (fetch-on-mount, critério de aceite 5)', async () => {
         vi.mocked(CoachAthleteProfileService.getProfile).mockResolvedValue({
             ...STUB,
-            tipoPlanoAtleta: 'MENSAL',
-            dataVencimentoPlano: '2026-08-15',
-            statusVencimentoPlano: 'PROXIMO_VENCIMENTO',
+            nextDueDate: '2026-08-15',
+            billingStatus: 'DUE_SOON',
         });
 
         const { result } = renderHook(() => useAthleteProfile('uuid-1'));
         await act(async () => {});
 
-        expect(result.current.profile?.tipoPlanoAtleta).toBe('MENSAL');
-        expect(result.current.profile?.dataVencimentoPlano).toBe('2026-08-15');
-        expect(result.current.profile?.statusVencimentoPlano).toBe('PROXIMO_VENCIMENTO');
+        expect(result.current.profile?.nextDueDate).toBe('2026-08-15');
+        expect(result.current.profile?.billingStatus).toBe('DUE_SOON');
     });
 
     it('não dispara fetch quando atletaId é undefined', () => {

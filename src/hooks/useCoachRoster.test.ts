@@ -29,7 +29,7 @@ describe('useCoachRoster', () => {
         const roster: CoachAtletaResumo[] = [
             {
                 atletaId: '1', nome: 'Ana Silva', status: 'active', weeklyVolume: 32.5,
-                tipoPlanoAtleta: 'ANUAL', dataVencimentoPlano: '2026-08-15', statusVencimentoPlano: 'EM_DIA',
+                nextDueDate: '2026-08-15', billingStatus: 'UP_TO_DATE',
             },
         ];
         vi.mocked(CoachDashboardService.getRoster).mockResolvedValue(roster);
@@ -39,8 +39,8 @@ describe('useCoachRoster', () => {
             await result.current.fetchRoster();
         });
 
-        expect(result.current.roster[0].statusVencimentoPlano).toBe('EM_DIA');
-        expect(result.current.roster[0].dataVencimentoPlano).toBe('2026-08-15');
+        expect(result.current.roster[0].billingStatus).toBe('UP_TO_DATE');
+        expect(result.current.roster[0].nextDueDate).toBe('2026-08-15');
     });
 
     it('popula error na falha', async () => {

@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import AtletaDialog from './AtletaDialog';
 
-describe('AtletaDialog — dados de cobrança', () => {
+describe('AtletaDialog', () => {
   async function preencherCamposObrigatorios(user: ReturnType<typeof userEvent.setup>) {
     await user.type(screen.getByLabelText('Nome *'), 'Ana Silva');
     await user.type(screen.getByLabelText('Data de Nascimento *'), '1993-05-15');
@@ -12,41 +12,25 @@ describe('AtletaDialog — dados de cobrança', () => {
     await user.type(screen.getByLabelText('Objetivo *'), 'Correr 10K');
   }
 
-  it('preenche e salva tipoPlanoAtleta e dataVencimentoPlano com os valores corretos', async () => {
-    const onSave = vi.fn().mockResolvedValue(undefined);
-    const user = userEvent.setup();
-    render(<AtletaDialog open onClose={vi.fn()} onSave={onSave} />);
+  it('não renderiza mais os campos de plano/vencimento (CA15 — contrato move para CobrancaAtletaSection)', () => {
+    render(<AtletaDialog open onClose={vi.fn()} onSave={vi.fn()} />);
 
-    await preencherCamposObrigatorios(user);
-
-    await user.click(screen.getByRole('combobox', { name: /tipo de plano/i }));
-    await user.click(await screen.findByRole('option', { name: 'Anual' }));
-
-    await user.type(screen.getByLabelText('Vencimento do Plano'), '2026-08-15');
-
-    await user.click(screen.getByRole('button', { name: /salvar/i }));
-
-    expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({
-        tipoPlanoAtleta: 'ANUAL',
-        dataVencimentoPlano: '2026-08-15',
-      }),
-    );
+    expect(screen.queryByRole('combobox', { name: /tipo de plano/i })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/vencimento do plano/i)).not.toBeInTheDocument();
   });
 
-  it('campos de cobrança vazios não bloqueiam o save (são opcionais)', async () => {
+  it('salva sem enviar tipoPlanoAtleta/dataVencimentoPlano', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
     const user = userEvent.setup();
     render(<AtletaDialog open onClose={vi.fn()} onSave={onSave} />);
 
     await preencherCamposObrigatorios(user);
-
     await user.click(screen.getByRole('button', { name: /salvar/i }));
 
     expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({
-        tipoPlanoAtleta: undefined,
-        dataVencimentoPlano: undefined,
+      expect.not.objectContaining({
+        tipoPlanoAtleta: expect.anything(),
+        dataVencimentoPlano: expect.anything(),
       }),
     );
   });
