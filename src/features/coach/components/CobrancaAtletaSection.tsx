@@ -16,9 +16,11 @@ import {
 } from '@mui/material';
 import { SectionCard } from './SectionCard';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
+import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { GHOST_BTN_SX, PRIMARY_BTN_SX } from '../../../shared/components/actionButtonSx';
 import { surface } from '../../../theme/tokens';
 import { useAthleteContract } from '../hooks/useAthleteContract';
+import { formatProximoVencimento } from '../adapters/cobrancaAdapters';
 import type { AthleteInvoice, ContractPeriodicity, UpsertAthleteContract } from '../../../types/ContratoAtleta';
 
 interface CobrancaAtletaSectionProps {
@@ -31,12 +33,6 @@ const PERIODICITY_LABELS: Readonly<Record<ContractPeriodicity, string>> = {
     SEMIANNUAL: 'Semestral',
     ANNUAL: 'Anual',
 };
-
-function formatIso(iso?: string): string {
-    if (!iso) return '—';
-    const [ano, mes, dia] = iso.split('-');
-    return `${dia}/${mes}/${ano}`;
-}
 
 function formatAmount(amount?: number): string {
     if (amount === undefined || amount === null) return '—';
@@ -80,6 +76,8 @@ export function CobrancaAtletaSection({ athleteId }: CobrancaAtletaSectionProps)
 
     const [form, setForm] = useState<ContractFormState>(initialFormState());
     const [formError, setFormError] = useState<string | null>(null);
+    const [confirmEndContract, setConfirmEndContract] = useState(false);
+    const [confirmCancelInvoiceId, setConfirmCancelInvoiceId] = useState<string | null>(null);
 
     useEffect(() => {
         if (contract) {
@@ -100,22 +98,23 @@ export function CobrancaAtletaSection({ athleteId }: CobrancaAtletaSectionProps)
         setFormError(null);
 
         const dueDay = Number(form.dueDay);
-        if (!form.dueDay || dueDay < 1 || dueDay > 31) {
-            setFormError('Dia de vencimento deve estar entre 1 e 31');
+        if (!form.dueDay || !Number.isInteger(dueDay) || dueDay < 1 || dueDay > 31) {
+            setFormError('Dia de vencimento deve ser um número inteiro entre 1 e 31');
             return;
         }
         if (!form.startDate) {
             setFormError('Início do contrato é obrigatório');
             return;
         }
-        if (!form.amount.trim()) {
-            setFormError('Valor é obrigatório');
+        const amount = Number(form.amount);
+        if (!form.amount.trim() || !Number.isFinite(amount) || amount < 0) {
+            setFormError('Valor é obrigatório e não pode ser negativo');
             return;
         }
 
         const input: UpsertAthleteContract = {
             periodicity: form.periodicity,
-            amount: Number(form.amount),
+            amount,
             dueDay,
             startDate: form.startDate,
             athleteNoticeEnabled: form.athleteNoticeEnabled,
@@ -149,7 +148,7 @@ export function CobrancaAtletaSection({ athleteId }: CobrancaAtletaSectionProps)
                         </Typography>
                     )}
 
-                    <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                    <Box component="form" noValidate onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                         <Typography variant="subtitle2" sx={{ color: surface[300] }}>
                             {contract?.active ? 'Contrato ativo' : 'Sem contrato ativo'}
                         </Typography>
@@ -181,6 +180,7 @@ export function CobrancaAtletaSection({ athleteId }: CobrancaAtletaSectionProps)
                                 size="small"
                                 value={form.amount}
                                 onChange={(e) => setForm((prev) => ({ ...prev, amount: e.target.value }))}
+                                slotProps={{ htmlInput: { min: 0, step: '0.01' } }}
                                 sx={{ minWidth: 120 }}
                             />
                             <TextField
@@ -189,6 +189,7 @@ export function CobrancaAtletaSection({ athleteId }: CobrancaAtletaSectionProps)
                                 size="small"
                                 value={form.dueDay}
                                 onChange={(e) => setForm((prev) => ({ ...prev, dueDay: e.target.value }))}
+                                slotProps={{ htmlInput: { min: 1, max: 31, step: 1 } }}
                                 sx={{ minWidth: 140 }}
                             />
                             <TextField
@@ -218,7 +219,7 @@ export function CobrancaAtletaSection({ athleteId }: CobrancaAtletaSectionProps)
                             </Button>
                             {contract?.active && (
                                 <Button
-                                    onClick={() => endContract()}
+                                    onClick={() => setConfirmEndContract(true)}
                                     disabled={acting}
                                     size="small"
                                     sx={GHOST_BTN_SX}
@@ -252,7 +253,7 @@ export function CobrancaAtletaSection({ athleteId }: CobrancaAtletaSectionProps)
                                         const badge = invoiceVariant(invoice);
                                         return (
                                             <TableRow key={invoice.id}>
-                                                <TableCell>{formatIso(invoice.dueDate)}</TableCell>
+                                                <TableCell>{formatProximoVencimento(invoice.dueDate) || '—'}</TableCell>
                                                 <TableCell>{formatAmount(invoice.amount)}</TableCell>
                                                 <TableCell>
                                                     <StatusBadge variant={badge.variant} label={badge.label} size="sm" />
@@ -270,7 +271,7 @@ export function CobrancaAtletaSection({ athleteId }: CobrancaAtletaSectionProps)
                                                             <Button
                                                                 size="small"
                                                                 disabled={acting}
-                                                                onClick={() => cancelInvoice(invoice.id)}
+                                                                onClick={() => setConfirmCancelInvoiceId(invoice.id)}
                                                             >
                                                                 Cancelar
                                                             </Button>
@@ -295,6 +296,34 @@ export function CobrancaAtletaSection({ athleteId }: CobrancaAtletaSectionProps)
                     </Box>
                 </Box>
             )}
+
+            <ConfirmDialog
+                open={confirmEndContract}
+                title="Encerrar contrato"
+                message="As mensalidades em aberto continuam como estão. Esta ação não pode ser desfeita pela UI."
+                confirmLabel="Encerrar"
+                severity="danger"
+                loading={acting}
+                onClose={() => setConfirmEndContract(false)}
+                onConfirm={async () => {
+                    await endContract();
+                    setConfirmEndContract(false);
+                }}
+            />
+
+            <ConfirmDialog
+                open={confirmCancelInvoiceId !== null}
+                title="Cancelar mensalidade"
+                message="Este período não será cobrado. Esta ação não pode ser desfeita pela UI."
+                confirmLabel="Cancelar mensalidade"
+                severity="danger"
+                loading={acting}
+                onClose={() => setConfirmCancelInvoiceId(null)}
+                onConfirm={async () => {
+                    if (confirmCancelInvoiceId) await cancelInvoice(confirmCancelInvoiceId);
+                    setConfirmCancelInvoiceId(null);
+                }}
+            />
         </SectionCard>
     );
 }
