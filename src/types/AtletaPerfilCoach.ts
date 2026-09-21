@@ -1,7 +1,7 @@
 import type { EtapaTreinoDto, PlanoReviewStatusDto } from './PlanoReview';
 import type { Prova } from './Prova';
 import type { FaixaTsbStatus } from './FaixaTsb';
-import type { StatusVencimentoPlano, TipoPlanoAtleta } from './Atleta';
+import type { AthleteBillingStatus } from './Atleta';
 
 /** Ponto PMC retornado pelo backend (datas como strings ISO). */
 export interface PmcPontoRaw {
@@ -116,12 +116,10 @@ export interface AtletaPerfilCoachDto {
     geradoEm: string;
     avisos: string[] | null;
     limiareisInferidos?: LimiareisInferidosDto | null;
-    /** Tipo de plano do atleta com a assessoria; ausente quando não cadastrado. */
-    tipoPlanoAtleta?: TipoPlanoAtleta;
-    /** Data de vencimento do plano do atleta com a assessoria; ausente quando não cadastrado. */
-    dataVencimentoPlano?: string;
-    /** Status de vencimento derivado; ausente quando dataVencimentoPlano não cadastrada. */
-    statusVencimentoPlano?: StatusVencimentoPlano;
+    /** Próximo vencimento (menor mensalidade em aberto); ausente junto com billingStatus. */
+    nextDueDate?: string;
+    /** Derivado em leitura; ausente sem contrato ou sem mensalidade em aberto. Nunca carrega valor. */
+    billingStatus?: AthleteBillingStatus;
     /** Treinos realizados dos últimos 7 dias, mais recente primeiro; ausente sem realizados. */
     realizadosRecentes?: RealizadoRecenteDto[];
 }
