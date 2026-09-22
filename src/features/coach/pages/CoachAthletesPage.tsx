@@ -61,10 +61,10 @@ import { BatchPlanDialog } from '../../../components/features/planos/BatchPlanDi
 import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
 import { deriveRosterKpis, daysSinceLastActivity, INACTIVITY_THRESHOLD_DAYS } from '../adapters/rosterKpis';
 import { calcularAcwr, getAcwrZone } from '../adapters/coachInboxAdapters';
-import { resolveStatusVencimentoPlanoBadge, formatDataVencimentoPlano } from '../adapters/billingPlanAdapters';
+import { resolveStatusCobrancaBadge, formatProximoVencimento } from '../adapters/cobrancaAdapters';
 import type { MetricTone } from '../types/AthleteForm';
 import type { CoachAtletaStatus } from '../../../types/Coach';
-import type { StatusVencimentoPlano } from '../../../types/Atleta';
+import type { AthleteBillingStatus } from '../../../types/Atleta';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -80,8 +80,8 @@ interface AthleteRow {
   acwr?: number;
   weeklyVolume: number;
   lastActivity?: string;
-  dataVencimentoPlano?: string;
-  statusVencimentoPlano?: StatusVencimentoPlano;
+  nextDueDate?: string;
+  billingStatus?: AthleteBillingStatus;
 }
 
 type ViewKey = 'all' | 'at-risk' | 'taper';
@@ -340,8 +340,8 @@ export default function CoachAthletesPage() {
         acwr: calcularAcwr(a.atl ?? null, a.ctl ?? null) ?? undefined,
         weeklyVolume: a.weeklyVolume,
         lastActivity: a.lastActivity,
-        dataVencimentoPlano: a.dataVencimentoPlano,
-        statusVencimentoPlano: a.statusVencimentoPlano,
+        nextDueDate: a.nextDueDate,
+        billingStatus: a.billingStatus,
       })),
     [roster],
   );
@@ -513,18 +513,18 @@ export default function CoachAthletesPage() {
       headerName: 'Vencimento',
       width: 140,
       renderCell: ({ row }) => {
-        if (!row.dataVencimentoPlano) {
+        if (!row.nextDueDate) {
           return (
             <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
               <Typography sx={{ fontSize: '0.78rem', color: surface[500] }}>—</Typography>
             </Box>
           );
         }
-        const badge = resolveStatusVencimentoPlanoBadge(row.statusVencimentoPlano);
+        const badge = resolveStatusCobrancaBadge(row.billingStatus);
         return (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, height: '100%' }}>
             <Typography sx={{ fontSize: '0.8rem', color: surface[50] }}>
-              {formatDataVencimentoPlano(row.dataVencimentoPlano)}
+              {formatProximoVencimento(row.nextDueDate)}
             </Typography>
             {badge && <StatusBadge variant={badge.variant} label={badge.label} size="sm" />}
           </Box>
