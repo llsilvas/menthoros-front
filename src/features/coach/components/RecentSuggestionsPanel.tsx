@@ -13,11 +13,15 @@ import type { SugestaoCoachOutputDto } from '../../../types/SugestaoCoach';
 import type { SugestaoRecenteDto } from '../../../types/AtletaPerfilCoach';
 import { categorical, content, semantic, surface } from '../../../theme/tokens';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
-import { GHOST_BTN_SX } from '../../../shared/components/actionButtonSx';
+import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
+import { DANGER_BTN_SX, GHOST_BTN_SX, SUCCESS_BTN_SX } from '../../../shared/components/actionButtonSx';
+import { useSugestaoDecisao } from '../hooks/useSugestaoDecisao';
 
 interface RecentSuggestionsPanelProps {
   sugestoes: SugestaoRecenteDto[];
   onVerTodas?: () => void;
+  /** Chamado após aprovar/rejeitar com sucesso, para o pai recarregar a lista (ex.: `fetchProfile`). */
+  onDecisao?: () => void;
 }
 
 const TIPO_LABELS: Record<string, string> = {
@@ -87,11 +91,13 @@ function formatSummaryType(tipo: string): string {
   return TIPO_LABELS[tipo] ?? tipo.replace(/_/g, ' ');
 }
 
-export function RecentSuggestionsPanel({ sugestoes, onVerTodas }: RecentSuggestionsPanelProps) {
+export function RecentSuggestionsPanel({ sugestoes, onVerTodas, onDecisao }: RecentSuggestionsPanelProps) {
   const [detailsById, setDetailsById] = useState<Record<string, SugestaoCoachOutputDto>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [selected, setSelected] = useState<SugestaoCoachOutputDto | null>(null);
+  const [confirmRejeitarAberto, setConfirmRejeitarAberto] = useState(false);
+  const { decidir, deciding, decisionMessage, resetDecisionMessage } = useSugestaoDecisao(onDecisao);
 
   useEffect(() => {
     let cancelled = false;
@@ -151,6 +157,8 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas }: RecentSuggesti
   );
 
   const openSuggestion = async (id: string) => {
+    resetDecisionMessage();
+    setConfirmRejeitarAberto(false);
     const existing = detailsById[id];
     if (existing) {
       setSelected(existing);
@@ -164,6 +172,11 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas }: RecentSuggesti
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Erro ao carregar o detalhe da sugestão'));
     }
+  };
+
+  const aplicarResultado = (id: string, detail: SugestaoCoachOutputDto) => {
+    setDetailsById((current) => ({ ...current, [id]: detail }));
+    setSelected(detail);
   };
 
   if (sugestoes.length === 0) {
@@ -326,16 +339,42 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas }: RecentSuggesti
         }
         title={selected?.summary ?? ''}
         actions={
-          <Button onClick={() => setSelected(null)} sx={GHOST_BTN_SX}>
-            Fechar
-          </Button>
+          <>
+            <Button onClick={() => setSelected(null)} sx={GHOST_BTN_SX}>
+              Fechar
+            </Button>
+            {selected && selected.status === 'PENDING' ? (
+              <>
+                <Button
+                  onClick={() => setConfirmRejeitarAberto(true)}
+                  disabled={deciding}
+                  sx={DANGER_BTN_SX}
+                >
+                  Rejeitar
+                </Button>
+                <Button
+                  onClick={() => {
+                    void decidir(selected.id, 'aprovar', (detail) => aplicarResultado(selected.id, detail));
+                  }}
+                  disabled={deciding}
+                  sx={SUCCESS_BTN_SX}
+                >
+                  Aprovar
+                </Button>
+              </>
+            ) : null}
+          </>
         }
       >
           {selected ? (
             <Stack spacing={1.5}>
+              {decisionMessage ? (
+                <Alert severity={decisionMessage.severity}>{decisionMessage.text}</Alert>
+              ) : null}
+
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
                 <Chip label={selected.tipo} size="small" />
-                <Chip label={selected.status} size="small" />
+                <Chip label={STATUS_LABELS[selected.status] ?? selected.status} size="small" />
                 <Chip label={selected.confidence} size="small" />
               </Box>
 
@@ -393,6 +432,21 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas }: RecentSuggesti
             </Stack>
           ) : null}
       </CoachDialog>
+
+      <ConfirmDialog
+        open={confirmRejeitarAberto}
+        title="Rejeitar sugestão"
+        message="Esta ação não pode ser desfeita pelo dialog — tem certeza que quer rejeitar esta sugestão?"
+        confirmLabel="Confirmar"
+        severity="danger"
+        loading={deciding}
+        onClose={() => setConfirmRejeitarAberto(false)}
+        onConfirm={() => {
+          if (!selected) return;
+          setConfirmRejeitarAberto(false);
+          void decidir(selected.id, 'rejeitar', (detail) => aplicarResultado(selected.id, detail));
+        }}
+      />
     </>
   );
 }
