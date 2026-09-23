@@ -38,6 +38,12 @@ export interface AgendaDay {
   isToday: boolean;
   status: AgendaDayStatus;
   workout: AgendaWorkout | null;
+  /**
+   * Dia que a IA prescreveu como descanso (show-descanso-no-plano, CA4). Diferente de "dia sem
+   * treino": antes desta feature os dois eram indistinguíveis na tela. O **motivo** do backend não
+   * entra aqui de propósito — é texto escrito para o treinador.
+   */
+  descansoPrescrito: boolean;
 }
 
 export interface WeekAgenda {
@@ -49,18 +55,12 @@ export interface WeekAgenda {
   treinosFeitos: number;
 }
 
+import { indiceDoDia, weekDatesFromInicio } from '../../../utils/semana';
+
 const toIso = (d: Date) => format(d, 'yyyy-MM-dd');
 
-/** 7 dias (segunda→domingo) a partir do `semanaInicio` do plano, em horário local. */
-export function weekDatesFromInicio(semanaInicio: string): Date[] {
-  const [y, m, d] = semanaInicio.split('-').map(Number);
-  const inicio = new Date(y, m - 1, d);
-  return Array.from({ length: 7 }, (_, i) => {
-    const dia = new Date(inicio);
-    dia.setDate(inicio.getDate() + i);
-    return dia;
-  });
-}
+// Reexportado de `utils/semana` para não quebrar quem já importava daqui (task 1.3).
+export { weekDatesFromInicio } from '../../../utils/semana';
 
 
 /** Aceita número, "HH:MM:SS"/"MM:SS" (serialização do backend) e "50 min" (texto livre do coach). */
@@ -97,16 +97,22 @@ export function buildWeekAgenda(plano: PlanoSemanal, hoje: Date = new Date()): W
   const dates = weekDatesFromInicio(plano.semanaInicio);
   const treinos = plano.treinosPlanejados ?? [];
 
-  const dias: AgendaDay[] = dates.map((date) => {
+  // Dias prescritos como descanso, por índice na semana (0 = segunda).
+  const indicesDeDescanso = new Set(
+    (plano.restDays ?? []).map((d) => indiceDoDia(d.dayOfWeek)).filter((i) => i >= 0),
+  );
+
+  const dias: AgendaDay[] = dates.map((date, indiceNaSemana) => {
     const iso = toIso(date);
+    const descansoPrescrito = indicesDeDescanso.has(indiceNaSemana);
     const treino = treinos.find((t) => t.dataTreino === iso);
     const isToday = isSameDay(date, hoje);
     const status = statusDoDia(treino, date, hoje);
-    if (!treino) return { date, iso, isToday, status, workout: null };
+    if (!treino) return { date, iso, isToday, status, workout: null, descansoPrescrito };
     const durationMin = duracaoMinutos(treino.duracaoMin);
     const { km, estimada } = distancia(treino, durationMin);
     return {
-      date, iso, isToday, status,
+      date, iso, isToday, status, descansoPrescrito,
       workout: {
         title: tipoTreinoLabel(treino.tipoTreino),
         description: treino.descricao ?? '',

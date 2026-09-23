@@ -22,6 +22,17 @@ export interface PlanoSemanal {
   observacoes?: string;
   objetivoSemanal?: string;
   treinosPlanejados?: TreinoPlanejado[];
+  /**
+   * Dias prescritos como descanso (add-descanso-explicito-por-fadiga). Ausente, `null` ou `[]` em
+   * plano anterior à feature.
+   */
+  restDays?: RestDayDto[] | null;
+}
+
+/** Espelha `RestDayOutputDto` do backend. */
+export interface RestDayDto {
+  dayOfWeek: string;
+  reason: string;
 }
 
 // Interface para criacao de Plano Semanal

@@ -110,6 +110,9 @@ export default function CoachPlanReviewPage() {
     const [toast, setToast] = useState<{ msg: string; severity: 'success' | 'error' } | null>(null);
     const [editingTreinoId, setEditingTreinoId] = useState<string | null>(null);
     const [addDialogOpen, setAddDialogOpen] = useState(false);
+    // Data com que o dialog de adição abre: preenchida quando o treinador entra por um dia de
+    // descanso (show-descanso-no-plano, CA3); vazia na abertura pelo botão genérico.
+    const [addDataInicial, setAddDataInicial] = useState<string | undefined>(undefined);
     const [deleteTreinoId, setDeleteTreinoId] = useState<string | null>(null);
 
     const { isSaving: isEditSaving, isDeleting, editarTreino, excluirTreino } = useTreinoPlanejado();
@@ -318,7 +321,8 @@ export default function CoachPlanReviewPage() {
                 onRejeitar={handleRejeitar}
                 onEditarTreino={handleAbrirEdicao}
                 onExcluirTreino={handleAbrirExclusao}
-                onAdicionarTreino={() => setAddDialogOpen(true)}
+                onAdicionarTreino={() => { setAddDataInicial(undefined); setAddDialogOpen(true); }}
+                onPrescreverNoDia={(dataTreino) => { setAddDataInicial(dataTreino); setAddDialogOpen(true); }}
             />
 
             {/* Dialog de edição de treino */}
@@ -340,6 +344,7 @@ export default function CoachPlanReviewPage() {
                     semanaInicio={selected.semanaInicio}
                     semanaFim={selected.semanaFim}
                     treinosExistentes={selected.treinosPlanejados ?? []}
+                    dataInicial={addDataInicial}
                     onClose={() => setAddDialogOpen(false)}
                     onSaved={handleTreinoAdicionado}
                 />

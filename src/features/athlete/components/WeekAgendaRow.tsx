@@ -137,7 +137,18 @@ export function WeekAgendaRow({ dia, expanded, onToggle, onOpenDetail, onRegiste
               )}
             </>
           ) : (
-            <Typography variant="body1" sx={{ color: surface[400] }}>Descanso</Typography>
+            /* show-descanso-no-plano, CA4: descanso prescrito pela IA x dia sem nada. O motivo do
+               backend NÃO entra aqui — é texto escrito para o treinador. */
+            dia.descansoPrescrito ? (
+              <Box>
+                <Typography variant="body1" sx={{ color: surface[400] }}>Descanso</Typography>
+                <Typography variant="body2" sx={{ color: surface[500], fontSize: '0.75rem' }}>
+                  Este dia foi reservado para recuperação.
+                </Typography>
+              </Box>
+            ) : (
+              <Typography variant="body1" sx={{ color: surface[400] }}>Sem treino</Typography>
+            )
           )}
         </Box>
 

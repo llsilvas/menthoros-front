@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
     Alert,
     Box,
@@ -85,6 +85,12 @@ export interface TreinoAddDialogProps {
     semanaInicio: string;
     semanaFim: string;
     treinosExistentes: TreinoPlanejadoDto[];
+    /**
+     * Data ISO pré-preenchida ao abrir (show-descanso-no-plano, CA3): o treinador entrou por um dia
+     * específico — hoje só o chip de descanso faz isso. Continua editável (CA3d): o efeito segue a
+     * data salva, não a de origem.
+     */
+    dataInicial?: string;
     onClose: () => void;
     onSaved: (treino: TreinoPlanejadoDto) => void;
 }
@@ -209,10 +215,10 @@ function QuantRow({ duracaoMin, onDuracao, distanciaKm, onKm, fcAlvoEtapa, onZon
 // ── Dialog ────────────────────────────────────────────────────────────────────
 
 export function TreinoAddDialog({
-    open, planoId, semanaInicio, semanaFim, treinosExistentes, onClose, onSaved,
+    open, planoId, semanaInicio, semanaFim, treinosExistentes, dataInicial, onClose, onSaved,
 }: TreinoAddDialogProps) {
     const [tipoTreino,  setTipoTreino]  = useState('');
-    const [dataTreino,  setDataTreino]  = useState('');
+    const [dataTreino,  setDataTreino]  = useState(dataInicial ?? '');
     const [observacoes, setObservacoes] = useState('');
     const [tss,         setTss]         = useState('');
     // fallback manual quando não há etapas definidas
@@ -276,6 +282,12 @@ export function TreinoAddDialog({
     const updateSubStep = (bi: number, si: number, f: keyof Omit<SubStep,'id'>, v: string) =>
         setItens(p => p.map((item, x) => x !== bi || item.kind !== 'block' ? item
             : { ...item, steps: item.steps.map((s,y) => y !== si ? s : { ...s, [f]: v }) }));
+
+    // CA3c: aplicar a data a CADA abertura. O dialog fica montado entre aberturas e o `resetForm`
+    // limpa o campo ao fechar — só inicializar o useState daria a data da 1ª abertura para sempre.
+    useEffect(() => {
+        if (open) setDataTreino(dataInicial ?? '');
+    }, [open, dataInicial]);
 
     const handleClose = () => { if (!isSaving) { resetForm(); onClose(); } };
 
