@@ -60,7 +60,7 @@ describe('RecentSuggestionsPanel — ações de decisão', () => {
     expect(onDecisao).toHaveBeenCalled();
   });
 
-  it('CA2: rejeita uma sugestão PENDING e reflete o novo status no dialog', async () => {
+  it('CA2: rejeitar pede confirmação (ação destrutiva) e só então reflete o novo status', async () => {
     vi.mocked(SugestaoService.detalhe).mockResolvedValue(makeDetail());
     vi.mocked(SugestaoService.rejeitar).mockResolvedValue(makeDetail({ status: 'REJECTED' }));
     const onDecisao = vi.fn();
@@ -68,11 +68,25 @@ describe('RecentSuggestionsPanel — ações de decisão', () => {
     render(<RecentSuggestionsPanel sugestoes={SUGESTOES} onDecisao={onDecisao} />);
     await userEvent.click(await screen.findByRole('button', { name: /^ver$/i }));
 
-    await userEvent.click(await screen.findByRole('button', { name: /rejeitar/i }));
+    await userEvent.click(await screen.findByRole('button', { name: /^rejeitar$/i }));
+    expect(SugestaoService.rejeitar).not.toHaveBeenCalled();
+
+    await userEvent.click(await screen.findByRole('button', { name: /confirmar/i }));
 
     await waitFor(() => expect(SugestaoService.rejeitar).toHaveBeenCalledWith('s1'));
     expect(await screen.findByText('Rejeitada')).toBeInTheDocument();
     expect(onDecisao).toHaveBeenCalled();
+  });
+
+  it('CA2b: cancelar a confirmação de rejeição não chama o serviço', async () => {
+    vi.mocked(SugestaoService.detalhe).mockResolvedValue(makeDetail());
+
+    await abrirDialog();
+    await userEvent.click(await screen.findByRole('button', { name: /^rejeitar$/i }));
+    await userEvent.click(await screen.findByRole('button', { name: /cancelar/i }));
+
+    expect(SugestaoService.rejeitar).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.queryByRole('button', { name: /confirmar/i })).not.toBeInTheDocument());
   });
 
   it('CA3: resposta perdida após commit — reconsulta detalhe em vez de assumir PENDING', async () => {
@@ -100,17 +114,22 @@ describe('RecentSuggestionsPanel — ações de decisão', () => {
     expect(await screen.findByText(/não foi possível confirmar/i)).toBeInTheDocument();
   });
 
-  it('CA3b: 422 (decisão já tomada por outra sessão) mostra o status real como informação, não erro', async () => {
+  it('CA3b: 422 (decisão já tomada por outra sessão) mostra o status real como informação e notifica o pai', async () => {
     vi.mocked(SugestaoService.detalhe)
       .mockResolvedValueOnce(makeDetail())
       .mockResolvedValueOnce(makeDetail({ status: 'REJECTED' }));
     vi.mocked(SugestaoService.aprovar).mockRejectedValue(apiError(422));
+    const onDecisao = vi.fn();
 
-    await abrirDialog();
+    render(<RecentSuggestionsPanel sugestoes={SUGESTOES} onDecisao={onDecisao} />);
+    await userEvent.click(await screen.findByRole('button', { name: /^ver$/i }));
     await userEvent.click(await screen.findByRole('button', { name: /aprovar/i }));
 
-    expect(await screen.findByText(/já foi decidida/i)).toBeInTheDocument();
+    expect(await screen.findByText(/não está mais pendente/i)).toBeInTheDocument();
     expect(screen.queryByRole('alert', { name: /erro/i })).not.toBeInTheDocument();
+    // Achado do frontend-reviewer (bug real): o pai precisa recarregar a lista mesmo no 422,
+    // já que a sugestão deixou de estar PENDING.
+    expect(onDecisao).toHaveBeenCalled();
   });
 
   it('CA4: sugestão já APPROVED não mostra botões de ação', async () => {

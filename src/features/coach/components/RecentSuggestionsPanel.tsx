@@ -9,12 +9,13 @@ import {
   Typography,
 } from '@mui/material';
 import { SugestaoService } from '../../../api/services/SugestaoService';
-import { ApiError } from '../../../api/core/ApiError';
 import type { SugestaoCoachOutputDto } from '../../../types/SugestaoCoach';
 import type { SugestaoRecenteDto } from '../../../types/AtletaPerfilCoach';
 import { categorical, content, semantic, surface } from '../../../theme/tokens';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
+import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { DANGER_BTN_SX, GHOST_BTN_SX, SUCCESS_BTN_SX } from '../../../shared/components/actionButtonSx';
+import { useSugestaoDecisao } from '../hooks/useSugestaoDecisao';
 
 interface RecentSuggestionsPanelProps {
   sugestoes: SugestaoRecenteDto[];
@@ -22,12 +23,6 @@ interface RecentSuggestionsPanelProps {
   /** Chamado após aprovar/rejeitar com sucesso, para o pai recarregar a lista (ex.: `fetchProfile`). */
   onDecisao?: () => void;
 }
-
-const STATUS_APOS_DECISAO_LABELS: Record<string, string> = {
-  APPROVED: 'aprovada',
-  REJECTED: 'rejeitada',
-  PENDING: 'pendente',
-};
 
 const TIPO_LABELS: Record<string, string> = {
   NOVO_PLANO: 'Novo plano',
@@ -101,8 +96,8 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas, onDecisao }: Rec
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [selected, setSelected] = useState<SugestaoCoachOutputDto | null>(null);
-  const [deciding, setDeciding] = useState(false);
-  const [decisionMessage, setDecisionMessage] = useState<{ severity: 'info' | 'error'; text: string } | null>(null);
+  const [confirmRejeitarAberto, setConfirmRejeitarAberto] = useState(false);
+  const { decidir, deciding, decisionMessage, resetDecisionMessage } = useSugestaoDecisao(onDecisao);
 
   useEffect(() => {
     let cancelled = false;
@@ -162,7 +157,8 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas, onDecisao }: Rec
   );
 
   const openSuggestion = async (id: string) => {
-    setDecisionMessage(null);
+    resetDecisionMessage();
+    setConfirmRejeitarAberto(false);
     const existing = detailsById[id];
     if (existing) {
       setSelected(existing);
@@ -181,44 +177,6 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas, onDecisao }: Rec
   const aplicarResultado = (id: string, detail: SugestaoCoachOutputDto) => {
     setDetailsById((current) => ({ ...current, [id]: detail }));
     setSelected(detail);
-  };
-
-  const decidir = async (acao: 'aprovar' | 'rejeitar') => {
-    if (!selected) return;
-    const id = selected.id;
-    setDeciding(true);
-    setDecisionMessage(null);
-
-    try {
-      const atualizado = await SugestaoService[acao](id);
-      aplicarResultado(id, atualizado);
-      onDecisao?.();
-    } catch (err) {
-      // A mutação pode ter comitado no servidor mesmo com erro de transporte, ou já ter sido
-      // decidida por outra sessão (422) — reconsulta em vez de assumir PENDING às cegas.
-      try {
-        const atual = await SugestaoService.detalhe(id);
-        aplicarResultado(id, atual);
-        if (err instanceof ApiError && err.status === 422) {
-          setDecisionMessage({
-            severity: 'info',
-            text: `Esta sugestão já foi decidida: está ${STATUS_APOS_DECISAO_LABELS[atual.status] ?? atual.status}.`,
-          });
-        } else if (atual.status !== 'PENDING') {
-          setDecisionMessage({
-            severity: 'info',
-            text: `Esta sugestão já foi decidida: está ${STATUS_APOS_DECISAO_LABELS[atual.status] ?? atual.status}.`,
-          });
-          onDecisao?.();
-        } else {
-          setDecisionMessage({ severity: 'error', text: 'Não foi possível decidir. Tente novamente.' });
-        }
-      } catch {
-        setDecisionMessage({ severity: 'error', text: 'Não foi possível confirmar — recarregue.' });
-      }
-    } finally {
-      setDeciding(false);
-    }
   };
 
   if (sugestoes.length === 0) {
@@ -385,12 +343,10 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas, onDecisao }: Rec
             <Button onClick={() => setSelected(null)} sx={GHOST_BTN_SX}>
               Fechar
             </Button>
-            {selected?.status === 'PENDING' ? (
+            {selected && selected.status === 'PENDING' ? (
               <>
                 <Button
-                  onClick={() => {
-                    void decidir('rejeitar');
-                  }}
+                  onClick={() => setConfirmRejeitarAberto(true)}
                   disabled={deciding}
                   sx={DANGER_BTN_SX}
                 >
@@ -398,7 +354,7 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas, onDecisao }: Rec
                 </Button>
                 <Button
                   onClick={() => {
-                    void decidir('aprovar');
+                    void decidir(selected.id, 'aprovar', (detail) => aplicarResultado(selected.id, detail));
                   }}
                   disabled={deciding}
                   sx={SUCCESS_BTN_SX}
@@ -476,6 +432,21 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas, onDecisao }: Rec
             </Stack>
           ) : null}
       </CoachDialog>
+
+      <ConfirmDialog
+        open={confirmRejeitarAberto}
+        title="Rejeitar sugestão"
+        message="Esta ação não pode ser desfeita pelo dialog — tem certeza que quer rejeitar esta sugestão?"
+        confirmLabel="Confirmar"
+        severity="danger"
+        loading={deciding}
+        onClose={() => setConfirmRejeitarAberto(false)}
+        onConfirm={() => {
+          if (!selected) return;
+          setConfirmRejeitarAberto(false);
+          void decidir(selected.id, 'rejeitar', (detail) => aplicarResultado(selected.id, detail));
+        }}
+      />
     </>
   );
 }
