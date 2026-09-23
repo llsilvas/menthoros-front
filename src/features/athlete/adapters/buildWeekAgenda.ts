@@ -49,18 +49,12 @@ export interface WeekAgenda {
   treinosFeitos: number;
 }
 
+import { weekDatesFromInicio } from '../../../utils/semana';
+
 const toIso = (d: Date) => format(d, 'yyyy-MM-dd');
 
-/** 7 dias (segunda→domingo) a partir do `semanaInicio` do plano, em horário local. */
-export function weekDatesFromInicio(semanaInicio: string): Date[] {
-  const [y, m, d] = semanaInicio.split('-').map(Number);
-  const inicio = new Date(y, m - 1, d);
-  return Array.from({ length: 7 }, (_, i) => {
-    const dia = new Date(inicio);
-    dia.setDate(inicio.getDate() + i);
-    return dia;
-  });
-}
+// Reexportado de `utils/semana` para não quebrar quem já importava daqui (task 1.3).
+export { weekDatesFromInicio } from '../../../utils/semana';
 
 
 /** Aceita número, "HH:MM:SS"/"MM:SS" (serialização do backend) e "50 min" (texto livre do coach). */
