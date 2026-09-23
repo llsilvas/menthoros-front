@@ -9,16 +9,25 @@ import {
   Typography,
 } from '@mui/material';
 import { SugestaoService } from '../../../api/services/SugestaoService';
+import { ApiError } from '../../../api/core/ApiError';
 import type { SugestaoCoachOutputDto } from '../../../types/SugestaoCoach';
 import type { SugestaoRecenteDto } from '../../../types/AtletaPerfilCoach';
 import { categorical, content, semantic, surface } from '../../../theme/tokens';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
-import { GHOST_BTN_SX } from '../../../shared/components/actionButtonSx';
+import { DANGER_BTN_SX, GHOST_BTN_SX, SUCCESS_BTN_SX } from '../../../shared/components/actionButtonSx';
 
 interface RecentSuggestionsPanelProps {
   sugestoes: SugestaoRecenteDto[];
   onVerTodas?: () => void;
+  /** Chamado após aprovar/rejeitar com sucesso, para o pai recarregar a lista (ex.: `fetchProfile`). */
+  onDecisao?: () => void;
 }
+
+const STATUS_APOS_DECISAO_LABELS: Record<string, string> = {
+  APPROVED: 'aprovada',
+  REJECTED: 'rejeitada',
+  PENDING: 'pendente',
+};
 
 const TIPO_LABELS: Record<string, string> = {
   NOVO_PLANO: 'Novo plano',
@@ -87,11 +96,13 @@ function formatSummaryType(tipo: string): string {
   return TIPO_LABELS[tipo] ?? tipo.replace(/_/g, ' ');
 }
 
-export function RecentSuggestionsPanel({ sugestoes, onVerTodas }: RecentSuggestionsPanelProps) {
+export function RecentSuggestionsPanel({ sugestoes, onVerTodas, onDecisao }: RecentSuggestionsPanelProps) {
   const [detailsById, setDetailsById] = useState<Record<string, SugestaoCoachOutputDto>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [selected, setSelected] = useState<SugestaoCoachOutputDto | null>(null);
+  const [deciding, setDeciding] = useState(false);
+  const [decisionMessage, setDecisionMessage] = useState<{ severity: 'info' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -151,6 +162,7 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas }: RecentSuggesti
   );
 
   const openSuggestion = async (id: string) => {
+    setDecisionMessage(null);
     const existing = detailsById[id];
     if (existing) {
       setSelected(existing);
@@ -163,6 +175,49 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas }: RecentSuggesti
       setSelected(detail);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Erro ao carregar o detalhe da sugestão'));
+    }
+  };
+
+  const aplicarResultado = (id: string, detail: SugestaoCoachOutputDto) => {
+    setDetailsById((current) => ({ ...current, [id]: detail }));
+    setSelected(detail);
+  };
+
+  const decidir = async (acao: 'aprovar' | 'rejeitar') => {
+    if (!selected) return;
+    const id = selected.id;
+    setDeciding(true);
+    setDecisionMessage(null);
+
+    try {
+      const atualizado = await SugestaoService[acao](id);
+      aplicarResultado(id, atualizado);
+      onDecisao?.();
+    } catch (err) {
+      // A mutação pode ter comitado no servidor mesmo com erro de transporte, ou já ter sido
+      // decidida por outra sessão (422) — reconsulta em vez de assumir PENDING às cegas.
+      try {
+        const atual = await SugestaoService.detalhe(id);
+        aplicarResultado(id, atual);
+        if (err instanceof ApiError && err.status === 422) {
+          setDecisionMessage({
+            severity: 'info',
+            text: `Esta sugestão já foi decidida: está ${STATUS_APOS_DECISAO_LABELS[atual.status] ?? atual.status}.`,
+          });
+        } else if (atual.status !== 'PENDING') {
+          setDecisionMessage({
+            severity: 'info',
+            text: `Esta sugestão já foi decidida: está ${STATUS_APOS_DECISAO_LABELS[atual.status] ?? atual.status}.`,
+          });
+          onDecisao?.();
+        } else {
+          setDecisionMessage({ severity: 'error', text: 'Não foi possível decidir. Tente novamente.' });
+        }
+      } catch {
+        setDecisionMessage({ severity: 'error', text: 'Não foi possível confirmar — recarregue.' });
+      }
+    } finally {
+      setDeciding(false);
     }
   };
 
@@ -326,16 +381,44 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas }: RecentSuggesti
         }
         title={selected?.summary ?? ''}
         actions={
-          <Button onClick={() => setSelected(null)} sx={GHOST_BTN_SX}>
-            Fechar
-          </Button>
+          <>
+            <Button onClick={() => setSelected(null)} sx={GHOST_BTN_SX}>
+              Fechar
+            </Button>
+            {selected?.status === 'PENDING' ? (
+              <>
+                <Button
+                  onClick={() => {
+                    void decidir('rejeitar');
+                  }}
+                  disabled={deciding}
+                  sx={DANGER_BTN_SX}
+                >
+                  Rejeitar
+                </Button>
+                <Button
+                  onClick={() => {
+                    void decidir('aprovar');
+                  }}
+                  disabled={deciding}
+                  sx={SUCCESS_BTN_SX}
+                >
+                  Aprovar
+                </Button>
+              </>
+            ) : null}
+          </>
         }
       >
           {selected ? (
             <Stack spacing={1.5}>
+              {decisionMessage ? (
+                <Alert severity={decisionMessage.severity}>{decisionMessage.text}</Alert>
+              ) : null}
+
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
                 <Chip label={selected.tipo} size="small" />
-                <Chip label={selected.status} size="small" />
+                <Chip label={STATUS_LABELS[selected.status] ?? selected.status} size="small" />
                 <Chip label={selected.confidence} size="small" />
               </Box>
 

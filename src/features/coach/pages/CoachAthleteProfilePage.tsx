@@ -300,6 +300,7 @@ export default function CoachAthleteProfilePage() {
                             <RecentSuggestionsPanel
                                 sugestoes={profile.sugestoesRecentes}
                                 onVerTodas={() => navigate('/coach/inbox')}
+                                onDecisao={fetchProfile}
                             />
                         </SectionCard>
                     </Grid>
