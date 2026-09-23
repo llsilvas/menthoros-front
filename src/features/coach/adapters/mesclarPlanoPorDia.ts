@@ -1,3 +1,4 @@
+import { ORDEM_DIAS, indiceDoDia } from '../../../utils/semana';
 import type { DiaSemanaDto, RestDayDto, TreinoPlanejadoDto } from '../../../types/PlanoReview';
 
 /**
@@ -15,8 +16,6 @@ import type { DiaSemanaDto, RestDayDto, TreinoPlanejadoDto } from '../../../type
  * antigo (CA2b), não efeito colateral.
  */
 
-const ORDEM_SEMANA = ['SEGUNDA', 'TERCA', 'QUARTA', 'QUINTA', 'SEXTA', 'SABADO', 'DOMINGO'] as const;
-
 export type ItemDoPlano =
     | { kind: 'treino'; dia: string; treino: TreinoPlanejadoDto }
     | { kind: 'descanso'; dia: string; descanso: RestDayDto };
@@ -29,8 +28,8 @@ function normalizarDia(dia: string | DiaSemanaDto | null | undefined): string {
 
 /** Índice na semana; dia desconhecido vai para o fim, preservando a ordem de chegada. */
 function ordem(dia: string): number {
-    const i = ORDEM_SEMANA.indexOf(dia as (typeof ORDEM_SEMANA)[number]);
-    return i === -1 ? ORDEM_SEMANA.length : i;
+    const i = indiceDoDia(dia);
+    return i === -1 ? ORDEM_DIAS.length : i;
 }
 
 export function mesclarPlanoPorDia(
@@ -51,9 +50,18 @@ export function mesclarPlanoPorDia(
 
     for (const descanso of listaDescansos) {
         const dia = normalizarDia(descanso.dayOfWeek);
-        // Dia irreconhecível: descartar é seguro aqui (não há dia a preencher), ao contrário do treino.
-        if (!dia || ordem(dia) === ORDEM_SEMANA.length) continue;
-        if (diasComTreino.has(dia) || diasDeDescansoJaVistos.has(dia)) continue;
+        // Assimetria deliberada com o treino: descanso descartado não deixa buraco na semana (o dia
+        // segue lá, só sem a tarja), então descartar é seguro. Mas descarte silencioso já mascarou
+        // bug de backend antes — daí o aviso. Sem PII: só o dia.
+        if (!dia || ordem(dia) === ORDEM_DIAS.length) {
+            console.warn('[plano] descanso com dia irreconhecível ignorado:', descanso.dayOfWeek);
+            continue;
+        }
+        if (diasComTreino.has(dia)) continue; // regra do CA6: treino vence descanso
+        if (diasDeDescansoJaVistos.has(dia)) {
+            console.warn('[plano] descanso duplicado no mesmo dia ignorado:', dia);
+            continue;
+        }
         diasDeDescansoJaVistos.add(dia);
         itens.push({ kind: 'descanso', dia, descanso });
     }

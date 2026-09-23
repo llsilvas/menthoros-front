@@ -55,7 +55,7 @@ export interface WeekAgenda {
   treinosFeitos: number;
 }
 
-import { weekDatesFromInicio } from '../../../utils/semana';
+import { indiceDoDia, weekDatesFromInicio } from '../../../utils/semana';
 
 const toIso = (d: Date) => format(d, 'yyyy-MM-dd');
 
@@ -98,11 +98,8 @@ export function buildWeekAgenda(plano: PlanoSemanal, hoje: Date = new Date()): W
   const treinos = plano.treinosPlanejados ?? [];
 
   // Dias prescritos como descanso, por índice na semana (0 = segunda).
-  const ORDEM_DIAS = ['SEGUNDA', 'TERCA', 'QUARTA', 'QUINTA', 'SEXTA', 'SABADO', 'DOMINGO'];
   const indicesDeDescanso = new Set(
-    (plano.restDays ?? [])
-      .map((d) => ORDEM_DIAS.indexOf((d.dayOfWeek ?? '').trim().toUpperCase()))
-      .filter((i) => i >= 0),
+    (plano.restDays ?? []).map((d) => indiceDoDia(d.dayOfWeek)).filter((i) => i >= 0),
   );
 
   const dias: AgendaDay[] = dates.map((date, indiceNaSemana) => {

@@ -18,7 +18,7 @@ import { workoutTypeColor } from '../../../theme/activeTheme';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { resolvePlannerReviewBadge, resolvePlannerReviewReasons } from '../adapters/plannerReviewAdapters';
 import { mesclarPlanoPorDia } from '../adapters/mesclarPlanoPorDia';
-import { weekDatesFromInicio } from '../../../utils/semana';
+import { isoDoDiaNaSemana, weekDatesFromInicio } from '../../../utils/semana';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { DANGER_BTN_SX, GHOST_BTN_SX } from '../../../shared/components/actionButtonSx';
 
@@ -59,17 +59,6 @@ function formatarData(iso: string): string {
 // ── Tag de descanso ───────────────────────────────────────────────────────────
 
 /** Nome do dia em minúsculas para o rótulo acessível ("Descanso na quinta: ..."). */
-const ORDEM_DIAS = ['SEGUNDA', 'TERCA', 'QUARTA', 'QUINTA', 'SEXTA', 'SABADO', 'DOMINGO'];
-
-/** Data ISO do dia da semana dentro da semana do plano — o backend escolhe o dia pela data. */
-function isoDoDia(datasDaSemana: Date[], dia: string): string {
-    const i = ORDEM_DIAS.indexOf(dia);
-    const d = datasDaSemana[i] ?? datasDaSemana[0];
-    const mes = String(d.getMonth() + 1).padStart(2, '0');
-    const diaMes = String(d.getDate()).padStart(2, '0');
-    return `${d.getFullYear()}-${mes}-${diaMes}`;
-}
-
 const DIA_POR_EXTENSO: Record<string, string> = {
     SEGUNDA: 'segunda', TERCA: 'terça', QUARTA: 'quarta', QUINTA: 'quinta',
     SEXTA: 'sexta', SABADO: 'sábado', DOMINGO: 'domingo',
@@ -689,7 +678,7 @@ export function PlanoDetalhePanel({
                                 dia={item.dia}
                                 motivo={item.descanso.reason}
                                 onPrescrever={isAguardando && onPrescreverNoDia
-                                    ? () => onPrescreverNoDia(isoDoDia(datasDaSemana, item.dia))
+                                    ? () => onPrescreverNoDia(isoDoDiaNaSemana(datasDaSemana, item.dia))
                                     : undefined}
                             />
                         ) : (
