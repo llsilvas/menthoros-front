@@ -11,7 +11,7 @@ describe('useCoachRoster', () => {
 
     it('popula roster no sucesso', async () => {
         const roster: CoachAtletaResumo[] = [
-            { atletaId: '1', nome: 'Ana Silva', status: 'active', weeklyVolume: 32.5, temSugestaoPendente: false },
+            { atletaId: '1', nome: 'Ana Silva', status: 'active', weeklyVolume: 32.5, hasPendingSuggestion: false },
         ];
         vi.mocked(CoachDashboardService.getRoster).mockResolvedValue(roster);
 
@@ -29,7 +29,7 @@ describe('useCoachRoster', () => {
         const roster: CoachAtletaResumo[] = [
             {
                 atletaId: '1', nome: 'Ana Silva', status: 'active', weeklyVolume: 32.5,
-                nextDueDate: '2026-08-15', billingStatus: 'UP_TO_DATE', temSugestaoPendente: false,
+                nextDueDate: '2026-08-15', billingStatus: 'UP_TO_DATE', hasPendingSuggestion: false,
             },
         ];
         vi.mocked(CoachDashboardService.getRoster).mockResolvedValue(roster);

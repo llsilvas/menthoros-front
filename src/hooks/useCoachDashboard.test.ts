@@ -26,7 +26,7 @@ const DASHBOARD_STUB: CoachDashboard = {
                 nome: 'Ana Silva',
                 status: 'warning',
                 weeklyVolume: 32.5,
-                temSugestaoPendente: false,
+                hasPendingSuggestion: false,
             },
         ],
         page: 0,

@@ -11,7 +11,7 @@ function atleta(over: Partial<CoachAtletaResumo>): CoachAtletaResumo {
         status: 'active',
         weeklyVolume: 0,
         lastActivity: '2026-06-16',
-        temSugestaoPendente: false,
+        hasPendingSuggestion: false,
         ...over,
     };
 }

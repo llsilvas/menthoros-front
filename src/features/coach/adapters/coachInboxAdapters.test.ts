@@ -252,7 +252,7 @@ describe('getStrainZone', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function atletaResumo(over: Partial<CoachAtletaResumo> & { atletaId: string; nome: string }): CoachAtletaResumo {
-  return { status: 'active', weeklyVolume: 30, temSugestaoPendente: false, ...over };
+  return { status: 'active', weeklyVolume: 30, hasPendingSuggestion: false, ...over };
 }
 
 function pagina(items: CoachAtletaResumo[], over: Partial<CoachDashboardRosterPage> = {}): CoachDashboardRosterPage {

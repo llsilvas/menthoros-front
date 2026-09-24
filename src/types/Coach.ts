@@ -34,7 +34,7 @@ export interface CoachAtletaResumo {
     /** Derivado em leitura; ausente sem contrato ou sem mensalidade em aberto. Nunca carrega valor. */
     billingStatus?: AthleteBillingStatus;
     /** Há SugestaoCoach PENDING não-expirada para este atleta (add-pending-suggestion-badge). */
-    temSugestaoPendente: boolean;
+    hasPendingSuggestion: boolean;
 }
 
 /** Filtros do dashboard agregado do coach. */

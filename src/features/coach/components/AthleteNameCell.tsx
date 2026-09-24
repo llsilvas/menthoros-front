@@ -1,13 +1,14 @@
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { primary, semantic, surface } from '../../../theme/tokens';
 import { CoachAthleteAvatar } from './CoachAthleteAvatar';
+import { PendingSuggestionDot } from './PendingSuggestionDot';
 import { useAtletaPlanGeneration } from '../context/planGenerationContext';
 
 interface AthleteNameCellProps {
     id: string;
     name: string;
     /** Há SugestaoCoach PENDING para este atleta — mesmo ponto visual do calendário (add-pending-suggestion-badge). */
-    temSugestaoPendente?: boolean;
+    hasPendingSuggestion: boolean;
 }
 
 /**
@@ -19,7 +20,7 @@ interface AthleteNameCellProps {
  * Lê o estado por atletaId com assinatura seletiva (`useAtletaPlanGeneration`): só a linha em
  * geração re-renderiza a cada tick do polling; as demais linhas não são afetadas.
  */
-export function AthleteNameCell({ id, name, temSugestaoPendente }: AthleteNameCellProps) {
+export function AthleteNameCell({ id, name, hasPendingSuggestion }: AthleteNameCellProps) {
     const gen = useAtletaPlanGeneration(id);
     const gerando = gen?.status === 'gerando';
     const concluido = gen?.status === 'concluido';
@@ -55,20 +56,7 @@ export function AthleteNameCell({ id, name, temSugestaoPendente }: AthleteNameCe
         >
             <Box sx={{ position: 'relative', flexShrink: 0 }}>
                 <CoachAthleteAvatar athlete={{ id, name }} size="xs" status="none" />
-                {temSugestaoPendente ? (
-                    <Box
-                        title="Sugestão pendente"
-                        sx={{
-                            position: 'absolute',
-                            top: 0,
-                            right: 0,
-                            width: 5,
-                            height: 5,
-                            borderRadius: '50%',
-                            backgroundColor: primary[500],
-                        }}
-                    />
-                ) : null}
+                {hasPendingSuggestion ? <PendingSuggestionDot top={0} right={0} /> : null}
             </Box>
             <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                 <Typography sx={{ fontSize: '0.8rem', fontWeight: 500, color: surface[50] }} noWrap>

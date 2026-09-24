@@ -28,10 +28,10 @@ describe('Render seletivo por atleta (provider real)', () => {
             <PlanGenerationProvider>
                 <Grab />
                 <Profiler id="a1" onRender={onRender('a1')}>
-                    <AthleteNameCell id="a1" name="Ana" />
+                    <AthleteNameCell id="a1" name="Ana" hasPendingSuggestion={false} />
                 </Profiler>
                 <Profiler id="a2" onRender={onRender('a2')}>
-                    <AthleteNameCell id="a2" name="Bruno" />
+                    <AthleteNameCell id="a2" name="Bruno" hasPendingSuggestion={false} />
                 </Profiler>
             </PlanGenerationProvider>,
         );
