@@ -134,7 +134,41 @@ export interface PlanoSemanalDto {
      * reabertura.
      */
     motivoReabertura?: 'PROVA_INSERIDA' | 'PROVA_REMOVIDA' | null;
+    /**
+     * planner-engine-enforcement §7.1: status de compliance do plano frente ao skeleton do planner.
+     * `FAILED` = plano diverge e precisa de revisão; ausente/null em plano legado sem avaliação.
+     */
+    plannerComplianceStatus?: PlannerComplianceStatusDto | null;
+    /** Exige revisão do coach por divergência do planner (`FAILED` ou requiresCoachReview). */
+    plannerRequiresCoachReview?: boolean | null;
+    /** Motivos legíveis da divergência (uma frase por violação), para o badge de revisão. */
+    plannerReviewReasons?: string[] | null;
+    /**
+     * Dias que a IA prescreveu como descanso, com o motivo (add-descanso-explicito-por-fadiga).
+     * Fora de `treinosPlanejados` de propósito: descanso não é treino a cumprir. Ausente, `null` ou
+     * `[]` em plano anterior à feature — os três casos valem "sem descanso".
+     */
+    restDays?: RestDayDto[] | null;
 }
+
+/**
+ * Um dia prescrito como descanso. `reason` é texto escrito pela LLM para o TREINADOR (cita sinal,
+ * valor e limiar) — nunca exibir ao atleta, ver `show-descanso-no-plano`.
+ */
+export interface RestDayDto {
+    dayOfWeek: string;
+    reason: string;
+}
+
+/** Espelha `PlannerComplianceStatus.java` (planner-engine-enforcement). */
+export type PlannerComplianceStatusDto =
+    | 'NOT_EVALUATED'
+    | 'COMPLIANT'
+    | 'VIOLATIONS_DETECTED'
+    | 'PASSED'
+    | 'RETRIED_PASSED'
+    | 'FALLBACK'
+    | 'FAILED';
 
 /** Payload do endpoint POST /{id}/rejeitar. */
 export interface PlanoRejectionInput {

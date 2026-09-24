@@ -7,6 +7,15 @@
     <!-- O link do convite de fundadora carrega um token no fragmento; o Referer nunca leva fragmento,
          mas a política restritiva fecha a porta para qualquer outro parâmetro sensível. -->
     <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <!-- PWA (add-athlete-pwa-installable). O link do manifest é injetado pelo vite-plugin-pwa no
+         build — não duplicar aqui. theme-color = surface[900] dos design-tokens (mesmo valor do
+         manifest); HTML estático não importa tokens, por isso o literal. As tags apple-* são o
+         que o iOS Safari oferece: ícone na home + tela cheia via "Adicionar à Tela de Início". -->
+    <meta name="theme-color" content="#0A1628" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Menthoros" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon-180.png" />
     <title>Menthoros — A IA propõe. O treinador decide.</title>
     <meta name="description" content="Plataforma de decisão para coaches de endurance. A IA organiza os dados, cruza carga e recuperação, e sugere ajustes. Você revisa e decide. Seu domingo volta." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />

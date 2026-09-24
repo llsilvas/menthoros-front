@@ -6,6 +6,8 @@ import type { BatchPlanJobStatus } from '../types/BatchPlanJob';
 
 vi.mock('../api/services/BatchPlanService');
 
+const POLL_INTERVALO_MS_TESTE = 3000;
+
 const statusBase = (over: Partial<BatchPlanJobStatus>): BatchPlanJobStatus => ({
     jobId: 'job-1',
     status: 'EM_PROGRESSO',
@@ -114,6 +116,32 @@ describe('useBatchPlanGeneration', () => {
         const chamadasAteAqui = vi.mocked(BatchPlanService.consultarStatus).mock.calls.length;
         await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
         expect(vi.mocked(BatchPlanService.consultarStatus).mock.calls.length).toBe(chamadasAteAqui);
+    });
+
+    it('reset ENTRE o POST e o 202 não reinicia o polling (corrida do BLOCKER do DoR)', async () => {
+        // gerarEmLote resolve só quando liberarmos — simula o 202 chegando tarde.
+        let liberar202!: (v: { jobId: string; totalAtletas: number }) => void;
+        vi.mocked(BatchPlanService.gerarEmLote).mockReturnValue(
+            new Promise((res) => { liberar202 = res; }) as ReturnType<typeof BatchPlanService.gerarEmLote>,
+        );
+        vi.mocked(BatchPlanService.consultarStatus).mockResolvedValue(statusBase({ gerados: 1 }));
+
+        const { result } = renderHook(() => useBatchPlanGeneration());
+        let disparo!: Promise<unknown>;
+        act(() => { disparo = result.current.gerarLote(['a1']); });
+
+        // Coach fecha o dialog ANTES do 202 chegar.
+        act(() => { result.current.reset(); });
+
+        // Agora o 202 tardio resolve.
+        await act(async () => { liberar202({ jobId: 'job-1', totalAtletas: 1 }); await disparo.catch(() => {}); });
+        await flush();
+        await act(async () => { await vi.advanceTimersByTimeAsync(POLL_INTERVALO_MS_TESTE); });
+
+        // O reset venceu: nenhum polling, estado limpo.
+        expect(BatchPlanService.consultarStatus).not.toHaveBeenCalled();
+        expect(result.current.jobId).toBeNull();
+        expect(result.current.loading).toBe(false);
     });
 
     it('seta error quando o polling (consultarStatus) falha após o disparo', async () => {

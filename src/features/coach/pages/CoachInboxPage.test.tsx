@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as reactRouter from 'react-router';
@@ -45,6 +45,8 @@ const makeProfile = (pmc: PmcPontoRaw[] = []): AtletaPerfilCoachDto => ({
     { id: 's1', tipo: 'AJUSTE_PLANO', status: 'PENDING', criadoEm: '2026-06-24T13:30:00Z' },
   ],
   recordes: [],
+  melhoresEsforcos: [],
+  melhoresEsforcosIntegracaoConectada: true,
   geradoEm: '2026-06-24T13:32:25Z',
   avisos: null,
 });
@@ -76,6 +78,7 @@ const DASHBOARD_STUB: CoachDashboard = {
         nome: 'Ana Silva',
         status: 'warning',
         weeklyVolume: 32.5,
+        hasPendingSuggestion: false,
       },
     ],
     page: 0,
@@ -266,6 +269,41 @@ describe('CoachInboxPage', () => {
 
     // PMCChart é lazy — aguarda o stub resolver via Suspense.
     expect(await screen.findByText('stub-pmc-chart')).toBeInTheDocument();
+  });
+
+  describe('strip de KPIs — sem dado na janela (task 1.3, polish-inbox-visual-semantics)', () => {
+    /**
+     * Achado da auditoria: sem PMC (`hasWindowData=false`), Aderência caía no fallback `?? 0` e
+     * Carga (7d) usava `roster.weeklyVolume` puro — ambos exibiam número com ícone de estado
+     * positivo/atenção, como se fossem medição real. O mock default (`makeProfile()`, sem pmc) é
+     * exatamente esse cenário.
+     */
+    it('Aderência, Carga (7d), Forma e ACWR mostram valor neutro, sem ícone de estado', () => {
+      renderPage();
+
+      for (const label of ['Aderência', 'Carga (7d)', 'Forma', 'ACWR']) {
+        const tile = within(screen.getByText(label).closest('div') as HTMLElement);
+        expect(tile.getByText('—')).toBeInTheDocument();
+        expect(tile.queryByTitle('Adequado')).not.toBeInTheDocument();
+        expect(tile.queryByTitle('Atenção')).not.toBeInTheDocument();
+        expect(tile.queryByTitle('Crítico')).not.toBeInTheDocument();
+      }
+    });
+
+    it('com dado na janela, zero legítimo de aderência continua numérico', () => {
+      vi.mocked(useAthleteProfile).mockReturnValue({
+        profile: makeProfile([{ data: '2026-06-20', ctl: 40, atl: 40, tsb: 0, tss: 0 }]),
+        isLoading: false,
+        error: null,
+        errorKind: null,
+        fetchProfile: mockFetchProfile,
+      });
+
+      renderPage();
+
+      const tile = within(screen.getByText('Aderência').closest('div') as HTMLElement);
+      expect(tile.getByText('0%')).toBeInTheDocument();
+    });
   });
 
   it('mostra provas e sugestões do ATLETA na aba Provas & sugestões (não o calendário global)', async () => {

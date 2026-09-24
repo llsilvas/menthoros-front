@@ -26,6 +26,12 @@ import {
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import { usePlanoSemanal } from '../../../hooks/usePlanoSemanal';
+import { useBatchPlanGeneration } from '../../../hooks/useBatchPlanGeneration';
+// Import relativo (não `@/features`) por causa do gotcha do tsconfig: `@/features/*` aponta para
+// `src/components/features/*`, não para `src/features/*` (ver CLAUDE.md do front).
+import { usePlanGenerationActions, useAtletaPlanGeneration } from '../../../features/coach/context/planGenerationContext';
+import { BatchPlanService } from '../../../api/services/BatchPlanService';
+import { isBatchJobTerminal } from '../../../types/BatchPlanJob';
 import { AtletasService } from '../../../api/services/AtletasService';
 import { TreinoService } from '../../../api/services/TreinoService';
 import {
@@ -146,10 +152,29 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
         loading,
         error,
         fetchPlanosPorAtleta,
-        gerarPlanoSemanal,
         deletePlano,
         clearPlanos
     } = usePlanoSemanal();
+
+    // Geração de plano é assíncrona: o síncrono levava ~35-70s (cold-start) e estourava o
+    // proxy_read_timeout de 60s do nginx -> 504. Reusa o fluxo de lote (lote de 1 + polling);
+    // ver change gerar-plano-individual-assincrono.
+    //
+    // Fonte única de verdade: COM provider (roster novo), o estado vem do PlanGenerationStore e um
+    // único poller (do provider) acompanha o job — o dialog só lê. SEM provider (tela legada
+    // AtletasList) cai no `useBatchPlanGeneration` local. Ver change plano-em-geracao-no-roster.
+    const {
+        status: geracaoStatusLocal,
+        loading: gerandoLocal,
+        error: geracaoErrorLocal,
+        gerarLote,
+        reset: resetGeracao,
+    } = useBatchPlanGeneration();
+
+    const { iniciar, anexarJob, liberar, hasProvider } = usePlanGenerationActions();
+    const provGen = useAtletaPlanGeneration(atletaId);
+
+    const gerando = hasProvider ? provGen?.status === 'gerando' : gerandoLocal;
 
     const [modoGeracao, setModoGeracao] = useState<MetodoGeracaoPlano>('PROXIMA_SEMANA');
 
@@ -162,19 +187,20 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
     const [detalheModalOpen, setDetalheModalOpen] = useState(false);
     const [treinoDetalhe, setTreinoDetalhe] = useState<TreinoPlanejado | null>(null);
 
-    // Carrega os planos quando o dialog abre e atletaId está disponível
+    // Carrega os planos quando o dialog abre e atletaId está disponível.
+    // O PlanosDialog é UMA instância reusada para todos os atletas (AtletasList não usa key), e o
+    // job de geração é assíncrono: sem resetar ao trocar de atleta ou fechar, uma conclusão do
+    // atleta A cairia no contexto do atleta B (relist/alerta no atleta errado). resetGeracao para
+    // o polling e zera o estado — o job segue no backend e o plano aparece ao reabrir aquele atleta.
     useEffect(() => {
-        console.log('PlanosDialog useEffect - open:', open, 'atletaId:', atletaId);
+        resetGeracao();
         if (open && atletaId) {
-            console.log('Carregando planos para atleta:', atletaId);
             fetchPlanosPorAtleta(atletaId);
         }
-        // Limpa os planos quando o dialog fecha
         if (!open) {
-            console.log('Dialog fechado, limpando planos');
             clearPlanos();
         }
-    }, [open, atletaId, fetchPlanosPorAtleta, clearPlanos]);
+    }, [open, atletaId, fetchPlanosPorAtleta, clearPlanos, resetGeracao]);
 
     // Debug dos estados
     useEffect(() => {
@@ -193,20 +219,61 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [planos]);
 
-    const handleGerarPlano = async () => {
-        if(!atletaId) {
+    // Dispara a geração de UM atleta pelo fluxo assíncrono (lote de 1). Bloqueia redisparo enquanto
+    // um job está em andamento (o backend só deduplica dentro de um lote, não entre requisições).
+    const dispararGeracao = async (modo: MetodoGeracaoPlano) => {
+        if (!atletaId) {
             console.error('ID do atleta não fornecido');
             return;
         }
-
+        if (gerando) return;
+        // Reserva ANTES do POST: bloqueia um segundo disparo do mesmo atleta antes de o 202 chegar
+        // (dois cliques rápidos criariam dois jobs). Sem provider, `iniciar` sempre libera.
+        if (!iniciar(atletaId)) return;
         try {
-            await gerarPlanoSemanal(atletaId, modoGeracao);
-            // Após gerar, recarrega a lista automaticamente
-            onPlanoGerado?.();
+            if (hasProvider) {
+                // Com provider, o POST é feito aqui e o poller é do provider — o dialog não roda um
+                // segundo polling. Fechar o dialog não interrompe o acompanhamento.
+                const aceito = await BatchPlanService.gerarEmLote([atletaId], modo);
+                anexarJob(atletaId, aceito.jobId);
+            } else {
+                // Legado (sem provider): o hook faz POST + polling local.
+                await gerarLote([atletaId], modo);
+            }
         } catch (err) {
-            console.error('Erro ao gerar plano semanal:', err);
+            liberar(atletaId);
+            console.error('Erro ao iniciar a geração do plano:', err);
         }
     };
+
+    const handleGerarPlano = () => void dispararGeracao(modoGeracao);
+
+    // Terminal COM provider: relista o plano do atleta quando o store marca concluído (a recarga do
+    // roster/revisões é responsabilidade do provider, não do dialog).
+    useEffect(() => {
+        if (!hasProvider) return;
+        if (provGen?.status === 'concluido' && atletaId) fetchPlanosPorAtleta(atletaId);
+    }, [hasProvider, provGen?.status, atletaId, fetchPlanosPorAtleta]);
+
+    // Terminal SEM provider (legado): sucesso relista o plano e avisa o pai.
+    useEffect(() => {
+        if (hasProvider) return;
+        if (geracaoStatusLocal && isBatchJobTerminal(geracaoStatusLocal.status) && geracaoStatusLocal.gerados > 0) {
+            if (atletaId) fetchPlanosPorAtleta(atletaId);
+            onPlanoGerado?.();
+            resetGeracao();
+        }
+    }, [hasProvider, geracaoStatusLocal, atletaId, fetchPlanosPorAtleta, onPlanoGerado, resetGeracao]);
+
+    // Mensagem de falha: com provider vem do store (estado 'erro'); sem provider, do hook local
+    // (erro de disparo ou terminal com erros — inclui "plano já existe"). Lote de 1: um erro basta.
+    const erroDetalheLocal = geracaoStatusLocal?.errosDetalhes?.[0]?.motivo;
+    const mensagemGeracao = hasProvider
+        ? (provGen?.status === 'erro' ? (provGen.mensagem ?? 'Não foi possível gerar o plano. Tente novamente.') : null)
+        : (geracaoErrorLocal ??
+            (geracaoStatusLocal && geracaoStatusLocal.erros > 0 && geracaoStatusLocal.gerados === 0
+                ? (erroDetalheLocal ?? 'Não foi possível gerar o plano. Tente novamente.')
+                : null));
 
     const handleDeletePlano = async (planoSemanalId: string) => {
         if(!planoSemanalId) {
@@ -378,9 +445,9 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                     </Button>
                     <Button
                         variant='contained'
-                        startIcon={<AddIcon />}
+                        startIcon={gerando ? <CircularProgress size={16} color="inherit" /> : <AddIcon />}
                         onClick={handleGerarPlano}
-                        disabled={loading || temPlanoAtivo}
+                        disabled={loading || gerando || temPlanoAtivo}
                         size="small"
                         sx={{
                             ...PRIMARY_BTN_SX,
@@ -389,7 +456,7 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                             minHeight: { xs: 38, md: 32 },
                         }}
                     >
-                        {loading ? 'Gerando...' : 'Gerar Plano'}
+                        {gerando ? 'Gerando…' : 'Gerar Plano'}
                     </Button>
                 </Box>
     );
@@ -423,6 +490,21 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                 {error && (
                     <Alert severity="error" sx={{ m: 3 }}>
                         {error.message}
+                    </Alert>
+                )}
+
+                {gerando && (
+                    <Box sx={{ m: 3 }}>
+                        <Alert severity="info" icon={<CircularProgress size={18} />}>
+                            Gerando o plano com IA — isto pode levar cerca de um minuto. Você pode
+                            fechar e voltar depois.
+                        </Alert>
+                    </Box>
+                )}
+
+                {mensagemGeracao && (
+                    <Alert severity="error" sx={{ m: 3 }} onClose={resetGeracao}>
+                        {mensagemGeracao}
                     </Alert>
                 )}
 
@@ -513,11 +595,8 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                                                 <EncerrarSemanaButton
                                                     planoId={plano.id}
                                                     onEncerrado={() => { if (atletaId) fetchPlanosPorAtleta(atletaId); }}
-                                                    onGerarProximaSemana={async () => {
-                                                        if (!atletaId) return;
-                                                        await gerarPlanoSemanal(atletaId, 'PROXIMA_SEMANA');
-                                                        onPlanoGerado?.();
-                                                    }}
+                                                    gerando={gerando}
+                                                    onGerarProximaSemana={() => void dispararGeracao('PROXIMA_SEMANA')}
                                                 />
                                             </Box>
                                         )}

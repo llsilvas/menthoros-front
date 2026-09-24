@@ -51,6 +51,31 @@ describe('PlanoDetalhePanel — reabertura por prova (prova-no-plano-semanal, D4
     });
 });
 
+describe('PlanoDetalhePanel — revisão obrigatória do planner (planner-engine-enforcement §7.2)', () => {
+    it('sem campos de planner (plano legado), não mostra o bloco de revisão', () => {
+        renderPanel(BASE);
+        expect(screen.queryByTestId('planner-review-block')).toBeNull();
+    });
+
+    it('compliance FAILED mostra o badge "Revisão obrigatória" e os motivos', () => {
+        renderPanel({
+            ...BASE,
+            plannerComplianceStatus: 'FAILED',
+            plannerRequiresCoachReview: true,
+            plannerReviewReasons: ['treino em dia não disponível', 'carga alta na semana de taper'],
+        });
+        const bloco = screen.getByTestId('planner-review-block');
+        expect(bloco).toHaveTextContent('Revisão obrigatória');
+        expect(bloco).toHaveTextContent('treino em dia não disponível');
+        expect(bloco).toHaveTextContent('carga alta na semana de taper');
+    });
+
+    it('plano PASSED não exibe destaque', () => {
+        renderPanel({ ...BASE, plannerComplianceStatus: 'PASSED', plannerRequiresCoachReview: false });
+        expect(screen.queryByTestId('planner-review-block')).toBeNull();
+    });
+});
+
 describe('PlanoDetalhePanel — treino PROVA com o mesmo destaque da agenda', () => {
     it('mostra o nome da prova em vez do rótulo genérico do tipo', () => {
         renderPanel(BASE);

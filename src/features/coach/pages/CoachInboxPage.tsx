@@ -36,7 +36,7 @@ import { MetricTile } from '../components/MetricTile';
 import { QueueRow } from '../components/QueueRow';
 import { AttentionOnlyRow } from '../components/AttentionOnlyRow';
 import { formatKm, formatPercent, statusPalette } from '../components/coachInboxHelpers';
-import { ACTION_BTN_START_ICON_SX, ACTION_BTN_END_ICON_SX } from '../../../shared/components/actionButtonSx';
+import { ACTION_BTN_START_ICON_SX, ACTION_BTN_END_ICON_SX, SECONDARY_OUTLINE_SX } from '../../../shared/components/actionButtonSx';
 import { DiagnosisTabPanel } from '../components/panels/DiagnosisTabPanel';
 import { PlanTabPanel } from '../components/panels/PlanTabPanel';
 import { RacesSuggestionsTabPanel } from '../components/panels/RacesSuggestionsTabPanel';
@@ -131,6 +131,10 @@ function CoachInboxPage() {
         nome: emAtencao.athleteName,
         status: emAtencao.severity === 'MEDIA' ? 'warning' : 'danger',
         weeklyVolume: 0,
+        // Desconhecido, não "false" de verdade — este objeto não vem do roster, que é a única
+        // fonte real do campo. Se algo aqui vier a ler hasPendingSuggestion, precisa buscar do
+        // roster/perfil em vez de confiar neste valor.
+        hasPendingSuggestion: false,
       } satisfies CoachAtletaResumo;
     }
 
@@ -192,6 +196,11 @@ function CoachInboxPage() {
   // null e a UI exibe '—' (degrada sem quebrar).
   const currentFormDisplay = selected?.quickStats.statusForma ? FAIXA_APRESENTACAO[selected.quickStats.statusForma] : null;
   const acwrZone = getAcwrZone(selected?.quickStats.acwr ?? null);
+  // Sem dado na janela (sem PMC sincronizado): aderência/carga vêm do roster com fallback
+  // numérico (`?? 0`), e forma pode cair no `roster.statusForma` mesmo sem série — nenhum dos
+  // dois distingue "zero real" de "nunca sincronizou" sozinho. `hasWindowData` é o mesmo sinal já
+  // usado pela grade de diagnóstico (task 1.3, polish-inbox-visual-semantics).
+  const semDadoNaJanela = selected != null && !selected.quickStats.hasWindowData;
 
   // A seleção acompanha a lista COMPOSTA, não só o roster: um atleta fixado pela fila de atenção
   // não está em `rosterItems`, e comparar com ele revertia a seleção para o primeiro do roster no
@@ -783,21 +792,39 @@ function CoachInboxPage() {
                   borderBottom: `1px solid ${content.divider}`,
                 }}
               >
-                <MetricTile compact label="Aderência" value={formatPercent(selected.adherence)} delta="Últimas 4 semanas" tone={selected.adherence >= 85 ? 'success' : selected.adherence >= 70 ? 'neutral' : 'warning'} />
-                <MetricTile compact label="Carga (7d)" value={formatKm(selected.load7d)} delta={`${selected.loadDelta >= 0 ? '+' : ''}${selected.loadDelta}% vs. ant.`} tone={selected.loadDelta >= 10 ? 'warning' : 'success'} />
+                <MetricTile
+                  compact
+                  label="Aderência"
+                  value={semDadoNaJanela ? '—' : formatPercent(selected.adherence)}
+                  delta={semDadoNaJanela ? 'Sem dado na janela' : 'Últimas 4 semanas'}
+                  tone={semDadoNaJanela ? 'neutral' : selected.adherence >= 85 ? 'success' : selected.adherence >= 70 ? 'neutral' : 'warning'}
+                />
+                <MetricTile
+                  compact
+                  label="Carga (7d)"
+                  value={semDadoNaJanela ? '—' : formatKm(selected.load7d)}
+                  delta={semDadoNaJanela ? 'Sem dado na janela' : `${selected.loadDelta >= 0 ? '+' : ''}${selected.loadDelta}% vs. ant.`}
+                  tone={semDadoNaJanela ? 'neutral' : selected.loadDelta >= 10 ? 'warning' : 'success'}
+                />
                 <MetricTile
                   compact
                   label="Forma"
-                  value={currentFormDisplay?.label ?? '—'}
-                  delta={selected.quickStats.tsb != null ? `TSB ${selected.quickStats.tsb}` : 'TSB não disponível'}
-                  tone={currentFormDisplay?.tone ?? 'neutral'}
+                  // '—' por dois caminhos válidos: sem dado na janela, ou faixa de statusForma
+                  // fora do mapa de FAIXA_APRESENTACAO — os dois casos mostram o mesmo travessão
+                  // de propósito, não é o mesmo branch duplicado por acidente.
+                  value={semDadoNaJanela ? '—' : currentFormDisplay?.label ?? '—'}
+                  delta={semDadoNaJanela ? 'Sem dado na janela' : selected.quickStats.tsb != null ? `TSB ${selected.quickStats.tsb}` : 'TSB não disponível'}
+                  tone={semDadoNaJanela ? 'neutral' : currentFormDisplay?.tone ?? 'neutral'}
                 />
                 <MetricTile
                   compact
                   label="ACWR"
-                  value={selected.quickStats.acwr != null ? selected.quickStats.acwr.toFixed(2) : '—'}
-                  delta={selected.quickStats.acwr != null ? acwrZone.label : 'Dado insuficiente'}
-                  tone={acwrZone.tone}
+                  // Checagem extra (os outros 3 tiles usam só semDadoNaJanela): ACWR pode faltar
+                  // mesmo com hasWindowData=true — calcularAcwr(atl,ctl) só usa o ÚLTIMO ponto do
+                  // PMC, que pode não ter ATL/CTL calculado ainda mesmo havendo série.
+                  value={semDadoNaJanela || selected.quickStats.acwr == null ? '—' : selected.quickStats.acwr.toFixed(2)}
+                  delta={semDadoNaJanela ? 'Sem dado na janela' : selected.quickStats.acwr != null ? acwrZone.label : 'Dado insuficiente'}
+                  tone={semDadoNaJanela ? 'neutral' : acwrZone.tone}
                 />
                 <MetricTile compact label={isTargetRace ? 'Prova Alvo' : 'Próxima Prova'} delta={selected.raceCalendar[0]?.date ?? '—'} value={selected.raceCalendar[0]?.label ?? 'Sem prova'} tone={isTargetRace ? 'warning' : 'neutral'} highlight={isTargetRace} />
               </Box>
@@ -914,7 +941,7 @@ function CoachInboxPage() {
                   variant="outlined"
                   startIcon={<ChatBubbleOutlineIcon />}
                   onClick={() => setFeedback('Mensagem preparada para o atleta.')}
-                  sx={ACTION_BTN_START_ICON_SX}
+                  sx={{ ...ACTION_BTN_START_ICON_SX, ...SECONDARY_OUTLINE_SX }}
                 >
                   Enviar mensagem
                 </Button>
@@ -923,7 +950,7 @@ function CoachInboxPage() {
                   variant="outlined"
                   startIcon={<TuneIcon />}
                   onClick={() => setActiveTab('plan')}
-                  sx={ACTION_BTN_START_ICON_SX}
+                  sx={{ ...ACTION_BTN_START_ICON_SX, ...SECONDARY_OUTLINE_SX }}
                 >
                   Ajustar plano
                 </Button>
@@ -932,7 +959,7 @@ function CoachInboxPage() {
                   variant="outlined"
                   onClick={(event) => setMenuAnchor(event.currentTarget)}
                   endIcon={<MoreHorizIcon />}
-                  sx={ACTION_BTN_END_ICON_SX}
+                  sx={{ ...ACTION_BTN_END_ICON_SX, ...SECONDARY_OUTLINE_SX }}
                 >
                   Mais ações
                 </Button>

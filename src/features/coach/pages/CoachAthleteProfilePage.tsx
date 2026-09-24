@@ -27,9 +27,10 @@ import { CurrentWeekPlan } from '../components/CurrentWeekPlan';
 import { RecentSignalsPanel } from '../components/RecentSignalsPanel';
 import { RecentSuggestionsPanel } from '../components/RecentSuggestionsPanel';
 import { RecentTrainingsPanel } from '../components/RecentTrainingsPanel';
+import { MelhoresEsforcosPanel } from '../components/MelhoresEsforcosPanel';
 import { KudosDialog } from '../components/KudosDialog';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
-import { resolveStatusVencimentoPlanoBadge, formatDataVencimentoPlano } from '../adapters/billingPlanAdapters';
+import { resolveStatusCobrancaBadge, formatProximoVencimento } from '../adapters/cobrancaAdapters';
 import { useAthleteProfile } from '../../../hooks/useAthleteProfile';
 import { useWeeklyAthleteReview } from '../hooks/useWeeklyAthleteReview';
 import { buildWeeklyReviewFromDto } from '../adapters/weeklyReviewAdapters';
@@ -37,6 +38,8 @@ import { WeeklyReviewCard } from '../components/WeeklyReviewCard';
 import { useEnviarKudos } from '../../../hooks/useEnviarKudos';
 import { useCoachAthleteRaces } from '../hooks/useCoachAthleteRaces';
 import { AthleteRacesPanel } from '../components/AthleteRacesPanel';
+import { CobrancaAtletaSection } from '../components/CobrancaAtletaSection';
+import { useUserInfo } from '../../../hooks/useUserInfo';
 import { buildCoachRaceList } from '../adapters/coachRaceAdapters';
 import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
 import { surface } from '../../../theme/tokens';
@@ -87,6 +90,8 @@ export default function CoachAthleteProfilePage() {
     const navigate = useNavigate();
     const [pmcRange, setPmcRange] = useState<PMCRange>('12w');
     const [kudosOpen, setKudosOpen] = useState(false);
+    const { roles } = useUserInfo();
+    const isProprietario = Boolean(roles?.includes('PROPRIETARIO'));
 
     const { profile, isLoading, error, errorKind, fetchProfile } = useAthleteProfile(atletaId);
     const {
@@ -179,16 +184,13 @@ export default function CoachAthleteProfilePage() {
                                 : 'Nível não informado'}
                             {profile.objetivo ? ` · ${profile.objetivo}` : ''}
                         </Typography>
-                        {profile.dataVencimentoPlano && (
+                        {profile.nextDueDate && (
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
                                 <Typography variant="caption" sx={{ color: surface[400] }}>
-                                    {profile.tipoPlanoAtleta
-                                        ? `Plano ${profile.tipoPlanoAtleta.charAt(0)}${profile.tipoPlanoAtleta.slice(1).toLowerCase()} · `
-                                        : ''}
-                                    Vencimento: {formatDataVencimentoPlano(profile.dataVencimentoPlano)}
+                                    Vencimento: {formatProximoVencimento(profile.nextDueDate)}
                                 </Typography>
                                 {(() => {
-                                    const badge = resolveStatusVencimentoPlanoBadge(profile.statusVencimentoPlano);
+                                    const badge = resolveStatusCobrancaBadge(profile.billingStatus);
                                     return badge ? <StatusBadge variant={badge.variant} label={badge.label} size="sm" /> : null;
                                 })()}
                             </Box>
@@ -298,6 +300,7 @@ export default function CoachAthleteProfilePage() {
                             <RecentSuggestionsPanel
                                 sugestoes={profile.sugestoesRecentes}
                                 onVerTodas={() => navigate('/coach/inbox')}
+                                onDecisao={fetchProfile}
                             />
                         </SectionCard>
                     </Grid>
@@ -306,6 +309,16 @@ export default function CoachAthleteProfilePage() {
                     <Grid size={{ xs: 12, md: 6 }}>
                         <SectionCard title="Treinos recentes">
                             <RecentTrainingsPanel realizados={profile.realizadosRecentes ?? []} />
+                        </SectionCard>
+                    </Grid>
+
+                    {/* Melhores esforços — 6 colunas */}
+                    <Grid size={{ xs: 12, md: 6 }}>
+                        <SectionCard title="Melhores esforços">
+                            <MelhoresEsforcosPanel
+                                marcas={profile.melhoresEsforcos}
+                                integracaoConectada={profile.melhoresEsforcosIntegracaoConectada}
+                            />
                         </SectionCard>
                     </Grid>
 
@@ -335,6 +348,13 @@ export default function CoachAthleteProfilePage() {
                             />
                         </SectionCard>
                     </Grid>
+
+                    {/* Cobrança — só para o proprietário da assessoria (design D8) */}
+                    {isProprietario && (
+                        <Grid size={12}>
+                            <CobrancaAtletaSection athleteId={atletaId} />
+                        </Grid>
+                    )}
                 </Grid>
             ) : null}
 

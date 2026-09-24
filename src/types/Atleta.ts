@@ -13,10 +13,10 @@ export interface Atleta {
     diaPreferidoLongo: diaSemana;
     temLesao:boolean;
     descricaoLesao?:string;
-    tipoPlanoAtleta?: TipoPlanoAtleta;
-    dataVencimentoPlano?: string;
-    /** Derivado pelo backend a partir de dataVencimentoPlano; ausente quando não cadastrada. */
-    statusVencimentoPlano?: StatusVencimentoPlano;
+    /** Próximo vencimento (menor mensalidade em aberto, ou o próximo calculado); ausente junto com billingStatus. */
+    nextDueDate?: string;
+    /** Derivado em leitura das mensalidades em aberto; ausente sem contrato ou sem mensalidade em aberto. Nunca carrega valor. */
+    billingStatus?: AthleteBillingStatus;
 }
 
 export interface CreateAtleta {
@@ -36,8 +36,6 @@ export interface CreateAtleta {
     diaPreferidoLongo: diaSemana;
     temLesao:boolean;
     descricaoLesao?:string;
-    tipoPlanoAtleta?: TipoPlanoAtleta;
-    dataVencimentoPlano?: string;
 }
 
 export interface UpdateAtleta  extends Partial<CreateAtleta> {
@@ -110,8 +108,9 @@ export const DIA_SEMANA_LABELS: Record<diaSemana, string> = {
     SABADO: 'Sábado',
 };
 
-/** Periodicidade do plano do atleta com a assessoria — distinto do plano SaaS da assessoria com a Menthoros. */
-export type TipoPlanoAtleta = 'MENSAL' | 'TRIMESTRAL' | 'SEMESTRAL' | 'ANUAL';
-
-/** Status de vencimento derivado pelo backend a partir de dataVencimentoPlano vs. a data atual. */
-export type StatusVencimentoPlano = 'EM_DIA' | 'PROXIMO_VENCIMENTO' | 'VENCIDO';
+/**
+ * Status de cobrança do atleta, derivado em leitura das mensalidades em aberto do contrato
+ * (`AthleteContract`/`AthleteInvoice` em `types/ContratoAtleta.ts`) — nunca persistido, nunca
+ * carrega valor. Visível a todo treinador, diferente do contrato em si (só o proprietário).
+ */
+export type AthleteBillingStatus = 'UP_TO_DATE' | 'DUE_SOON' | 'OVERDUE';

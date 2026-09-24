@@ -4,6 +4,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router';
 import { elevation } from '../../../shared/design-tokens';
 import type { CoachRoute } from '../../../constants/routes';
 import CoachSidebar from './CoachSidebar';
+import { PlanGenerationProvider } from '../context/PlanGenerationProvider';
 import { CoachWelcomeWizard } from '../components/CoachWelcomeWizard';
 import { CoachConsentDialog } from '../components/CoachConsentDialog';
 import { UsuarioService } from '../../../api/services/UsuarioService';
@@ -228,7 +229,14 @@ export default function CoachLayout() {
           onNavigate={handleNavigate}
         />
         <Box sx={{ flex: 1, overflow: 'auto' }}>
-          <Outlet context={outletContext} />
+          {/*
+            O estado de "plano em geração" vive aqui, no shell do coach, para a linha do roster
+            refleti-lo mesmo com o PlanosDialog fechado. É em memória: navegar para fora de /coach
+            (desmonta o layout) ou recarregar zera o estado — o job segue no servidor.
+          */}
+          <PlanGenerationProvider>
+            <Outlet context={outletContext} />
+          </PlanGenerationProvider>
         </Box>
       </Box>
     </ThemeProvider>

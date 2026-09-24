@@ -10,6 +10,7 @@ import {
 import { primary, surface, semantic, categorical } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import { CoachAthleteAvatar } from '../components/CoachAthleteAvatar';
+import { PendingSuggestionDot } from '../components/PendingSuggestionDot';
 import { useCoachCalendar } from '../../../hooks/useCoachCalendar';
 import { groupCalendarByAtleta, type CoachCalendarRow, type CoachWorkout } from '../adapters/calendarAdapter';
 import type { WorkoutType } from '../adapters/workoutType';
@@ -111,22 +112,7 @@ function WorkoutBlock({ workout }: { workout: CoachWorkout }) {
         {workout.hasAlert && (
           <WarningIcon sx={{ fontSize: '0.65rem', color: semantic.warning[500], flexShrink: 0 }} />
         )}
-        {/* Pending suggestion dot */}
-        {workout.hasPendingSuggestion && (
-          <Box
-            sx={{
-              position: 'absolute',
-              top: 2,
-              right: 2,
-              width: 5,
-              height: 5,
-              borderRadius: '50%',
-              backgroundColor: primary[500],
-              flexShrink: 0,
-            }}
-            aria-label="Sugestão pendente"
-          />
-        )}
+        {workout.hasPendingSuggestion && <PendingSuggestionDot />}
       </Box>
     </Tooltip>
   );

@@ -1,11 +1,13 @@
 import React from 'react';
-import { Alert, AlertTitle, Box, Button } from '@mui/material';
+import { Alert, AlertTitle, Box, Button, CircularProgress } from '@mui/material';
 import type { EncerramentoSemanaResult } from '../../../types/Encerramento';
 
 interface EncerramentoSemanaResumoProps {
     resultado: EncerramentoSemanaResult;
     /** Callback do CTA "Gerar plano da próxima semana" — só exibido quando o plano ficou concluído. */
     onGerarProximaSemana?: () => void;
+    /** Geração em andamento: desabilita o CTA e mostra progresso (o disparo é assíncrono). */
+    gerando?: boolean;
 }
 
 /**
@@ -16,6 +18,7 @@ interface EncerramentoSemanaResumoProps {
 export const EncerramentoSemanaResumo: React.FC<EncerramentoSemanaResumoProps> = ({
     resultado,
     onGerarProximaSemana,
+    gerando = false,
 }) => {
     const { treinosFinalizados, prontoParaProximaSemana, aviso } = resultado;
 
@@ -33,8 +36,10 @@ export const EncerramentoSemanaResumo: React.FC<EncerramentoSemanaResumoProps> =
                             variant="contained"
                             color="success"
                             onClick={onGerarProximaSemana}
+                            disabled={gerando}
+                            startIcon={gerando ? <CircularProgress size={16} color="inherit" /> : undefined}
                         >
-                            Gerar plano da próxima semana
+                            {gerando ? 'Gerando…' : 'Gerar plano da próxima semana'}
                         </Button>
                     </Box>
                 )}

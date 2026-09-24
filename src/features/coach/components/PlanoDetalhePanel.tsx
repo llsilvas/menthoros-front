@@ -15,6 +15,10 @@ import { resolveReviewStatus } from '../../../types/PlanoReview';
 import type { DiaSemanaDto, PlanoSemanalDto, TreinoPlanejadoDto } from '../../../types/PlanoReview';
 import { primary, surface, semantic, content } from '../../../theme/tokens';
 import { workoutTypeColor } from '../../../theme/activeTheme';
+import { StatusBadge } from '../../../shared/components/StatusBadge';
+import { resolvePlannerReviewBadge, resolvePlannerReviewReasons } from '../adapters/plannerReviewAdapters';
+import { mesclarPlanoPorDia } from '../adapters/mesclarPlanoPorDia';
+import { isoDoDiaNaSemana, weekDatesFromInicio } from '../../../utils/semana';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { DANGER_BTN_SX, GHOST_BTN_SX } from '../../../shared/components/actionButtonSx';
 
@@ -52,6 +56,66 @@ function formatarData(iso: string): string {
     });
 }
 
+// ── Tag de descanso ───────────────────────────────────────────────────────────
+
+/** Nome do dia em minúsculas para o rótulo acessível ("Descanso na quinta: ..."). */
+const DIA_POR_EXTENSO: Record<string, string> = {
+    SEGUNDA: 'segunda', TERCA: 'terça', QUARTA: 'quarta', QUINTA: 'quinta',
+    SEXTA: 'sexta', SABADO: 'sábado', DOMINGO: 'domingo',
+};
+
+/**
+ * Descanso prescrito pela IA (show-descanso-no-plano). Sem duração/RPE/zona de propósito: não é
+ * sessão a cumprir. O `reason` aparece como veio — é texto escrito para o treinador.
+ */
+function DescansoTag({
+    dia,
+    motivo,
+    onPrescrever,
+}: {
+    dia: string;
+    motivo: string;
+    onPrescrever?: () => void;
+}) {
+    const cor = surface[500];
+    return (
+        <Box
+            data-testid={`chip-descanso-${dia}`}
+            aria-label={`Descanso na ${DIA_POR_EXTENSO[dia] ?? dia.toLowerCase()}: ${motivo}`}
+            sx={{
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column',
+                flexShrink: 0,
+                minWidth: 150,
+                maxWidth: 260,
+                borderRadius: '6px',
+                borderLeft: `3px dashed ${cor}`,
+                border: `1px dashed ${cor}55`,
+                bgcolor: `${cor}0A`,
+                px: 1, py: 0.75, gap: 0.25,
+            }}
+        >
+            <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: surface[300], letterSpacing: 0.4 }}>
+                {dia.slice(0, 3)} · Descanso
+            </Typography>
+            <Typography sx={{ fontSize: '0.68rem', color: surface[400], lineHeight: 1.35 }}>
+                {motivo}
+            </Typography>
+            {onPrescrever && (
+                <Button
+                    data-testid={`acao-prescrever-${dia}`}
+                    size="small"
+                    onClick={onPrescrever}
+                    sx={{ alignSelf: 'flex-start', fontSize: '0.65rem', px: 0.5, minWidth: 0 }}
+                >
+                    Prescrever treino neste dia
+                </Button>
+            )}
+        </Box>
+    );
+}
+
 // ── Tag de treino ─────────────────────────────────────────────────────────────
 
 function TreinoTag({
@@ -78,6 +142,7 @@ function TreinoTag({
 
     return (
         <Box
+            data-testid={`tag-treino-${treino.id ?? 'sem-id'}`}
             sx={{
                 position: 'relative',
                 display: 'flex',
@@ -388,6 +453,8 @@ interface PlanoDetalhePanelProps {
     onEditarTreino?: (treinoId: string) => void;
     onExcluirTreino?: (treinoId: string) => void;
     onAdicionarTreino?: () => void;
+    /** Prescrever treino num dia hoje prescrito como descanso — recebe a data ISO daquele dia. */
+    onPrescreverNoDia?: (dataTreino: string) => void;
 }
 
 const STATUS_COLOR: Record<string, string> = {
@@ -416,12 +483,16 @@ export function PlanoDetalhePanel({
     onEditarTreino,
     onExcluirTreino,
     onAdicionarTreino,
+    onPrescreverNoDia,
 }: PlanoDetalhePanelProps) {
     const [modalAberto, setModalAberto] = useState(false);
 
     if (!plano) return <EstadoVazio />;
 
     const sessoes = plano.treinosPlanejados ?? [];
+    // show-descanso-no-plano: treinos e descansos numa lista só, sempre em ordem de dia (CA6/CA2b).
+    const itensDoPlano = mesclarPlanoPorDia(sessoes, plano.restDays);
+    const datasDaSemana = weekDatesFromInicio(plano.semanaInicio);
     const periodo = `${formatarData(plano.semanaInicio)} – ${formatarData(plano.semanaFim)}`;
 
     // Derivado dos treinos individuais — reflete edições sem depender do campo estático do backend
@@ -434,6 +505,9 @@ export function PlanoDetalhePanel({
     const statusColor = STATUS_COLOR[reviewStatusValue] ?? STATUS_COLOR.AGUARDANDO_REVISAO;
     const statusLabel = STATUS_LABEL[reviewStatusValue] ?? reviewStatusValue;
     const reaberturaLabel = plano.motivoReabertura ? REABERTURA_LABEL[plano.motivoReabertura] : null;
+    // planner-engine-enforcement §7.2: destaque de revisão obrigatória por divergência do planner.
+    const plannerBadge = resolvePlannerReviewBadge(plano);
+    const plannerReasons = resolvePlannerReviewReasons(plano);
 
     const handleRejeitar = (motivo: string) => {
         setModalAberto(false);
@@ -500,6 +574,37 @@ export function PlanoDetalhePanel({
                     </Box>
                 )}
 
+                {/* Revisão obrigatória do planner (planner-engine-enforcement §7.2) */}
+                {plannerBadge && (
+                    <Box data-testid="planner-review-block" sx={{ mb: 1.25 }}>
+                        <StatusBadge variant={plannerBadge.variant} label={plannerBadge.label} size="sm" />
+                        {plannerReasons.length > 0 && (
+                            <Box
+                                component="ul"
+                                sx={{
+                                    listStyle: 'none',
+                                    m: 0,
+                                    mt: 0.75,
+                                    p: 0,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 0.375,
+                                }}
+                            >
+                                {plannerReasons.map((motivo, i) => (
+                                    <Typography
+                                        key={i}
+                                        component="li"
+                                        sx={{ fontSize: '0.72rem', color: surface[400], lineHeight: 1.4 }}
+                                    >
+                                        • {motivo}
+                                    </Typography>
+                                ))}
+                            </Box>
+                        )}
+                    </Box>
+                )}
+
                 {/* Nome do atleta */}
                 <Typography
                     sx={{
@@ -561,21 +666,30 @@ export function PlanoDetalhePanel({
                     '&::-webkit-scrollbar-thumb': { bgcolor: surface[700], borderRadius: 2 },
                 }}
             >
-                {sessoes.length === 0 ? (
+                {itensDoPlano.length === 0 ? (
                     <Typography sx={{ fontSize: '0.75rem', color: surface[600], fontStyle: 'italic' }}>
                         Nenhuma sessão disponível.
                     </Typography>
                 ) : (
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                        {sessoes.map((t, i) => (
-                            <TreinoTag
-                                key={t.id ?? i}
-                                treino={t}
-                                onEditar={isAguardando && t.id && onEditarTreino
-                                    ? () => onEditarTreino(t.id!)
+                        {itensDoPlano.map((item, i) => item.kind === 'descanso' ? (
+                            <DescansoTag
+                                key={`descanso-${item.dia}`}
+                                dia={item.dia}
+                                motivo={item.descanso.reason}
+                                onPrescrever={isAguardando && onPrescreverNoDia
+                                    ? () => onPrescreverNoDia(isoDoDiaNaSemana(datasDaSemana, item.dia))
                                     : undefined}
-                                onExcluir={isAguardando && t.id && onExcluirTreino
-                                    ? () => onExcluirTreino(t.id!)
+                            />
+                        ) : (
+                            <TreinoTag
+                                key={item.treino.id ?? i}
+                                treino={item.treino}
+                                onEditar={isAguardando && item.treino.id && onEditarTreino
+                                    ? () => onEditarTreino(item.treino.id!)
+                                    : undefined}
+                                onExcluir={isAguardando && item.treino.id && onExcluirTreino
+                                    ? () => onExcluirTreino(item.treino.id!)
                                     : undefined}
                             />
                         ))}

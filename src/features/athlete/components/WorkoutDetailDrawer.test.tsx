@@ -28,6 +28,7 @@ function dia(over: Partial<AgendaDay> = {}): AgendaDay {
         iso: '2026-08-25',
         isToday: false,
         status: 'concluido',
+        descansoPrescrito: false,
         workout: {
             title: 'Tempo',
             description: 'Dois blocos de tempo.',

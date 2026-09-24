@@ -1,8 +1,10 @@
 import type {
   AthleteAderencia,
+  AthleteMelhoresEsforcos,
   AthletePmc,
   AthleteRecord,
   AthleteZones,
+  MelhoresEsforcosJanela,
 } from '../../types/AthleteProgress';
 import type { Prova } from '../../types/Prova';
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -75,6 +77,22 @@ export class AthleteProgressService {
     return __request(OpenAPI, {
       method: 'GET',
       url: '/api/v1/atletas/me/provas',
+    });
+  }
+
+  /**
+   * Melhores esforços por distância (400m-10k), numa janela — lido do intervals.icu.
+   * `integracaoConectada=false` não é erro, é o estado "sem intervals.icu conectado ainda".
+   * @returns AthleteMelhoresEsforcos marcas + status da integração
+   * @throws ApiError
+   */
+  public static getMelhoresEsforcos(
+    janela?: MelhoresEsforcosJanela,
+  ): CancelablePromise<AthleteMelhoresEsforcos> {
+    return __request(OpenAPI, {
+      method: 'GET',
+      url: '/api/v1/atletas/me/melhores-esforcos',
+      query: { janela },
     });
   }
 }

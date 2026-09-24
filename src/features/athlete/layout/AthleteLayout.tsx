@@ -6,6 +6,7 @@ import { elevation } from '../../../shared/design-tokens';
 import { AthleteBottomNav } from '../../../shared/components/AthleteBottomNav';
 import { ErrorBoundary } from '../../../shared/components/ErrorBoundary';
 import { ROUTES, type AthleteRoute } from '../../../constants/routes';
+import { AthleteShellBanner } from './AthleteShellBanner';
 
 export default function AthleteLayout() {
   const location = useLocation();
@@ -42,6 +43,9 @@ export default function AthleteLayout() {
             </Box>
           </Box>
         </ErrorBoundary>
+        {/* Acima da barra: único lugar visível em toda tela sem disputar com o conteúdo (grill Q9);
+            uma mensagem por vez — offline > hint iOS > instalação. */}
+        <AthleteShellBanner />
         <AthleteBottomNav
           activeRoute={activeRoute}
           onNavigate={handleNavigate}

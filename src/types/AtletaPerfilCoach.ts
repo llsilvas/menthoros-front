@@ -1,7 +1,7 @@
 import type { EtapaTreinoDto, PlanoReviewStatusDto } from './PlanoReview';
 import type { Prova } from './Prova';
 import type { FaixaTsbStatus } from './FaixaTsb';
-import type { StatusVencimentoPlano, TipoPlanoAtleta } from './Atleta';
+import type { AthleteBillingStatus } from './Atleta';
 
 /** Ponto PMC retornado pelo backend (datas como strings ISO). */
 export interface PmcPontoRaw {
@@ -73,6 +73,18 @@ export interface RecordeDto {
     treinoId: string;
 }
 
+/**
+ * Melhor tempo contínuo do atleta por distância de referência (400m-10k), janela rolante de 42
+ * dias — diferente de {@link RecordeDto} (PR de treino inteiro): distâncias curtas acontecem
+ * dentro de um treino maior.
+ */
+export interface MelhorEsforcoDto {
+    distanciaLabel: string;
+    distanciaMetros: number;
+    tempoSegundos: number;
+    paceLabel: string;
+}
+
 /** Limiares de treinamento inferidos pela IA (FC e pace limiar). */
 export interface LimiareisInferidosDto {
     fcLimiarEstimado?: number | null;
@@ -97,15 +109,17 @@ export interface AtletaPerfilCoachDto {
     sinaisRecentes: SinalRecenteDto[];
     sugestoesRecentes: SugestaoRecenteDto[];
     recordes: RecordeDto[];
+    /** Melhores esforços por distância (400m-10k), janela de 42 dias; vazio sem intervals.icu. */
+    melhoresEsforcos: MelhorEsforcoDto[];
+    /** Distingue "atleta sem PRs ainda" (true, `melhoresEsforcos` vazio) de "nunca conectou" (false). */
+    melhoresEsforcosIntegracaoConectada: boolean;
     geradoEm: string;
     avisos: string[] | null;
     limiareisInferidos?: LimiareisInferidosDto | null;
-    /** Tipo de plano do atleta com a assessoria; ausente quando não cadastrado. */
-    tipoPlanoAtleta?: TipoPlanoAtleta;
-    /** Data de vencimento do plano do atleta com a assessoria; ausente quando não cadastrado. */
-    dataVencimentoPlano?: string;
-    /** Status de vencimento derivado; ausente quando dataVencimentoPlano não cadastrada. */
-    statusVencimentoPlano?: StatusVencimentoPlano;
+    /** Próximo vencimento (menor mensalidade em aberto); ausente junto com billingStatus. */
+    nextDueDate?: string;
+    /** Derivado em leitura; ausente sem contrato ou sem mensalidade em aberto. Nunca carrega valor. */
+    billingStatus?: AthleteBillingStatus;
     /** Treinos realizados dos últimos 7 dias, mais recente primeiro; ausente sem realizados. */
     realizadosRecentes?: RealizadoRecenteDto[];
 }

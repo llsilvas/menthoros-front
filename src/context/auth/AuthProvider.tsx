@@ -125,6 +125,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
          * A guarda existe porque isto é um redirect: falhar e tentar de novo produziria laço
          * infinito, com a tela piscando sem parar.
          */
+        // Sem rede, a restauração é pulada: o redirect abaixo é navegação de página inteira e,
+        // offline, terminaria na página de erro do navegador — nenhuma tela do app. Num PWA
+        // instalado é o caso comum (reabrir o app sem rede zera o sessionStorage, então a guarda
+        // contra laço não segura). Conclui anônimo: a casca renderiza e o guard de rota leva ao
+        // login. `onLine === false` é confiável (só sem interface de rede); `true` pode mentir, e
+        // nesse caso o fluxo segue como sempre. Não grava a marca: a primeira tentativa continua
+        // disponível para quando a rede voltar.
+        if (!navigator.onLine) {
+          if (ativo) aplicarUsuario(null);
+          return;
+        }
+
         // Com convite pendente, a restauração é pulada: quem abre um link de convite não tem
         // sessão para restaurar, e este redirect é navegação de página inteira — o token do
         // fragmento (já movido para a memória pelo useInviteToken) não sobreviveria à volta.

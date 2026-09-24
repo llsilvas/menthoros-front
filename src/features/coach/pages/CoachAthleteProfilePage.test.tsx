@@ -8,6 +8,8 @@ import * as useAthleteProfileModule from '../../../hooks/useAthleteProfile';
 import * as useWeeklyReviewModule from '../hooks/useWeeklyAthleteReview';
 import { useEnviarKudos } from '../../../hooks/useEnviarKudos';
 import { useCoachAthleteRaces } from '../hooks/useCoachAthleteRaces';
+import { useUserInfo } from '../../../hooks/useUserInfo';
+import { ContratoAtletaService } from '../../../api/services/ContratoAtletaService';
 import type { Prova } from '../../../types/Prova';
 import type { AtletaPerfilCoachDto } from '../../../types/AtletaPerfilCoach';
 import type { RevisaoSemanalOutputDto } from '../../../types/RevisaoSemanal';
@@ -16,7 +18,9 @@ vi.mock('../../../hooks/useAthleteProfile');
 vi.mock('../hooks/useWeeklyAthleteReview');
 vi.mock('../../../hooks/useEnviarKudos');
 vi.mock('../hooks/useCoachAthleteRaces');
+vi.mock('../../../hooks/useUserInfo');
 vi.mock('../../../api/services/SugestaoService');
+vi.mock('../../../api/services/ContratoAtletaService');
 vi.mock('../../athlete/components/PMCChart', () => ({
     default: () => <div data-testid="pmc-chart" />,
 }));
@@ -49,6 +53,8 @@ const STUB_PROFILE: AtletaPerfilCoachDto = {
         { id: 'sug-1', tipo: 'NOVO_PLANO', status: 'PENDING', criadoEm: '2026-06-14T08:00:00Z' },
     ],
     recordes: [],
+    melhoresEsforcos: [],
+    melhoresEsforcosIntegracaoConectada: true,
     geradoEm: '2026-06-20T12:00:00Z',
     avisos: null,
 };
@@ -99,6 +105,7 @@ describe('CoachAthleteProfilePage', () => {
         });
         vi.mocked(useEnviarKudos).mockReturnValue({ enviar: vi.fn().mockResolvedValue(undefined), loading: false, error: null });
         mockRaces([], []);
+        vi.mocked(useUserInfo).mockReturnValue({ roles: ['TECNICO'] });
         vi.mocked(SugestaoService.detalhe).mockResolvedValue({
             id: 'sug-1',
             atletaId: 'uuid-1',
@@ -137,33 +144,51 @@ describe('CoachAthleteProfilePage', () => {
         expect(screen.getByText(/Maratona/i)).toBeInTheDocument();
     });
 
-    it('não exibe dados de cobrança quando dataVencimentoPlano ausente', () => {
+    it('não exibe dados de cobrança quando nextDueDate ausente', () => {
         mockHook({ profile: STUB_PROFILE });
         renderPage();
         expect(screen.queryByText(/Vencimento:/i)).not.toBeInTheDocument();
     });
 
-    it('exibe tipo de plano, data formatada e badge Vencido quando dataVencimentoPlano no passado', () => {
+    it('CA14 — não renderiza a seção Cobrança para TECNICO e não chama o serviço de contrato', () => {
+        vi.mocked(useUserInfo).mockReturnValue({ roles: ['TECNICO'] });
+        mockHook({ profile: STUB_PROFILE });
+        renderPage();
+        expect(screen.queryByText('Cobrança')).not.toBeInTheDocument();
+        expect(ContratoAtletaService.getContract).not.toHaveBeenCalled();
+    });
+
+    it('CA14 — renderiza a seção Cobrança para PROPRIETARIO', async () => {
+        vi.mocked(useUserInfo).mockReturnValue({ roles: ['TECNICO', 'PROPRIETARIO'] });
+        vi.mocked(ContratoAtletaService.getContract).mockResolvedValue({
+            id: 'contrato-1', athleteId: 'uuid-1', periodicity: 'MONTHLY', dueDay: 10,
+            startDate: '2026-09-21', active: true, athleteNoticeEnabled: true, invoices: [],
+        });
+        mockHook({ profile: STUB_PROFILE });
+        renderPage();
+        expect(await screen.findByText('Cobrança')).toBeInTheDocument();
+        expect(ContratoAtletaService.getContract).toHaveBeenCalledWith('uuid-1');
+    });
+
+    it('exibe data formatada e badge Vencido quando nextDueDate no passado', () => {
         mockHook({
             profile: {
                 ...STUB_PROFILE,
-                tipoPlanoAtleta: 'ANUAL',
-                dataVencimentoPlano: '2026-06-01',
-                statusVencimentoPlano: 'VENCIDO',
+                nextDueDate: '2026-06-01',
+                billingStatus: 'OVERDUE',
             },
         });
         renderPage();
-        expect(screen.getByText(/Plano Anual/i)).toBeInTheDocument();
         expect(screen.getByText(/Vencimento: 01\/06\/2026/i)).toBeInTheDocument();
         expect(screen.getByText('Vencido')).toBeInTheDocument();
     });
 
-    it('exibe badge Vence em breve quando statusVencimentoPlano é PROXIMO_VENCIMENTO', () => {
+    it('exibe badge Vence em breve quando billingStatus é DUE_SOON', () => {
         mockHook({
             profile: {
                 ...STUB_PROFILE,
-                dataVencimentoPlano: '2026-07-20',
-                statusVencimentoPlano: 'PROXIMO_VENCIMENTO',
+                nextDueDate: '2026-07-20',
+                billingStatus: 'DUE_SOON',
             },
         });
         renderPage();

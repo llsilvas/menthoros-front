@@ -8,6 +8,7 @@ function diaConcluido(analiseDisponivel: boolean): AgendaDay {
     return {
         date: new Date(2026, 7, 25),
         iso: '2026-08-25',
+        descansoPrescrito: false,
         isToday: false,
         status: 'concluido',
         workout: {
@@ -53,6 +54,7 @@ function diaProva(over: { distanceKm?: number; duracaoMinRaw?: string } = {}): A
     return {
         date: new Date(2026, 7, 25),
         iso: '2026-08-25',
+        descansoPrescrito: false,
         isToday: false,
         status: 'pendente',
         workout: {

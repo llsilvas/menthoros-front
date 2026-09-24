@@ -49,7 +49,8 @@ import { AtletasService } from '../../../api/services/AtletasService';
 import type { Atleta, CreateAtleta, UpdateAtleta } from '../../../types/Atleta';
 import { primary, surface, semantic, glassSx } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
-import { CoachAthleteAvatar } from '../components/CoachAthleteAvatar';
+import { AthleteNameCell } from '../components/AthleteNameCell';
+import { useRegisterPlanGenerationReload } from '../context/planGenerationContext';
 import { PhaseIndicator } from '../../../shared/components/PhaseIndicator';
 import type { TrainingPhase } from '../../../shared/components/PhaseIndicator';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
@@ -60,10 +61,10 @@ import { BatchPlanDialog } from '../../../components/features/planos/BatchPlanDi
 import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
 import { deriveRosterKpis, daysSinceLastActivity, INACTIVITY_THRESHOLD_DAYS } from '../adapters/rosterKpis';
 import { calcularAcwr, getAcwrZone } from '../adapters/coachInboxAdapters';
-import { resolveStatusVencimentoPlanoBadge, formatDataVencimentoPlano } from '../adapters/billingPlanAdapters';
+import { resolveStatusCobrancaBadge, formatProximoVencimento } from '../adapters/cobrancaAdapters';
 import type { MetricTone } from '../types/AthleteForm';
 import type { CoachAtletaStatus } from '../../../types/Coach';
-import type { StatusVencimentoPlano } from '../../../types/Atleta';
+import type { AthleteBillingStatus } from '../../../types/Atleta';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -79,8 +80,9 @@ interface AthleteRow {
   acwr?: number;
   weeklyVolume: number;
   lastActivity?: string;
-  dataVencimentoPlano?: string;
-  statusVencimentoPlano?: StatusVencimentoPlano;
+  nextDueDate?: string;
+  billingStatus?: AthleteBillingStatus;
+  hasPendingSuggestion: boolean;
 }
 
 type ViewKey = 'all' | 'at-risk' | 'taper';
@@ -245,6 +247,14 @@ export default function CoachAthletesPage() {
     fetchRoster();
   }, [fetchRoster]);
 
+  // No terminal de sucesso da geração, o provider recarrega o roster (vencimento novo na linha) e as
+  // revisões pendentes — independente de o PlanosDialog estar aberto ou não.
+  const recarregarAposGeracao = useCallback(() => {
+    void fetchRoster();
+    void reviewFetchPendentes();
+  }, [fetchRoster, reviewFetchPendentes]);
+  useRegisterPlanGenerationReload(recarregarAposGeracao);
+
   const [loteDialogOpen, setLoteDialogOpen] = useState(false);
   const [batchDialogOpen, setBatchDialogOpen] = useState(false);
 
@@ -331,8 +341,9 @@ export default function CoachAthletesPage() {
         acwr: calcularAcwr(a.atl ?? null, a.ctl ?? null) ?? undefined,
         weeklyVolume: a.weeklyVolume,
         lastActivity: a.lastActivity,
-        dataVencimentoPlano: a.dataVencimentoPlano,
-        statusVencimentoPlano: a.statusVencimentoPlano,
+        nextDueDate: a.nextDueDate,
+        billingStatus: a.billingStatus,
+        hasPendingSuggestion: a.hasPendingSuggestion,
       })),
     [roster],
   );
@@ -365,12 +376,7 @@ export default function CoachAthletesPage() {
       flex: 1.8,
       minWidth: 160,
       renderCell: ({ row }) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, height: '100%' }}>
-          <CoachAthleteAvatar athlete={{ id: row.id, name: row.name }} size="xs" status="none" />
-          <Typography sx={{ fontSize: '0.8rem', fontWeight: 500, color: surface[50] }}>
-            {row.name}
-          </Typography>
-        </Box>
+        <AthleteNameCell id={row.id} name={row.name} hasPendingSuggestion={row.hasPendingSuggestion} />
       ),
     },
     {
@@ -511,18 +517,18 @@ export default function CoachAthletesPage() {
       headerName: 'Vencimento',
       width: 140,
       renderCell: ({ row }) => {
-        if (!row.dataVencimentoPlano) {
+        if (!row.nextDueDate) {
           return (
             <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
               <Typography sx={{ fontSize: '0.78rem', color: surface[500] }}>—</Typography>
             </Box>
           );
         }
-        const badge = resolveStatusVencimentoPlanoBadge(row.statusVencimentoPlano);
+        const badge = resolveStatusCobrancaBadge(row.billingStatus);
         return (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, height: '100%' }}>
             <Typography sx={{ fontSize: '0.8rem', color: surface[50] }}>
-              {formatDataVencimentoPlano(row.dataVencimentoPlano)}
+              {formatProximoVencimento(row.nextDueDate)}
             </Typography>
             {badge && <StatusBadge variant={badge.variant} label={badge.label} size="sm" />}
           </Box>

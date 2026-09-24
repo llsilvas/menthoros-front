@@ -7,6 +7,7 @@ import { StrongerBlock } from './StrongerBlock';
 import { ZonesBlock } from './ZonesBlock';
 import { AdherenceBlock } from './AdherenceBlock';
 import { RecordsBlock } from './RecordsBlock';
+import { EffortsBlock } from './EffortsBlock';
 
 vi.mock('../PMCChart', () => ({ PMCChart: () => <div data-testid="pmc-chart-mock">pmc</div> }));
 
@@ -97,5 +98,53 @@ describe('RecordsBlock', () => {
     expect(screen.getByText(/ainda sem recordes/i)).toBeInTheDocument();
     expect(screen.getByText(/próxima prova indisponível/i)).toBeInTheDocument();
     expect(screen.queryByText(/peça ao seu coach/i)).toBeNull();
+  });
+});
+
+describe('EffortsBlock', () => {
+  it('mostra as marcas com tempo e pace formatados, e a janela ativa marcada', () => {
+    const onJanelaChange = vi.fn();
+    renderComRouter(
+      <EffortsBlock
+        reading={{
+          integracaoConectada: true,
+          rows: [
+            { distanciaLabel: '5k', tempoFormatado: '29:56', paceLabel: '5:59/km' },
+            { distanciaLabel: '10k', tempoFormatado: '1:00:19', paceLabel: '6:02/km' },
+          ],
+        }}
+        janela="42d"
+        onJanelaChange={onJanelaChange}
+      />,
+    );
+    expect(screen.getByText('5k')).toBeInTheDocument();
+    expect(screen.getByText('29:56')).toBeInTheDocument();
+    expect(screen.getByText('5:59/km')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '42 dias' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('troca a janela ao clicar no seletor', async () => {
+    const onJanelaChange = vi.fn();
+    renderComRouter(
+      <EffortsBlock reading={{ integracaoConectada: true, rows: [] }} janela="42d" onJanelaChange={onJanelaChange} />,
+    );
+    await userEvent.click(screen.getByRole('button', { name: '1 ano' }));
+    expect(onJanelaChange).toHaveBeenCalledWith('1y');
+  });
+
+  it('conectado sem marcas na janela: mensagem honesta, sem CTA de conexão', () => {
+    renderComRouter(
+      <EffortsBlock reading={{ integracaoConectada: true, rows: [] }} janela="42d" onJanelaChange={vi.fn()} />,
+    );
+    expect(screen.getByText(/nenhum esforço nessa janela/i)).toBeInTheDocument();
+    expect(screen.queryByText(/conectar/i)).toBeNull();
+  });
+
+  it('sem integração: CTA de conexão, sem seletor de janela', () => {
+    renderComRouter(
+      <EffortsBlock reading={{ integracaoConectada: false, rows: [] }} janela="42d" onJanelaChange={vi.fn()} />,
+    );
+    expect(screen.getByRole('link', { name: /conectar/i })).toHaveAttribute('href', '#/athlete/profile');
+    expect(screen.queryByRole('button', { name: '42 dias' })).toBeNull();
   });
 });
