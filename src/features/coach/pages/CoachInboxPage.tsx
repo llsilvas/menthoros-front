@@ -131,6 +131,10 @@ function CoachInboxPage() {
         nome: emAtencao.athleteName,
         status: emAtencao.severity === 'MEDIA' ? 'warning' : 'danger',
         weeklyVolume: 0,
+        // Desconhecido, não "false" de verdade — este objeto não vem do roster, que é a única
+        // fonte real do campo. Se algo aqui vier a ler hasPendingSuggestion, precisa buscar do
+        // roster/perfil em vez de confiar neste valor.
+        hasPendingSuggestion: false,
       } satisfies CoachAtletaResumo;
     }
 

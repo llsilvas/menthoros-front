@@ -1,16 +1,26 @@
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { primary, semantic, surface } from '../../../theme/tokens';
 import { CoachAthleteAvatar } from './CoachAthleteAvatar';
+import { PendingSuggestionDot } from './PendingSuggestionDot';
 import { useAtletaPlanGeneration } from '../context/planGenerationContext';
+
+interface AthleteNameCellProps {
+    id: string;
+    name: string;
+    /** Há SugestaoCoach PENDING para este atleta — mesmo ponto visual do calendário (add-pending-suggestion-badge). */
+    hasPendingSuggestion: boolean;
+}
 
 /**
  * Célula do atleta no roster: nome + sinal de "plano em geração" (change
- * plano-em-geracao-no-roster, design Opção B "linha viva").
+ * plano-em-geracao-no-roster, design Opção B "linha viva") + sinal de sugestão pendente
+ * (add-pending-suggestion-badge, design D5 — reaproveita o ponto já usado em
+ * `CoachCalendarPage.tsx`, "Pending suggestion dot", em vez de uma convenção visual nova).
  *
  * Lê o estado por atletaId com assinatura seletiva (`useAtletaPlanGeneration`): só a linha em
  * geração re-renderiza a cada tick do polling; as demais linhas não são afetadas.
  */
-export function AthleteNameCell({ id, name }: { id: string; name: string }) {
+export function AthleteNameCell({ id, name, hasPendingSuggestion }: AthleteNameCellProps) {
     const gen = useAtletaPlanGeneration(id);
     const gerando = gen?.status === 'gerando';
     const concluido = gen?.status === 'concluido';
@@ -44,7 +54,10 @@ export function AthleteNameCell({ id, name }: { id: string; name: string }) {
                     : {}),
             }}
         >
-            <CoachAthleteAvatar athlete={{ id, name }} size="xs" status="none" />
+            <Box sx={{ position: 'relative', flexShrink: 0 }}>
+                <CoachAthleteAvatar athlete={{ id, name }} size="xs" status="none" />
+                {hasPendingSuggestion ? <PendingSuggestionDot top={0} right={0} /> : null}
+            </Box>
             <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                 <Typography sx={{ fontSize: '0.8rem', fontWeight: 500, color: surface[50] }} noWrap>
                     {name}
