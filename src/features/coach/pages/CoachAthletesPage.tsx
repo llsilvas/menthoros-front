@@ -82,6 +82,7 @@ interface AthleteRow {
   lastActivity?: string;
   nextDueDate?: string;
   billingStatus?: AthleteBillingStatus;
+  temSugestaoPendente: boolean;
 }
 
 type ViewKey = 'all' | 'at-risk' | 'taper';
@@ -342,6 +343,7 @@ export default function CoachAthletesPage() {
         lastActivity: a.lastActivity,
         nextDueDate: a.nextDueDate,
         billingStatus: a.billingStatus,
+        temSugestaoPendente: a.temSugestaoPendente,
       })),
     [roster],
   );
@@ -373,7 +375,9 @@ export default function CoachAthletesPage() {
       headerName: 'Atleta',
       flex: 1.8,
       minWidth: 160,
-      renderCell: ({ row }) => <AthleteNameCell id={row.id} name={row.name} />,
+      renderCell: ({ row }) => (
+        <AthleteNameCell id={row.id} name={row.name} temSugestaoPendente={row.temSugestaoPendente} />
+      ),
     },
     {
       field: 'phase',

@@ -131,6 +131,7 @@ function CoachInboxPage() {
         nome: emAtencao.athleteName,
         status: emAtencao.severity === 'MEDIA' ? 'warning' : 'danger',
         weeklyVolume: 0,
+        temSugestaoPendente: false,
       } satisfies CoachAtletaResumo;
     }
 

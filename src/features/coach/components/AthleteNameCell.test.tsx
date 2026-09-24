@@ -43,3 +43,24 @@ describe('AthleteNameCell — sinal de plano em geração', () => {
         expect(falha).toHaveAttribute('title', 'Já existe plano para a semana.');
     });
 });
+
+describe('AthleteNameCell — sinal de sugestão pendente (add-pending-suggestion-badge)', () => {
+    it('temSugestaoPendente=false: não mostra indicador', () => {
+        mockGen(undefined);
+        render(<AthleteNameCell id="a1" name="Ana Corredora" temSugestaoPendente={false} />);
+        expect(screen.queryByTitle(/sugestão pendente/i)).not.toBeInTheDocument();
+    });
+
+    it('temSugestaoPendente=true: mostra o indicador com o mesmo aria-label do calendário', () => {
+        mockGen(undefined);
+        render(<AthleteNameCell id="a1" name="Ana Corredora" temSugestaoPendente />);
+        expect(screen.getByTitle(/sugestão pendente/i)).toBeInTheDocument();
+    });
+
+    it('coexiste com o indicador de plano em geração sem sobrepor', () => {
+        mockGen({ atletaId: 'a1', jobId: 'job-1', status: 'gerando' });
+        render(<AthleteNameCell id="a1" name="Ana Corredora" temSugestaoPendente />);
+        expect(screen.getByText(/gerando plano…/i)).toBeInTheDocument();
+        expect(screen.getByTitle(/sugestão pendente/i)).toBeInTheDocument();
+    });
+});

@@ -73,7 +73,7 @@ const reviewFetchPendentes = vi.fn().mockResolvedValue(undefined);
 
 
 const ROSTER: CoachAtletaResumo[] = [
-  { atletaId: 'a1', nome: 'Ana Silva', status: 'active', weeklyVolume: 32, ctl: 50, atl: 48, tsb: 2, fase: 'BASE', lastActivity: '2026-06-24' },
+  { atletaId: 'a1', nome: 'Ana Silva', status: 'active', weeklyVolume: 32, ctl: 50, atl: 48, tsb: 2, fase: 'BASE', lastActivity: '2026-06-24', temSugestaoPendente: false },
 ];
 
 describe('CoachAthletesPage — ações por atleta', () => {
@@ -181,10 +181,10 @@ describe('CoachAthletesPage — ações por atleta', () => {
 });
 
 describe('CoachAthletesPage — coluna de vencimento do plano', () => {
-  function renderComRoster(roster: CoachAtletaResumo[]) {
+  function renderComRoster(roster: Array<Omit<CoachAtletaResumo, 'temSugestaoPendente'>>) {
     vi.clearAllMocks();
     vi.mocked(useCoachRoster).mockReturnValue({
-      roster,
+      roster: roster.map((a) => ({ temSugestaoPendente: false, ...a })),
       loading: false,
       error: null,
       fetchRoster: vi.fn().mockResolvedValue(undefined),
