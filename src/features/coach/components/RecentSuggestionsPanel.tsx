@@ -373,9 +373,9 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas, onDecisao }: Rec
               ) : null}
 
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
-                <Chip label={selected.tipo} size="small" />
+                <Chip label={formatSummaryType(selected.tipo)} size="small" />
                 <Chip label={STATUS_LABELS[selected.status] ?? selected.status} size="small" />
-                <Chip label={selected.confidence} size="small" />
+                <Chip label={CONFIDENCE_LABELS[selected.confidence] ?? selected.confidence} size="small" />
               </Box>
 
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' }, gap: 1 }}>
@@ -422,11 +422,6 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas, onDecisao }: Rec
                   <Typography sx={{ color: surface[100], lineHeight: 1.6 }}>
                     {selected.reasoning.rationale}
                   </Typography>
-                  {selected.reasoning.sourceRules?.length > 0 ? (
-                    <Typography sx={{ mt: 0.75, color: surface[400], fontSize: '0.84rem' }}>
-                      Regras: {selected.reasoning.sourceRules.join(', ')}
-                    </Typography>
-                  ) : null}
                 </Box>
               ) : null}
             </Stack>

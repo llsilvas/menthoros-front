@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { RecentSuggestionsPanel } from './RecentSuggestionsPanel';
@@ -160,5 +160,36 @@ describe('RecentSuggestionsPanel — ações de decisão', () => {
 
     resolveAprovar(makeDetail({ status: 'APPROVED' }));
     await waitFor(() => expect(SugestaoService.aprovar).toHaveBeenCalledTimes(1));
+  });
+});
+
+describe('RecentSuggestionsPanel — dialog em linguagem do coach', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('chips de tipo e confiança usam os rótulos da lista e o nome interno das regras não aparece', async () => {
+    vi.mocked(SugestaoService.detalhe).mockResolvedValue(
+      makeDetail({
+        tipo: 'PLAN_ADJUST',
+        confidence: 'MEDIUM',
+        reasoning: {
+          rationale: 'Aderência caiu nas últimas duas semanas.',
+          sourceRules: ['CoachAttentionSignalEvaluator.avaliarAderencia'],
+          confidence: 'MEDIUM',
+        },
+      }),
+    );
+
+    render(<RecentSuggestionsPanel sugestoes={SUGESTOES} />);
+    await userEvent.click(await screen.findByRole('button', { name: /^ver$/i }));
+    const dialog = within(await screen.findByRole('dialog'));
+
+    expect(dialog.getByText('Ajuste de plano')).toBeInTheDocument();
+    expect(dialog.getByText('Média')).toBeInTheDocument();
+    expect(dialog.queryByText('PLAN_ADJUST')).not.toBeInTheDocument();
+    expect(dialog.queryByText('MEDIUM')).not.toBeInTheDocument();
+    expect(dialog.getByText(/Aderência caiu/)).toBeInTheDocument();
+    expect(dialog.queryByText(/CoachAttentionSignalEvaluator/)).not.toBeInTheDocument();
   });
 });
