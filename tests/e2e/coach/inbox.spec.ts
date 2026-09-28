@@ -309,3 +309,90 @@ test.describe('Coach — lista principal do inbox', () => {
     await expect(page.getByText(/adherence_drop/)).toBeVisible()
   })
 })
+
+/**
+ * `fix-coach-inbox-suggestion-panel` — decidir uma sugestão pelo inbox. O backend persistia a
+ * aprovação, mas o inbox não recarregava o perfil depois da decisão: a lista seguia "Pendente" até
+ * recarregar a página, contradizendo a ação que o coach acabou de tomar.
+ */
+test.describe('Coach — decisão sobre sugestão pelo inbox', () => {
+  test.beforeEach(async ({ page }) => {
+    await autenticarComPkce(page, { roles: ['PROPRIETARIO', 'TECNICO'] })
+  })
+
+  test('aprovar uma sugestão atualiza a lista sem recarregar a página', async ({ page }) => {
+    await mockarDashboard(page)
+
+    let aprovada = false
+    const detalhe = () => ({
+      id: 'sug-1',
+      atletaId: 'ana-alerta',
+      athleteName: 'Ana Fora da Pagina',
+      tipo: 'PLAN_ADJUST',
+      status: aprovada ? 'APPROVED' : 'PENDING',
+      confidence: 'MEDIUM',
+      summary: 'Reduzir o volume do longão',
+      reasoning: {
+        rationale: 'Aderência caiu nas últimas duas semanas.',
+        sourceRules: ['CoachAttentionSignalEvaluator.avaliarAderencia'],
+        confidence: 'MEDIUM',
+      },
+      createdAt: '2026-08-15T12:00:00Z',
+      expiresAt: '2026-08-22T12:00:00Z',
+    })
+
+    await page.route('**/api/v1/coach/atletas/*/perfil', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          atletaId: 'ana-alerta',
+          nomeAtleta: 'Ana Fora da Pagina',
+          objetivo: null,
+          proximaProva: null,
+          nivelExperiencia: null,
+          pmc: [],
+          aderenciaSemanal: [],
+          planoVigente: null,
+          sinaisRecentes: [],
+          sugestoesRecentes: [
+            { id: 'sug-1', tipo: 'AJUSTE_PLANO', status: aprovada ? 'APPROVED' : 'PENDING', criadoEm: '2026-08-15T12:00:00Z' },
+          ],
+          recordes: [],
+          melhoresEsforcos: [],
+          melhoresEsforcosIntegracaoConectada: true,
+          geradoEm: '2026-08-15T12:00:00Z',
+          avisos: null,
+        }),
+      }),
+    )
+    await page.route(/\/api\/v1\/coach\/sugestoes\/sug-1$/, (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(detalhe()) }),
+    )
+    await page.route('**/api/v1/coach/sugestoes/sug-1/aprovar', (route) => {
+      aprovada = true
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(detalhe()) })
+    })
+
+    await page.goto(INBOX_URL)
+    await page.getByRole('button', { name: /ana fora da pagina/i }).click()
+    await page.getByRole('tab', { name: /provas & sugestões/i }).click()
+
+    await expect(page.getByText('Pendente')).toBeVisible()
+
+    await page.getByRole('button', { name: /^ver$/i }).click()
+    const dialog = page.getByRole('dialog')
+    // CA4: rótulos do coach, sem o nome interno das regras.
+    await expect(dialog.getByText('Ajuste de plano')).toBeVisible()
+    await expect(dialog.getByText(/CoachAttentionSignalEvaluator/)).toHaveCount(0)
+
+    const perfilRecarregado = page.waitForRequest('**/api/v1/coach/atletas/*/perfil')
+    await dialog.getByRole('button', { name: /^aprovar$/i }).click()
+    await perfilRecarregado
+    await dialog.getByRole('button', { name: /^fechar$/i }).first().click()
+    await expect(dialog).toBeHidden()
+
+    await expect(page.getByText('Aprovada')).toBeVisible()
+    await expect(page.getByText('Pendente')).toHaveCount(0)
+  })
+})

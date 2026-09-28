@@ -105,8 +105,8 @@ function CoachInboxPage() {
   } = useCoachDashboard();
   const dashboardRoster = dashboard?.roster.items ?? [];
   const {
-    profile: selectedProfile,
-    isLoading: profileLoading,
+    profile: rawSelectedProfile,
+    isLoading: rawProfileLoading,
     error: profileError,
     fetchProfile: fetchSelectedProfile,
   } = useAthleteProfile(selectedId ?? dashboardRoster[0]?.atletaId);
@@ -140,6 +140,13 @@ function CoachInboxPage() {
 
     return rosterItems[0] ?? null;
   }, [dashboardAttentionQueue, rosterItems, selectedId]);
+  // Defesa em profundidade: o hook já descarta resposta obsoleta, mas o painel combina roster e
+  // perfil, e os dois só podem se juntar se forem do mesmo atleta. Perfil de outro atleta conta como
+  // detalhe ainda a caminho — `selected` segue montado pelo roster, onde vivem erro e retry.
+  const selectedProfile =
+    rawSelectedProfile && rawSelectedProfile.atletaId === selectedRosterItem?.atletaId ? rawSelectedProfile : null;
+  const profileDeOutroAtleta = rawSelectedProfile !== null && selectedProfile === null;
+  const profileLoading = rawProfileLoading || profileDeOutroAtleta;
   const selected = useMemo(() => {
     if (!selectedRosterItem) return null;
     return buildSelectedAthleteFromDashboard(selectedRosterItem, selectedProfile);
@@ -921,6 +928,7 @@ function CoachInboxPage() {
                     selectedProfile={selectedProfile}
                     onOpenCalendar={() => navigate('/coach/calendar')}
                     onOpenSuggestions={() => navigate('/coach/sugestoes')}
+                    onDecisao={() => void fetchSelectedProfile()}
                   />
                 ) : null}
               </Box>
