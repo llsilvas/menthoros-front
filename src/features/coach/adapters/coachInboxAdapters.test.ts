@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildInboxQueue, calcularMonotonia, calcularLoadDelta, calcularAcwr, getAcwrZone, getAcuteLoadTone, getMonotonyTone, calcularStrain, getStrainZone, calcularPrevisaoForma, calcularDiasAteProva } from './coachInboxAdapters';
+import { buildInboxQueue, buildRosterRowFromSummary, buildSelectedAthleteFromDashboard, calcularMonotonia, calcularLoadDelta, calcularAcwr, getAcwrZone, getAcuteLoadTone, getMonotonyTone, calcularStrain, getStrainZone, calcularPrevisaoForma, calcularDiasAteProva } from './coachInboxAdapters';
 import type { PmcPontoRaw, AtletaPerfilCoachDto } from '../../../types/AtletaPerfilCoach';
 import type { Prova } from '../../../types/Prova';
 import type { CoachAtletaResumo, CoachAttentionItem, CoachDashboardRosterPage } from '../../../types/Coach';
@@ -431,5 +431,92 @@ describe('buildInboxQueue', () => {
     expect(rows).toHaveLength(1);
     expect(pinnedCount).toBe(0);
     expect(hiddenAttentionCount).toBe(0);
+  });
+});
+
+describe('buildSelectedAthleteFromDashboard — diagnóstico', () => {
+  const hoje = new Date(2026, 8, 28, 15, 30);
+  const roster = atletaResumo({ atletaId: 'a1', nome: 'Ana', aderenciaPercentual: 38 });
+
+  function perfil(over: Partial<AtletaPerfilCoachDto>): AtletaPerfilCoachDto {
+    return {
+      pmc: [],
+      aderenciaSemanal: [],
+      planoVigente: null,
+      provas: [],
+      sinaisRecentes: [],
+      avisos: null,
+      ...over,
+    } as unknown as AtletaPerfilCoachDto;
+  }
+
+  function diario(inicio: string, dias: number, tss: (i: number) => number): PmcPontoRaw[] {
+    const base = new Date(`${inicio}T12:00:00`);
+    return Array.from({ length: dias }, (_, i) => {
+      const d = new Date(base);
+      d.setDate(base.getDate() + i);
+      const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      return pmc({ data: iso, tss: tss(i), ctl: 10, atl: 20, tsb: -10 });
+    });
+  }
+
+  const aderencia4Semanas = [
+    { semanaInicio: '2026-09-07', totalPlanejado: 4, totalRealizado: 0, percentual: 0 },
+    { semanaInicio: '2026-09-14', totalPlanejado: 4, totalRealizado: 1, percentual: 25 },
+    { semanaInicio: '2026-09-21', totalPlanejado: 4, totalRealizado: 2, percentual: 50 },
+    { semanaInicio: '2026-09-28', totalPlanejado: 4, totalRealizado: 2, percentual: 50 },
+  ];
+
+  it('aderência vem da janela do perfil, a mesma base das barras — não do roster', () => {
+    const row = buildSelectedAthleteFromDashboard(roster, perfil({ aderenciaSemanal: aderencia4Semanas }), hoje);
+    expect(row.adherence).toBe(31);
+    expect(row.adherenceWindow).toEqual({ percent: 31, completed: 5, planned: 16, weeks: 4 });
+  });
+
+  it('sem perfil, aderência cai no roster', () => {
+    const row = buildSelectedAthleteFromDashboard(roster, null, hoje);
+    expect(row.adherence).toBe(38);
+    expect(row.adherenceWindow).toBeNull();
+  });
+
+  it('aderência válida continua disponível com PMC vazio', () => {
+    const row = buildSelectedAthleteFromDashboard(roster, perfil({ aderenciaSemanal: aderencia4Semanas, pmc: [] }), hoje);
+    expect(row.adherenceAvailable).toBe(true);
+    expect(row.quickStats.hasWindowData).toBe(false);
+  });
+
+  it('consulta de aderência que falhou fica indisponível, sem virar semana "sem plano"', () => {
+    const row = buildSelectedAthleteFromDashboard(roster, perfil({ avisos: ['aderenciaSemanal'] }), hoje);
+    expect(row.adherenceAvailable).toBe(false);
+    expect(row.pmcAvailable).toBe(true);
+  });
+
+  it('consulta de PMC que falhou fica indisponível e não gera lacuna', () => {
+    const row = buildSelectedAthleteFromDashboard(roster, perfil({ avisos: ['pmc'] }), hoje);
+    expect(row.pmcAvailable).toBe(false);
+    expect(row.dataGaps).toEqual([]);
+  });
+
+  it('delta de carga é TSS 7d vs 7d anteriores, não variação de CTL', () => {
+    // 7 dias anteriores com TSS 10, últimos 7 com TSS 15.
+    const serie = diario('2026-09-15', 14, (i) => (i >= 7 ? 15 : 10));
+    const row = buildSelectedAthleteFromDashboard(roster, perfil({ pmc: serie }), hoje);
+    expect(row.loadDelta).toBe(50);
+  });
+
+  it('série e lacunas e confiança do ACWR vêm dos adapters do diagnóstico', () => {
+    // Retorno de 3 dias depois de 87 dias zerados: sem base crônica.
+    const serie = diario('2026-07-01', 90, (i) => (i >= 87 ? 60 : 0));
+    const row = buildSelectedAthleteFromDashboard(roster, perfil({ pmc: serie }), hoje);
+    expect(row.weeklyDiagnosis).toHaveLength(8);
+    expect(row.quickStats.acwrConfidence?.level).toBe('BAIXA');
+  });
+});
+
+describe('buildRosterRowFromSummary — defaults do diagnóstico', () => {
+  it('linha de roster não finge ter série nem confiança avaliada', () => {
+    const row = buildRosterRowFromSummary(atletaResumo({ atletaId: 'a1', nome: 'Ana' }));
+    expect(row).toMatchObject({ adherenceWindow: null, loadDelta: null, weeklyDiagnosis: [], dataGaps: [] });
+    expect(row.quickStats.acwrConfidence).toBeNull();
   });
 });

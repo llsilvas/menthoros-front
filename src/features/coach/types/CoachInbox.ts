@@ -13,6 +13,56 @@ export interface RaceItem {
   tag: 'ALVO' | 'PRINCIPAL' | 'SECUNDÁRIA';
 }
 
+/**
+ * Período sem nenhum treino registrado (TSS > 0) longo o bastante para não ser descanso.
+ * Não afirma a causa: pode ser pausa real ou falha de sincronização.
+ */
+export interface DataGap {
+  /** Primeiro dia sem registro (ISO yyyy-MM-dd). */
+  start: string;
+  /** Último dia sem registro (ISO yyyy-MM-dd); em lacuna aberta, é hoje. */
+  end: string;
+  days: number;
+  /** `true` quando a lacuna vai até hoje (atleta ainda sem registrar). */
+  open: boolean;
+}
+
+/** Uma semana (seg–dom) do gráfico "Adesão e carga por semana". */
+export interface WeeklyDiagnosisPoint {
+  /** Segunda-feira da semana (ISO yyyy-MM-dd) — mesma chave de `aderenciaSemanal.semanaInicio`. */
+  weekStart: string;
+  /** Rótulo curto dd/MM. */
+  label: string;
+  /** Σ TSS da semana; `null` quando a semana está numa lacuna ou antes do histórico. */
+  tss: number | null;
+  /**
+   * Dias com TSS > 0 na semana; `null` junto de `tss`. Não é número de treinos: a série PMC é
+   * agregada por dia, então dois treinos no mesmo dia contam como um.
+   */
+  activeDays: number | null;
+  planned: number | null;
+  completed: number | null;
+  /** % da semana vindo do backend; `null` quando a semana não tem plano. */
+  adherence: number | null;
+  /** Semana inteira dentro de uma lacuna de registro. */
+  noData: boolean;
+  current: boolean;
+}
+
+/** Aderência consolidada da janela (Σ realizado ÷ Σ planejado) — a MESMA base das barras. */
+export interface AdherenceWindow {
+  percent: number;
+  completed: number;
+  planned: number;
+  /** Semanas com plano dentro da janela. */
+  weeks: number;
+}
+
+export interface AcwrConfidence {
+  level: 'ALTA' | 'BAIXA';
+  reason: string | null;
+}
+
 export interface CoachAthleteRow {
   id: string;
   name: string;
@@ -33,8 +83,21 @@ export interface CoachAthleteRow {
   statusLabel: string;
   decision: DecisionState;
   adherence: number;
+  /** Janela de 4 semanas que sustenta `adherence`; `null` sem perfil ou sem plano na janela. */
+  adherenceWindow: AdherenceWindow | null;
+  /**
+   * `false` quando a consulta de aderência falhou no perfil (`avisos` traz `aderenciaSemanal`).
+   * Separado de `quickStats.hasWindowData`, que é do PMC: aderência válida não some com PMC vazio.
+   */
+  adherenceAvailable: boolean;
+  /** `false` quando a consulta de PMC falhou no perfil (`avisos` traz `pmc`). */
+  pmcAvailable: boolean;
   load7d: number;
-  loadDelta: number;
+  /**
+   * Variação % de TSS: últimos 7 dias vs. 7 dias anteriores. `null` sem base de comparação.
+   * Antes era variação de CTL (condicionamento) exibida como carga — ver fix-coach-diagnosis-charts.
+   */
+  loadDelta: number | null;
   delay: number;
   nextWorkout: {
     title: string;
@@ -45,8 +108,14 @@ export interface CoachAthleteRow {
     objective: string;
   };
   raceCalendar: RaceItem[];
+  /** @deprecated Série de CTL, não de carga. Sem uso no Diagnóstico; remover no follow-up. */
   loadTrend: number[];
+  /** @deprecated Perde a data da semana. Use `weeklyDiagnosis`. */
   adherenceTrend: number[];
+  /** Últimas 8 semanas (cobertura de `aderenciaSemanal` no perfil), da mais antiga para a atual. Vazio sem perfil. */
+  weeklyDiagnosis: WeeklyDiagnosisPoint[];
+  /** Lacunas de registro detectadas na série PMC. */
+  dataGaps: DataGap[];
   notes: string;
   suggestedActions: string[];
   quickStats: {
@@ -62,6 +131,8 @@ export interface CoachAthleteRow {
     /** Faixa de forma resolvida pelo backend (FaixaTsb); null quando sem TSB. */
     statusForma: FaixaTsbStatus | null;
     acwr: number | null;
+    /** Base crônica suficiente para ler o ACWR; `null` quando não avaliada (linha de roster). */
+    acwrConfidence: AcwrConfidence | null;
     /** Training Strain = TSS_semanal × monotonia — qualidade do ciclo de treino. */
     strain: number | null;
     /** % de aderência da semana mais recente — NÃO é recuperação fisiológica (TSB). Ver follow-up de semântica. */

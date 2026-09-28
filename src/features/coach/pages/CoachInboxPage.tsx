@@ -781,9 +781,9 @@ function CoachInboxPage() {
                     <Typography sx={{ fontSize: { xs: '1.08rem', sm: '1.18rem', lg: '1.28rem', xl: '1.5rem' }, fontWeight: 800, color: surface[50] }}>
                       {formatKm(selected.load7d)}
                     </Typography>
-                    <Typography sx={{ fontSize: { xs: '0.6875rem', sm: '0.7rem', lg: '0.74rem', xl: '0.78rem' }, color: selected.loadDelta >= 0 ? semantic.success[500] : semantic.danger[500] }}>
-                      {selected.loadDelta >= 0 ? '+' : ''}
-                      {selected.loadDelta}% vs. ant.
+                    <Typography sx={{ fontSize: { xs: '0.6875rem', sm: '0.7rem', lg: '0.74rem', xl: '0.78rem' }, color: (selected.loadDelta ?? 0) >= 0 ? semantic.success[500] : semantic.danger[500] }}>
+                      {(selected.loadDelta ?? 0) >= 0 ? '+' : ''}
+                      {(selected.loadDelta ?? 0)}% vs. ant.
                     </Typography>
                   </Box>
                 </Box>
@@ -810,8 +810,8 @@ function CoachInboxPage() {
                   compact
                   label="Carga (7d)"
                   value={semDadoNaJanela ? '—' : formatKm(selected.load7d)}
-                  delta={semDadoNaJanela ? 'Sem dado na janela' : `${selected.loadDelta >= 0 ? '+' : ''}${selected.loadDelta}% vs. ant.`}
-                  tone={semDadoNaJanela ? 'neutral' : selected.loadDelta >= 10 ? 'warning' : 'success'}
+                  delta={semDadoNaJanela ? 'Sem dado na janela' : `${(selected.loadDelta ?? 0) >= 0 ? '+' : ''}${(selected.loadDelta ?? 0)}% vs. ant.`}
+                  tone={semDadoNaJanela ? 'neutral' : (selected.loadDelta ?? 0) >= 10 ? 'warning' : 'success'}
                 />
                 <MetricTile
                   compact

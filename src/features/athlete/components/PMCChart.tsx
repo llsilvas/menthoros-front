@@ -16,6 +16,7 @@ import {
 import { primary, surface, semantic } from '../../../theme/tokens';
 import { glassSx } from '../../../theme/tokens';
 import { overlayWhite } from '../../../theme/overlays';
+import type { FaixaTsbStatus } from '../../../types/FaixaTsb';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -25,6 +26,8 @@ export interface PMCDataPoint {
   ctl: number;
   atl: number;
   tsb: number;
+  /** Faixa de forma resolvida pelo backend; o front não reclassifica o TSB. */
+  statusForma?: FaixaTsbStatus;
 }
 
 export type PMCRange = '4w' | '8w' | '12w' | '6m' | '1y';

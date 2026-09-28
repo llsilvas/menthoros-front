@@ -12,6 +12,14 @@ import type { AtletaPerfilCoachDto, PmcPontoRaw } from '../../../types/AtletaPer
 import type { Prova } from '../../../types/Prova';
 import type { CoachAthleteRow, RaceItem, SegmentFilter } from '../types/CoachInbox';
 import { formFromTSB } from '../types/AthleteForm';
+import {
+  assessAcwrConfidence,
+  buildAdherenceWindow,
+  buildWeeklyDiagnosis,
+  calculateLoadDelta7d,
+  detectDataGaps,
+  isFieldAvailable,
+} from './diagnosisChartsAdapters';
 import type { FormVariant, MetricTone } from '../types/AthleteForm';
 
 /** TSS positivos dos últimos `n` dias do histórico PMC (descansos com tss=0 são descartados). */
@@ -28,6 +36,10 @@ export function calcularMonotonia(pmcPoints: PmcPontoRaw[]): number {
   return stddev === 0 ? 1.0 : parseFloat((media / stddev).toFixed(2));
 }
 
+/**
+ * Variação % de **CTL** (condicionamento) em 7 posições do array. NÃO é variação de carga — para
+ * isso use `calculateLoadDelta7d`. Era exibida como "% vs semana anterior" ao lado de km.
+ */
 export function calcularLoadDelta(pmcPoints: PmcPontoRaw[]): number {
   if (pmcPoints.length < 8) return 0;
   const ctlAtual = pmcPoints[pmcPoints.length - 1]?.ctl ?? 0;
@@ -168,6 +180,11 @@ export function buildSelectedAthleteFromDashboard(
 
   const diasAteProva = calcularDiasAteProva(profile, hoje);
   const previsao = calcularPrevisaoForma(latestPmc?.ctl ?? null, latestPmc?.atl ?? null, diasAteProva);
+  const adherenceAvailable = isFieldAvailable(profile?.avisos, 'aderenciaSemanal');
+  const pmcAvailable = isFieldAvailable(profile?.avisos, 'pmc');
+  const dataGaps = detectDataGaps(pmcPoints, hoje);
+  // KPI e barras saem da MESMA série (antes: KPI do roster, barras do perfil — não batiam).
+  const adherenceWindow = buildAdherenceWindow(adherencePoints, hoje);
 
   return {
     id: roster.atletaId,
@@ -183,9 +200,12 @@ export function buildSelectedAthleteFromDashboard(
     trainingType: 'Corrida',
     statusLabel: statusLabel(roster.status),
     decision: 'PENDING',
-    adherence: roster.aderenciaPercentual ?? latestAdherence?.percentual ?? 0,
+    adherence: adherenceWindow?.percent ?? roster.aderenciaPercentual ?? latestAdherence?.percentual ?? 0,
+    adherenceWindow,
+    adherenceAvailable,
+    pmcAvailable,
     load7d: roster.weeklyVolume,
-    loadDelta: calcularLoadDelta(pmcPoints),
+    loadDelta: calculateLoadDelta7d(pmcPoints, hoje),
     delay: 0,
     nextWorkout: {
       title: firstWorkout ? formatWorkoutTypeLabel(firstWorkout.tipoTreino) : 'Sem treino planejado',
@@ -198,6 +218,8 @@ export function buildSelectedAthleteFromDashboard(
     raceCalendar: buildRaceCalendarFromProfile(profile),
     loadTrend: pmcPoints.map((p) => p.ctl).length > 0 ? pmcPoints.map((p) => p.ctl) : [roster.weeklyVolume],
     adherenceTrend: adherencePoints.map((p) => p.percentual),
+    weeklyDiagnosis: buildWeeklyDiagnosis(pmcPoints, adherencePoints, dataGaps, hoje),
+    dataGaps,
     notes: profile?.avisos?.length ? profile.avisos.join(' · ') : 'Sem observações adicionais.',
     suggestedActions: profile?.sinaisRecentes.length
       ? profile.sinaisRecentes.map((s) => s.acaoSugerida).slice(0, 3)
@@ -213,6 +235,7 @@ export function buildSelectedAthleteFromDashboard(
       // precedência: PMC mais recente (mais granular/atual) > roster (pode estar stale)
       statusForma: latestPmc?.statusForma ?? roster.statusForma ?? null,
       acwr: calcularAcwr(latestPmc?.atl ?? null, latestPmc?.ctl ?? null),
+      acwrConfidence: assessAcwrConfidence(pmcPoints, dataGaps, hoje),
       strain: calcularStrain(pmcPoints),
       recovery: latestAdherence?.percentual ?? 0,
     },
@@ -236,8 +259,11 @@ export function buildRosterRowFromSummary(roster: CoachAtletaResumo): CoachAthle
     statusLabel: statusLabel(roster.status),
     decision: 'PENDING',
     adherence: roster.aderenciaPercentual ?? 0,
+    adherenceWindow: null,
+    adherenceAvailable: true,
+    pmcAvailable: true,
     load7d: roster.weeklyVolume,
-    loadDelta: 0,
+    loadDelta: null,
     delay: 0,
     nextWorkout: {
       title: 'Resumo do dashboard',
@@ -250,6 +276,8 @@ export function buildRosterRowFromSummary(roster: CoachAtletaResumo): CoachAthle
     raceCalendar: [],
     loadTrend: [roster.weeklyVolume],
     adherenceTrend: [],
+    weeklyDiagnosis: [],
+    dataGaps: [],
     notes: 'Resumo agregado carregado do dashboard.',
     suggestedActions: ['Abrir o perfil do atleta'],
     quickStats: {
@@ -261,6 +289,7 @@ export function buildRosterRowFromSummary(roster: CoachAtletaResumo): CoachAthle
       tsb: null,
       statusForma: roster.statusForma ?? null,
       acwr: calcularAcwr(roster.atl ?? null, roster.ctl ?? null),
+      acwrConfidence: null, // roster não traz histórico; avaliado só no perfil
       strain: null, // resumo do roster não traz histórico PMC; strain só no perfil completo
       recovery: 0,
     },

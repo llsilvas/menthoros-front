@@ -211,8 +211,8 @@ export function DiagnosisTabPanel({ selected, attentionItem, attentionRecencyDay
 
       <SectionCard title="Tendência de carga">
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', mb: 1 }}>
-          <Typography sx={{ fontSize: '0.8rem', color: selected.loadDelta >= 0 ? semantic.success[500] : semantic.danger[500], fontWeight: 700 }}>
-            {selected.loadDelta >= 0 ? '+' : ''}{selected.loadDelta}% vs semana anterior
+          <Typography sx={{ fontSize: '0.8rem', color: (selected.loadDelta ?? 0) >= 0 ? semantic.success[500] : semantic.danger[500], fontWeight: 700 }}>
+            {(selected.loadDelta ?? 0) >= 0 ? '+' : ''}{(selected.loadDelta ?? 0)}% vs semana anterior
           </Typography>
         </Box>
         <TrendCard data={selected.loadTrend} />
