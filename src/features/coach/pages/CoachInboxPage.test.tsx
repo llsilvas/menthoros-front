@@ -1,10 +1,12 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as reactRouter from 'react-router';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import CoachInboxPage from './CoachInboxPage';
 import { SugestaoService } from '../../../api/services/SugestaoService';
+import { ApiError } from '../../../api/core/ApiError';
 import { useCoachDashboard } from '../../../hooks/useCoachDashboard';
 import { useAthleteProfile } from '../../../hooks/useAthleteProfile';
 import type { CoachDashboard } from '../../../types/Coach';
@@ -316,6 +318,79 @@ describe('CoachInboxPage', () => {
     expect(await screen.findByText(/Reduzir intensidade do treino de quinta/i)).toBeInTheDocument();
     // calendário agregado do dashboard não aparece mais no drill-down
     expect(screen.queryByText(/Calendário semanal do dashboard/i)).not.toBeInTheDocument();
+  });
+
+  describe('decisão sobre sugestão pela aba Provas & sugestões', () => {
+    /**
+     * O hook real recarrega o perfil no `fetchProfile`; aqui um estado local faz o papel dele, para
+     * que o teste prove o que o coach vê — a linha da lista trocando de status — e não só que um
+     * callback foi chamado.
+     */
+    function mockPerfilQueRecarregaCom(statusDepois: 'APPROVED' | 'REJECTED') {
+      vi.mocked(useAthleteProfile).mockImplementation(() => {
+        const [profile, setProfile] = useState(makeProfile());
+        return {
+          profile,
+          isLoading: false,
+          error: null,
+          errorKind: null,
+          fetchProfile: async () => {
+            mockFetchProfile();
+            setProfile({
+              ...makeProfile(),
+              sugestoesRecentes: [
+                { id: 's1', tipo: 'AJUSTE_PLANO', status: statusDepois, criadoEm: '2026-06-24T13:30:00Z' },
+              ],
+            });
+          },
+        };
+      });
+    }
+
+    async function aprovarPeloDialog() {
+      fireEvent.click(screen.getByRole('tab', { name: /Provas & sugestões/i }));
+      await userEvent.click(await screen.findByRole('button', { name: /^ver$/i }));
+      const dialog = await screen.findByRole('dialog');
+      await userEvent.click(within(dialog).getByRole('button', { name: /^aprovar$/i }));
+      return dialog;
+    }
+
+    it('aprovar recarrega o perfil e a lista mostra o novo status sem recarregar a página', async () => {
+      mockPerfilQueRecarregaCom('APPROVED');
+      vi.mocked(SugestaoService.aprovar).mockResolvedValue({
+        ...(await SugestaoService.detalhe('s1')),
+        status: 'APPROVED',
+      });
+      renderPage();
+
+      const dialog = await aprovarPeloDialog();
+      await waitFor(() => expect(mockFetchProfile).toHaveBeenCalled());
+      await userEvent.click(within(dialog).getAllByRole('button', { name: /^fechar$/i })[0]);
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(screen.getByText('Aprovada')).toBeInTheDocument();
+      expect(screen.queryByText('Pendente')).not.toBeInTheDocument();
+    });
+
+    it('422 com reconsulta terminal também recarrega o perfil', async () => {
+      mockPerfilQueRecarregaCom('REJECTED');
+      const pendente = await SugestaoService.detalhe('s1');
+      vi.mocked(SugestaoService.detalhe)
+        .mockResolvedValueOnce(pendente)
+        .mockResolvedValueOnce({ ...pendente, status: 'REJECTED' });
+      vi.mocked(SugestaoService.aprovar).mockRejectedValue(
+        new ApiError(
+          { method: 'POST', url: '/api/v1/coach/sugestoes/s1/aprovar' } as never,
+          { url: '/api/v1/coach/sugestoes/s1/aprovar', ok: false, status: 422, statusText: 'Error', body: null } as never,
+          'Erro',
+        ),
+      );
+      renderPage();
+
+      await aprovarPeloDialog();
+
+      await waitFor(() => expect(mockFetchProfile).toHaveBeenCalled());
+    });
   });
 
   it('mostra o plano real do atleta na aba Plano (sem o mock "Ajuste rápido")', () => {

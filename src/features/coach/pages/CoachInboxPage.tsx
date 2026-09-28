@@ -927,6 +927,7 @@ function CoachInboxPage() {
                     selectedProfile={selectedProfile}
                     onOpenCalendar={() => navigate('/coach/calendar')}
                     onOpenSuggestions={() => navigate('/coach/sugestoes')}
+                    onDecisao={() => void fetchSelectedProfile()}
                   />
                 ) : null}
               </Box>
