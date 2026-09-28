@@ -145,7 +145,8 @@ function CoachInboxPage() {
   // detalhe ainda a caminho — `selected` segue montado pelo roster, onde vivem erro e retry.
   const selectedProfile =
     rawSelectedProfile && rawSelectedProfile.atletaId === selectedRosterItem?.atletaId ? rawSelectedProfile : null;
-  const profileLoading = rawProfileLoading || (rawSelectedProfile !== null && selectedProfile === null);
+  const profileDeOutroAtleta = rawSelectedProfile !== null && selectedProfile === null;
+  const profileLoading = rawProfileLoading || profileDeOutroAtleta;
   const selected = useMemo(() => {
     if (!selectedRosterItem) return null;
     return buildSelectedAthleteFromDashboard(selectedRosterItem, selectedProfile);

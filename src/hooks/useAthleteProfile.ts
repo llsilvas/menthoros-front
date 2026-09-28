@@ -19,6 +19,10 @@ const EMPTY: Omit<ProfileState, 'forId'> = { profile: null, isLoading: false, er
 
 export const useAthleteProfile = (atletaId: string | undefined) => {
     const [state, setState] = useState<ProfileState>({ forId: atletaId, ...EMPTY });
+    // Três guardas, cada uma para um cenário que as outras não cobrem:
+    // - currentIdRef: fetchProfile de uma closure antiga (atleta anterior) chamado depois da troca;
+    // - requestSeqRef: duas buscas do mesmo atleta respondendo fora de ordem (refetch);
+    // - state.forId: estado já gravado do atleta anterior, exposto no render da troca.
     const currentIdRef = useRef(atletaId);
     const requestSeqRef = useRef(0);
 
