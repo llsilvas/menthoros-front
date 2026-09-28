@@ -502,6 +502,36 @@ describe('CoachInboxPage', () => {
       expect(screen.getByTestId('inbox-nome-atleta')).toHaveTextContent('Ana Silva');
     });
 
+    /**
+     * O perfil chegou, mas é de outro atleta (resposta obsoleta de uma seleção anterior). Antes o
+     * painel combinava o item do roster de um atleta com o perfil do outro — o coach lia carga e
+     * forma de um achando que eram do outro.
+     */
+    it('não mistura atletas: perfil de outro atleta não aparece e o painel fica carregando', () => {
+      vi.mocked(useAthleteProfile).mockReturnValue({
+        profile: {
+          ...makeProfile([
+            { data: '2026-06-20', ctl: 48, atl: 52, tsb: -4, tss: 70 },
+            { data: '2026-06-21', ctl: 49, atl: 54, tsb: -5, tss: 85 },
+            { data: '2026-06-22', ctl: 50, atl: 55, tsb: -5, tss: 90 },
+          ]),
+          atletaId: 'outro',
+          nomeAtleta: 'Yuri Outro',
+          objetivo: 'Objetivo do Yuri',
+        },
+        isLoading: false,
+        error: null,
+        errorKind: null,
+        fetchProfile: mockFetchProfile,
+      });
+      renderPage();
+
+      expect(screen.getByText(/carregando o detalhe do atleta/i)).toBeInTheDocument();
+      expect(screen.getByTestId('inbox-nome-atleta')).toHaveTextContent('Ana Silva');
+      expect(screen.queryByText(/Yuri/)).not.toBeInTheDocument();
+      expect(screen.queryByText('stub-pmc-chart')).not.toBeInTheDocument();
+    });
+
     it('falha no detalhe é dita, com nova tentativa', async () => {
       vi.mocked(useAthleteProfile).mockReturnValue({
         profile: null, isLoading: false, error: new Error('500'), errorKind: 'server_error', fetchProfile: mockFetchProfile,
