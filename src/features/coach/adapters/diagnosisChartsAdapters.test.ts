@@ -3,6 +3,7 @@ import { addDays, format, parseISO } from 'date-fns';
 import {
   adherenceTone,
   buildAdherenceTile,
+  weeklyAdherenceTone,
   assessAcwrConfidence,
   buildAdherenceWindow,
   buildWeeklyDiagnosis,
@@ -122,22 +123,25 @@ describe('buildAdherenceWindow', () => {
   const hoje = d('2026-09-28');
   const semanas: AderenciasSemanalDto[] = [
     { semanaInicio: '2026-08-24', totalPlanejado: 4, totalRealizado: 4, percentual: 100 }, // fora da janela
+    { semanaInicio: '2026-08-31', totalPlanejado: 4, totalRealizado: 2, percentual: 50 },
     { semanaInicio: '2026-09-07', totalPlanejado: 4, totalRealizado: 0, percentual: 0 },
     { semanaInicio: '2026-09-14', totalPlanejado: 4, totalRealizado: 1, percentual: 25 },
     { semanaInicio: '2026-09-21', totalPlanejado: 4, totalRealizado: 2, percentual: 50 },
-    { semanaInicio: '2026-09-28', totalPlanejado: 4, totalRealizado: 2, percentual: 50 },
+    { semanaInicio: '2026-09-28', totalPlanejado: 4, totalRealizado: 0, percentual: 0 }, // em curso
   ];
 
-  it('soma realizado/planejado das 4 semanas civis', () => {
+  it('soma realizado/planejado das 4 semanas civis completas, sem a semana em curso', () => {
     expect(buildAdherenceWindow(semanas, hoje)).toEqual({ percent: 31, completed: 5, planned: 16, weeks: 4 });
   });
 
-  it('plano já gerado para a próxima semana não entra na janela', () => {
+  it('semana em curso e plano já gerado da próxima semana não entram na janela', () => {
+    // Segunda-feira: o backend conta como planejados os treinos que ainda vão acontecer na semana.
     const cheias: AderenciasSemanalDto[] = [
+      { semanaInicio: '2026-08-31', totalPlanejado: 4, totalRealizado: 4, percentual: 100 },
       { semanaInicio: '2026-09-07', totalPlanejado: 4, totalRealizado: 4, percentual: 100 },
       { semanaInicio: '2026-09-14', totalPlanejado: 4, totalRealizado: 4, percentual: 100 },
       { semanaInicio: '2026-09-21', totalPlanejado: 4, totalRealizado: 4, percentual: 100 },
-      { semanaInicio: '2026-09-28', totalPlanejado: 4, totalRealizado: 4, percentual: 100 },
+      { semanaInicio: '2026-09-28', totalPlanejado: 4, totalRealizado: 0, percentual: 0 },
       { semanaInicio: '2026-10-05', totalPlanejado: 4, totalRealizado: 0, percentual: 0 },
     ];
     expect(buildAdherenceWindow(cheias, hoje)).toEqual({ percent: 100, completed: 16, planned: 16, weeks: 4 });
@@ -231,7 +235,7 @@ describe('buildAdherenceTile', () => {
   const janela = { percent: 31, completed: 5, planned: 16, weeks: 4 };
 
   it('janela do perfil tem prioridade sobre o roster', () => {
-    expect(buildAdherenceTile(janela, true, 90)).toEqual({ value: '31%', delta: '5 de 16 · 4 sem.', tone: 'warning' });
+    expect(buildAdherenceTile(janela, true, 90)).toEqual({ value: '31%', delta: '5 de 16 · 4 sem. completas', tone: 'warning' });
   });
 
   it('sem janela, usa o roster (perfil ainda não carregou)', () => {
@@ -244,5 +248,16 @@ describe('buildAdherenceTile', () => {
 
   it('sem janela e sem roster → sem plano na janela', () => {
     expect(buildAdherenceTile(null, true, null)).toEqual({ value: '—', delta: 'Sem plano na janela', tone: 'neutral' });
+  });
+});
+
+describe('weeklyAdherenceTone', () => {
+  it('semana em curso fica neutra: os treinos que faltam ainda vão acontecer', () => {
+    expect(weeklyAdherenceTone({ adherence: 0, current: true })).toBe('neutral');
+  });
+
+  it('semana fechada usa o tom do tile', () => {
+    expect(weeklyAdherenceTone({ adherence: 50, current: false })).toBe('warning');
+    expect(weeklyAdherenceTone({ adherence: 90, current: false })).toBe('success');
   });
 });

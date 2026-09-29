@@ -314,7 +314,7 @@ describe('CoachInboxPage', () => {
      * disponibilidade própria — o zero legítimo é "0 de 4 treinos", com ou sem PMC.
      */
     it('zero legítimo de aderência continua numérico, mesmo sem PMC', () => {
-      mockPerfil({ aderenciaSemanal: [{ semanaInicio: segunda(0), totalPlanejado: 4, totalRealizado: 0, percentual: 0 }] });
+      mockPerfil({ aderenciaSemanal: [{ semanaInicio: segunda(1), totalPlanejado: 4, totalRealizado: 0, percentual: 0 }] });
 
       renderPage();
 
@@ -334,20 +334,22 @@ describe('CoachInboxPage', () => {
       expect(screen.getByText('Aderência')).toBeInTheDocument();
     });
 
-    it('aderência vem da janela do perfil com "X de Y · 4 sem.", mesmo com PMC vazio', () => {
+    it('aderência vem das 4 semanas completas do perfil, mesmo com PMC vazio', () => {
       mockPerfil({
         aderenciaSemanal: [
-          { semanaInicio: segunda(3), totalPlanejado: 4, totalRealizado: 0, percentual: 0 },
-          { semanaInicio: segunda(2), totalPlanejado: 4, totalRealizado: 1, percentual: 25 },
+          { semanaInicio: segunda(4), totalPlanejado: 4, totalRealizado: 0, percentual: 0 },
+          { semanaInicio: segunda(3), totalPlanejado: 4, totalRealizado: 1, percentual: 25 },
+          { semanaInicio: segunda(2), totalPlanejado: 4, totalRealizado: 2, percentual: 50 },
           { semanaInicio: segunda(1), totalPlanejado: 4, totalRealizado: 2, percentual: 50 },
-          { semanaInicio: segunda(0), totalPlanejado: 4, totalRealizado: 2, percentual: 50 },
+          // Semana em curso: treinos ainda por vir contam como planejados no backend.
+          { semanaInicio: segunda(0), totalPlanejado: 4, totalRealizado: 0, percentual: 0 },
         ],
       });
 
       renderPage();
 
       expect(tileDe('Aderência').getByText('31%')).toBeInTheDocument();
-      expect(tileDe('Aderência').getByText('5 de 16 · 4 sem.')).toBeInTheDocument();
+      expect(tileDe('Aderência').getByText('5 de 16 · 4 sem. completas')).toBeInTheDocument();
     });
 
     it('sem perfil, a aderência usa o valor do roster', () => {

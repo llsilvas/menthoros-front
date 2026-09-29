@@ -93,6 +93,12 @@ describe('describeWeek (tooltip)', () => {
     expect(r.load).toBe('Carga: dado indisponível');
   });
 
+  it('semana em curso é marcada no tooltip', () => {
+    expect(describeWeek(semana({ current: true, adherence: 0, completed: 0 }), DISPONIVEL).adherence).toBe(
+      'Adesão 0% (0 de 4) · semana em curso',
+    );
+  });
+
   it('semana na lacuna e semana atual', () => {
     const r = describeWeek(semana({ noData: true, tss: null, activeDays: null, current: true }), DISPONIVEL);
     expect(r).toMatchObject({ title: 'Semana de 21/09 (atual)', load: 'Sem treinos registrados' });

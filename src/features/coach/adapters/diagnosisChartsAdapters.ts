@@ -123,17 +123,20 @@ export function buildWeeklyDiagnosis(
 }
 
 /**
- * Aderência das últimas `weeks` semanas civis: Σ realizado ÷ Σ planejado das entradas de
- * `aderenciaSemanal` na janela — as mesmas que o gráfico exibe. `null` sem plano na janela.
- * A semana atual (parcial) entra; semanas futuras já planejadas não — o backend as devolve porque
- * consulta `dataTreino >= inicio` sem limite superior.
+ * Aderência das últimas `weeks` semanas civis **completas**: Σ realizado ÷ Σ planejado das entradas
+ * de `aderenciaSemanal` na janela — as mesmas que o gráfico exibe. `null` sem plano na janela.
+ *
+ * A semana em curso fica de fora: o backend conta como planejado todo treino a partir do início da
+ * consulta, inclusive os que ainda vão acontecer nesta semana. Na segunda-feira um atleta perfeito
+ * teria 0 de 4, e a aderência subiria sozinha ao longo da semana. Semanas futuras já planejadas
+ * também ficam de fora pelo mesmo motivo.
  */
 export function buildAdherenceWindow(aderencia: AderenciasSemanalDto[], agora: Date, weeks = 4): AdherenceWindow | null {
   const semanaAtual = startOfWeek(diaCivil(agora), WEEK);
-  const inicioJanela = subDays(semanaAtual, 7 * (weeks - 1));
+  const inicioJanela = subDays(semanaAtual, 7 * weeks);
   const naJanela = aderencia.filter((a) => {
     const semana = startOfWeek(parseISO(a.semanaInicio), WEEK);
-    return semana >= inicioJanela && semana <= semanaAtual;
+    return semana >= inicioJanela && semana < semanaAtual;
   });
   const resumo = buildAderenciaResumo(naJanela);
   if (!resumo || resumo.totalPlanejado <= 0) return null;
@@ -190,6 +193,11 @@ export function adherenceTone(percent: number): MetricTone {
   return 'warning';
 }
 
+/** Tom da barra semanal: a semana em curso fica neutra, porque os treinos que faltam ainda vão acontecer. */
+export function weeklyAdherenceTone(week: Pick<WeeklyDiagnosisPoint, 'adherence' | 'current'>): MetricTone {
+  return week.current ? 'neutral' : adherenceTone(week.adherence ?? 0);
+}
+
 export function formatGapCaption(gap: DataGap): string {
   const inicio = toLabel(parseISO(gap.start));
   if (gap.open) return `Sem treinos registrados desde ${inicio} (${gap.days} dias)`;
@@ -215,7 +223,7 @@ export function describeWeek(
   const adherence = !adherenceAvailable
     ? INDISPONIVEL_ADESAO
     : week.adherence != null
-      ? `Adesão ${week.adherence}% (${week.completed} de ${week.planned})`
+      ? `Adesão ${week.adherence}% (${week.completed} de ${week.planned})${week.current ? ' · semana em curso' : ''}`
       : 'Sem plano na semana';
   // Conta dias, não treinos: o ponto PMC já é o agregado do dia.
   const load = !pmcAvailable
@@ -246,7 +254,11 @@ export function buildAdherenceTile(
 ): AdherenceTile {
   if (!adherenceAvailable) return { value: '—', delta: 'Dado indisponível', tone: 'neutral' };
   if (window) {
-    return { value: `${window.percent}%`, delta: `${window.completed} de ${window.planned} · 4 sem.`, tone: adherenceTone(window.percent) };
+    return {
+      value: `${window.percent}%`,
+      delta: `${window.completed} de ${window.planned} · 4 sem. completas`,
+      tone: adherenceTone(window.percent),
+    };
   }
   if (rosterFallback != null) {
     return { value: `${Math.round(rosterFallback)}%`, delta: 'Últimas 4 semanas', tone: adherenceTone(rosterFallback) };

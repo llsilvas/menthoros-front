@@ -461,10 +461,11 @@ describe('buildSelectedAthleteFromDashboard — diagnóstico', () => {
   }
 
   const aderencia4Semanas = [
-    { semanaInicio: '2026-09-07', totalPlanejado: 4, totalRealizado: 0, percentual: 0 },
-    { semanaInicio: '2026-09-14', totalPlanejado: 4, totalRealizado: 1, percentual: 25 },
+    { semanaInicio: '2026-08-31', totalPlanejado: 4, totalRealizado: 0, percentual: 0 },
+    { semanaInicio: '2026-09-07', totalPlanejado: 4, totalRealizado: 1, percentual: 25 },
+    { semanaInicio: '2026-09-14', totalPlanejado: 4, totalRealizado: 2, percentual: 50 },
     { semanaInicio: '2026-09-21', totalPlanejado: 4, totalRealizado: 2, percentual: 50 },
-    { semanaInicio: '2026-09-28', totalPlanejado: 4, totalRealizado: 2, percentual: 50 },
+    { semanaInicio: '2026-09-28', totalPlanejado: 4, totalRealizado: 0, percentual: 0 }, // em curso
   ];
 
   it('aderência vem da janela do perfil, a mesma base das barras — não do roster', () => {
