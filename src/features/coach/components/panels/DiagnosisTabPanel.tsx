@@ -5,7 +5,6 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { parseISO } from 'date-fns';
 import { content, primary, semantic, surface } from '../../../../theme/tokens';
 import { KpiStrip } from '../KpiStrip';
-import { SectionCard } from '../SectionCard';
 import { EmptyMetricState } from '../EmptyMetricState';
 import { AdherenceToneLegend, WeeklyAdherenceLoadChart } from '../WeeklyAdherenceLoadChart';
 import { DiagnosisCard } from '../DiagnosisCard';
@@ -48,7 +47,7 @@ function LimiareisCard({ limiares }: { limiares: LimiareisInferidosDto }) {
   const temPace = limiares.paceLimiarEstimadoFormatado != null;
   if (!temFc && !temPace) return null;
   return (
-    <SectionCard title="Limiares inferidos">
+    <DiagnosisCard title="Limiares inferidos" subtitle="Estimados pelos treinos dos últimos 30 dias">
       <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
         {temFc && (
           <Box>
@@ -77,7 +76,7 @@ function LimiareisCard({ limiares }: { limiares: LimiareisInferidosDto }) {
           </Box>
         )}
       </Box>
-    </SectionCard>
+    </DiagnosisCard>
   );
 }
 
@@ -229,8 +228,9 @@ export function DiagnosisTabPanel({ selected, attentionItem, attentionRecencyDay
 
 
 
-      <SectionCard
+      <DiagnosisCard
         title="Próximo treino"
+        subtitle="Primeiro treino pendente do plano vigente, a partir de hoje"
         action={
           <Button size="small" endIcon={<ArrowForwardIcon fontSize="small" />} sx={{ ...ACTION_BTN_END_ICON_SX, px: { xs: 0.75, xl: 1 } }} onClick={onOpenPlan}>
             Abrir plano
@@ -250,7 +250,7 @@ export function DiagnosisTabPanel({ selected, attentionItem, attentionRecencyDay
             sx={{ bgcolor: `${statusColor}16`, color: statusColor, border: `1px solid ${statusColor}44`, fontWeight: 700 }}
           />
         </Box>
-      </SectionCard>
+      </DiagnosisCard>
 
       {limiareisInferidos && <LimiareisCard limiares={limiareisInferidos} />}
 

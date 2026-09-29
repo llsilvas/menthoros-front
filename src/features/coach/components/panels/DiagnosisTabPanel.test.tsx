@@ -253,6 +253,23 @@ describe('DiagnosisTabPanel', () => {
     });
   });
 
+  describe('Próximo treino e Limiares no mesmo card', () => {
+    it('próximo treino: subtítulo e "Abrir plano" no cabeçalho', () => {
+      render(<DiagnosisTabPanel selected={atleta()} pmc={[]} onOpenPlan={vi.fn()} />);
+
+      const card = within(screen.getByRole('region', { name: 'Próximo treino' }));
+      expect(card.getByText('Primeiro treino pendente do plano vigente, a partir de hoje')).toBeInTheDocument();
+      expect(card.getByRole('button', { name: /abrir plano/i })).toBeInTheDocument();
+    });
+
+    it('limiares: subtítulo diz de onde vêm', () => {
+      render(<DiagnosisTabPanel selected={atleta()} limiareisInferidos={LIMIARES} pmc={[]} onOpenPlan={vi.fn()} />);
+
+      const card = within(screen.getByRole('region', { name: 'Limiares inferidos' }));
+      expect(card.getByText('Estimados pelos treinos dos últimos 30 dias')).toBeInTheDocument();
+    });
+  });
+
   describe('cards dos gráficos no padrão da Proposta (patch v2)', () => {
     const pmc = Array.from({ length: 30 }, (_, i) => ({ date: new Date(2026, 8, i - 1), tss: 50, ctl: 40, atl: 45, tsb: -5 }));
 
