@@ -4,7 +4,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { parseISO } from 'date-fns';
 import { content, primary, semantic, surface } from '../../../../theme/tokens';
-import { KpiCell } from '../KpiCell';
+import { KpiStrip } from '../KpiStrip';
 import { SectionCard } from '../SectionCard';
 import { EmptyMetricState } from '../EmptyMetricState';
 import { WeeklyAdherenceLoadChart } from '../WeeklyAdherenceLoadChart';
@@ -147,20 +147,12 @@ export function DiagnosisTabPanel({ selected, attentionItem, attentionRecencyDay
 
 
       {selected.quickStats.hasWindowData ? (
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: { xs: 0.9, sm: 1.05, lg: 1.25, xl: 1.5 } }}>
-          {/*
-            Sem faixa "ideal" (UX-005): um intervalo fixo, igual para todo atleta, não é referência.
-            O tom sinaliza o estado, também por ícone; a linha de apoio diz a base de cada número.
-          */}
-          {metrics.map((m) => (
-            <KpiCell
-              key={m.key}
-              kpi={m}
-              testId={`metric-${m.key}`}
-              sx={{ p: 1.25, borderRadius: 1.5, border: `1px solid ${content.cardBorder}`, backgroundColor: `${surface[0]}06` }}
-            />
-          ))}
-        </Box>
+        /*
+          Sem faixa "ideal" (UX-005): um intervalo fixo, igual para todo atleta, não é referência.
+          O tom sinaliza o estado, também por ícone; a linha de apoio diz a base de cada número.
+          Mesma faixa do topo do atleta: células planas separadas por linha, não cards soltos.
+        */
+        <KpiStrip items={metrics} testIdPrefix="metric" sx={{ border: `1px solid ${content.divider}` }} />
       ) : (
         /*
           Sem série na janela, os números desta grade são fallback: carga cai para 0 e monotonia
