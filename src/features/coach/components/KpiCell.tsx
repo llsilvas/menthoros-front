@@ -3,8 +3,8 @@ import type { SxProps, Theme } from '@mui/material';
 import type { ReactNode } from 'react';
 import { semantic, surface } from '../../../theme/tokens';
 import { marcadorDe } from './toneMarker';
-import type { KpiView } from '../adapters/athleteKpiAdapters';
-import type { MetricTone } from '../../../types/FaixaTsb';
+import type { KpiView } from '../types/Kpi';
+import { toneColor } from '../../../theme/toneColor';
 
 interface KpiCellProps {
   kpi: KpiView;
@@ -14,20 +14,13 @@ interface KpiCellProps {
   icon?: ReactNode;
 }
 
-const TONE_COLOR: Record<MetricTone, string> = {
-  success: semantic.success[500],
-  warning: semantic.warning[500],
-  danger: semantic.danger[500],
-  neutral: surface[50],
-};
-
 /**
  * Célula de KPI: rótulo · qualificador, valor com marcador de tom, selo opcional e linha de apoio
  * em até 2 linhas. A linha de apoio carrega a base do número ou o motivo de não haver um — texto
  * que o tile compacto, de uma linha, cortava.
  */
 export function KpiCell({ kpi, testId, sx, icon }: KpiCellProps) {
-  const color = TONE_COLOR[kpi.tone];
+  const color = toneColor(kpi.tone);
   const marcador = marcadorDe(kpi.tone);
   return (
     <Box data-testid={testId} sx={[{ display: 'flex', flexDirection: 'column', gap: 0.5, minWidth: 0 }, ...(Array.isArray(sx) ? sx : [sx])]}>

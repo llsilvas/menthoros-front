@@ -24,6 +24,7 @@ import { buildPmcChartModel, DEFAULT_RANGES } from '../adapters/pmcChartModel';
 import { PmcChartControls } from './PmcChartControls';
 import type { PMCViewMode } from './PmcChartControls';
 import type { PMCDataPoint, PMCGap, PMCRange, PmcChartRow, PmcGapArea, PmcSeriesKey } from '../adapters/pmcChartModel';
+import { toneColor } from '../../../theme/toneColor';
 
 export type { PMCDataPoint, PMCGap, PMCRange } from '../adapters/pmcChartModel';
 export type { PMCViewMode } from './PmcChartControls';
@@ -71,13 +72,6 @@ const SERIES: ReadonlyArray<{ key: PmcSeriesKey; label: string; code: string; co
   { key: 'tsb', label: 'Forma', code: 'TSB', color: surface[50] },
 ];
 
-const TONE_COLOR: Record<MetricTone, string> = {
-  success: semantic.success[500],
-  warning: semantic.warning[500],
-  danger: semantic.danger[500],
-  neutral: surface[300],
-};
-
 // Vale para os dois tipos de lacuna: no PMC, o que falta é TSS — pode ter havido treino sem carga.
 const GAP_LABEL = 'Sem carga registrada';
 
@@ -112,7 +106,7 @@ function FormaLegend() {
     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: { xs: 1.25, md: 2 }, mb: 1.5 }}>
       {FORMA_LEGEND.map((l) => (
         <Box key={l.tone} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-          <Box sx={{ width: 10, height: 10, borderRadius: 0.5, bgcolor: TONE_COLOR[l.tone] }} />
+          <Box sx={{ width: 10, height: 10, borderRadius: 0.5, bgcolor: toneColor(l.tone, surface[300]) }} />
           <Typography sx={{ fontSize: '0.75rem', color: surface[300] }}>{l.label}</Typography>
         </Box>
       ))}
@@ -149,8 +143,8 @@ function PmcTooltip({ active, payload, view, simpleMetric }: TooltipContentProps
     }
   } else if (simpleMetric === 'forma' && row.tsb != null) {
     const faixa = row.statusForma ? FAIXA_APRESENTACAO[row.statusForma]?.label : null;
-    linhas.push({ label: 'Forma', value: formatSigned(row.tsb), color: TONE_COLOR[toneOf(row)] });
-    if (faixa) linhas.push({ label: 'Faixa', value: faixa, color: TONE_COLOR[toneOf(row)] });
+    linhas.push({ label: 'Forma', value: formatSigned(row.tsb), color: toneColor(toneOf(row), surface[300]) });
+    if (faixa) linhas.push({ label: 'Faixa', value: faixa, color: toneColor(toneOf(row), surface[300]) });
   } else if (row.tss != null) {
     linhas.push({ label: 'TSS', value: String(Math.round(row.tss)), color: surface[50] });
   }
@@ -257,7 +251,7 @@ function SimpleChart({ rows, ticks, gapAreas, patternId, simpleMetric }: ChartBo
         {forma ? (
           <Bar dataKey="tsb" name="Forma" radius={[2, 2, 0, 0]} isAnimationActive={false}>
             {rows.map((r) => (
-              <Cell key={r.t} fill={TONE_COLOR[toneOf(r)]} fillOpacity={r.inGap ? 0.35 : 0.85} />
+              <Cell key={r.t} fill={toneColor(toneOf(r), surface[300])} fillOpacity={r.inGap ? 0.35 : 0.85} />
             ))}
           </Bar>
         ) : (

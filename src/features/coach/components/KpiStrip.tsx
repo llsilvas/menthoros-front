@@ -3,7 +3,7 @@ import type { SxProps, Theme } from '@mui/material';
 import type { ReactNode } from 'react';
 import { backgrounds, content } from '../../../theme/tokens';
 import { KpiCell } from './KpiCell';
-import type { KpiView } from '../adapters/athleteKpiAdapters';
+import type { KpiView } from '../types/Kpi';
 
 interface KpiStripProps {
   items: Array<KpiView & { key: string; icon?: ReactNode }>;

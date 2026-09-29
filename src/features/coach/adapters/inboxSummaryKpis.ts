@@ -1,4 +1,5 @@
-import type { KpiView } from './athleteKpiAdapters';
+import { plural } from './format';
+import type { KpiView } from '../types/Kpi';
 
 /** Números do resumo do topo do Inbox (`dashboard.summary`, com os fallbacks da página). */
 export interface InboxSummary {
@@ -30,7 +31,7 @@ export function buildInboxSummaryKpiViews(s: InboxSummary): InboxSummaryKpiView[
       key: 'atencao',
       label: 'Em atenção',
       value: String(s.emAtencao),
-      detail: s.itensFilaAtencao > 0 ? `${s.itensFilaAtencao} ${s.itensFilaAtencao === 1 ? 'sinal' : 'sinais'} na fila` : 'Nenhum sinal na fila',
+      detail: s.itensFilaAtencao > 0 ? `${plural(s.itensFilaAtencao, 'sinal', 'sinais')} na fila` : 'Nenhum sinal na fila',
     },
     { ...base, key: 'exibidos', label: 'Atletas exibidos', value: String(s.atletasExibidos), detail: 'Na lista, com os filtros atuais' },
   ];

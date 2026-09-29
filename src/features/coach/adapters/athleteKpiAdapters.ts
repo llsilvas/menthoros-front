@@ -1,24 +1,11 @@
-import { formatKm } from '../components/coachInboxHelpers';
-import { buildAdherenceTile, formatKmPt } from './diagnosisChartsAdapters';
+import { buildAdherenceTile } from './diagnosisChartsAdapters';
+import { decimal, formatKmPt, signed } from './format';
 import { getAcwrZone } from './coachInboxAdapters';
-import type { FaixaApresentacao, MetricTone } from '../../../types/FaixaTsb';
+import type { FaixaApresentacao } from '../../../types/FaixaTsb';
+import type { KpiView } from '../types/Kpi';
 import type { CoachAthleteRow, RaceItem } from '../types/CoachInbox';
 
 export type AthleteKpiKey = 'adherence' | 'load' | 'form' | 'acwr';
-
-/** Uma célula de KPI (faixa do atleta ou métricas do Diagnóstico) — tudo já formatado para exibir. */
-export interface KpiView {
-  /** Nome da métrica. Fica num span próprio para testes e leitores de tela acharem pelo nome. */
-  label: string;
-  /** Janela ou unidade ("4 sem", "7 dias", "TSB"). */
-  qualifier: string | null;
-  value: string;
-  /** Base do valor ou motivo de não haver um. Pode quebrar em até 2 linhas. */
-  detail: string;
-  tone: MetricTone;
-  /** Selo ao lado do valor — hoje só "Baixa confiança" no ACWR. */
-  badge: string | null;
-}
 
 export interface AthleteKpi extends KpiView {
   key: AthleteKpiKey;
@@ -32,10 +19,6 @@ export interface NextRaceHeader {
 }
 
 const SEM_DADO = 'Sem dado na janela';
-
-export const decimal = (v: number, casas: number) =>
-  v.toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas });
-export const signed = (v: number, casas: number) => `${v > 0 ? '+' : ''}${decimal(v, casas)}`;
 
 function semDado(key: AthleteKpiKey, label: string, qualifier: string | null): AthleteKpi {
   return { key, label, qualifier, value: '—', detail: SEM_DADO, tone: 'neutral', badge: null };
@@ -62,7 +45,7 @@ function loadKpiKm(km: { lastKm: number; previousKm: number }): AthleteKpi {
 
 function loadKpi(row: CoachAthleteRow): AthleteKpi {
   if (row.distance7d) return loadKpiKm(row.distance7d);
-  const base = { key: 'load' as const, label: 'Carga', qualifier: '7 dias', value: formatKm(row.load7d), badge: null };
+  const base = { key: 'load' as const, label: 'Carga', qualifier: '7 dias', value: `${formatKmPt(row.load7d)} km`, badge: null };
   if (row.loadDelta == null) {
     return { ...base, detail: 'Sem carga nos 7 dias anteriores para comparar', tone: 'neutral' };
   }

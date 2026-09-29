@@ -1,5 +1,6 @@
 import { addDays, differenceInCalendarDays, format, parseISO, startOfDay, startOfWeek, subDays } from 'date-fns';
 import { buildAderenciaResumo } from '../../athlete/adapters/aderenciaAdapter';
+import { formatKmPt, plural } from './format';
 import type { AderenciasSemanalDto, DistanceSummaryDto, PmcPontoRaw } from '../../../types/AtletaPerfilCoach';
 import type { MetricTone } from '../types/AthleteForm';
 import type { AcwrConfidence, AdherenceWindow, DataGap, WeeklyDiagnosisPoint } from '../types/CoachInbox';
@@ -242,9 +243,6 @@ export interface DiagnosisAvailability {
   pmcAvailable: boolean;
 }
 
-/** Km com uma casa, vírgula decimal. */
-export const formatKmPt = (km: number) => km.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-
 export const INDISPONIVEL_ADESAO = 'Adesão: dado indisponível';
 export const INDISPONIVEL_CARGA = 'Carga: dado indisponível';
 
@@ -262,7 +260,7 @@ export function describeWeek(
   const km = week.distanceKm != null ? `${formatKmPt(week.distanceKm)} km` : null;
   const tss =
     pmcAvailable && week.tss != null
-      ? `${week.tss} TSS · ${week.activeDays} ${week.activeDays === 1 ? 'dia com treino' : 'dias com treino'}`
+      ? `${week.tss} TSS · ${plural(week.activeDays ?? 0, 'dia com treino', 'dias com treino')}`
       : null;
   const load = week.noData
     ? 'Sem treinos registrados'

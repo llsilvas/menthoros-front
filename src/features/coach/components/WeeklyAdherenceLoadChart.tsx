@@ -1,7 +1,7 @@
 import { useId, useMemo } from 'react';
 import { Box, Typography } from '@mui/material';
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, ReferenceArea, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { semantic, surface } from '../../../theme/tokens';
+import { surface } from '../../../theme/tokens';
 import { overlayWhite } from '../../../theme/overlays';
 import { font } from '../../../theme/theme.premium';
 import {
@@ -9,12 +9,13 @@ import {
   INDISPONIVEL_CARGA,
   adherenceTone,
   describeWeek,
-  formatKmPt,
   formatGapCaption,
 } from '../adapters/diagnosisChartsAdapters';
+import { formatKmPt } from '../adapters/format';
 import type { DiagnosisAvailability } from '../adapters/diagnosisChartsAdapters';
 import type { MetricTone } from '../types/AthleteForm';
 import type { DataGap, WeeklyDiagnosisPoint } from '../types/CoachInbox';
+import { toneColor } from '../../../theme/toneColor';
 
 interface WeeklyAdherenceLoadChartProps extends DiagnosisAvailability {
   weeks: WeeklyDiagnosisPoint[];
@@ -33,13 +34,6 @@ const Y_WIDTH = 40;
 // O SVG herdava a fonte de título do tema MUI; eixos e rótulos usam a de texto.
 const TICK = { fontSize: 11, fill: AXIS, fontFamily: font.text };
 
-const TONE_COLOR: Record<MetricTone, string> = {
-  success: semantic.success[500],
-  neutral: surface[300],
-  warning: semantic.warning[500],
-  danger: semantic.danger[500],
-};
-
 // Escala da Proposta. 70–89% era lime lá; lime é reservado a marca/ação, então fica neutro claro.
 const TONE_LEGEND: Array<{ tone: MetricTone; label: string }> = [
   { tone: 'success', label: '≥ 90%' },
@@ -54,7 +48,7 @@ export function AdherenceToneLegend() {
     <Box role="list" aria-label="Escala de adesão" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
       {TONE_LEGEND.map((l) => (
         <Box key={l.tone} role="listitem" sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
-          <Box sx={{ width: 10, height: 10, borderRadius: 0.5, bgcolor: TONE_COLOR[l.tone] }} />
+          <Box sx={{ width: 10, height: 10, borderRadius: 0.5, bgcolor: toneColor(l.tone, surface[300]) }} />
           <Typography sx={{ fontSize: '0.72rem', color: surface[300] }}>{l.label}</Typography>
         </Box>
       ))}
@@ -88,7 +82,7 @@ function WeekTooltip({ active, payload, availability }: WeekTooltipProps) {
   if (!row) return null;
   const texto = describeWeek(row, availability);
   const corAdesao =
-    availability.adherenceAvailable && row.adherence != null ? TONE_COLOR[adherenceTone(row.adherence)] : surface[300];
+    availability.adherenceAvailable && row.adherence != null ? toneColor(adherenceTone(row.adherence), surface[300]) : surface[300];
   return (
     <Box sx={{ bgcolor: surface[700], color: surface[50], borderRadius: 1.5, px: 1.25, py: 1, minWidth: 170 }}>
       <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, mb: 0.25 }}>{texto.title}</Typography>
@@ -176,7 +170,7 @@ export function WeeklyAdherenceLoadChart({ weeks, gaps, adherenceAvailable, pmcA
               <Tooltip content={<WeekTooltip availability={availability} />} cursor={{ fill: overlayWhite[4] }} />
               <Bar dataKey="adherence" maxBarSize={28} radius={[3, 3, 0, 0]} isAnimationActive={false}>
                 {rows.map((r) => (
-                  <Cell key={r.weekStart} fill={TONE_COLOR[adherenceTone(r.adherence ?? 0)]} />
+                  <Cell key={r.weekStart} fill={toneColor(adherenceTone(r.adherence ?? 0), surface[300])} />
                 ))}
                 <LabelList dataKey="adherenceLabel" position="top" fill={surface[200]} fontSize={11} fontFamily={font.text} />
               </Bar>

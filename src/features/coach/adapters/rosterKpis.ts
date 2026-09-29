@@ -1,6 +1,6 @@
 import { differenceInCalendarDays, parseISO } from 'date-fns';
 import type { CoachAtletaResumo } from '../../../types/Coach';
-import type { KpiView } from './athleteKpiAdapters';
+import type { KpiView } from '../types/Kpi';
 
 /** Dias sem treino a partir dos quais um atleta conta como "sem atividade". */
 export const INACTIVITY_THRESHOLD_DAYS = 7;

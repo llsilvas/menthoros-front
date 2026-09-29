@@ -1,7 +1,7 @@
 import { getMonotonyTone, getStrainZone, MONOTONIA_MIN_DIAS } from './coachInboxAdapters';
-import { decimal, signed } from './athleteKpiAdapters';
+import { decimal, plural, signed } from './format';
 import { formVariantLabel, getTsbFormaTone } from '../types/AthleteForm';
-import type { KpiView } from './athleteKpiAdapters';
+import type { KpiView } from '../types/Kpi';
 import type { CoachAthleteRow } from '../types/CoachInbox';
 
 export type DiagnosisMetricKey = 'acuteLoad' | 'monotony' | 'strain' | 'racePrediction';
@@ -9,8 +9,6 @@ export type DiagnosisMetricKey = 'acuteLoad' | 'monotony' | 'strain' | 'racePred
 export interface DiagnosisMetric extends KpiView {
   key: DiagnosisMetricKey;
 }
-
-const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
 
 function semBase(diasComTreino: number): string {
   return `Sem base: ${plural(diasComTreino, 'dia', 'dias')} com treino (mínimo ${MONOTONIA_MIN_DIAS})`;
