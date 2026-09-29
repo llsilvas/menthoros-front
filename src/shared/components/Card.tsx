@@ -32,9 +32,10 @@ export function Card({
   children,
   sx,
 }: CardProps) {
-  const cardSx = buildCardSx({ variant, interactive, onClick, stateColor, padding });
+  const isInteractive = Boolean(interactive) || Boolean(onClick);
+  const cardSx = buildCardSx({ variant, isInteractive, stateColor, padding });
   const extraSx = Array.isArray(sx) ? sx : sx ? [sx] : [];
-  const mergedSx: SxProps<Theme> = [cardSx, ...extraSx] as SxProps<Theme>;
+  const mergedSx: SxProps<Theme> = [cardSx, ...extraSx];
 
   return (
     <Box

@@ -1,7 +1,11 @@
 import { alpha } from '@mui/material/styles';
+import type { SxProps, Theme } from '@mui/material/styles';
 import { elevation } from '../design-tokens';
 import { radius } from '../design-tokens/density';
-import { content, glassSx, glassSxHover, semantic } from '../../theme/tokens';
+import { content, glassSx, glassSxHover, semantic, transitions } from '../../theme/tokens';
+
+// PMn = achado da rodada 2 do pré-mortem (Codex, DoR check); CAn = critério de aceite do proposal.
+// Ambos documentados em menthoros-product/openspec/changes/standardize-card-foundation/{design,proposal}.md.
 
 export type CardVariant = 'flat' | 'glass';
 export type CardStateColor = 'success' | 'danger' | 'warning' | 'info';
@@ -19,23 +23,23 @@ const STATE_COLOR_HEX: Record<CardStateColor, string> = {
 const STATE_BG_OPACITY = 0.16;
 
 export interface BuildCardSxArgs {
-  variant?: CardVariant;
-  interactive?: boolean;
-  onClick?: unknown;
+  variant: CardVariant;
+  /** Já resolvido por quem chama (interactive OR onClick presente) — cardStyles não precisa do handler. */
+  isInteractive: boolean;
   stateColor?: CardStateColor;
-  padding?: 2 | 2.5 | 3;
+  padding: 2 | 2.5 | 3;
 }
 
 export function buildCardSx({
-  variant = 'flat',
-  interactive,
-  onClick,
+  variant,
+  isInteractive,
   stateColor,
-  padding = 2,
-}: BuildCardSxArgs): Record<string, unknown> {
+  padding,
+}: BuildCardSxArgs): SxProps<Theme> {
   const sx: Record<string, unknown> = {
     borderRadius: radius.lg,
     padding,
+    transition: transitions.default,
   };
 
   if (variant === 'glass') {
@@ -51,7 +55,6 @@ export function buildCardSx({
     sx.backgroundColor = alpha(hex, STATE_BG_OPACITY);
   }
 
-  const isInteractive = Boolean(interactive) || Boolean(onClick);
   if (isInteractive) {
     sx.cursor = 'pointer';
     // stateColor tem precedência: hover nunca sobrescreve a cor semântica (PM6).
@@ -60,5 +63,5 @@ export function buildCardSx({
     }
   }
 
-  return sx;
+  return sx as SxProps<Theme>;
 }
