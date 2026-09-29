@@ -76,13 +76,9 @@ export const transitions = {
   fast:    'all 0.15s ease',
 } as const;
 
-// ── Border radius (numeric px for MUI, string for CSS) ───────────────────────
-export const radius = {
-  sm: 6,
-  md: 8,
-  lg: 12,
-  xl: 16,
-} as const;
+// Border radius: única fonte é `shared/design-tokens/density.ts` (`radius`).
+// Removido daqui em standardize-card-foundation — não tinha consumidor (só a
+// landing usa raio, via `theme/theme.premium.ts`, sistema de design separado).
 
 // ── Zone key — chaves Z1–Z5. Valores de cor vivem em `theme.premium.ts`,
 // consumidos via `activeTheme.zones` — não duplicar mapa de cor aqui.
