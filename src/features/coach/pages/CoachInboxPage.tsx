@@ -35,7 +35,7 @@ import { CoachAthleteAvatar } from '../components/CoachAthleteAvatar';
 import { MetricTile } from '../components/MetricTile';
 import { QueueRow } from '../components/QueueRow';
 import { AttentionOnlyRow } from '../components/AttentionOnlyRow';
-import { formatKm, statusPalette } from '../components/coachInboxHelpers';
+import { statusPalette } from '../components/coachInboxHelpers';
 import { ACTION_BTN_START_ICON_SX, ACTION_BTN_END_ICON_SX, SECONDARY_OUTLINE_SX } from '../../../shared/components/actionButtonSx';
 import { DiagnosisTabPanel } from '../components/panels/DiagnosisTabPanel';
 import { PlanTabPanel } from '../components/panels/PlanTabPanel';
@@ -48,8 +48,10 @@ import { ROSTER_PAGE_SIZE } from '../hooks/useDashboardFilters';
 import type { SortKey, DashboardStatusFilter } from '../hooks/useDashboardFilters';
 import { elevation } from '../../../shared/design-tokens';
 import { content, semantic, surface } from '../../../theme/tokens';
-import { buildInboxQueue, buildSelectedAthleteFromDashboard, getAcwrZone } from '../adapters/coachInboxAdapters';
-import { buildAdherenceTile } from '../adapters/diagnosisChartsAdapters';
+import { buildInboxQueue, buildSelectedAthleteFromDashboard, calcularDiasAteProva } from '../adapters/coachInboxAdapters';
+import { buildAthleteKpis, buildNextRaceHeader } from '../adapters/athleteKpiAdapters';
+import { AthleteKpiStrip } from '../components/AthleteKpiStrip';
+import { AthleteNextRace } from '../components/AthleteNextRace';
 import { resolveReviewStatus } from '../../../types/PlanoReview';
 import { montarRascunhoContato, resolveActionAvailability, resolvePrimaryAction } from '../components/coachInboxHelpers';
 import { PRIMARY_BTN_SX } from '../../../shared/components/actionButtonSx';
@@ -196,24 +198,17 @@ function CoachInboxPage() {
     return dashboardStatus !== 'all' || search.trim() ? 'vazio-filtrado' : 'vazio';
   })();
 
-  const nextRace = selected?.raceCalendar[0] ?? null;
-  const isTargetRace = nextRace?.tag === 'ALVO';
 
   // Forma atual: consome a faixa resolvida pelo backend (sem recomputar limiar).
   // FAIXA_APRESENTACAO cobre as 9 faixas do contrato; faixa fora do mapa cai em
   // null e a UI exibe '—' (degrada sem quebrar).
   const currentFormDisplay = selected?.quickStats.statusForma ? FAIXA_APRESENTACAO[selected.quickStats.statusForma] : null;
-  const acwrZone = getAcwrZone(selected?.quickStats.acwr ?? null);
-  // Base crônica incompleta (histórico curto ou lacuna recente): o ACWR infla e "Risco" seria falso.
-  const acwrBaixaConfianca = selected?.quickStats.acwrConfidence?.level === 'BAIXA';
-  const adherenceTile = selected
-    ? buildAdherenceTile(selected.adherenceWindow, selected.adherenceAvailable, selectedProfile ? null : selectedRosterItem?.aderenciaPercentual)
-    : null;
-  // Sem dado na janela (sem PMC sincronizado): aderência/carga vêm do roster com fallback
-  // numérico (`?? 0`), e forma pode cair no `roster.statusForma` mesmo sem série — nenhum dos
-  // dois distingue "zero real" de "nunca sincronizou" sozinho. `hasWindowData` é o mesmo sinal já
-  // usado pela grade de diagnóstico (task 1.3, polish-inbox-visual-semantics).
-  const semDadoNaJanela = selected != null && !selected.quickStats.hasWindowData;
+  // Aderência, Carga, Forma e ACWR já formatados (valor, base, tom, selo). O roster só entra na
+  // aderência enquanto o perfil não carregou — com perfil, o número sai da janela das barras.
+  const athleteKpis = selected
+    ? buildAthleteKpis(selected, currentFormDisplay, selectedProfile ? null : selectedRosterItem?.aderenciaPercentual ?? null)
+    : [];
+  const nextRaceHeader = buildNextRaceHeader(selected?.raceCalendar[0] ?? null, calcularDiasAteProva(selectedProfile ?? null, new Date()));
 
   // A seleção acompanha a lista COMPOSTA, não só o roster: um atleta fixado pela fila de atenção
   // não está em `rosterItems`, e comparar com ele revertia a seleção para o primeiro do roster no
@@ -728,6 +723,8 @@ function CoachInboxPage() {
                   ele fica ao lado do nome do atleta, com altura e fonte legíveis, e **troca** de
                   ação conforme o estado em vez de aparecer morto.
                 */}
+                <AthleteNextRace race={nextRaceHeader} />
+
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                   <Button
                     data-testid="inbox-cta-primario"
@@ -777,68 +774,7 @@ function CoachInboxPage() {
 
               </Box>
 
-              <Box
-                sx={{
-                  px: { xs: 1.1, sm: 1.2, lg: 1.3, xl: 2 },
-                  py: { xs: 0.65, sm: 0.75, lg: 0.85, xl: 1.25 },
-                  display: 'grid',
-                  gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(5, minmax(0, 1fr))' },
-                  gap: { xs: 0.55, sm: 0.65, lg: 0.75, xl: 1.2 },
-                  borderBottom: `1px solid ${content.divider}`,
-                }}
-              >
-                <MetricTile
-                  compact
-                  label="Aderência"
-                  // Não depende de `semDadoNaJanela` (que é do PMC): aderência válida não some com PMC vazio.
-                  value={adherenceTile?.value ?? '—'}
-                  delta={adherenceTile?.delta ?? 'Sem plano na janela'}
-                  tone={adherenceTile?.tone ?? 'neutral'}
-                />
-                <MetricTile
-                  compact
-                  label="Carga (7d)"
-                  value={semDadoNaJanela ? '—' : formatKm(selected.load7d)}
-                  // Delta em TSS 7d vs. 7d anteriores. Antes era variação de CTL (condicionamento).
-                  delta={
-                    semDadoNaJanela
-                      ? 'Sem dado na janela'
-                      : selected.loadDelta == null
-                        ? 'Sem base de comparação'
-                        : `TSS ${selected.loadDelta >= 0 ? '+' : ''}${selected.loadDelta}% vs. 7d ant.`
-                  }
-                  tone={semDadoNaJanela || selected.loadDelta == null ? 'neutral' : selected.loadDelta >= 10 ? 'warning' : 'success'}
-                />
-                <MetricTile
-                  compact
-                  label="Forma"
-                  // '—' por dois caminhos válidos: sem dado na janela, ou faixa de statusForma
-                  // fora do mapa de FAIXA_APRESENTACAO — os dois casos mostram o mesmo travessão
-                  // de propósito, não é o mesmo branch duplicado por acidente.
-                  value={semDadoNaJanela ? '—' : currentFormDisplay?.label ?? '—'}
-                  delta={semDadoNaJanela ? 'Sem dado na janela' : selected.quickStats.tsb != null ? `TSB ${selected.quickStats.tsb.toFixed(1)}` : 'TSB não disponível'}
-                  tone={semDadoNaJanela ? 'neutral' : currentFormDisplay?.tone ?? 'neutral'}
-                />
-                <MetricTile
-                  compact
-                  label="ACWR"
-                  // Checagem extra (os outros 3 tiles usam só semDadoNaJanela): ACWR pode faltar
-                  // mesmo com hasWindowData=true — calcularAcwr(atl,ctl) só usa o ÚLTIMO ponto do
-                  // PMC, que pode não ter ATL/CTL calculado ainda mesmo havendo série.
-                  value={semDadoNaJanela || selected.quickStats.acwr == null ? '—' : selected.quickStats.acwr.toFixed(2)}
-                  delta={
-                    semDadoNaJanela
-                      ? 'Sem dado na janela'
-                      : selected.quickStats.acwr == null
-                        ? 'Dado insuficiente'
-                        : acwrBaixaConfianca
-                          ? 'Baixa confiança'
-                          : acwrZone.label
-                  }
-                  tone={semDadoNaJanela || acwrBaixaConfianca ? 'neutral' : acwrZone.tone}
-                />
-                <MetricTile compact label={isTargetRace ? 'Prova Alvo' : 'Próxima Prova'} delta={selected.raceCalendar[0]?.date ?? '—'} value={selected.raceCalendar[0]?.label ?? 'Sem prova'} tone={isTargetRace ? 'warning' : 'neutral'} highlight={isTargetRace} />
-              </Box>
+              <AthleteKpiStrip kpis={athleteKpis} />
 
               <Box sx={{ px: { xs: 1.1, sm: 1.2, lg: 1.3, xl: 2 }, pt: { xs: 0.35, sm: 0.45, lg: 0.5, xl: 0.8 }, borderBottom: `1px solid ${content.divider}` }}>
                 <Tabs

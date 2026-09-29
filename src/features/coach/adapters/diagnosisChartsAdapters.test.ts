@@ -235,7 +235,7 @@ describe('buildAdherenceTile', () => {
   const janela = { percent: 31, completed: 5, planned: 16, weeks: 4 };
 
   it('janela do perfil tem prioridade sobre o roster', () => {
-    expect(buildAdherenceTile(janela, true, 90)).toEqual({ value: '31%', delta: '5 de 16 · 4 sem. completas', tone: 'warning' });
+    expect(buildAdherenceTile(janela, true, 90)).toEqual({ value: '31%', delta: '5 de 16 treinos planejados', tone: 'warning' });
   });
 
   it('sem janela, usa o roster (perfil ainda não carregou)', () => {

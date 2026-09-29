@@ -256,7 +256,7 @@ export function buildAdherenceTile(
   if (window) {
     return {
       value: `${window.percent}%`,
-      delta: `${window.completed} de ${window.planned} · 4 sem. completas`,
+      delta: `${window.completed} de ${window.planned} treinos planejados`,
       tone: adherenceTone(window.percent),
     };
   }
