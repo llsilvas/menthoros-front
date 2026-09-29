@@ -1,11 +1,12 @@
 import { Box } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material';
+import type { ReactNode } from 'react';
 import { backgrounds, content } from '../../../theme/tokens';
 import { KpiCell } from './KpiCell';
 import type { KpiView } from '../adapters/athleteKpiAdapters';
 
 interface KpiStripProps {
-  items: Array<KpiView & { key: string }>;
+  items: Array<KpiView & { key: string; icon?: ReactNode }>;
   /** Prefixo do `data-testid` de cada célula: `${testIdPrefix}-${key}`. */
   testIdPrefix: string;
   sx?: SxProps<Theme>;
@@ -33,6 +34,7 @@ export function KpiStrip({ items, testIdPrefix, sx }: KpiStripProps) {
           key={item.key}
           kpi={item}
           testId={`${testIdPrefix}-${item.key}`}
+          icon={item.icon}
           sx={{ backgroundColor: backgrounds.panel, px: { xs: 1.25, lg: 2, xl: 2.5 }, py: { xs: 1.1, lg: 1.5, xl: 1.75 } }}
         />
       ))}

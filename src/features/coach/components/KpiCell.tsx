@@ -1,5 +1,6 @@
 import { Box, Typography } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material';
+import type { ReactNode } from 'react';
 import { semantic, surface } from '../../../theme/tokens';
 import { marcadorDe } from './toneMarker';
 import type { KpiView } from '../adapters/athleteKpiAdapters';
@@ -9,6 +10,8 @@ interface KpiCellProps {
   kpi: KpiView;
   testId: string;
   sx?: SxProps<Theme>;
+  /** Ícone ao lado do rótulo — identifica a métrica; o estado continua no tom do valor. */
+  icon?: ReactNode;
 }
 
 const TONE_COLOR: Record<MetricTone, string> = {
@@ -23,14 +26,23 @@ const TONE_COLOR: Record<MetricTone, string> = {
  * em até 2 linhas. A linha de apoio carrega a base do número ou o motivo de não haver um — texto
  * que o tile compacto, de uma linha, cortava.
  */
-export function KpiCell({ kpi, testId, sx }: KpiCellProps) {
+export function KpiCell({ kpi, testId, sx, icon }: KpiCellProps) {
   const color = TONE_COLOR[kpi.tone];
   const marcador = marcadorDe(kpi.tone);
   return (
     <Box data-testid={testId} sx={[{ display: 'flex', flexDirection: 'column', gap: 0.5, minWidth: 0 }, ...(Array.isArray(sx) ? sx : [sx])]}>
-      <Typography sx={{ fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: surface[400] }}>
-        <span>{kpi.label}</span>
-        {kpi.qualifier ? <Box component="span" sx={{ color: surface[500] }}> · {kpi.qualifier}</Box> : null}
+      <Typography
+        sx={{ fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: surface[400], display: 'flex', alignItems: 'center', gap: 0.75 }}
+      >
+        {icon ? (
+          <Box component="span" data-testid="kpi-icon" aria-hidden sx={{ display: 'inline-flex', '& svg': { fontSize: '1.15rem' } }}>
+            {icon}
+          </Box>
+        ) : null}
+        <span>
+          {kpi.label}
+          {kpi.qualifier ? <Box component="span" sx={{ color: surface[500] }}> · {kpi.qualifier}</Box> : null}
+        </span>
       </Typography>
       <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
         <Typography sx={{ fontSize: { xs: '1.25rem', xl: '1.5rem' }, fontWeight: 700, lineHeight: 1.15, color, fontVariantNumeric: 'tabular-nums' }}>
