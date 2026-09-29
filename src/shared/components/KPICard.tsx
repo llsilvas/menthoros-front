@@ -1,7 +1,6 @@
 import { Box, Skeleton, Tooltip } from '@mui/material';
-import { elevation } from '../design-tokens/elevation';
 import { surface } from '../design-tokens/colors';
-import { content } from '../../theme/tokens';
+import { Card } from './Card';
 import { MetricCell } from './MetricCell';
 import type { MetricCellProps } from './MetricCell';
 import { Sparkline } from './Sparkline';
@@ -46,23 +45,13 @@ export function KPICard({
   loading = false,
 }: KPICardProps) {
   const isHero   = emphasis === 'hero';
-  const padding  = isHero ? 3 : 2;
+  const padding: 2 | 3 = isHero ? 3 : 2;
   const valueFontSize = VALUE_FONT_SIZE[emphasis];
 
   // ── Loading skeleton ───────────────────────────────────────────────────────
   if (loading) {
     return (
-      <Box
-        sx={{
-          backgroundColor: elevation.card,
-          border: `1px solid ${content.cardBorder}`,
-          borderRadius: 1,
-          p: padding,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 1,
-        }}
-      >
+      <Card variant="flat" padding={padding} sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <Skeleton variant="text" width={80} height={16} sx={{ bgcolor: `${surface[700]}80` }} />
           {sparkline && (
@@ -73,7 +62,7 @@ export function KPICard({
         {delta && (
           <Skeleton variant="text" width={60} height={14} sx={{ bgcolor: `${surface[700]}80` }} />
         )}
-      </Box>
+      </Card>
     );
   }
 
@@ -104,16 +93,10 @@ export function KPICard({
 
   // ── Main card ──────────────────────────────────────────────────────────────
   return (
-    <Box
-      sx={{
-        backgroundColor: elevation.card,
-        border: `1px solid ${content.cardBorder}`,
-        borderRadius: 1,
-        p: padding,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: isHero ? 1.5 : 1,
-      }}
+    <Card
+      variant="flat"
+      padding={padding}
+      sx={{ display: 'flex', flexDirection: 'column', gap: isHero ? 1.5 : 1 }}
     >
       {/* Top row: label + sparkline */}
       <Box
@@ -191,7 +174,7 @@ export function KPICard({
           />
         )}
       </Box>
-    </Box>
+    </Card>
   );
 }
 
