@@ -1,8 +1,7 @@
 import React from 'react';
 import Box from '@mui/material/Box';
-import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
-import { glassAzulSx, glassAzulSxHover, transitions } from '../../../theme/tokens';
+import { Card } from '../../../shared/components/Card';
 import { activeTheme } from '../../../theme/activeTheme';
 
 const { primary, surface, overlayWhite } = activeTheme;
@@ -23,19 +22,11 @@ export default function StatCard({
   onClick,
 }: StatCardProps) {
   return (
-    <Paper
+    <Card
+      variant="glass"
+      interactive={!!onClick}
       onClick={onClick}
-      sx={{
-        p: 2,
-        minWidth: 140,
-        textAlign: 'center',
-        cursor: onClick ? 'pointer' : 'default',
-        transition: transitions.default,
-        ...glassAzulSx,
-        ...(onClick && {
-          '&:hover': glassAzulSxHover,
-        }),
-      }}
+      sx={{ minWidth: 140, textAlign: 'center' }}
     >
       <Box
         sx={{
@@ -70,6 +61,6 @@ export default function StatCard({
       >
         {label}
       </Typography>
-    </Paper>
+    </Card>
   );
 }
