@@ -14,6 +14,7 @@ export interface CardProps {
   /** Permite landmarks de acessibilidade, ex.: component="section" + aria-label. */
   component?: ElementType;
   'aria-label'?: string;
+  'data-testid'?: string;
   padding?: 2 | 2.5 | 3;
   children: ReactNode;
   sx?: SxProps<Theme>;
@@ -26,6 +27,7 @@ export function Card({
   stateColor,
   component,
   'aria-label': ariaLabel,
+  'data-testid': dataTestId,
   padding = 2,
   children,
   sx,
@@ -38,6 +40,7 @@ export function Card({
     <Box
       {...(component ? { component } : {})}
       aria-label={ariaLabel}
+      data-testid={dataTestId}
       onClick={onClick}
       sx={mergedSx}
     >

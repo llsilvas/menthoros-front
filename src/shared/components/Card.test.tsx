@@ -83,4 +83,9 @@ describe('Card', () => {
         screen.getByText('clicável').click();
         expect(onClick).toHaveBeenCalledTimes(1);
     });
+
+    it('data-testid é repassado ao elemento raiz', () => {
+        render(<Card data-testid="meu-card">conteúdo</Card>);
+        expect(screen.getByTestId('meu-card')).toBeInTheDocument();
+    });
 });
