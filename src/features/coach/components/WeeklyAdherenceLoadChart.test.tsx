@@ -15,6 +15,7 @@ function semana(over: Partial<WeeklyDiagnosisPoint> = {}): WeeklyDiagnosisPoint 
     adherence: 75,
     noData: false,
     current: false,
+    distanceKm: null,
     ...over,
   };
 }
@@ -22,6 +23,12 @@ function semana(over: Partial<WeeklyDiagnosisPoint> = {}): WeeklyDiagnosisPoint 
 const DISPONIVEL = { adherenceAvailable: true, pmcAvailable: true };
 
 describe('WeeklyAdherenceLoadChart', () => {
+  it('com km do backend, o painel de carga é em km', () => {
+    render(<WeeklyAdherenceLoadChart weeks={[semana({ distanceKm: 34.2 })]} gaps={[]} {...DISPONIVEL} />);
+    expect(screen.getByText(/carga semanal \(km\)/i)).toBeInTheDocument();
+    expect(screen.queryByText(/carga semanal \(tss\)/i)).not.toBeInTheDocument();
+  });
+
   it('sem plano e sem carga → estado vazio', () => {
     render(<WeeklyAdherenceLoadChart weeks={[semana({ tss: null, activeDays: null, adherence: null })]} gaps={[]} {...DISPONIVEL} />);
     expect(screen.getByText('Sem plano nem carga nas últimas 8 semanas.')).toBeInTheDocument();
@@ -67,6 +74,14 @@ describe('WeeklyAdherenceLoadChart', () => {
 });
 
 describe('describeWeek (tooltip)', () => {
+  it('com km, a carga mostra km e TSS', () => {
+    expect(describeWeek(semana({ distanceKm: 34.2 }), DISPONIVEL).load).toBe('Carga 34,2 km · 120 TSS · 3 dias com treino');
+  });
+
+  it('com km e sem TSS (antes do histórico PMC), mostra só o km', () => {
+    expect(describeWeek(semana({ distanceKm: 4, tss: null, activeDays: null }), DISPONIVEL).load).toBe('Carga 4,0 km');
+  });
+
   it('adesão com "X de Y" e carga com dias com treino', () => {
     expect(describeWeek(semana(), DISPONIVEL)).toEqual({
       title: 'Semana de 21/09',

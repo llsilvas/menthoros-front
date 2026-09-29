@@ -1,6 +1,6 @@
 import { addDays, differenceInCalendarDays, format, parseISO, startOfDay, startOfWeek, subDays } from 'date-fns';
 import { buildAderenciaResumo } from '../../athlete/adapters/aderenciaAdapter';
-import type { AderenciasSemanalDto, PmcPontoRaw } from '../../../types/AtletaPerfilCoach';
+import type { AderenciasSemanalDto, DistanceSummaryDto, PmcPontoRaw } from '../../../types/AtletaPerfilCoach';
 import type { MetricTone } from '../types/AthleteForm';
 import type { AcwrConfidence, AdherenceWindow, DataGap, WeeklyDiagnosisPoint } from '../types/CoachInbox';
 
@@ -78,10 +78,12 @@ export function buildWeeklyDiagnosis(
   gaps: DataGap[],
   agora: Date,
   weeks = DIAGNOSIS_WEEKS,
+  distance: DistanceSummaryDto | null = null,
 ): WeeklyDiagnosisPoint[] {
   const hoje = diaCivil(agora);
   const inicioHistorico = firstDay(pmc);
-  if (inicioHistorico == null && aderencia.length === 0) return [];
+  if (inicioHistorico == null && aderencia.length === 0 && distance == null) return [];
+  const kmPorSemana = new Map((distance?.weekly ?? []).map((w) => [toIso(startOfWeek(parseISO(w.weekStart), WEEK)), w.distanceKm]));
 
   const cargaPorSemana = new Map<string, { tss: number; activeDays: number }>();
   for (const p of pmc) {
@@ -118,6 +120,7 @@ export function buildWeeklyDiagnosis(
       adherence: plano ? Math.round(plano.percentual) : null,
       noData,
       current: i === weeks - 1,
+      distanceKm: noData ? null : kmPorSemana.get(chave) ?? null,
     };
   });
 }
@@ -212,6 +215,9 @@ export interface DiagnosisAvailability {
   pmcAvailable: boolean;
 }
 
+/** Km com uma casa, vírgula decimal. */
+export const formatKmPt = (km: number) => km.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
 export const INDISPONIVEL_ADESAO = 'Adesão: dado indisponível';
 export const INDISPONIVEL_CARGA = 'Carga: dado indisponível';
 
@@ -226,12 +232,17 @@ export function describeWeek(
       ? `Adesão ${week.adherence}% (${week.completed} de ${week.planned})${week.current ? ' · semana em curso' : ''}`
       : 'Sem plano na semana';
   // Conta dias, não treinos: o ponto PMC já é o agregado do dia.
-  const load = !pmcAvailable
-    ? INDISPONIVEL_CARGA
-    : week.noData
-      ? 'Sem treinos registrados'
-      : week.tss != null
-        ? `Carga ${week.tss} TSS · ${week.activeDays} ${week.activeDays === 1 ? 'dia com treino' : 'dias com treino'}`
+  const km = week.distanceKm != null ? `${formatKmPt(week.distanceKm)} km` : null;
+  const tss =
+    pmcAvailable && week.tss != null
+      ? `${week.tss} TSS · ${week.activeDays} ${week.activeDays === 1 ? 'dia com treino' : 'dias com treino'}`
+      : null;
+  const load = week.noData
+    ? 'Sem treinos registrados'
+    : km || tss
+      ? `Carga ${[km, tss].filter(Boolean).join(' · ')}`
+      : !pmcAvailable
+        ? INDISPONIVEL_CARGA
         : 'Antes do histórico';
   return { title: `Semana de ${week.label}${week.current ? ' (atual)' : ''}`, adherence, load };
 }

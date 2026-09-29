@@ -13,6 +13,7 @@ const SEMANA: WeeklyDiagnosisPoint = {
   adherence: 75,
   noData: false,
   current: true,
+  distanceKm: null,
 };
 
 function atleta(over: Partial<CoachAthleteRow> = {}): CoachAthleteRow {

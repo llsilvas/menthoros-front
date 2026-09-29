@@ -47,6 +47,8 @@ export interface WeeklyDiagnosisPoint {
   /** Semana inteira dentro de uma lacuna de registro. */
   noData: boolean;
   current: boolean;
+  /** Km realizados na semana (backend); `null` sem `distanceSummary` ou dentro de lacuna. */
+  distanceKm: number | null;
 }
 
 /** Aderência consolidada da janela (Σ realizado ÷ Σ planejado) — a MESMA base das barras. */
@@ -98,6 +100,8 @@ export interface CoachAthleteRow {
    * Antes era variação de CTL (condicionamento) exibida como carga — ver fix-coach-diagnosis-charts.
    */
   loadDelta: number | null;
+  /** Km dos últimos 7 dias e dos 7 anteriores (backend); `null` sem `distanceSummary`. */
+  distance7d: { lastKm: number; previousKm: number } | null;
   delay: number;
   nextWorkout: {
     title: string;

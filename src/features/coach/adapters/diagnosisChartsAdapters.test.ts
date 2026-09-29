@@ -12,7 +12,7 @@ import {
   formatGapCaption,
   isFieldAvailable,
 } from './diagnosisChartsAdapters';
-import type { AderenciasSemanalDto, PmcPontoRaw } from '../../../types/AtletaPerfilCoach';
+import type { AderenciasSemanalDto, DistanceSummaryDto, PmcPontoRaw } from '../../../types/AtletaPerfilCoach';
 
 const d = (iso: string) => parseISO(iso);
 
@@ -63,6 +63,40 @@ describe('detectDataGaps', () => {
 
   it('sem treino nenhum → sem lacunas', () => {
     expect(detectDataGaps([], d('2026-09-28'))).toEqual([]);
+  });
+});
+
+describe('buildWeeklyDiagnosis — km por semana (distanceSummary)', () => {
+  const hoje = d('2026-09-28'); // segunda
+  const pmc = serie('2026-06-01', '2026-09-28', (iso) => (dentro(iso, '2026-07-16', '2026-09-13') ? 0 : 10));
+  const gaps = detectDataGaps(pmc, hoje);
+  const distancia: DistanceSummaryDto = {
+    weekly: [
+      { weekStart: '2026-08-17', distanceKm: 0 },
+      { weekStart: '2026-09-21', distanceKm: 3.7 },
+      { weekStart: '2026-09-28', distanceKm: 5 },
+    ],
+    last7DaysKm: 5,
+    previous7DaysKm: 3.7,
+  };
+
+  it('casa o km pela segunda-feira da semana', () => {
+    const semanas = buildWeeklyDiagnosis(pmc, [], gaps, hoje, 8, distancia);
+    expect(semanas.find((s) => s.weekStart === '2026-09-21')?.distanceKm).toBe(3.7);
+    expect(semanas.find((s) => s.weekStart === '2026-09-28')?.distanceKm).toBe(5);
+  });
+
+  it('semana dentro de lacuna não tem barra de km, como a de TSS', () => {
+    const semanas = buildWeeklyDiagnosis(pmc, [], gaps, hoje, 8, distancia);
+    expect(semanas.find((s) => s.weekStart === '2026-08-17')?.distanceKm).toBeNull();
+  });
+
+  it('sem distanceSummary, km fica null em todas as semanas', () => {
+    expect(buildWeeklyDiagnosis(pmc, [], gaps, hoje).every((s) => s.distanceKm === null)).toBe(true);
+  });
+
+  it('só com km (sem PMC nem plano) ainda monta as semanas', () => {
+    expect(buildWeeklyDiagnosis([], [], [], hoje, 8, distancia)).toHaveLength(8);
   });
 });
 

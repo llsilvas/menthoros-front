@@ -9,6 +9,7 @@ function atleta(over: Partial<CoachAthleteRow> = {}, stats: Partial<CoachAthlete
     adherenceWindow: { percent: 31, completed: 5, planned: 16, weeks: 4 },
     load7d: 5,
     loadDelta: 36.2,
+    distance7d: null,
     quickStats: {
       hasWindowData: true,
       acuteLoad: 21.1,
@@ -59,6 +60,20 @@ describe('buildAthleteKpis', () => {
     expect(porChave(atleta()).load).toMatchObject({ detail: 'TSS +36% vs. 7 dias anteriores', tone: 'warning' });
     expect(porChave(atleta({ loadDelta: 4 })).load.tone).toBe('success');
     expect(porChave(atleta({ loadDelta: -12.4 })).load.detail).toBe('TSS -12% vs. 7 dias anteriores');
+  });
+
+  it('com km do backend: últimos 7 dias em km e comparação km com km', () => {
+    const load = porChave(atleta({ distance7d: { lastKm: 5, previousKm: 3.7 } })).load;
+    expect(load).toMatchObject({ value: '5,0 km', detail: '+35% vs. 7 dias anteriores (3,7 km)', tone: 'warning' });
+  });
+
+  it('com km, sem km nos 7 dias anteriores: sem comparação', () => {
+    expect(porChave(atleta({ distance7d: { lastKm: 5, previousKm: 0 } })).load)
+      .toMatchObject({ value: '5,0 km', detail: 'Sem carga nos 7 dias anteriores para comparar', tone: 'neutral' });
+  });
+
+  it('km não depende do PMC: com série vazia, a carga em km continua', () => {
+    expect(porChave(atleta({ distance7d: { lastKm: 5, previousKm: 3.7 } }, { hasWindowData: false })).load.value).toBe('5,0 km');
   });
 
   it('carga sem base anterior é neutra', () => {

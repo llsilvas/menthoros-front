@@ -94,6 +94,14 @@ export interface LimiareisInferidosDto {
     dataInferenciaLimiar?: string | null;
 }
 
+/** Km realizados por semana ISO e nas duas janelas de 7 dias (cancelados fora). */
+export interface DistanceSummaryDto {
+    /** Mesmas semanas de `aderenciaSemanal`, contínuas; 0 onde não houve treino. */
+    weekly: Array<{ weekStart: string; distanceKm: number }>;
+    last7DaysKm: number;
+    previous7DaysKm: number;
+}
+
 /** Perfil consolidado de um atleta para o coach (endpoint único agregador). */
 export interface AtletaPerfilCoachDto {
     atletaId: string;
@@ -122,6 +130,8 @@ export interface AtletaPerfilCoachDto {
     billingStatus?: AthleteBillingStatus;
     /** Treinos realizados dos últimos 7 dias, mais recente primeiro; ausente sem realizados. */
     realizadosRecentes?: RealizadoRecenteDto[];
+    /** Ausente em backend anterior ao campo ou quando a consulta falha (`avisos` traz "distanceSummary"). */
+    distanceSummary?: DistanceSummaryDto | null;
 }
 
 /** Treino realizado recente, com feedback do atleta quando registrado (athlete-training-loop, D3). */

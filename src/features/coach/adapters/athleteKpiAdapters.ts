@@ -1,5 +1,5 @@
 import { formatKm } from '../components/coachInboxHelpers';
-import { buildAdherenceTile } from './diagnosisChartsAdapters';
+import { buildAdherenceTile, formatKmPt } from './diagnosisChartsAdapters';
 import { getAcwrZone } from './coachInboxAdapters';
 import type { FaixaApresentacao, MetricTone } from '../../../types/FaixaTsb';
 import type { CoachAthleteRow, RaceItem } from '../types/CoachInbox';
@@ -46,7 +46,22 @@ function adherenceKpi(row: CoachAthleteRow, rosterFallback: number | null): Athl
   return { key: 'adherence', label: 'Aderência', qualifier: '4 sem', value: tile.value, detail: tile.delta, tone: tile.tone, badge: null };
 }
 
+/** Com km do backend: valor e comparação na mesma unidade, como na Proposta. */
+function loadKpiKm(km: { lastKm: number; previousKm: number }): AthleteKpi {
+  const base = { key: 'load' as const, label: 'Carga', qualifier: '7 dias', value: `${formatKmPt(km.lastKm)} km`, badge: null };
+  if (km.previousKm <= 0) {
+    return { ...base, detail: 'Sem carga nos 7 dias anteriores para comparar', tone: 'neutral' };
+  }
+  const delta = ((km.lastKm - km.previousKm) / km.previousKm) * 100;
+  return {
+    ...base,
+    detail: `${signed(Math.round(delta), 0)}% vs. 7 dias anteriores (${formatKmPt(km.previousKm)} km)`,
+    tone: delta >= 10 ? 'warning' : 'success',
+  };
+}
+
 function loadKpi(row: CoachAthleteRow): AthleteKpi {
+  if (row.distance7d) return loadKpiKm(row.distance7d);
   const base = { key: 'load' as const, label: 'Carga', qualifier: '7 dias', value: formatKm(row.load7d), badge: null };
   if (row.loadDelta == null) {
     return { ...base, detail: 'Sem carga nos 7 dias anteriores para comparar', tone: 'neutral' };
@@ -103,7 +118,9 @@ function acwrKpi(row: CoachAthleteRow): AthleteKpi {
 export function buildAthleteKpis(row: CoachAthleteRow, faixa: FaixaApresentacao | null, rosterFallback: number | null): AthleteKpi[] {
   const adherence = adherenceKpi(row, rosterFallback);
   if (!row.quickStats.hasWindowData) {
-    return [adherence, semDado('load', 'Carga', '7 dias'), semDado('form', 'Forma', 'TSB'), semDado('acwr', 'ACWR', null)];
+    // Km vem do backend, não do PMC: com série vazia, a carga em km continua valendo.
+    const load = row.distance7d ? loadKpiKm(row.distance7d) : semDado('load', 'Carga', '7 dias');
+    return [adherence, load, semDado('form', 'Forma', 'TSB'), semDado('acwr', 'ACWR', null)];
   }
   return [adherence, loadKpi(row), formKpi(row, faixa), acwrKpi(row)];
 }

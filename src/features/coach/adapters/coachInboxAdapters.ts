@@ -19,6 +19,7 @@ import {
   buildWeeklyDiagnosis,
   calculateLoadDelta7d,
   detectDataGaps,
+  DIAGNOSIS_WEEKS,
   isFieldAvailable,
 } from './diagnosisChartsAdapters';
 import type { FormVariant, MetricTone } from '../types/AthleteForm';
@@ -190,6 +191,7 @@ export function buildSelectedAthleteFromDashboard(
 ): CoachAthleteRow {
   const pmcPoints = profile?.pmc ?? [];
   const adherencePoints = profile?.aderenciaSemanal ?? [];
+  const distance = profile?.distanceSummary ?? null;
   const firstWorkout = profile?.planoVigente?.treinos[0] ?? null;
   const latestPmc = pmcPoints[pmcPoints.length - 1] ?? null;
   const latestAdherence = adherencePoints[adherencePoints.length - 1] ?? null;
@@ -222,6 +224,7 @@ export function buildSelectedAthleteFromDashboard(
     pmcAvailable,
     load7d: roster.weeklyVolume,
     loadDelta: calculateLoadDelta7d(pmcPoints, hoje),
+    distance7d: distance ? { lastKm: distance.last7DaysKm, previousKm: distance.previous7DaysKm } : null,
     delay: 0,
     nextWorkout: {
       title: firstWorkout ? formatWorkoutTypeLabel(firstWorkout.tipoTreino) : 'Sem treino planejado',
@@ -234,7 +237,7 @@ export function buildSelectedAthleteFromDashboard(
     raceCalendar: buildRaceCalendarFromProfile(profile),
     loadTrend: pmcPoints.map((p) => p.ctl).length > 0 ? pmcPoints.map((p) => p.ctl) : [roster.weeklyVolume],
     adherenceTrend: adherencePoints.map((p) => p.percentual),
-    weeklyDiagnosis: buildWeeklyDiagnosis(pmcPoints, adherencePoints, dataGaps, hoje),
+    weeklyDiagnosis: buildWeeklyDiagnosis(pmcPoints, adherencePoints, dataGaps, hoje, DIAGNOSIS_WEEKS, distance),
     dataGaps,
     notes: profile?.avisos?.length ? profile.avisos.join(' · ') : 'Sem observações adicionais.',
     suggestedActions: profile?.sinaisRecentes.length
@@ -281,6 +284,7 @@ export function buildRosterRowFromSummary(roster: CoachAtletaResumo): CoachAthle
     pmcAvailable: true,
     load7d: roster.weeklyVolume,
     loadDelta: null,
+    distance7d: null,
     delay: 0,
     nextWorkout: {
       title: 'Resumo do dashboard',

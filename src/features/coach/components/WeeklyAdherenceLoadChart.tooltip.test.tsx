@@ -35,6 +35,7 @@ const SEMANA: WeeklyDiagnosisPoint = {
   adherence: 75,
   noData: false,
   current: false,
+  distanceKm: null,
 };
 
 const comConteudo = () => conteudos.filter((c) => isValidElement(c) && (c.type as { name?: string }).name === 'WeekTooltip');

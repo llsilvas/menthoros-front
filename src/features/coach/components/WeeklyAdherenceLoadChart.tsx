@@ -7,6 +7,7 @@ import {
   INDISPONIVEL_ADESAO,
   INDISPONIVEL_CARGA,
   describeWeek,
+  formatKmPt,
   weeklyAdherenceTone,
   formatGapCaption,
 } from '../adapters/diagnosisChartsAdapters';
@@ -22,6 +23,7 @@ interface WeeklyAdherenceLoadChartProps extends DiagnosisAvailability {
 interface Row extends WeeklyDiagnosisPoint {
   adherenceLabel: string;
   tssLabel: string;
+  kmLabel: string;
 }
 
 const SYNC_ID = 'coach-diagnosis-weeks';
@@ -101,22 +103,25 @@ export function WeeklyAdherenceLoadChart({ weeks, gaps, adherenceAvailable, pmcA
         ...w,
         adherenceLabel: w.adherence != null ? `${w.adherence}%` : '',
         tssLabel: w.tss != null ? String(w.tss) : '',
+        kmLabel: w.distanceKm != null ? formatKmPt(w.distanceKm) : '',
       })),
     [weeks],
   );
+  // Km vem do backend (distanceSummary); sem ele, o painel continua em TSS, derivado do PMC.
+  const kmMode = weeks.some((w) => w.distanceKm != null);
   const runs = useMemo(() => noDataRuns(weeks), [weeks]);
   const labelByWeek = useMemo(() => new Map(weeks.map((w) => [w.weekStart, w.label])), [weeks]);
 
   const availability = useMemo(() => ({ adherenceAvailable, pmcAvailable }), [adherenceAvailable, pmcAvailable]);
 
-  if (!adherenceAvailable && !pmcAvailable) {
+  if (!adherenceAvailable && !pmcAvailable && !kmMode) {
     return <Unavailable>Dado indisponível</Unavailable>;
   }
   // Só é "vazio" se o que falta foi de fato consultado; consulta que falhou não é ausência de plano.
   const vazio =
     adherenceAvailable &&
     pmcAvailable &&
-    (weeks.length === 0 || weeks.every((w) => w.adherence == null && w.tss == null));
+    (weeks.length === 0 || weeks.every((w) => w.adherence == null && w.tss == null && w.distanceKm == null));
   if (vazio) {
     return (
       <Typography sx={{ fontSize: '0.82rem', color: surface[400] }}>
@@ -171,8 +176,8 @@ export function WeeklyAdherenceLoadChart({ weeks, gaps, adherenceAvailable, pmcA
       </Box>
 
       <Box>
-        <PanelLabel>Carga semanal (TSS)</PanelLabel>
-        {!pmcAvailable ? <Unavailable>{INDISPONIVEL_CARGA}</Unavailable> : (
+        <PanelLabel>{kmMode ? 'Carga semanal (km)' : 'Carga semanal (TSS)'}</PanelLabel>
+        {!pmcAvailable && !kmMode ? <Unavailable>{INDISPONIVEL_CARGA}</Unavailable> : (
         <Box sx={{ height: 140 }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={rows} syncId={SYNC_ID} margin={{ top: 18, right: 8, left: 0, bottom: 0 }}>
@@ -186,7 +191,13 @@ export function WeeklyAdherenceLoadChart({ weeks, gaps, adherenceAvailable, pmcA
                 tickLine={false}
                 axisLine={false}
               />
-              <YAxis width={Y_WIDTH} tick={{ fontSize: 11, fill: AXIS }} tickLine={false} axisLine={false} />
+              <YAxis
+                width={Y_WIDTH}
+                tickFormatter={kmMode ? (v: number) => `${v} km` : undefined}
+                tick={{ fontSize: 11, fill: AXIS }}
+                tickLine={false}
+                axisLine={false}
+              />
               {runs.map((r) => (
                 <ReferenceArea
                   key={r.x1}
@@ -207,11 +218,11 @@ export function WeeklyAdherenceLoadChart({ weeks, gaps, adherenceAvailable, pmcA
                 content={adherenceAvailable ? () => null : <WeekTooltip availability={availability} />}
                 cursor={{ fill: overlayWhite[4] }}
               />
-              <Bar dataKey="tss" maxBarSize={28} radius={[3, 3, 0, 0]} isAnimationActive={false}>
+              <Bar dataKey={kmMode ? 'distanceKm' : 'tss'} maxBarSize={28} radius={[3, 3, 0, 0]} isAnimationActive={false}>
                 {rows.map((r) => (
                   <Cell key={r.weekStart} fill={r.current ? surface[300] : surface[600]} />
                 ))}
-                <LabelList dataKey="tssLabel" position="top" fill={surface[300]} fontSize={11} />
+                <LabelList dataKey={kmMode ? 'kmLabel' : 'tssLabel'} position="top" fill={surface[300]} fontSize={11} />
               </Bar>
             </BarChart>
           </ResponsiveContainer>
