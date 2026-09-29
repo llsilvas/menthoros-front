@@ -3,6 +3,7 @@ import { format, subDays } from 'date-fns';
 import { buildInboxQueue, buildRosterRowFromSummary, buildSelectedAthleteFromDashboard, calcularMonotonia, calcularLoadDelta, calcularAcwr, getAcwrZone, getMonotonyTone, calcularStrain, contarDiasComTreino7d, getStrainZone, calcularPrevisaoForma, calcularDiasAteProva } from './coachInboxAdapters';
 import type { PmcPontoRaw, AtletaPerfilCoachDto } from '../../../types/AtletaPerfilCoach';
 import type { Prova } from '../../../types/Prova';
+import { formatWorkoutTypeLabel } from '../components/coachInboxHelpers';
 import type { CoachAtletaResumo, CoachAttentionItem, CoachDashboardRosterPage } from '../../../types/Coach';
 
 function pmc(over: Partial<PmcPontoRaw>): PmcPontoRaw {
@@ -529,5 +530,47 @@ describe('buildRosterRowFromSummary — defaults do diagnóstico', () => {
     const row = buildRosterRowFromSummary(atletaResumo({ atletaId: 'a1', nome: 'Ana' }));
     expect(row).toMatchObject({ adherenceWindow: null, loadDelta: null, weeklyDiagnosis: [], dataGaps: [] });
     expect(row.quickStats.acwrConfidence).toBeNull();
+  });
+});
+
+/**
+ * "Próximo treino" pegava `treinos[0]` — o primeiro do plano, não o próximo a partir de hoje. Na
+ * terça mostrava o treino de segunda, já passado.
+ */
+describe('buildSelectedAthleteFromDashboard — próximo treino', () => {
+  const terca = new Date(2026, 8, 29, 9, 0);
+  const roster = atletaResumo({ atletaId: 'a1', nome: 'Ana' });
+  const treino = (diaSemana: string, tipoTreino: string, statusExecucao = 'PENDENTE') =>
+    ({ diaSemana, tipoTreino, distanciaKm: 8, statusExecucao, duracaoMin: 'PT45M', zonaAlvo: 'Z2' });
+  const comPlano = (treinos: ReturnType<typeof treino>[], semanaInicio = '2026-09-28') =>
+    ({
+      pmc: [], aderenciaSemanal: [], provas: [], sinaisRecentes: [], avisos: null,
+      planoVigente: { planoId: 'p1', semanaInicio, semanaFim: '2026-10-04', reviewStatus: 'APROVADO', treinos },
+    }) as unknown as AtletaPerfilCoachDto;
+  const proximo = (perfil: AtletaPerfilCoachDto, hoje = terca) => buildSelectedAthleteFromDashboard(roster, perfil, hoje).nextWorkout;
+
+  it('pula os dias que já passaram: na terça, o de terça é "Hoje"', () => {
+    const plano = comPlano([treino('SEGUNDA', 'FACIL'), treino('TERCA', 'RECUPERACAO'), treino('QUINTA', 'INTERVALADO')]);
+    expect(proximo(plano)).toMatchObject({ title: formatWorkoutTypeLabel('RECUPERACAO'), when: 'Hoje' });
+  });
+
+  it('treino de hoje já feito: vai para o seguinte, com o dia por extenso', () => {
+    const plano = comPlano([treino('TERCA', 'RECUPERACAO', 'REALIZADO'), treino('QUINTA', 'INTERVALADO')]);
+    expect(proximo(plano)).toMatchObject({ title: formatWorkoutTypeLabel('INTERVALADO'), when: 'Quinta' });
+  });
+
+  it('amanhã e ordem de chegada fora da ordem da semana', () => {
+    const plano = comPlano([treino('SABADO', 'LONGAO'), treino('QUARTA', 'FACIL')]);
+    expect(proximo(plano)).toMatchObject({ title: formatWorkoutTypeLabel('FACIL'), when: 'Amanhã' });
+  });
+
+  it('plano da semana seguinte: o primeiro treino dela', () => {
+    const plano = comPlano([treino('SEGUNDA', 'FACIL')], '2026-10-05');
+    expect(proximo(plano)).toMatchObject({ title: formatWorkoutTypeLabel('FACIL'), when: 'Segunda' });
+  });
+
+  it('nada restante na semana: diz isso, sem mostrar treino passado', () => {
+    const plano = comPlano([treino('SEGUNDA', 'FACIL')]);
+    expect(proximo(plano)).toMatchObject({ title: 'Sem treino planejado', when: 'Sem data', objective: 'Nenhum treino restante no plano vigente.' });
   });
 });

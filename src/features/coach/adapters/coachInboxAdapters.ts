@@ -9,7 +9,9 @@ import type {
   CoachDashboardRosterPage,
 } from '../../../types/Coach';
 import type { DashboardStatusFilter } from '../hooks/useDashboardFilters';
-import type { AtletaPerfilCoachDto, PmcPontoRaw } from '../../../types/AtletaPerfilCoach';
+import type { AtletaPerfilCoachDto, PlanoVigenteDto, PmcPontoRaw, TreinoPlanejadoResumoDto } from '../../../types/AtletaPerfilCoach';
+import { DIA_SEMANA_LABELS } from '../../../types/Atleta';
+import { indiceDoDia, weekDatesFromInicio } from '../../../utils/semana';
 import type { Prova } from '../../../types/Prova';
 import type { CoachAthleteRow, RaceItem, SegmentFilter } from '../types/CoachInbox';
 import { formFromTSB } from '../types/AthleteForm';
@@ -184,6 +186,34 @@ export function statusToSegment(status: CoachAtletaStatus): SegmentFilter {
   return 'stable';
 }
 
+/**
+ * Próximo treino a partir de hoje: a data vem de `semanaInicio` + dia da semana (o resumo não traz
+ * data). Antes era `treinos[0]`, o primeiro do plano — na terça, o coach via o treino de segunda.
+ * Treino de hoje já executado sai; só `PENDENTE` (ou sem status) ainda está por fazer.
+ */
+export function pickNextWorkout(
+  plano: PlanoVigenteDto | null,
+  agora: Date,
+): { treino: TreinoPlanejadoResumoDto; when: string } | null {
+  if (!plano?.treinos.length) return null;
+  const hoje = startOfDay(agora);
+  const datas = weekDatesFromInicio(plano.semanaInicio);
+  const proximo = plano.treinos
+    .map((treino) => ({ treino, i: indiceDoDia(treino.diaSemana) }))
+    .filter(({ treino, i }) => i >= 0 && (treino.statusExecucao == null || treino.statusExecucao === 'PENDENTE'))
+    .map(({ treino, i }) => ({ treino, dias: differenceInCalendarDays(datas[i], hoje) }))
+    .filter(({ dias }) => dias >= 0)
+    .sort((a, b) => a.dias - b.dias)[0];
+  if (!proximo) return null;
+  const when =
+    proximo.dias === 0
+      ? 'Hoje'
+      : proximo.dias === 1
+        ? 'Amanhã'
+        : DIA_SEMANA_LABELS[proximo.treino.diaSemana.trim().toUpperCase() as keyof typeof DIA_SEMANA_LABELS] ?? proximo.treino.diaSemana;
+  return { treino: proximo.treino, when };
+}
+
 export function buildSelectedAthleteFromDashboard(
   roster: CoachAtletaResumo,
   profile: AtletaPerfilCoachDto | null,
@@ -192,7 +222,8 @@ export function buildSelectedAthleteFromDashboard(
   const pmcPoints = profile?.pmc ?? [];
   const adherencePoints = profile?.aderenciaSemanal ?? [];
   const distance = profile?.distanceSummary ?? null;
-  const firstWorkout = profile?.planoVigente?.treinos[0] ?? null;
+  const proximo = pickNextWorkout(profile?.planoVigente ?? null, hoje);
+  const firstWorkout = proximo?.treino ?? null;
   const latestPmc = pmcPoints[pmcPoints.length - 1] ?? null;
   const latestAdherence = adherencePoints[adherencePoints.length - 1] ?? null;
 
@@ -228,11 +259,15 @@ export function buildSelectedAthleteFromDashboard(
     delay: 0,
     nextWorkout: {
       title: firstWorkout ? formatWorkoutTypeLabel(firstWorkout.tipoTreino) : 'Sem treino planejado',
-      when: firstWorkout ? firstWorkout.diaSemana : 'Sem data',
+      when: proximo?.when ?? 'Sem data',
       zone: firstWorkout?.zonaAlvo ?? '—',
       duration: formatDuration(firstWorkout?.duracaoMin),
       distance: firstWorkout ? `${firstWorkout.distanciaKm} km` : '—',
-      objective: firstWorkout ? 'Treino vindo do backend.' : 'Nenhum treino planejado no plano vigente.',
+      objective: firstWorkout
+        ? 'Treino vindo do backend.'
+        : profile?.planoVigente?.treinos.length
+          ? 'Nenhum treino restante no plano vigente.'
+          : 'Nenhum treino planejado no plano vigente.',
     },
     raceCalendar: buildRaceCalendarFromProfile(profile),
     loadTrend: pmcPoints.map((p) => p.ctl).length > 0 ? pmcPoints.map((p) => p.ctl) : [roster.weeklyVolume],
