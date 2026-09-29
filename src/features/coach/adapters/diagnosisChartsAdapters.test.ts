@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { addDays, format, parseISO } from 'date-fns';
 import {
   adherenceTone,
+  buildAdherenceTile,
   assessAcwrConfidence,
   buildAdherenceWindow,
   buildWeeklyDiagnosis,
@@ -223,5 +224,25 @@ describe('isFieldAvailable', () => {
   it('sem avisos → disponível', () => {
     expect(isFieldAvailable(null, 'pmc')).toBe(true);
     expect(isFieldAvailable(undefined, 'pmc')).toBe(true);
+  });
+});
+
+describe('buildAdherenceTile', () => {
+  const janela = { percent: 31, completed: 5, planned: 16, weeks: 4 };
+
+  it('janela do perfil tem prioridade sobre o roster', () => {
+    expect(buildAdherenceTile(janela, true, 90)).toEqual({ value: '31%', delta: '5 de 16 · 4 sem.', tone: 'warning' });
+  });
+
+  it('sem janela, usa o roster (perfil ainda não carregou)', () => {
+    expect(buildAdherenceTile(null, true, 88)).toEqual({ value: '88%', delta: 'Últimas 4 semanas', tone: 'success' });
+  });
+
+  it('consulta que falhou → indisponível, mesmo com roster', () => {
+    expect(buildAdherenceTile(null, false, 88)).toEqual({ value: '—', delta: 'Dado indisponível', tone: 'neutral' });
+  });
+
+  it('sem janela e sem roster → sem plano na janela', () => {
+    expect(buildAdherenceTile(null, true, null)).toEqual({ value: '—', delta: 'Sem plano na janela', tone: 'neutral' });
   });
 });

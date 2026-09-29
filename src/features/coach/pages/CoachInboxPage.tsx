@@ -35,7 +35,7 @@ import { CoachAthleteAvatar } from '../components/CoachAthleteAvatar';
 import { MetricTile } from '../components/MetricTile';
 import { QueueRow } from '../components/QueueRow';
 import { AttentionOnlyRow } from '../components/AttentionOnlyRow';
-import { formatKm, formatPercent, statusPalette } from '../components/coachInboxHelpers';
+import { formatKm, statusPalette } from '../components/coachInboxHelpers';
 import { ACTION_BTN_START_ICON_SX, ACTION_BTN_END_ICON_SX, SECONDARY_OUTLINE_SX } from '../../../shared/components/actionButtonSx';
 import { DiagnosisTabPanel } from '../components/panels/DiagnosisTabPanel';
 import { PlanTabPanel } from '../components/panels/PlanTabPanel';
@@ -49,6 +49,7 @@ import type { SortKey, DashboardStatusFilter } from '../hooks/useDashboardFilter
 import { elevation } from '../../../shared/design-tokens';
 import { content, semantic, surface } from '../../../theme/tokens';
 import { buildInboxQueue, buildSelectedAthleteFromDashboard, getAcwrZone } from '../adapters/coachInboxAdapters';
+import { buildAdherenceTile } from '../adapters/diagnosisChartsAdapters';
 import { resolveReviewStatus } from '../../../types/PlanoReview';
 import { montarRascunhoContato, resolveActionAvailability, resolvePrimaryAction } from '../components/coachInboxHelpers';
 import { PRIMARY_BTN_SX } from '../../../shared/components/actionButtonSx';
@@ -203,6 +204,11 @@ function CoachInboxPage() {
   // null e a UI exibe '—' (degrada sem quebrar).
   const currentFormDisplay = selected?.quickStats.statusForma ? FAIXA_APRESENTACAO[selected.quickStats.statusForma] : null;
   const acwrZone = getAcwrZone(selected?.quickStats.acwr ?? null);
+  // Base crônica incompleta (histórico curto ou lacuna recente): o ACWR infla e "Risco" seria falso.
+  const acwrBaixaConfianca = selected?.quickStats.acwrConfidence?.level === 'BAIXA';
+  const adherenceTile = selected
+    ? buildAdherenceTile(selected.adherenceWindow, selected.adherenceAvailable, selectedProfile ? null : selectedRosterItem?.aderenciaPercentual)
+    : null;
   // Sem dado na janela (sem PMC sincronizado): aderência/carga vêm do roster com fallback
   // numérico (`?? 0`), e forma pode cair no `roster.statusForma` mesmo sem série — nenhum dos
   // dois distingue "zero real" de "nunca sincronizou" sozinho. `hasWindowData` é o mesmo sinal já
@@ -769,24 +775,6 @@ function CoachInboxPage() {
                   ) : null}
                 </Box>
 
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 1.05, lg: 1.45, xl: 2 }, flexWrap: 'wrap' }}>
-                  <Box>
-                    <Typography sx={{ fontSize: { xs: '0.6875rem', sm: '0.6875rem', lg: '0.6875rem', xl: '0.6875rem' }, color: surface[500], textTransform: 'uppercase', letterSpacing: '0.06em' }}>Aderência geral</Typography>
-                    <Typography sx={{ fontSize: { xs: '1.08rem', sm: '1.18rem', lg: '1.28rem', xl: '1.5rem' }, fontWeight: 800, color: selected.adherence >= 85 ? semantic.success[500] : selected.adherence >= 70 ? surface[50] : semantic.warning[500] }}>
-                      {formatPercent(selected.adherence)}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography sx={{ fontSize: { xs: '0.6875rem', sm: '0.6875rem', lg: '0.6875rem', xl: '0.6875rem' }, color: surface[500], textTransform: 'uppercase', letterSpacing: '0.06em' }}>Carga semanal</Typography>
-                    <Typography sx={{ fontSize: { xs: '1.08rem', sm: '1.18rem', lg: '1.28rem', xl: '1.5rem' }, fontWeight: 800, color: surface[50] }}>
-                      {formatKm(selected.load7d)}
-                    </Typography>
-                    <Typography sx={{ fontSize: { xs: '0.6875rem', sm: '0.7rem', lg: '0.74rem', xl: '0.78rem' }, color: (selected.loadDelta ?? 0) >= 0 ? semantic.success[500] : semantic.danger[500] }}>
-                      {(selected.loadDelta ?? 0) >= 0 ? '+' : ''}
-                      {(selected.loadDelta ?? 0)}% vs. ant.
-                    </Typography>
-                  </Box>
-                </Box>
               </Box>
 
               <Box
@@ -802,16 +790,24 @@ function CoachInboxPage() {
                 <MetricTile
                   compact
                   label="Aderência"
-                  value={semDadoNaJanela ? '—' : formatPercent(selected.adherence)}
-                  delta={semDadoNaJanela ? 'Sem dado na janela' : 'Últimas 4 semanas'}
-                  tone={semDadoNaJanela ? 'neutral' : selected.adherence >= 85 ? 'success' : selected.adherence >= 70 ? 'neutral' : 'warning'}
+                  // Não depende de `semDadoNaJanela` (que é do PMC): aderência válida não some com PMC vazio.
+                  value={adherenceTile?.value ?? '—'}
+                  delta={adherenceTile?.delta ?? 'Sem plano na janela'}
+                  tone={adherenceTile?.tone ?? 'neutral'}
                 />
                 <MetricTile
                   compact
                   label="Carga (7d)"
                   value={semDadoNaJanela ? '—' : formatKm(selected.load7d)}
-                  delta={semDadoNaJanela ? 'Sem dado na janela' : `${(selected.loadDelta ?? 0) >= 0 ? '+' : ''}${(selected.loadDelta ?? 0)}% vs. ant.`}
-                  tone={semDadoNaJanela ? 'neutral' : (selected.loadDelta ?? 0) >= 10 ? 'warning' : 'success'}
+                  // Delta em TSS 7d vs. 7d anteriores. Antes era variação de CTL (condicionamento).
+                  delta={
+                    semDadoNaJanela
+                      ? 'Sem dado na janela'
+                      : selected.loadDelta == null
+                        ? 'Sem base de comparação'
+                        : `TSS ${selected.loadDelta >= 0 ? '+' : ''}${selected.loadDelta}% vs. 7d ant.`
+                  }
+                  tone={semDadoNaJanela || selected.loadDelta == null ? 'neutral' : selected.loadDelta >= 10 ? 'warning' : 'success'}
                 />
                 <MetricTile
                   compact
@@ -820,7 +816,7 @@ function CoachInboxPage() {
                   // fora do mapa de FAIXA_APRESENTACAO — os dois casos mostram o mesmo travessão
                   // de propósito, não é o mesmo branch duplicado por acidente.
                   value={semDadoNaJanela ? '—' : currentFormDisplay?.label ?? '—'}
-                  delta={semDadoNaJanela ? 'Sem dado na janela' : selected.quickStats.tsb != null ? `TSB ${selected.quickStats.tsb}` : 'TSB não disponível'}
+                  delta={semDadoNaJanela ? 'Sem dado na janela' : selected.quickStats.tsb != null ? `TSB ${selected.quickStats.tsb.toFixed(1)}` : 'TSB não disponível'}
                   tone={semDadoNaJanela ? 'neutral' : currentFormDisplay?.tone ?? 'neutral'}
                 />
                 <MetricTile
@@ -830,8 +826,16 @@ function CoachInboxPage() {
                   // mesmo com hasWindowData=true — calcularAcwr(atl,ctl) só usa o ÚLTIMO ponto do
                   // PMC, que pode não ter ATL/CTL calculado ainda mesmo havendo série.
                   value={semDadoNaJanela || selected.quickStats.acwr == null ? '—' : selected.quickStats.acwr.toFixed(2)}
-                  delta={semDadoNaJanela ? 'Sem dado na janela' : selected.quickStats.acwr != null ? acwrZone.label : 'Dado insuficiente'}
-                  tone={semDadoNaJanela ? 'neutral' : acwrZone.tone}
+                  delta={
+                    semDadoNaJanela
+                      ? 'Sem dado na janela'
+                      : selected.quickStats.acwr == null
+                        ? 'Dado insuficiente'
+                        : acwrBaixaConfianca
+                          ? 'Baixa confiança'
+                          : acwrZone.label
+                  }
+                  tone={semDadoNaJanela || acwrBaixaConfianca ? 'neutral' : acwrZone.tone}
                 />
                 <MetricTile compact label={isTargetRace ? 'Prova Alvo' : 'Próxima Prova'} delta={selected.raceCalendar[0]?.date ?? '—'} value={selected.raceCalendar[0]?.label ?? 'Sem prova'} tone={isTargetRace ? 'warning' : 'neutral'} highlight={isTargetRace} />
               </Box>

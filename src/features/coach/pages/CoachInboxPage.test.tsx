@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { format, startOfWeek, subDays, subWeeks } from 'date-fns';
 import * as reactRouter from 'react-router';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import CoachInboxPage from './CoachInboxPage';
@@ -52,6 +53,21 @@ const makeProfile = (pmc: PmcPontoRaw[] = []): AtletaPerfilCoachDto => ({
   geradoEm: '2026-06-24T13:32:25Z',
   avisos: null,
 });
+
+/** Segunda-feira `n` semanas antes da atual (a página usa a data real, não uma fixa). */
+const segunda = (n: number) => format(subWeeks(startOfWeek(new Date(), { weekStartsOn: 1 }), n), 'yyyy-MM-dd');
+/** Dia `n` dias antes de hoje. */
+const diasAtras = (n: number) => format(subDays(new Date(), n), 'yyyy-MM-dd');
+
+function mockPerfil(over: Partial<AtletaPerfilCoachDto>) {
+  vi.mocked(useAthleteProfile).mockReturnValue({
+    profile: { ...makeProfile(), ...over },
+    isLoading: false,
+    error: null,
+    errorKind: null,
+    fetchProfile: vi.fn().mockResolvedValue(undefined),
+  });
+}
 
 const mockRefetchQueue = vi.fn();
 const mockFetchDashboard = vi.fn();
@@ -292,9 +308,60 @@ describe('CoachInboxPage', () => {
       }
     });
 
-    it('com dado na janela, zero legítimo de aderência continua numérico', () => {
+    /**
+     * Reescrito em fix-coach-diagnosis-charts. Antes a aderência dependia de `hasWindowData`, que é
+     * do PMC: um zero de aderência só aparecia se houvesse série PMC. Agora a aderência tem
+     * disponibilidade própria — o zero legítimo é "0 de 4 treinos", com ou sem PMC.
+     */
+    it('zero legítimo de aderência continua numérico, mesmo sem PMC', () => {
+      mockPerfil({ aderenciaSemanal: [{ semanaInicio: segunda(0), totalPlanejado: 4, totalRealizado: 0, percentual: 0 }] });
+
+      renderPage();
+
+      const tile = within(screen.getByText('Aderência').closest('div') as HTMLElement);
+      expect(tile.getByText('0%')).toBeInTheDocument();
+    });
+  });
+
+  describe('cabeçalho e tiles (fix-coach-diagnosis-charts)', () => {
+    const tileDe = (label: string) => within(screen.getByText(label).closest('div') as HTMLElement);
+
+    it('cabeçalho não repete aderência e carga dos tiles', () => {
+      renderPage();
+
+      expect(screen.queryByText('Aderência geral')).not.toBeInTheDocument();
+      expect(screen.queryByText('Carga semanal')).not.toBeInTheDocument();
+      expect(screen.getByText('Aderência')).toBeInTheDocument();
+    });
+
+    it('aderência vem da janela do perfil com "X de Y · 4 sem.", mesmo com PMC vazio', () => {
+      mockPerfil({
+        aderenciaSemanal: [
+          { semanaInicio: segunda(3), totalPlanejado: 4, totalRealizado: 0, percentual: 0 },
+          { semanaInicio: segunda(2), totalPlanejado: 4, totalRealizado: 1, percentual: 25 },
+          { semanaInicio: segunda(1), totalPlanejado: 4, totalRealizado: 2, percentual: 50 },
+          { semanaInicio: segunda(0), totalPlanejado: 4, totalRealizado: 2, percentual: 50 },
+        ],
+      });
+
+      renderPage();
+
+      expect(tileDe('Aderência').getByText('31%')).toBeInTheDocument();
+      expect(tileDe('Aderência').getByText('5 de 16 · 4 sem.')).toBeInTheDocument();
+    });
+
+    it('sem perfil, a aderência usa o valor do roster', () => {
+      vi.mocked(useCoachDashboard).mockReturnValue({
+        dashboard: {
+          ...DASHBOARD_STUB,
+          roster: { ...DASHBOARD_STUB.roster, items: [{ ...DASHBOARD_STUB.roster.items[0], aderenciaPercentual: 38 }] },
+        },
+        loading: false,
+        error: null,
+        fetchDashboard: mockFetchDashboard,
+      });
       vi.mocked(useAthleteProfile).mockReturnValue({
-        profile: makeProfile([{ data: '2026-06-20', ctl: 40, atl: 40, tsb: 0, tss: 0 }]),
+        profile: null,
         isLoading: false,
         error: null,
         errorKind: null,
@@ -303,8 +370,65 @@ describe('CoachInboxPage', () => {
 
       renderPage();
 
-      const tile = within(screen.getByText('Aderência').closest('div') as HTMLElement);
-      expect(tile.getByText('0%')).toBeInTheDocument();
+      expect(tileDe('Aderência').getByText('38%')).toBeInTheDocument();
+    });
+
+    it('consulta de aderência que falhou: "Dado indisponível", sem número', () => {
+      mockPerfil({ avisos: ['aderenciaSemanal'] });
+
+      renderPage();
+
+      expect(tileDe('Aderência').getByText('—')).toBeInTheDocument();
+      expect(tileDe('Aderência').getByText('Dado indisponível')).toBeInTheDocument();
+    });
+
+    it('delta de carga em TSS 7d vs 7d anteriores', () => {
+      const pmc = Array.from({ length: 14 }, (_, i) => ({
+        data: diasAtras(13 - i),
+        ctl: 40,
+        atl: 40,
+        tsb: 0,
+        tss: i >= 7 ? 15 : 10,
+      }));
+      mockPerfil({ pmc });
+
+      renderPage();
+
+      expect(tileDe('Carga (7d)').getByText('TSS +50% vs. 7d ant.')).toBeInTheDocument();
+    });
+
+    it('sem TSS nos 7 dias anteriores: "Sem base de comparação"', () => {
+      mockPerfil({ pmc: [{ data: diasAtras(1), ctl: 40, atl: 40, tsb: 0, tss: 60 }] });
+
+      renderPage();
+
+      expect(tileDe('Carga (7d)').getByText('Sem base de comparação')).toBeInTheDocument();
+    });
+
+    it('TSB com uma casa decimal', () => {
+      mockPerfil({ pmc: [{ data: diasAtras(0), ctl: 40, atl: 53.61, tsb: -13.61, tss: 60, statusForma: 'ACUMULANDO_FADIGA' }] });
+
+      renderPage();
+
+      expect(tileDe('Forma').getByText('TSB -13.6')).toBeInTheDocument();
+    });
+
+    it('ACWR após retorno sem base crônica: "Baixa confiança", sem "Risco"', () => {
+      // Retorno de 3 dias após 87 dias zerados; ATL/CTL final bem acima de 1,5.
+      const pmc = Array.from({ length: 90 }, (_, i) => ({
+        data: diasAtras(89 - i),
+        ctl: 10,
+        atl: i >= 87 ? 20.3 : 1,
+        tsb: -10,
+        tss: i >= 87 ? 60 : 0,
+      }));
+      mockPerfil({ pmc });
+
+      renderPage();
+
+      expect(tileDe('ACWR').getByText('2.03')).toBeInTheDocument();
+      expect(tileDe('ACWR').getByText('Baixa confiança')).toBeInTheDocument();
+      expect(tileDe('ACWR').queryByText('Risco')).not.toBeInTheDocument();
     });
   });
 

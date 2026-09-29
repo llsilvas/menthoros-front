@@ -227,3 +227,29 @@ export function describeWeek(
         : 'Antes do histórico';
   return { title: `Semana de ${week.label}${week.current ? ' (atual)' : ''}`, adherence, load };
 }
+
+export interface AdherenceTile {
+  value: string;
+  delta: string;
+  tone: MetricTone;
+}
+
+/**
+ * Tile "Aderência". Disponibilidade própria, separada do PMC: aderência válida não some com PMC
+ * vazio. O roster só entra quando o perfil ainda não carregou — com perfil, o número sai da mesma
+ * janela que as barras exibem.
+ */
+export function buildAdherenceTile(
+  window: AdherenceWindow | null,
+  adherenceAvailable: boolean,
+  rosterFallback: number | null | undefined,
+): AdherenceTile {
+  if (!adherenceAvailable) return { value: '—', delta: 'Dado indisponível', tone: 'neutral' };
+  if (window) {
+    return { value: `${window.percent}%`, delta: `${window.completed} de ${window.planned} · 4 sem.`, tone: adherenceTone(window.percent) };
+  }
+  if (rosterFallback != null) {
+    return { value: `${Math.round(rosterFallback)}%`, delta: 'Últimas 4 semanas', tone: adherenceTone(rosterFallback) };
+  }
+  return { value: '—', delta: 'Sem plano na janela', tone: 'neutral' };
+}
