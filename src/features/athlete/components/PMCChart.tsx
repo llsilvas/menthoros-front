@@ -83,7 +83,8 @@ const TONE_COLOR: Record<MetricTone, string> = {
   neutral: surface[300],
 };
 
-const GAP_LABEL = 'Sem treinos registrados';
+// Vale para os dois tipos de lacuna: no PMC, o que falta é TSS — pode ter havido treino sem carga.
+const GAP_LABEL = 'Sem carga registrada';
 
 // ── Formatters ────────────────────────────────────────────────────────────────
 

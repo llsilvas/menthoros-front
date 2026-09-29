@@ -46,7 +46,7 @@ describe('WeeklyAdherenceLoadChart', () => {
     render(
       <WeeklyAdherenceLoadChart
         weeks={[semana(), semana({ weekStart: '2026-08-10', label: '10/08', noData: true, tss: null, activeDays: null })]}
-        gaps={[{ start: '2026-07-16', end: '2026-09-13', days: 60, open: false }]}
+        gaps={[{ start: '2026-07-16', end: '2026-09-13', days: 60, open: false, kind: 'SEM_REGISTRO' }]}
         {...DISPONIVEL}
       />,
     );

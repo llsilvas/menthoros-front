@@ -18,6 +18,7 @@ import {
   buildAdherenceWindow,
   buildWeeklyDiagnosis,
   calculateLoadDelta7d,
+  classifyGaps,
   detectDataGaps,
   DIAGNOSIS_WEEKS,
   isFieldAvailable,
@@ -200,7 +201,7 @@ export function buildSelectedAthleteFromDashboard(
   const previsao = calcularPrevisaoForma(latestPmc?.ctl ?? null, latestPmc?.atl ?? null, diasAteProva);
   const adherenceAvailable = isFieldAvailable(profile?.avisos, 'aderenciaSemanal');
   const pmcAvailable = isFieldAvailable(profile?.avisos, 'pmc');
-  const dataGaps = detectDataGaps(pmcPoints, hoje);
+  const dataGaps = classifyGaps(detectDataGaps(pmcPoints, hoje), adherencePoints, distance);
   // KPI e barras saem da MESMA série (antes: KPI do roster, barras do perfil — não batiam).
   const adherenceWindow = buildAdherenceWindow(adherencePoints, hoje);
 

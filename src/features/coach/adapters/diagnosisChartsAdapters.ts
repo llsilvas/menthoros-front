@@ -55,16 +55,37 @@ export function detectDataGaps(pmc: PmcPontoRaw[], agora: Date, minDays = GAP_MI
   for (let i = 1; i < ativos.length; i += 1) {
     const dias = differenceInCalendarDays(ativos[i], ativos[i - 1]) - 1;
     if (dias >= minDays) {
-      gaps.push({ start: toIso(addDays(ativos[i - 1], 1)), end: toIso(subDays(ativos[i], 1)), days: dias, open: false });
+      gaps.push({ start: toIso(addDays(ativos[i - 1], 1)), end: toIso(subDays(ativos[i], 1)), days: dias, open: false, kind: 'SEM_REGISTRO' });
     }
   }
 
   const ultimo = ativos[ativos.length - 1];
   const diasAberto = differenceInCalendarDays(hoje, ultimo);
   if (diasAberto >= minDays) {
-    gaps.push({ start: toIso(addDays(ultimo, 1)), end: toIso(hoje), days: diasAberto, open: true });
+    gaps.push({ start: toIso(addDays(ultimo, 1)), end: toIso(hoje), days: diasAberto, open: true, kind: 'SEM_REGISTRO' });
   }
   return gaps;
+}
+
+/**
+ * Reclassifica lacunas de TSS em que houve treino: semana com `totalRealizado > 0` ou km > 0
+ * dentro da lacuna → `SEM_TSS`. Sem isso, a legenda diz "sem treinos" ao lado de barras de 75%.
+ */
+export function classifyGaps(
+  gaps: DataGap[],
+  aderencia: AderenciasSemanalDto[],
+  distance: DistanceSummaryDto | null,
+): DataGap[] {
+  const semanasComTreino = [
+    ...aderencia.filter((a) => a.totalRealizado > 0).map((a) => startOfWeek(parseISO(a.semanaInicio), WEEK)),
+    ...(distance?.weekly ?? []).filter((w) => w.distanceKm > 0).map((w) => startOfWeek(parseISO(w.weekStart), WEEK)),
+  ];
+  return gaps.map((g) => {
+    const inicio = startOfWeek(parseISO(g.start), WEEK);
+    const fim = parseISO(g.end);
+    const houveTreino = semanasComTreino.some((s) => s >= inicio && s <= fim);
+    return houveTreino ? { ...g, kind: 'SEM_TSS' as const } : g;
+  });
 }
 
 /**
@@ -104,11 +125,15 @@ export function buildWeeklyDiagnosis(
     const fimEfetivo = fim > hoje ? hoje : fim;
     const chave = toIso(inicio);
 
-    const noData = lacunas.some((g) => g.start <= inicio && g.end >= fimEfetivo);
+    const plano = aderenciaPorSemana.get(chave);
+    const km = kmPorSemana.get(chave) ?? null;
+    const houveTreino = (plano?.totalRealizado ?? 0) > 0 || (km ?? 0) > 0;
+    const naLacuna = lacunas.some((g) => g.start <= inicio && g.end >= fimEfetivo);
+    // Treino sem TSS não é "sem registro": a semana mostra adesão e km, só não tem carga.
+    const noData = naLacuna && !houveTreino;
     const antesDoHistorico = inicioHistorico == null || fim < inicioHistorico;
     const carga = cargaPorSemana.get(chave);
-    const semCarga = noData || antesDoHistorico;
-    const plano = aderenciaPorSemana.get(chave);
+    const semCarga = naLacuna || antesDoHistorico;
 
     return {
       weekStart: chave,
@@ -120,7 +145,7 @@ export function buildWeeklyDiagnosis(
       adherence: plano ? Math.round(plano.percentual) : null,
       noData,
       current: i === weeks - 1,
-      distanceKm: noData ? null : kmPorSemana.get(chave) ?? null,
+      distanceKm: noData ? null : km,
     };
   });
 }
@@ -184,7 +209,8 @@ export function assessAcwrConfidence(pmc: PmcPontoRaw[], gaps: DataGap[], agora:
   const inicioBase = subDays(hoje, ACWR_BASE_DAYS - 1);
   const recente = gaps.find((g) => parseISO(g.end) >= inicioBase);
   if (recente) {
-    return { level: 'BAIXA', reason: `Base crônica incompleta: ${recente.days} dias sem treinos registrados` };
+    const motivo = recente.kind === 'SEM_TSS' ? 'sem carga (TSS) registrada' : 'sem treinos registrados';
+    return { level: 'BAIXA', reason: `Base crônica incompleta: ${recente.days} dias ${motivo}` };
   }
   return { level: 'ALTA', reason: null };
 }
@@ -203,8 +229,9 @@ export function weeklyAdherenceTone(week: Pick<WeeklyDiagnosisPoint, 'adherence'
 
 export function formatGapCaption(gap: DataGap): string {
   const inicio = toLabel(parseISO(gap.start));
-  if (gap.open) return `Sem treinos registrados desde ${inicio} (${gap.days} dias)`;
-  return `Sem treinos registrados de ${inicio} a ${toLabel(parseISO(gap.end))} (${gap.days} dias)`;
+  const oque = gap.kind === 'SEM_TSS' ? 'Treinos sem carga (TSS) registrada' : 'Sem treinos registrados';
+  if (gap.open) return `${oque} desde ${inicio} (${gap.days} dias)`;
+  return `${oque} de ${inicio} a ${toLabel(parseISO(gap.end))} (${gap.days} dias)`;
 }
 
 /** Disponibilidade das consultas do perfil — falha de consulta não é ausência de dado. */

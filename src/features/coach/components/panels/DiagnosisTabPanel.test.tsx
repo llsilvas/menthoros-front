@@ -206,7 +206,7 @@ describe('DiagnosisTabPanel', () => {
     it('descreve a lacuna de registro em texto', () => {
       render(
         <DiagnosisTabPanel
-          selected={atleta({ dataGaps: [{ start: '2026-07-16', end: '2026-09-13', days: 60, open: false }] })}
+          selected={atleta({ dataGaps: [{ start: '2026-07-16', end: '2026-09-13', days: 60, open: false, kind: 'SEM_REGISTRO' }] })}
           pmc={[]}
           onOpenPlan={vi.fn()}
         />,

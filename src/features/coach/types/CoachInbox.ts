@@ -25,6 +25,11 @@ export interface DataGap {
   days: number;
   /** `true` quando a lacuna vai até hoje (atleta ainda sem registrar). */
   open: boolean;
+  /**
+   * `SEM_REGISTRO`: nada registrado. `SEM_TSS`: houve treino (realizado no plano ou km) mas sem
+   * carga — a série PMC fica vazia do mesmo jeito, só que "o atleta parou" seria falso.
+   */
+  kind: 'SEM_REGISTRO' | 'SEM_TSS';
 }
 
 /** Uma semana (seg–dom) do gráfico "Adesão e carga por semana". */

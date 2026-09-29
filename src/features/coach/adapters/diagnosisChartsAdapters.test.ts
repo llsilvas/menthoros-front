@@ -7,12 +7,14 @@ import {
   assessAcwrConfidence,
   buildAdherenceWindow,
   buildWeeklyDiagnosis,
+  classifyGaps,
   calculateLoadDelta7d,
   detectDataGaps,
   formatGapCaption,
   isFieldAvailable,
 } from './diagnosisChartsAdapters';
 import type { AderenciasSemanalDto, DistanceSummaryDto, PmcPontoRaw } from '../../../types/AtletaPerfilCoach';
+import type { DataGap } from '../types/CoachInbox';
 
 const d = (iso: string) => parseISO(iso);
 
@@ -32,7 +34,7 @@ describe('detectDataGaps', () => {
   it('marca a lacuna entre dois treinos (60 dias)', () => {
     const pmc = serie('2026-07-01', '2026-09-28', (iso) => (dentro(iso, '2026-07-16', '2026-09-13') ? 0 : 50));
     expect(detectDataGaps(pmc, d('2026-09-28'))).toEqual([
-      { start: '2026-07-16', end: '2026-09-13', days: 60, open: false },
+      { start: '2026-07-16', end: '2026-09-13', days: 60, open: false, kind: 'SEM_REGISTRO' },
     ]);
   });
 
@@ -52,7 +54,7 @@ describe('detectDataGaps', () => {
   it('lacuna em aberto vai até hoje', () => {
     const pmc = serie('2026-09-01', '2026-09-28', (iso) => (iso <= '2026-09-16' ? 50 : 0));
     expect(detectDataGaps(pmc, d('2026-09-28'))).toEqual([
-      { start: '2026-09-17', end: '2026-09-28', days: 12, open: true },
+      { start: '2026-09-17', end: '2026-09-28', days: 12, open: true, kind: 'SEM_REGISTRO' },
     ]);
   });
 
@@ -246,9 +248,9 @@ describe('adherenceTone', () => {
 
 describe('formatGapCaption', () => {
   it('lacuna fechada e aberta', () => {
-    expect(formatGapCaption({ start: '2026-07-16', end: '2026-09-13', days: 60, open: false }))
+    expect(formatGapCaption({ start: '2026-07-16', end: '2026-09-13', days: 60, open: false, kind: 'SEM_REGISTRO' }))
       .toBe('Sem treinos registrados de 16/07 a 13/09 (60 dias)');
-    expect(formatGapCaption({ start: '2026-09-17', end: '2026-09-28', days: 12, open: true }))
+    expect(formatGapCaption({ start: '2026-09-17', end: '2026-09-28', days: 12, open: true, kind: 'SEM_REGISTRO' }))
       .toBe('Sem treinos registrados desde 17/09 (12 dias)');
   });
 });
@@ -293,5 +295,67 @@ describe('weeklyAdherenceTone', () => {
   it('semana fechada usa o tom do tile', () => {
     expect(weeklyAdherenceTone({ adherence: 50, current: false })).toBe('warning');
     expect(weeklyAdherenceTone({ adherence: 90, current: false })).toBe('success');
+  });
+});
+
+/**
+ * Captura de 29/09: "Sem treinos registrados de 15/07 a 14/09" ao lado de semanas com 75–100% de
+ * adesão. A lacuna vem só do TSS; treino sem TSS (manual, sem FC/potência) some da série PMC.
+ */
+describe('classifyGaps', () => {
+  const gap: DataGap = { start: '2026-07-16', end: '2026-09-13', days: 60, open: false, kind: 'SEM_REGISTRO' };
+
+  it('treino realizado dentro da lacuna → SEM_TSS', () => {
+    const aderencia = [{ semanaInicio: '2026-08-10', totalPlanejado: 4, totalRealizado: 3, percentual: 75 }];
+    expect(classifyGaps([gap], aderencia, null)[0].kind).toBe('SEM_TSS');
+  });
+
+  it('km dentro da lacuna → SEM_TSS', () => {
+    const distance: DistanceSummaryDto = { weekly: [{ weekStart: '2026-08-17', distanceKm: 12 }], last7DaysKm: 0, previous7DaysKm: 0 };
+    expect(classifyGaps([gap], [], distance)[0].kind).toBe('SEM_TSS');
+  });
+
+  it('plano sem realização e km zero continuam SEM_REGISTRO', () => {
+    const aderencia = [{ semanaInicio: '2026-08-10', totalPlanejado: 4, totalRealizado: 0, percentual: 0 }];
+    const distance: DistanceSummaryDto = { weekly: [{ weekStart: '2026-08-17', distanceKm: 0 }], last7DaysKm: 0, previous7DaysKm: 0 };
+    expect(classifyGaps([gap], aderencia, distance)[0].kind).toBe('SEM_REGISTRO');
+  });
+
+  it('treino fora da lacuna não reclassifica', () => {
+    const aderencia = [{ semanaInicio: '2026-09-21', totalPlanejado: 4, totalRealizado: 4, percentual: 100 }];
+    expect(classifyGaps([gap], aderencia, null)[0].kind).toBe('SEM_REGISTRO');
+  });
+});
+
+describe('buildWeeklyDiagnosis — lacuna de TSS com treino', () => {
+  const hoje = d('2026-09-28');
+  const pmc = serie('2026-06-01', '2026-09-28', (iso) => (dentro(iso, '2026-07-16', '2026-09-13') ? 0 : 10));
+  const aderencia = [{ semanaInicio: '2026-08-10', totalPlanejado: 4, totalRealizado: 3, percentual: 75 }];
+  const distance: DistanceSummaryDto = { weekly: [{ weekStart: '2026-08-10', distanceKm: 12 }], last7DaysKm: 0, previous7DaysKm: 0 };
+  const gaps = classifyGaps(detectDataGaps(pmc, hoje), aderencia, distance);
+
+  it('semana com treino não é "sem registro": mantém adesão e km, sem TSS', () => {
+    const semana = buildWeeklyDiagnosis(pmc, aderencia, gaps, hoje, 8, distance).find((s) => s.weekStart === '2026-08-10');
+    expect(semana).toMatchObject({ noData: false, tss: null, adherence: 75, distanceKm: 12 });
+  });
+
+  it('semana da mesma lacuna sem treino continua "sem registro"', () => {
+    const semana = buildWeeklyDiagnosis(pmc, aderencia, gaps, hoje, 8, distance).find((s) => s.weekStart === '2026-08-24');
+    expect(semana).toMatchObject({ noData: true, tss: null });
+  });
+});
+
+describe('textos da lacuna SEM_TSS', () => {
+  const semTss: DataGap = { start: '2026-07-16', end: '2026-09-13', days: 60, open: false, kind: 'SEM_TSS' };
+
+  it('legenda', () => {
+    expect(formatGapCaption(semTss)).toBe('Treinos sem carga (TSS) registrada de 16/07 a 13/09 (60 dias)');
+    expect(formatGapCaption({ ...semTss, open: true, end: '2026-09-28', days: 75 })).toBe('Treinos sem carga (TSS) registrada desde 16/07 (75 dias)');
+  });
+
+  it('motivo do ACWR', () => {
+    const hoje = d('2026-09-28');
+    const pmc = serie('2026-06-01', '2026-09-28', (iso) => (dentro(iso, '2026-07-16', '2026-09-13') ? 0 : 50));
+    expect(assessAcwrConfidence(pmc, [semTss], hoje).reason).toBe('Base crônica incompleta: 60 dias sem carga (TSS) registrada');
   });
 });
