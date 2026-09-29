@@ -3,8 +3,8 @@ import { Box, Button, Chip, CircularProgress, Typography } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { parseISO } from 'date-fns';
-import { primary, semantic, surface } from '../../../../theme/tokens';
-import { DetailMetric } from '../DetailMetric';
+import { content, primary, semantic, surface } from '../../../../theme/tokens';
+import { KpiCell } from '../KpiCell';
 import { SectionCard } from '../SectionCard';
 import { EmptyMetricState } from '../EmptyMetricState';
 import { WeeklyAdherenceLoadChart } from '../WeeklyAdherenceLoadChart';
@@ -12,9 +12,8 @@ import { AIInsightCard } from '../AIInsightCard';
 import { PmcBackfillNotice } from '../PmcBackfillNotice';
 import { usePmcBackfillNotice } from '../../../../hooks/usePmcBackfillNotice';
 import type { CoachAttentionItem } from '../../../../types/Coach';
-import { formatKm, formatPercent } from '../coachInboxHelpers';
 import { ACTION_BTN_END_ICON_SX } from '../../../../shared/components/actionButtonSx';
-import { getAcuteLoadTone, getMonotonyTone, getStrainZone } from '../../adapters/coachInboxAdapters';
+import { buildDiagnosisMetrics } from '../../adapters/diagnosisMetricsAdapters';
 import type { CoachAthleteRow } from '../../types/CoachInbox';
 import type { LimiareisInferidosDto } from '../../../../types/AtletaPerfilCoach';
 import type { PMCDataPoint, PMCGap, PMCRange } from '../../../athlete/components/PMCChart';
@@ -97,7 +96,7 @@ interface DiagnosisTabPanelProps {
 }
 
 export function DiagnosisTabPanel({ selected, attentionItem, attentionRecencyDays = null, limiareisInferidos, pmc, onOpenPlan }: DiagnosisTabPanelProps) {
-  const strainZone = getStrainZone(selected.quickStats.strain);
+  const metrics = buildDiagnosisMetrics(selected);
   const statusColor = PLAN_STATUS_COLOR[selected.planStatus];
   const [pmcRange, setPmcRange] = useState<PMCRange>('12w');
   const { dismissed: pmcNoticeDismissed, dismiss: dismissPmcNotice } = usePmcBackfillNotice();
@@ -148,30 +147,19 @@ export function DiagnosisTabPanel({ selected, attentionItem, attentionRecencyDay
 
 
       {selected.quickStats.hasWindowData ? (
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: { xs: 0.9, sm: 1.05, lg: 1.25, xl: 1.5 } }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: { xs: 0.9, sm: 1.05, lg: 1.25, xl: 1.5 } }}>
           {/*
-            Sem faixa "ideal" (UX-005). "Ideal: 110-150 km" e "Ideal: < 2.0" eram fixos e iguais para
-            todo atleta — o mesmo intervalo para um iniciante de 20 km/semana e para um maratonista.
-            Referência que ignora o atleta não é referência: é ruído com aparência de precisão. O
-            `tone` continua sinalizando o estado, agora também por ícone (task 2.4).
+            Sem faixa "ideal" (UX-005): um intervalo fixo, igual para todo atleta, não é referência.
+            O tom sinaliza o estado, também por ícone; a linha de apoio diz a base de cada número.
           */}
-          <DetailMetric label="Carga aguda" value={formatKm(selected.quickStats.acuteLoad)} tone={getAcuteLoadTone(selected.quickStats.acuteLoad)} />
-          <DetailMetric label="Monotonia" value={selected.quickStats.monotony.toFixed(2)} tone={getMonotonyTone(selected.quickStats.monotony)} />
-          <DetailMetric
-            label="Strain"
-            value={selected.quickStats.strain != null ? String(selected.quickStats.strain) : '—'}
-            subtitle={strainZone.label}
-            tone={strainZone.tone}
-          />
-          {/*
-            O subtítulo era a string fixa "Boa" — afirmada inclusive quando o próprio `tone` marcava
-            atenção. Um rótulo que contradiz o dado ao lado é pior que rótulo nenhum.
-          */}
-          <DetailMetric
-            label="Recuperação"
-            value={formatPercent(selected.quickStats.recovery)}
-            tone={selected.quickStats.recovery < 80 ? 'warning' : 'success'}
-          />
+          {metrics.map((m) => (
+            <KpiCell
+              key={m.key}
+              kpi={m}
+              testId={`metric-${m.key}`}
+              sx={{ p: 1.25, borderRadius: 1.5, border: `1px solid ${content.cardBorder}`, backgroundColor: `${surface[0]}06` }}
+            />
+          ))}
         </Box>
       ) : (
         /*

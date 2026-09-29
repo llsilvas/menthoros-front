@@ -1,3 +1,4 @@
+import { parseISO, startOfDay, subDays } from 'date-fns';
 import { formatWorkoutTypeLabel, statusLabel } from '../components/coachInboxHelpers';
 import type {
   AttentionReason,
@@ -22,16 +23,37 @@ import {
 } from './diagnosisChartsAdapters';
 import type { FormVariant, MetricTone } from '../types/AthleteForm';
 
-/** TSS positivos dos últimos `n` dias do histórico PMC (descansos com tss=0 são descartados). */
-function ultimosTssValidos(pmcPoints: PmcPontoRaw[], n = 7): number[] {
-  return pmcPoints.slice(-n).map((p) => p.tss ?? 0).filter((v) => v > 0);
+/** Dias civis que a janela de monotonia/strain cobre, contando hoje. */
+const JANELA_MONOTONIA_DIAS = 7;
+/** Menos dias com treino que isso não sustenta desvio padrão com sentido. */
+export const MONOTONIA_MIN_DIAS = 3;
+
+/**
+ * TSS positivos dos 7 dias civis até `hoje` (descansos com tss=0 são descartados). Por data, não
+ * por posição: numa série que parou há 12 dias, as 7 últimas posições são treinos antigos.
+ */
+function tssPositivosDaJanela(pmcPoints: PmcPontoRaw[], hoje: Date): number[] {
+  const fim = startOfDay(hoje);
+  const inicio = subDays(fim, JANELA_MONOTONIA_DIAS - 1);
+  return pmcPoints
+    .filter((p) => {
+      const d = parseISO(p.data);
+      return d >= inicio && d <= fim;
+    })
+    .map((p) => p.tss ?? 0)
+    .filter((v) => v > 0);
 }
 
-export function calcularMonotonia(pmcPoints: PmcPontoRaw[]): number {
-  const ultimos7 = ultimosTssValidos(pmcPoints);
-  if (ultimos7.length < 3) return 1.0;
-  const media = ultimos7.reduce((a, b) => a + b, 0) / ultimos7.length;
-  const variancia = ultimos7.reduce((a, b) => a + (b - media) ** 2, 0) / ultimos7.length;
+export function contarDiasComTreino7d(pmcPoints: PmcPontoRaw[], hoje: Date): number {
+  return tssPositivosDaJanela(pmcPoints, hoje).length;
+}
+
+/** Monotonia (média ÷ desvio do TSS da semana). `null` sem base — antes caía em 1.0, que parecia medição. */
+export function calcularMonotonia(pmcPoints: PmcPontoRaw[], hoje: Date): number | null {
+  const tss = tssPositivosDaJanela(pmcPoints, hoje);
+  if (tss.length < MONOTONIA_MIN_DIAS) return null;
+  const media = tss.reduce((a, b) => a + b, 0) / tss.length;
+  const variancia = tss.reduce((a, b) => a + (b - media) ** 2, 0) / tss.length;
   const stddev = Math.sqrt(variancia);
   return stddev === 0 ? 1.0 : parseFloat((media / stddev).toFixed(2));
 }
@@ -58,11 +80,10 @@ export function calcularAcwr(atl: number | null, ctl: number | null): number | n
  * Une volume e homogeneidade num único sinal de qualidade do ciclo.
  * Fallback: null quando há menos de 3 pontos de TSS positivos.
  */
-export function calcularStrain(pmcPoints: PmcPontoRaw[]): number | null {
-  const ultimos7Tss = ultimosTssValidos(pmcPoints);
-  if (ultimos7Tss.length < 3) return null;
-  const tssSemanal = ultimos7Tss.reduce((a, b) => a + b, 0);
-  const monotonia = calcularMonotonia(pmcPoints);
+export function calcularStrain(pmcPoints: PmcPontoRaw[], hoje: Date): number | null {
+  const monotonia = calcularMonotonia(pmcPoints, hoje);
+  if (monotonia == null) return null;
+  const tssSemanal = tssPositivosDaJanela(pmcPoints, hoje).reduce((a, b) => a + b, 0);
   return parseFloat((tssSemanal * monotonia).toFixed(0));
 }
 
@@ -76,11 +97,6 @@ export function getStrainZone(strain: number | null): { tone: MetricTone; label:
   if (strain >= 300) return { tone: 'warning', label: 'Alto' };
   if (strain >= 150) return { tone: 'success', label: 'Moderado' };
   return { tone: 'neutral', label: 'Baixo' };
-}
-
-/** Tom da carga aguda (ATL): acima de ~120 km/semana sinaliza atenção. */
-export function getAcuteLoadTone(acuteLoad: number): MetricTone {
-  return acuteLoad > 120 ? 'warning' : 'success';
 }
 
 /** Tom da monotonia (Foster): acima de 1.4 sinaliza treino pouco variado. */
@@ -229,15 +245,16 @@ export function buildSelectedAthleteFromDashboard(
       // sincronizou). Os campos abaixo têm fallback numérico, e número com fallback é
       // indistinguível de medição real depois que sai do adapter.
       hasWindowData: pmcPoints.length > 0,
-      acuteLoad: latestPmc?.atl ?? roster.weeklyVolume,
-      monotony: calcularMonotonia(pmcPoints),
+      // ATL é TSS/dia. O fallback antigo era `roster.weeklyVolume` (km) — outra unidade no mesmo campo.
+      acuteLoad: latestPmc?.atl ?? null,
+      monotony: calcularMonotonia(pmcPoints, hoje),
+      trainingDays7d: contarDiasComTreino7d(pmcPoints, hoje),
       tsb: latestPmc?.tsb ?? null,
       // precedência: PMC mais recente (mais granular/atual) > roster (pode estar stale)
       statusForma: latestPmc?.statusForma ?? roster.statusForma ?? null,
       acwr: calcularAcwr(latestPmc?.atl ?? null, latestPmc?.ctl ?? null),
       acwrConfidence: assessAcwrConfidence(pmcPoints, dataGaps, hoje),
-      strain: calcularStrain(pmcPoints),
-      recovery: latestAdherence?.percentual ?? 0,
+      strain: calcularStrain(pmcPoints, hoje),
     },
     racePrediction: previsao ? { diasAteProva, ...previsao } : null,
   };
@@ -284,14 +301,14 @@ export function buildRosterRowFromSummary(roster: CoachAtletaResumo): CoachAthle
       // Linha do roster: o dashboard não traz série PMC, então nunca há dados de janela aqui — o
       // painel completo vem do perfil, buscado à parte.
       hasWindowData: false,
-      acuteLoad: roster.weeklyVolume,
-      monotony: 1,
+      acuteLoad: null,
+      monotony: null,
+      trainingDays7d: 0,
       tsb: null,
       statusForma: roster.statusForma ?? null,
       acwr: calcularAcwr(roster.atl ?? null, roster.ctl ?? null),
       acwrConfidence: null, // roster não traz histórico; avaliado só no perfil
       strain: null, // resumo do roster não traz histórico PMC; strain só no perfil completo
-      recovery: 0,
     },
     racePrediction: null, // resumo não traz provas nem PMC
   };

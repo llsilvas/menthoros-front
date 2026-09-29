@@ -125,8 +125,12 @@ export interface CoachAthleteRow {
      * que nunca sincronizou aparece com carga "adequada".
      */
     hasWindowData: boolean;
-    acuteLoad: number;
-    monotony: number;
+    /** ATL (TSS/dia) do último ponto PMC; `null` sem série. */
+    acuteLoad: number | null;
+    /** Monotonia dos 7 dias civis; `null` com menos de 3 dias com treino. */
+    monotony: number | null;
+    /** Dias com TSS > 0 nos 7 dias civis até hoje — base de monotonia e strain. */
+    trainingDays7d: number;
     tsb: number | null;
     /** Faixa de forma resolvida pelo backend (FaixaTsb); null quando sem TSB. */
     statusForma: FaixaTsbStatus | null;
@@ -135,8 +139,6 @@ export interface CoachAthleteRow {
     acwrConfidence: AcwrConfidence | null;
     /** Training Strain = TSS_semanal × monotonia — qualidade do ciclo de treino. */
     strain: number | null;
-    /** % de aderência da semana mais recente — NÃO é recuperação fisiológica (TSB). Ver follow-up de semântica. */
-    recovery: number;
   };
   /** Forma prevista no dia da próxima prova (taper puro). null quando sem prova futura ou sem PMC. */
   racePrediction: {

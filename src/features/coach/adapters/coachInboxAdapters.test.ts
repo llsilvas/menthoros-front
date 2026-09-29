@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildInboxQueue, buildRosterRowFromSummary, buildSelectedAthleteFromDashboard, calcularMonotonia, calcularLoadDelta, calcularAcwr, getAcwrZone, getAcuteLoadTone, getMonotonyTone, calcularStrain, getStrainZone, calcularPrevisaoForma, calcularDiasAteProva } from './coachInboxAdapters';
+import { format, subDays } from 'date-fns';
+import { buildInboxQueue, buildRosterRowFromSummary, buildSelectedAthleteFromDashboard, calcularMonotonia, calcularLoadDelta, calcularAcwr, getAcwrZone, getMonotonyTone, calcularStrain, contarDiasComTreino7d, getStrainZone, calcularPrevisaoForma, calcularDiasAteProva } from './coachInboxAdapters';
 import type { PmcPontoRaw, AtletaPerfilCoachDto } from '../../../types/AtletaPerfilCoach';
 import type { Prova } from '../../../types/Prova';
 import type { CoachAtletaResumo, CoachAttentionItem, CoachDashboardRosterPage } from '../../../types/Coach';
@@ -14,36 +15,45 @@ function profileComProvas(datas: string[]): AtletaPerfilCoachDto {
   } as AtletaPerfilCoachDto;
 }
 
+const AGORA = new Date('2026-09-28T15:30:00');
+/** Ponto PMC `n` dias antes de AGORA. */
+const dia = (n: number, tss: number) => pmc({ data: format(subDays(AGORA, n), 'yyyy-MM-dd'), tss });
+
 describe('calcularMonotonia', () => {
-  it('retorna 1.0 com menos de 3 pontos (fallback)', () => {
-    expect(calcularMonotonia([])).toBe(1.0);
-    expect(calcularMonotonia([pmc({ tss: 80 }), pmc({ tss: 90 })])).toBe(1.0);
+  it('null com menos de 3 dias com treino — sem número inventado', () => {
+    expect(calcularMonotonia([], AGORA)).toBeNull();
+    expect(calcularMonotonia([dia(1, 80), dia(0, 90)], AGORA)).toBeNull();
   });
 
   it('retorna 1.0 quando stddev é zero (treinos idênticos)', () => {
-    const pts = Array.from({ length: 7 }, () => pmc({ tss: 70 }));
-    expect(calcularMonotonia(pts)).toBe(1.0);
+    const pts = Array.from({ length: 7 }, (_, i) => dia(6 - i, 70));
+    expect(calcularMonotonia(pts, AGORA)).toBe(1.0);
   });
 
-  it('calcula mean/stddev para série variada (BVA: exatamente 3 pontos)', () => {
-    const pts = [pmc({ tss: 70 }), pmc({ tss: 80 }), pmc({ tss: 90 })];
-    const result = calcularMonotonia(pts);
+  it('calcula mean/stddev para série variada (BVA: exatamente 3 dias)', () => {
+    const result = calcularMonotonia([dia(2, 70), dia(1, 80), dia(0, 90)], AGORA);
     expect(result).toBeGreaterThan(1.0);
     expect(result).toBeLessThan(15.0);
   });
 
-  it('usa apenas os últimos 7 pontos de um array maior', () => {
-    const pts = [
-      pmc({ tss: 200 }), pmc({ tss: 200 }), pmc({ tss: 200 }),
-      pmc({ tss: 70 }), pmc({ tss: 70 }), pmc({ tss: 70 }),
-      pmc({ tss: 70 }), pmc({ tss: 70 }), pmc({ tss: 70 }), pmc({ tss: 70 }),
-    ];
-    expect(calcularMonotonia(pts)).toBe(1.0);
+  it('usa os 7 dias civis até hoje, não as 7 últimas posições do array', () => {
+    const pts = [dia(9, 200), dia(8, 200), dia(7, 200), ...Array.from({ length: 7 }, (_, i) => dia(6 - i, 70))];
+    expect(calcularMonotonia(pts, AGORA)).toBe(1.0);
   });
 
-  it('ignora pontos com tss zero ou ausente', () => {
-    const pts = [pmc({ tss: 0 }), pmc({ tss: 0 }), pmc({ tss: 80 }), pmc({ tss: 90 })];
-    expect(calcularMonotonia(pts)).toBe(1.0);
+  it('série que parou há 12 dias não tem base na janela', () => {
+    const pts = Array.from({ length: 7 }, (_, i) => dia(18 - i, 60 + i * 10));
+    expect(calcularMonotonia(pts, AGORA)).toBeNull();
+  });
+
+  it('ignora dias com tss zero ou ausente', () => {
+    expect(calcularMonotonia([dia(3, 0), dia(2, 0), dia(1, 80), dia(0, 90)], AGORA)).toBeNull();
+  });
+});
+
+describe('contarDiasComTreino7d', () => {
+  it('conta dias com TSS > 0 nos 7 dias civis até hoje', () => {
+    expect(contarDiasComTreino7d([dia(8, 50), dia(6, 50), dia(3, 0), dia(1, 40), dia(0, 30)], AGORA)).toBe(3);
   });
 });
 
@@ -133,13 +143,6 @@ describe('getAcwrZone', () => {
   });
 });
 
-describe('getAcuteLoadTone', () => {
-  it('BVA: 120 ainda é success (limiar é > 120)', () => {
-    expect(getAcuteLoadTone(120)).toBe('success');
-    expect(getAcuteLoadTone(121)).toBe('warning');
-  });
-});
-
 describe('getMonotonyTone', () => {
   it('BVA: 1.4 ainda é success (limiar é > 1.4)', () => {
     expect(getMonotonyTone(1.4)).toBe('success');
@@ -148,29 +151,26 @@ describe('getMonotonyTone', () => {
 });
 
 describe('calcularStrain', () => {
-  it('retorna null com menos de 3 pontos de TSS', () => {
-    expect(calcularStrain([])).toBeNull();
-    expect(calcularStrain([pmc({ tss: 80 }), pmc({ tss: 90 })])).toBeNull();
+  it('null com menos de 3 dias com treino na janela', () => {
+    expect(calcularStrain([], AGORA)).toBeNull();
+    expect(calcularStrain([dia(1, 80), dia(0, 90)], AGORA)).toBeNull();
+    expect(calcularStrain(Array.from({ length: 7 }, (_, i) => dia(6 - i, 0)), AGORA)).toBeNull();
   });
 
-  it('retorna null quando todos os tss são zero', () => {
-    const pts = Array.from({ length: 7 }, () => pmc({ tss: 0 }));
-    expect(calcularStrain(pts)).toBeNull();
-  });
-
-  it('strain = TSS_semanal × monotonia para treinos idênticos (monotonia=1.0)', () => {
+  it('strain = TSS semanal × monotonia para treinos idênticos (monotonia=1.0)', () => {
     // 7 × 70 = 490, monotonia 1.0 → 490
-    const pts = Array.from({ length: 7 }, () => pmc({ tss: 70 }));
-    expect(calcularStrain(pts)).toBe(490);
+    expect(calcularStrain(Array.from({ length: 7 }, (_, i) => dia(6 - i, 70)), AGORA)).toBe(490);
+  });
+
+  it('soma só os 7 dias civis, não treinos anteriores à janela', () => {
+    const pts = [dia(10, 500), ...Array.from({ length: 7 }, (_, i) => dia(6 - i, 70))];
+    expect(calcularStrain(pts, AGORA)).toBe(490);
   });
 
   it('strain supera o TSS semanal quando há variabilidade (monotonia > 1)', () => {
-    const pts = [
-      pmc({ tss: 30 }), pmc({ tss: 30 }), pmc({ tss: 150 }),
-      pmc({ tss: 30 }), pmc({ tss: 150 }), pmc({ tss: 30 }), pmc({ tss: 150 }),
-    ];
-    const tssSemanal = 30 + 30 + 150 + 30 + 150 + 30 + 150; // 570
-    expect(calcularStrain(pts)).toBeGreaterThan(tssSemanal);
+    const tss = [30, 30, 150, 30, 150, 30, 150];
+    const pts = tss.map((t, i) => dia(6 - i, t));
+    expect(calcularStrain(pts, AGORA)).toBeGreaterThan(570);
   });
 });
 

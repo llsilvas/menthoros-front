@@ -6,9 +6,8 @@ import type { CoachAthleteRow, RaceItem } from '../types/CoachInbox';
 
 export type AthleteKpiKey = 'adherence' | 'load' | 'form' | 'acwr';
 
-/** Uma célula da faixa de KPIs do atleta selecionado — tudo já formatado para exibir. */
-export interface AthleteKpi {
-  key: AthleteKpiKey;
+/** Uma célula de KPI (faixa do atleta ou métricas do Diagnóstico) — tudo já formatado para exibir. */
+export interface KpiView {
   /** Nome da métrica. Fica num span próprio para testes e leitores de tela acharem pelo nome. */
   label: string;
   /** Janela ou unidade ("4 sem", "7 dias", "TSB"). */
@@ -21,6 +20,10 @@ export interface AthleteKpi {
   badge: string | null;
 }
 
+export interface AthleteKpi extends KpiView {
+  key: AthleteKpiKey;
+}
+
 export interface NextRaceHeader {
   label: 'Prova alvo' | 'Próxima prova';
   name: string;
@@ -30,9 +33,9 @@ export interface NextRaceHeader {
 
 const SEM_DADO = 'Sem dado na janela';
 
-const decimal = (v: number, casas: number) =>
+export const decimal = (v: number, casas: number) =>
   v.toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas });
-const signed = (v: number, casas: number) => `${v > 0 ? '+' : ''}${decimal(v, casas)}`;
+export const signed = (v: number, casas: number) => `${v > 0 ? '+' : ''}${decimal(v, casas)}`;
 
 function semDado(key: AthleteKpiKey, label: string, qualifier: string | null): AthleteKpi {
   return { key, label, qualifier, value: '—', detail: SEM_DADO, tone: 'neutral', badge: null };

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { DiagnosisTabPanel } from './DiagnosisTabPanel';
 import type { CoachAthleteRow, WeeklyDiagnosisPoint } from '../../types/CoachInbox';
 
@@ -46,10 +46,10 @@ function atleta(over: Partial<CoachAthleteRow> = {}): CoachAthleteRow {
     suggestedActions: ['Reduzir volume', 'Conversar sobre a rotina'],
     quickStats: {
       hasWindowData: true,
-      acuteLoad: 120,
+      acuteLoad: 21.14,
       monotony: 1.4,
+      trainingDays7d: 4,
       strain: 200,
-      recovery: 75,
       acwr: 1.1,
       acwrConfidence: { level: 'ALTA', reason: null },
       statusForma: null,
@@ -111,17 +111,41 @@ describe('DiagnosisTabPanel', () => {
       expect(screen.queryByText(/ideal:/i)).not.toBeInTheDocument();
     });
 
-    /** Pior que o "ideal" fixo: o subtítulo da recuperação dizia "Boa" mesmo quando era ruim. */
-    it('não afirma que a recuperação é boa quando ela está baixa', () => {
+    /**
+     * "Recuperação" era a aderência da última semana (normalmente a semana em curso), com outro nome.
+     * Saiu; no lugar, a forma prevista no dia da prova, que o coach usa para decidir o taper.
+     */
+    it('métricas no padrão da faixa: carga aguda em TSS/dia, forma prevista no lugar de recuperação', () => {
       render(
         <DiagnosisTabPanel
-          selected={atleta({ quickStats: { ...atleta().quickStats, recovery: 55 } })}
+          selected={atleta({ racePrediction: { diasAteProva: 20, tsbPrevisto: 3.2, formaPrevista: 'form_stable' } })}
           pmc={[]}
           onOpenPlan={vi.fn()}
         />,
       );
 
-      expect(screen.queryByText(/^Boa$/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Recuperação/)).not.toBeInTheDocument();
+      expect(within(screen.getByTestId('metric-acuteLoad')).getByText('21,1 TSS/dia')).toBeInTheDocument();
+      expect(within(screen.getByTestId('metric-monotony')).getByText('1,40')).toBeInTheDocument();
+      expect(within(screen.getByTestId('metric-strain')).getByText('200')).toBeInTheDocument();
+      const forma = within(screen.getByTestId('metric-racePrediction'));
+      expect(forma.getByText('Forma prevista')).toBeInTheDocument();
+      expect(forma.getByText('Estável')).toBeInTheDocument();
+      expect(forma.getByText('TSB +3,2 em 20 dias, sem carga até a prova')).toBeInTheDocument();
+    });
+
+    it('monotonia sem base não mostra número', () => {
+      render(
+        <DiagnosisTabPanel
+          selected={atleta({ quickStats: { ...atleta().quickStats, monotony: null, strain: null, trainingDays7d: 2 } })}
+          pmc={[]}
+          onOpenPlan={vi.fn()}
+        />,
+      );
+
+      const monotonia = within(screen.getByTestId('metric-monotony'));
+      expect(monotonia.getByText('—')).toBeInTheDocument();
+      expect(monotonia.getByText('Sem base: 2 dias com treino (mínimo 3)')).toBeInTheDocument();
     });
   });
 
