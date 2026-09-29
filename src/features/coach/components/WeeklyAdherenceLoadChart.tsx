@@ -198,7 +198,15 @@ export function WeeklyAdherenceLoadChart({ weeks, gaps, adherenceAvailable, pmcA
                   label={{ value: 'Sem treinos registrados', position: 'center', fill: surface[300], fontSize: 12 }}
                 />
               ))}
-              <Tooltip content={<WeekTooltip availability={availability} />} cursor={{ fill: overlayWhite[4] }} />
+              {/*
+                Os painéis compartilham `syncId`: o hover num ativa o tooltip nos dois. O texto da
+                semana fica só no painel de adesão; este mantém o `Tooltip` apenas pelo cursor
+                sincronizado. Sem o painel de adesão, o texto passa para cá.
+              */}
+              <Tooltip
+                content={adherenceAvailable ? () => null : <WeekTooltip availability={availability} />}
+                cursor={{ fill: overlayWhite[4] }}
+              />
               <Bar dataKey="tss" maxBarSize={28} radius={[3, 3, 0, 0]} isAnimationActive={false}>
                 {rows.map((r) => (
                   <Cell key={r.weekStart} fill={r.current ? surface[300] : surface[600]} />
