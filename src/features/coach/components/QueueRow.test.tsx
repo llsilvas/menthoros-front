@@ -27,8 +27,6 @@ function atleta(over: Partial<CoachAthleteRow> = {}): CoachAthleteRow {
     delay: 0,
     nextWorkout: { title: 'Longão', when: 'sáb', zone: 'Z2', duration: '60min', distance: '10km', objective: 'Base' },
     raceCalendar: [],
-    loadTrend: [40],
-    adherenceTrend: [80],
     notes: '',
     suggestedActions: [],
     ...over,

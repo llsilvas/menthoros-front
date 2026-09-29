@@ -117,10 +117,6 @@ export interface CoachAthleteRow {
     objective: string;
   };
   raceCalendar: RaceItem[];
-  /** @deprecated Série de CTL, não de carga. Sem uso no Diagnóstico; remover no follow-up. */
-  loadTrend: number[];
-  /** @deprecated Perde a data da semana. Use `weeklyDiagnosis`. */
-  adherenceTrend: number[];
   /** Últimas 8 semanas (cobertura de `aderenciaSemanal` no perfil), da mais antiga para a atual. Vazio sem perfil. */
   weeklyDiagnosis: WeeklyDiagnosisPoint[];
   /** Lacunas de registro detectadas na série PMC. */

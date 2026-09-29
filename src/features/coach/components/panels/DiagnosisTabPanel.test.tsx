@@ -41,8 +41,6 @@ function atleta(over: Partial<CoachAthleteRow> = {}): CoachAthleteRow {
     delay: 1,
     nextWorkout: { title: 'Longão', when: 'sáb', zone: 'Z2', duration: '60min', distance: '10km', objective: 'Base' },
     raceCalendar: [],
-    loadTrend: [30, 35, 40],
-    adherenceTrend: [70, 65, 62],
     weeklyDiagnosis: [SEMANA],
     dataGaps: [],
     notes: 'Aderência caiu 20% nas últimas duas semanas.',
