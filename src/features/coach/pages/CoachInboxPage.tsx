@@ -28,11 +28,14 @@ import {
   NotificationsNone as NotificationsNoneIcon,
   Search as SearchIcon,
   Tune as TuneIcon,
+  DirectionsRunRounded as DirectionsRunRoundedIcon,
+  EventNoteOutlined as EventNoteOutlinedIcon,
+  NotificationImportantOutlined as NotificationImportantOutlinedIcon,
+  FilterListRounded as FilterListRoundedIcon,
 } from '@mui/icons-material';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { DANGER_BTN_SX, GHOST_BTN_SX } from '../../../shared/components/actionButtonSx';
 import { CoachAthleteAvatar } from '../components/CoachAthleteAvatar';
-import { MetricTile } from '../components/MetricTile';
 import { QueueRow } from '../components/QueueRow';
 import { AttentionOnlyRow } from '../components/AttentionOnlyRow';
 import { statusPalette } from '../components/coachInboxHelpers';
@@ -51,6 +54,9 @@ import { content, semantic, surface } from '../../../theme/tokens';
 import { buildInboxQueue, buildSelectedAthleteFromDashboard, calcularDiasAteProva } from '../adapters/coachInboxAdapters';
 import { buildAthleteKpis, buildNextRaceHeader } from '../adapters/athleteKpiAdapters';
 import { AthleteKpiStrip } from '../components/AthleteKpiStrip';
+import { KpiStrip } from '../components/KpiStrip';
+import { buildInboxSummaryKpiViews } from '../adapters/inboxSummaryKpis';
+import type { InboxSummaryKpiKey } from '../adapters/inboxSummaryKpis';
 import { AthleteNextRace } from '../components/AthleteNextRace';
 import { resolveReviewStatus } from '../../../types/PlanoReview';
 import { montarRascunhoContato, resolveActionAvailability, resolvePrimaryAction } from '../components/coachInboxHelpers';
@@ -83,6 +89,14 @@ const TABS: Array<{ key: TabKey; label: string; icon: ReactElement }> = [
   { key: 'plan', label: 'Plano', icon: <TuneIcon fontSize="small" /> },
   { key: 'races', label: 'Provas & sugestões', icon: <CalendarMonthIcon fontSize="small" /> },
 ];
+
+/** Ícone de cada célula do resumo do topo: diz o que o número conta e carrega a cor. */
+const INBOX_SUMMARY_ICON: Record<InboxSummaryKpiKey, ReactElement> = {
+  ativos: <DirectionsRunRoundedIcon sx={{ color: semantic.success[500] }} />,
+  treinos: <EventNoteOutlinedIcon sx={{ color: surface[200] }} />,
+  atencao: <NotificationImportantOutlinedIcon sx={{ color: semantic.warning[500] }} />,
+  exibidos: <FilterListRoundedIcon sx={{ color: surface[200] }} />,
+};
 
 function CoachInboxPage() {
   const navigate = useNavigate();
@@ -393,19 +407,11 @@ function CoachInboxPage() {
         repetiam atletas já listados na coluna seguinte. Os previews saem — a lista principal agora
         carrega motivo e recência e fixa quem está em atenção (gate 1.1) — e os KPIs viram faixa.
       */}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', md: 'repeat(4, minmax(0, 1fr))' },
-          gap: 1,
-          mb: { xs: 1, lg: 1.25 },
-        }}
-      >
-        <MetricTile compact label="Atletas ativos" value={String(summary.ativos)} delta={`${summary.totalAtletas} no total`} tone="success" />
-        <MetricTile compact label="Treinos planejados" value={String(summary.treinosPlanejadosSemana)} delta="na semana" />
-        <MetricTile compact label="Em atenção" value={String(summary.emAtencao)} delta={`${summary.itensFilaAtencao} na fila`} tone="warning" />
-        <MetricTile compact label="Atletas exibidos" value={String(summary.atletasExibidos)} />
-      </Box>
+      <KpiStrip
+        items={buildInboxSummaryKpiViews(summary).map((v) => ({ ...v, icon: INBOX_SUMMARY_ICON[v.key] }))}
+        testIdPrefix="inbox-kpi"
+        sx={{ border: `1px solid ${content.divider}`, borderRadius: 2, overflow: 'hidden', mb: { xs: 1, lg: 1.25 } }}
+      />
       {dashboardUpdatedAt ? (
         <Typography sx={{ fontSize: '0.7rem', color: surface[500], mb: { xs: 1, lg: 1.25 }, mt: -0.5 }}>
           Atualizado em {dashboardUpdatedAt}

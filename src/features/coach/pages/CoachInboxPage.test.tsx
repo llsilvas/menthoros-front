@@ -322,6 +322,15 @@ describe('CoachInboxPage', () => {
     });
   });
 
+  it('resumo do topo na faixa de KPIs, com ícone por métrica', () => {
+    renderPage();
+
+    for (const key of ['ativos', 'treinos', 'atencao', 'exibidos']) {
+      expect(within(screen.getByTestId(`inbox-kpi-${key}`)).getByTestId('kpi-icon')).toBeInTheDocument();
+    }
+    expect(within(screen.getByTestId('inbox-kpi-ativos')).getByText('Atletas ativos')).toBeInTheDocument();
+  });
+
   describe('cabeçalho e faixa de KPIs (fix-coach-diagnosis-charts)', () => {
     const KPI: Record<string, string> = { Aderência: 'kpi-adherence', Carga: 'kpi-load', Forma: 'kpi-form', ACWR: 'kpi-acwr' };
     const tileDe = (label: string) => within(screen.getByTestId(KPI[label]));
