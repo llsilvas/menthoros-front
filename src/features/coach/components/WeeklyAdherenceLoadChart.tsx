@@ -3,6 +3,7 @@ import { Box, Typography } from '@mui/material';
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, ReferenceArea, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { semantic, surface } from '../../../theme/tokens';
 import { overlayWhite } from '../../../theme/overlays';
+import { font } from '../../../theme/theme.premium';
 import {
   INDISPONIVEL_ADESAO,
   INDISPONIVEL_CARGA,
@@ -29,6 +30,8 @@ interface Row extends WeeklyDiagnosisPoint {
 const SYNC_ID = 'coach-diagnosis-weeks';
 const AXIS = surface[400];
 const Y_WIDTH = 40;
+// O SVG herdava a fonte de título do tema MUI; eixos e rótulos usam a de texto.
+const TICK = { fontSize: 11, fill: AXIS, fontFamily: font.text };
 
 const TONE_COLOR: Record<MetricTone, string> = {
   success: semantic.success[500],
@@ -166,7 +169,7 @@ export function WeeklyAdherenceLoadChart({ weeks, gaps, adherenceAvailable, pmcA
               {hatch}
               <CartesianGrid vertical={false} stroke={overlayWhite[8]} strokeDasharray="3 3" />
               <XAxis dataKey="weekStart" hide />
-              <YAxis domain={[0, 100]} ticks={[0, 50, 100]} tickFormatter={(v: number) => `${v}%`} width={Y_WIDTH} tick={{ fontSize: 11, fill: AXIS }} tickLine={false} axisLine={false} />
+              <YAxis domain={[0, 100]} ticks={[0, 50, 100]} tickFormatter={(v: number) => `${v}%`} width={Y_WIDTH} tick={TICK} tickLine={false} axisLine={false} />
               {runs.map((r) => (
                 <ReferenceArea key={r.x1} x1={r.x1} x2={r.x2} fill={`url(#${patternId})`} fillOpacity={1} strokeOpacity={0} />
               ))}
@@ -175,7 +178,7 @@ export function WeeklyAdherenceLoadChart({ weeks, gaps, adherenceAvailable, pmcA
                 {rows.map((r) => (
                   <Cell key={r.weekStart} fill={TONE_COLOR[weeklyAdherenceTone(r)]} />
                 ))}
-                <LabelList dataKey="adherenceLabel" position="top" fill={surface[200]} fontSize={11} />
+                <LabelList dataKey="adherenceLabel" position="top" fill={surface[200]} fontSize={11} fontFamily={font.text} />
               </Bar>
             </BarChart>
           </ResponsiveContainer>
@@ -195,14 +198,13 @@ export function WeeklyAdherenceLoadChart({ weeks, gaps, adherenceAvailable, pmcA
                 dataKey="weekStart"
                 interval={0}
                 tickFormatter={(v: string) => labelByWeek.get(v) ?? v}
-                tick={{ fontSize: 11, fill: AXIS }}
+                tick={TICK}
                 tickLine={false}
                 axisLine={false}
               />
               <YAxis
                 width={Y_WIDTH}
-                tickFormatter={kmMode ? (v: number) => `${v} km` : undefined}
-                tick={{ fontSize: 11, fill: AXIS }}
+                tick={TICK}
                 tickLine={false}
                 axisLine={false}
               />
@@ -214,7 +216,7 @@ export function WeeklyAdherenceLoadChart({ weeks, gaps, adherenceAvailable, pmcA
                   fill={`url(#${patternId})`}
                   fillOpacity={1}
                   strokeOpacity={0}
-                  label={{ value: 'Sem treinos registrados', position: 'center', fill: surface[300], fontSize: 12 }}
+                  label={{ value: 'Sem treinos registrados', position: 'center', fill: surface[300], fontSize: 12, fontFamily: font.text }}
                 />
               ))}
               {/*
@@ -230,7 +232,7 @@ export function WeeklyAdherenceLoadChart({ weeks, gaps, adherenceAvailable, pmcA
                 {rows.map((r) => (
                   <Cell key={r.weekStart} fill={r.current ? surface[300] : surface[600]} />
                 ))}
-                <LabelList dataKey={kmMode ? 'kmLabel' : 'tssLabel'} position="top" fill={surface[300]} fontSize={11} />
+                <LabelList dataKey={kmMode ? 'kmLabel' : 'tssLabel'} position="top" fill={surface[300]} fontSize={11} fontFamily={font.text} />
               </Bar>
             </BarChart>
           </ResponsiveContainer>

@@ -19,6 +19,7 @@ import { glassSx } from '../../../theme/tokens';
 import { overlayWhite } from '../../../theme/overlays';
 import { FAIXA_APRESENTACAO } from '../../../types/FaixaTsb';
 import type { MetricTone } from '../../../types/FaixaTsb';
+import { font } from '../../../theme/theme.premium';
 import { buildPmcChartModel, DEFAULT_RANGES } from '../adapters/pmcChartModel';
 import { PmcChartControls } from './PmcChartControls';
 import type { PMCViewMode } from './PmcChartControls';
@@ -214,14 +215,14 @@ function sharedAxes(ticks: number[]) {
       interval={0}
       tickFormatter={formatTick}
       stroke={CHART_AXIS_STROKE}
-      tick={{ fontSize: 11, fill: CHART_AXIS_STROKE }}
+      tick={{ fontSize: 11, fill: CHART_AXIS_STROKE, fontFamily: font.text }}
       tickLine={false}
       axisLine={false}
     />,
     <YAxis
       key="y"
       stroke={CHART_AXIS_STROKE}
-      tick={{ fontSize: 11, fill: CHART_AXIS_STROKE }}
+      tick={{ fontSize: 11, fill: CHART_AXIS_STROKE, fontFamily: font.text }}
       tickLine={false}
       axisLine={false}
       width={36}
@@ -238,7 +239,7 @@ function gapLayers(gapAreas: PmcGapArea[], patternId: string) {
       fill={`url(#${patternId})`}
       fillOpacity={1}
       strokeOpacity={0}
-      label={{ value: GAP_LABEL, position: 'insideTop', fill: surface[300], fontSize: 12 }}
+      label={{ value: GAP_LABEL, position: 'insideTop', fill: surface[300], fontSize: 12, fontFamily: font.text }}
     />
   ));
 }
