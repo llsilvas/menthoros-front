@@ -47,6 +47,11 @@ export interface PmcChartRow {
   ctlEst: number | null;
   atlEst: number | null;
   tsbEst: number | null;
+  /**
+   * Ponto contínuo sem vizinho com valor (série esparsa): a linha não tem com quem se ligar e
+   * sumiria. O gráfico desenha um ponto nele — sem ligar os dias que o backend não mandou.
+   */
+  isolated: boolean;
 }
 
 export interface PmcGapArea {
@@ -60,6 +65,8 @@ export interface PmcChartModel {
   gapAreas: PmcGapArea[];
   /** Último dia com valores — alimenta a legenda com o valor atual. */
   latest: PmcChartRow | null;
+  /** Algum dia do período tem valor. Falso: o período escolhido cai todo antes da série. */
+  hasValues: boolean;
 }
 
 export const RANGE_DAYS: Record<PMCRange, number> = {
@@ -70,7 +77,7 @@ export const RANGE_DAYS: Record<PMCRange, number> = {
   '1y': 365,
 };
 
-const EMPTY: PmcChartModel = { rows: [], ticks: [], gapAreas: [], latest: null };
+const EMPTY: PmcChartModel = { rows: [], ticks: [], gapAreas: [], latest: null, hasValues: false };
 const key = (d: Date) => format(d, 'yyyy-MM-dd');
 const SERIES: PmcSeriesKey[] = ['ctl', 'atl', 'tsb'];
 
@@ -119,6 +126,7 @@ export function buildPmcChartModel(
       ctl: null, atl: null, tsb: null,
       ctlSolid: null, atlSolid: null, tsbSolid: null,
       ctlEst: null, atlEst: null, tsbEst: null,
+      isolated: false,
     };
     if (p) {
       for (const s of SERIES) {
@@ -128,6 +136,12 @@ export function buildPmcChartModel(
       }
     }
     return row;
+  });
+
+  const temSolido = (r: PmcChartRow | undefined) =>
+    r != null && (r.ctlSolid != null || r.atlSolid != null || r.tsbSolid != null);
+  rows.forEach((r, i) => {
+    r.isolated = temSolido(r) && !temSolido(rows[i - 1]) && !temSolido(rows[i + 1]);
   });
 
   const gapAreas: PmcGapArea[] = [];
@@ -147,5 +161,6 @@ export function buildPmcChartModel(
   ticks.reverse();
 
   const latest = [...rows].reverse().find((r) => r.ctl != null) ?? null;
-  return { rows, ticks, gapAreas, latest };
+  const hasValues = rows.some((r) => r.ctl != null || r.tss != null);
+  return { rows, ticks, gapAreas, latest, hasValues };
 }

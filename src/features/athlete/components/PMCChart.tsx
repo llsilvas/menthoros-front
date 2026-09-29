@@ -263,6 +263,19 @@ function SimpleChart({ rows, ticks, gapAreas, patternId, simpleMetric }: ChartBo
   );
 }
 
+interface IsolatedDotProps {
+  cx?: number;
+  cy?: number;
+  index?: number;
+  payload?: PmcChartRow;
+}
+
+/** Só o ponto sem vizinho (série esparsa) ganha marcador; o resto da linha segue sem pontos. */
+function isolatedDot({ cx, cy, index, payload }: IsolatedDotProps, color: string) {
+  if (!payload?.isolated || cx == null || cy == null) return <g key={`dot-${index}`} />;
+  return <circle key={`dot-${index}`} cx={cx} cy={cy} r={2.5} fill={color} />;
+}
+
 function AdvancedChart({ rows, ticks, gapAreas, patternId }: ChartBodyProps) {
   return (
     <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
@@ -296,7 +309,7 @@ function AdvancedChart({ rows, ticks, gapAreas, patternId }: ChartBodyProps) {
             name={s.label}
             stroke={s.color}
             strokeWidth={2}
-            dot={false}
+            dot={(props: IsolatedDotProps) => isolatedDot(props, s.color)}
             connectNulls={false}
             isAnimationActive={false}
           />
@@ -328,6 +341,8 @@ export function PMCChart({
   const mode = modeProp ?? internalMode;
   const activeRange = embedded ? range : internalRange;
   const model = useMemo(() => buildPmcChartModel(data, gaps, activeRange), [data, gaps, activeRange]);
+  // Há série, mas o período escolhido cai todo antes dela: sem isto, eixo e grade vazios.
+  const semValorNoPeriodo = data.length > 0 && !model.hasValues;
 
   function handleRangeChange(r: PMCRange) {
     setInternalRange(r);
@@ -353,9 +368,9 @@ export function PMCChart({
         </Box>
       )}
 
-      {unavailable ? (
+      {unavailable || semValorNoPeriodo ? (
         <Typography sx={{ fontSize: '0.85rem', color: surface[400], py: 4, textAlign: 'center' }}>
-          Dado indisponível
+          {unavailable ? 'Dado indisponível' : 'Sem dados no período selecionado'}
         </Typography>
       ) : mode === 'advanced' ? (
         <SeriesLegend latest={model.latest} />
@@ -366,7 +381,7 @@ export function PMCChart({
         </>
       )}
 
-      {unavailable ? null : mode === 'simple' ? (
+      {unavailable || semValorNoPeriodo ? null : mode === 'simple' ? (
         <SimpleChart rows={model.rows} ticks={model.ticks} gapAreas={model.gapAreas} patternId={patternId} simpleMetric={simpleMetric} />
       ) : (
         <AdvancedChart rows={model.rows} ticks={model.ticks} gapAreas={model.gapAreas} patternId={patternId} simpleMetric={simpleMetric} />

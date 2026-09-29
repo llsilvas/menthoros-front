@@ -78,4 +78,11 @@ describe('PMCChart', () => {
 
     expect(screen.getByText('Dado indisponível')).toBeInTheDocument();
   });
+
+  it('período sem nenhum valor diz isso, em vez de um gráfico vazio', () => {
+    const antiga = serie(30).map((p) => ({ ...p, date: subDays(p.date, 60) }));
+    render(<PMCChart data={antiga} range="4w" mode="advanced" embedded />);
+
+    expect(screen.getByText('Sem dados no período selecionado')).toBeInTheDocument();
+  });
 });

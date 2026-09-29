@@ -18,7 +18,7 @@ function serie(inicio: string, dias: number, pular: (i: number) => boolean = () 
 
 describe('buildPmcChartModel', () => {
   it('série vazia → modelo vazio', () => {
-    expect(buildPmcChartModel([], [], '12w', HOJE)).toEqual({ rows: [], ticks: [], gapAreas: [], latest: null });
+    expect(buildPmcChartModel([], [], '12w', HOJE)).toEqual({ rows: [], ticks: [], gapAreas: [], latest: null, hasValues: false });
   });
 
   it('filtra pelo período terminando em hoje', () => {
@@ -81,5 +81,27 @@ describe('buildPmcChartModel', () => {
   it('ticks semanais contados de hoje', () => {
     const m = buildPmcChartModel(serie('2026-09-01', 16), [], '4w', HOJE);
     expect(m.ticks[m.ticks.length - 1]).toBe(HOJE.getTime());
+  });
+
+  /**
+   * Codex (/qa 29/09): com série esparsa, um dia com ponto entre dois dias sem ponto não tem com
+   * quem se ligar — a linha contínua some. O ponto isolado é marcado para o gráfico desenhá-lo.
+   */
+  it('marca como isolado o ponto sem vizinho com valor', () => {
+    const m = buildPmcChartModel(serie('2026-09-20', 9, (i) => i % 2 === 1), [], '4w', HOJE);
+    const isolados = m.rows.filter((r) => r.isolated).map((r) => r.t);
+    expect(isolados).toContain(d('2026-09-22').getTime());
+    expect(m.rows.find((r) => r.t === d('2026-09-21').getTime())?.isolated).toBe(false);
+  });
+
+  it('ponto com vizinho não é isolado', () => {
+    const m = buildPmcChartModel(serie('2026-09-01', 28), [], '4w', HOJE);
+    expect(m.rows.some((r) => r.isolated)).toBe(false);
+  });
+
+  /** Codex (/qa 29/09): toda a série antes do período → gráfico sem valor, sem aviso. */
+  it('hasValues falso quando nenhum dia do período tem valor', () => {
+    expect(buildPmcChartModel(serie('2026-06-01', 30), [], '4w', HOJE).hasValues).toBe(false);
+    expect(buildPmcChartModel(serie('2026-06-01', 30), [], '6m', HOJE).hasValues).toBe(true);
   });
 });
