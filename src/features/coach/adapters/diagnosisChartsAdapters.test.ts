@@ -3,7 +3,6 @@ import { addDays, format, parseISO } from 'date-fns';
 import {
   adherenceTone,
   buildAdherenceTile,
-  weeklyAdherenceTone,
   assessAcwrConfidence,
   buildAdherenceWindow,
   buildWeeklyDiagnosis,
@@ -287,17 +286,6 @@ describe('buildAdherenceTile', () => {
 
   it('sem janela e sem roster → sem plano na janela', () => {
     expect(buildAdherenceTile(null, true, null)).toEqual({ value: '—', delta: 'Sem plano na janela', tone: 'neutral' });
-  });
-});
-
-describe('weeklyAdherenceTone', () => {
-  it('semana em curso fica neutra: os treinos que faltam ainda vão acontecer', () => {
-    expect(weeklyAdherenceTone({ adherence: 0, current: true })).toBe('neutral');
-  });
-
-  it('semana fechada usa o tom do tile', () => {
-    expect(weeklyAdherenceTone({ adherence: 50, current: false })).toBe('warning');
-    expect(weeklyAdherenceTone({ adherence: 90, current: false })).toBe('success');
   });
 });
 

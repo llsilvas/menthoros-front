@@ -7,9 +7,9 @@ import { font } from '../../../theme/theme.premium';
 import {
   INDISPONIVEL_ADESAO,
   INDISPONIVEL_CARGA,
+  adherenceTone,
   describeWeek,
   formatKmPt,
-  weeklyAdherenceTone,
   formatGapCaption,
 } from '../adapters/diagnosisChartsAdapters';
 import type { DiagnosisAvailability } from '../adapters/diagnosisChartsAdapters';
@@ -88,7 +88,7 @@ function WeekTooltip({ active, payload, availability }: WeekTooltipProps) {
   if (!row) return null;
   const texto = describeWeek(row, availability);
   const corAdesao =
-    availability.adherenceAvailable && row.adherence != null ? TONE_COLOR[weeklyAdherenceTone(row)] : surface[300];
+    availability.adherenceAvailable && row.adherence != null ? TONE_COLOR[adherenceTone(row.adherence)] : surface[300];
   return (
     <Box sx={{ bgcolor: surface[700], color: surface[50], borderRadius: 1.5, px: 1.25, py: 1, minWidth: 170 }}>
       <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, mb: 0.25 }}>{texto.title}</Typography>
@@ -176,7 +176,7 @@ export function WeeklyAdherenceLoadChart({ weeks, gaps, adherenceAvailable, pmcA
               <Tooltip content={<WeekTooltip availability={availability} />} cursor={{ fill: overlayWhite[4] }} />
               <Bar dataKey="adherence" maxBarSize={28} radius={[3, 3, 0, 0]} isAnimationActive={false}>
                 {rows.map((r) => (
-                  <Cell key={r.weekStart} fill={TONE_COLOR[weeklyAdherenceTone(r)]} />
+                  <Cell key={r.weekStart} fill={TONE_COLOR[adherenceTone(r.adherence ?? 0)]} />
                 ))}
                 <LabelList dataKey="adherenceLabel" position="top" fill={surface[200]} fontSize={11} fontFamily={font.text} />
               </Bar>

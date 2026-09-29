@@ -223,11 +223,6 @@ export function adherenceTone(percent: number): MetricTone {
   return 'danger';
 }
 
-/** Tom da barra semanal: a semana em curso fica neutra, porque os treinos que faltam ainda vão acontecer. */
-export function weeklyAdherenceTone(week: Pick<WeeklyDiagnosisPoint, 'adherence' | 'current'>): MetricTone {
-  return week.current ? 'neutral' : adherenceTone(week.adherence ?? 0);
-}
-
 export function formatGapCaption(gap: DataGap): string {
   const inicio = toLabel(parseISO(gap.start));
   const oque = gap.kind === 'SEM_TSS' ? 'Treinos sem carga (TSS) registrada' : 'Sem treinos registrados';
