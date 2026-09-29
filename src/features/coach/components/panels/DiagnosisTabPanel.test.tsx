@@ -1,7 +1,19 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { DiagnosisTabPanel } from './DiagnosisTabPanel';
-import type { CoachAthleteRow } from '../../types/CoachInbox';
+import type { CoachAthleteRow, WeeklyDiagnosisPoint } from '../../types/CoachInbox';
+
+const SEMANA: WeeklyDiagnosisPoint = {
+  weekStart: '2026-09-21',
+  label: '21/09',
+  tss: 120,
+  activeDays: 3,
+  planned: 4,
+  completed: 3,
+  adherence: 75,
+  noData: false,
+  current: true,
+};
 
 function atleta(over: Partial<CoachAthleteRow> = {}): CoachAthleteRow {
   return {
@@ -18,6 +30,9 @@ function atleta(over: Partial<CoachAthleteRow> = {}): CoachAthleteRow {
     statusLabel: 'No prazo',
     decision: 'PENDING',
     adherence: 62,
+    adherenceWindow: { percent: 62, completed: 10, planned: 16, weeks: 4 },
+    adherenceAvailable: true,
+    pmcAvailable: true,
     load7d: 40,
     loadDelta: -5,
     delay: 1,
@@ -25,6 +40,8 @@ function atleta(over: Partial<CoachAthleteRow> = {}): CoachAthleteRow {
     raceCalendar: [],
     loadTrend: [30, 35, 40],
     adherenceTrend: [70, 65, 62],
+    weeklyDiagnosis: [SEMANA],
+    dataGaps: [],
     notes: 'Aderência caiu 20% nas últimas duas semanas.',
     suggestedActions: ['Reduzir volume', 'Conversar sobre a rotina'],
     quickStats: {
@@ -34,6 +51,7 @@ function atleta(over: Partial<CoachAthleteRow> = {}): CoachAthleteRow {
       strain: 200,
       recovery: 75,
       acwr: 1.1,
+      acwrConfidence: { level: 'ALTA', reason: null },
       statusForma: null,
     },
     racePrediction: null,
@@ -69,7 +87,7 @@ describe('DiagnosisTabPanel', () => {
   it('mostra os sinais de atenção ANTES das tendências', () => {
     render(<DiagnosisTabPanel selected={atleta()} pmc={[]} onOpenPlan={vi.fn()} />);
 
-    expect(posicaoDe(/sinais de atenção/i)).toBeLessThan(posicaoDe(/tendência de carga/i));
+    expect(posicaoDe(/sinais de atenção/i)).toBeLessThan(posicaoDe(/adesão e carga por semana/i));
   });
 
   it('exibe o diagnóstico e as ações sugeridas do atleta', () => {
@@ -148,24 +166,61 @@ describe('DiagnosisTabPanel', () => {
     });
   });
 
-  describe('ordem das seções (task 2.12)', () => {
+  describe('adesão e carga por semana (fix-coach-diagnosis-charts)', () => {
     /**
-     * A sequência é situação → evidência → explicação → ação → detalhe. "Adesão" estava em 6º,
-     * atrás de dois charts de carga — sendo que ela é **a evidência** dos motivos de engajamento
-     * (`ADERENCIA`, `INATIVIDADE`), que são os mais comuns na fila. O coach lia o motivo no topo e
-     * precisava rolar até o fim para ver o número que o sustenta.
+     * "Tendência de carga" plotava CTL diário (condicionamento) com tooltip "Ponto N · Valor", e a
+     * adesão vinha em barras "S1…Sn" sem data. Os dois viraram um gráfico semanal único.
      */
-    it('adesão vem antes das tendências de carga', () => {
+    it('não exibe mais os cards antigos', () => {
       render(<DiagnosisTabPanel selected={atleta()} pmc={[]} onOpenPlan={vi.fn()} />);
 
-      expect(posicaoDe(/adesão nas últimas semanas/i)).toBeLessThan(posicaoDe(/tendência de carga/i));
+      expect(screen.queryByText(/tendência de carga/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/adesão nas últimas semanas/i)).not.toBeInTheDocument();
+    });
+
+    it('descreve a lacuna de registro em texto', () => {
+      render(
+        <DiagnosisTabPanel
+          selected={atleta({ dataGaps: [{ start: '2026-07-16', end: '2026-09-13', days: 60, open: false }] })}
+          pmc={[]}
+          onOpenPlan={vi.fn()}
+        />,
+      );
+
+      expect(screen.getByText('Sem treinos registrados de 16/07 a 13/09 (60 dias)')).toBeInTheDocument();
+    });
+
+    it('consulta de aderência que falhou aparece como indisponível, não como "sem plano"', () => {
+      render(<DiagnosisTabPanel selected={atleta({ adherenceAvailable: false })} pmc={[]} onOpenPlan={vi.fn()} />);
+
+      expect(screen.getByText('Adesão: dado indisponível')).toBeInTheDocument();
+    });
+
+    it('consulta de PMC que falhou: Forma (PMC) diz indisponível, não "sem histórico"', () => {
+      render(<DiagnosisTabPanel selected={atleta({ pmcAvailable: false })} pmc={[]} onOpenPlan={vi.fn()} />);
+
+      expect(screen.getByText('Dado indisponível')).toBeInTheDocument();
+      expect(screen.queryByText(/sem histórico de pmc/i)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('ordem das seções (task 2.12)', () => {
+    /**
+     * A sequência é situação → evidência → explicação → ação → detalhe. Adesão é **a evidência**
+     * dos motivos de engajamento (`ADERENCIA`, `INATIVIDADE`), os mais comuns na fila — vem antes
+     * da forma.
+     */
+    it('adesão e carga vêm antes da forma', () => {
+      render(<DiagnosisTabPanel selected={atleta()} pmc={[]} onOpenPlan={vi.fn()} />);
+
+      expect(posicaoDe(/adesão e carga por semana/i)).toBeLessThan(posicaoDe(/forma \(pmc\)/i));
     });
 
     /** "Próximo treino" é ação/contexto: vem depois da evidência, não antes dela. */
     it('próximo treino vem depois da adesão', () => {
       render(<DiagnosisTabPanel selected={atleta()} pmc={[]} onOpenPlan={vi.fn()} />);
 
-      expect(posicaoDe(/adesão nas últimas semanas/i)).toBeLessThan(posicaoDe(/próximo treino/i));
+      expect(posicaoDe(/adesão e carga por semana/i)).toBeLessThan(posicaoDe(/próximo treino/i));
     });
 
     it('a ordem completa é situação → evidência → ação → detalhe', () => {
@@ -174,9 +229,8 @@ describe('DiagnosisTabPanel', () => {
       const ordem = [
         posicaoDe(/sinais de atenção/i),
         posicaoDe(/carga aguda/i),
-        posicaoDe(/adesão nas últimas semanas/i),
-        posicaoDe(/tendência de carga/i),
-        posicaoDe(/tendência de forma/i),
+        posicaoDe(/adesão e carga por semana/i),
+        posicaoDe(/forma \(pmc\)/i),
         posicaoDe(/próximo treino/i),
         posicaoDe(/limiares inferidos/i),
       ];

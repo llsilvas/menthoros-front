@@ -195,3 +195,35 @@ export function formatGapCaption(gap: DataGap): string {
   if (gap.open) return `Sem treinos registrados desde ${inicio} (${gap.days} dias)`;
   return `Sem treinos registrados de ${inicio} a ${toLabel(parseISO(gap.end))} (${gap.days} dias)`;
 }
+
+/** Disponibilidade das consultas do perfil — falha de consulta não é ausência de dado. */
+export interface DiagnosisAvailability {
+  /** `false` quando a consulta de aderência falhou: ausência de entrada não significa "sem plano". */
+  adherenceAvailable: boolean;
+  /** `false` quando a consulta de PMC falhou: ausência de carga não significa zero. */
+  pmcAvailable: boolean;
+}
+
+export const INDISPONIVEL_ADESAO = 'Adesão: dado indisponível';
+export const INDISPONIVEL_CARGA = 'Carga: dado indisponível';
+
+/** Texto do tooltip de uma semana. */
+export function describeWeek(
+  week: WeeklyDiagnosisPoint,
+  { adherenceAvailable, pmcAvailable }: DiagnosisAvailability,
+): { title: string; adherence: string; load: string } {
+  const adherence = !adherenceAvailable
+    ? INDISPONIVEL_ADESAO
+    : week.adherence != null
+      ? `Adesão ${week.adherence}% (${week.completed} de ${week.planned})`
+      : 'Sem plano na semana';
+  // Conta dias, não treinos: o ponto PMC já é o agregado do dia.
+  const load = !pmcAvailable
+    ? INDISPONIVEL_CARGA
+    : week.noData
+      ? 'Sem treinos registrados'
+      : week.tss != null
+        ? `Carga ${week.tss} TSS · ${week.activeDays} ${week.activeDays === 1 ? 'dia com treino' : 'dias com treino'}`
+        : 'Antes do histórico';
+  return { title: `Semana de ${week.label}${week.current ? ' (atual)' : ''}`, adherence, load };
+}

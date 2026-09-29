@@ -1,12 +1,13 @@
-import { lazy, Suspense, useState } from 'react';
-import { Box, Button, Chip, CircularProgress, LinearProgress, Typography } from '@mui/material';
+import { lazy, Suspense, useMemo, useState } from 'react';
+import { Box, Button, Chip, CircularProgress, Typography } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import { parseISO } from 'date-fns';
 import { primary, semantic, surface } from '../../../../theme/tokens';
 import { DetailMetric } from '../DetailMetric';
-import { TrendCard } from '../TrendCard';
 import { SectionCard } from '../SectionCard';
 import { EmptyMetricState } from '../EmptyMetricState';
+import { WeeklyAdherenceLoadChart } from '../WeeklyAdherenceLoadChart';
 import { AIInsightCard } from '../AIInsightCard';
 import { PmcBackfillNotice } from '../PmcBackfillNotice';
 import { usePmcBackfillNotice } from '../../../../hooks/usePmcBackfillNotice';
@@ -16,7 +17,7 @@ import { ACTION_BTN_END_ICON_SX } from '../../../../shared/components/actionButt
 import { getAcuteLoadTone, getMonotonyTone, getStrainZone } from '../../adapters/coachInboxAdapters';
 import type { CoachAthleteRow } from '../../types/CoachInbox';
 import type { LimiareisInferidosDto } from '../../../../types/AtletaPerfilCoach';
-import type { PMCDataPoint, PMCRange } from '../../../athlete/components/PMCChart';
+import type { PMCDataPoint, PMCGap, PMCRange } from '../../../athlete/components/PMCChart';
 
 // Lazy como nas demais superfícies: mantém o recharts fora do chunk principal.
 const PMCChart = lazy(() => import('../../../athlete/components/PMCChart'));
@@ -100,16 +101,20 @@ export function DiagnosisTabPanel({ selected, attentionItem, attentionRecencyDay
   const statusColor = PLAN_STATUS_COLOR[selected.planStatus];
   const [pmcRange, setPmcRange] = useState<PMCRange>('12w');
   const { dismissed: pmcNoticeDismissed, dismiss: dismissPmcNotice } = usePmcBackfillNotice();
+  const pmcGaps = useMemo<PMCGap[]>(
+    () => selected.dataGaps.map((g) => ({ start: parseISO(g.start), end: parseISO(g.end) })),
+    [selected.dataGaps],
+  );
 
   /*
     Ordem: situação → evidência → explicação → ação → detalhe.
-      1. Sinais de atenção  — o porquê, que é como o coach decide
-      2. Métricas           — evidência imediata
-      3. Adesão             — evidência dos motivos de engajamento (ADERENCIA/INATIVIDADE), os mais
-                              comuns na fila; estava em 6º, atrás de dois charts de carga
-      4-5. Tendências       — evidência de médio prazo
-      6. Próximo treino     — ação/contexto, depois da evidência que a justifica
-      7. Limiares           — detalhe de referência
+      1. Sinais de atenção       — o porquê, que é como o coach decide
+      2. Métricas                — evidência imediata
+      3. Adesão e carga/semana   — evidência dos motivos de engajamento (ADERENCIA/INATIVIDADE), os
+                                   mais comuns na fila; adesão e carga no MESMO eixo semanal
+      4. Forma (PMC)             — evidência de médio prazo
+      5. Próximo treino          — ação/contexto, depois da evidência que a justifica
+      6. Limiares                — detalhe de referência
   */
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 0.9, sm: 1.05, lg: 1.25, xl: 1.5 } }}>
@@ -180,47 +185,24 @@ export function DiagnosisTabPanel({ selected, attentionItem, attentionRecencyDay
         />
       )}
 
-      <SectionCard title="Adesão nas últimas semanas">
-        {selected.adherenceTrend.length === 0 ? (
-          <Typography sx={{ fontSize: '0.82rem', color: surface[400] }}>Sem dados de adesão.</Typography>
-        ) : (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 0.75, sm: 0.85, lg: 1, xl: 1.2 } }}>
-            {selected.adherenceTrend.map((value, index) => (
-              <Box key={`${selected.id}-adherence-${index}`} sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-                <Typography sx={{ width: 40, fontSize: '0.6875rem', color: surface[400] }}>S{index + 1}</Typography>
-                <LinearProgress
-                  variant="determinate"
-                  value={value}
-                  sx={{
-                    flex: 1,
-                    height: 5,
-                    borderRadius: 999,
-                    bgcolor: `${surface[0]}14`,
-                    '& .MuiLinearProgress-bar': {
-                      bgcolor: value >= 85 ? semantic.success[500] : value >= 70 ? primary[500] : semantic.warning[500],
-                      borderRadius: 999,
-                    },
-                  }}
-                />
-                <Typography sx={{ width: 36, textAlign: 'right', fontSize: '0.6875rem', color: surface[200], fontWeight: 700 }}>{value}%</Typography>
-              </Box>
-            ))}
-          </Box>
-        )}
+      {/*
+        Substitui "Adesão nas últimas semanas" (barras S1…Sn sem data) e "Tendência de carga" (que
+        plotava CTL diário — condicionamento — com tooltip "Ponto N · Valor").
+      */}
+      <SectionCard title="Adesão e carga por semana">
+        <WeeklyAdherenceLoadChart
+          weeks={selected.weeklyDiagnosis}
+          gaps={selected.dataGaps}
+          adherenceAvailable={selected.adherenceAvailable}
+          pmcAvailable={selected.pmcAvailable}
+        />
       </SectionCard>
 
-      <SectionCard title="Tendência de carga">
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', mb: 1 }}>
-          <Typography sx={{ fontSize: '0.8rem', color: (selected.loadDelta ?? 0) >= 0 ? semantic.success[500] : semantic.danger[500], fontWeight: 700 }}>
-            {(selected.loadDelta ?? 0) >= 0 ? '+' : ''}{(selected.loadDelta ?? 0)}% vs semana anterior
-          </Typography>
-        </Box>
-        <TrendCard data={selected.loadTrend} />
-      </SectionCard>
-
-      <SectionCard title="Tendência de forma (PMC)">
+      <SectionCard title="Forma (PMC)">
         {pmc.length > 0 && !pmcNoticeDismissed && <PmcBackfillNotice onDismiss={dismissPmcNotice} />}
-        {pmc.length === 0 ? (
+        {!selected.pmcAvailable ? (
+          <Typography sx={{ fontSize: '0.82rem', color: surface[400] }}>Dado indisponível</Typography>
+        ) : pmc.length === 0 ? (
           <Typography sx={{ fontSize: '0.82rem', color: surface[400] }}>
             Sem histórico de PMC para exibir ainda.
           </Typography>
@@ -232,7 +214,15 @@ export function DiagnosisTabPanel({ selected, attentionItem, attentionRecencyDay
               </Box>
             }
           >
-            <PMCChart data={pmc} range={pmcRange} defaultMode="advanced" onRangeChange={setPmcRange} />
+            <PMCChart
+              data={pmc}
+              range={pmcRange}
+              defaultMode="advanced"
+              onRangeChange={setPmcRange}
+              gaps={pmcGaps}
+              simpleMetric="forma"
+              embedded
+            />
           </Suspense>
         )}
       </SectionCard>

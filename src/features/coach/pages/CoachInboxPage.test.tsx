@@ -241,18 +241,18 @@ describe('CoachInboxPage', () => {
     expect(screen.getByText(/Carga aguda/i)).toBeInTheDocument();
     expect(screen.getByText(/Monotonia/i)).toBeInTheDocument();
     expect(screen.getByText(/Strain/i)).toBeInTheDocument();
-    expect(screen.getByText(/Adesão nas últimas semanas/i)).toBeInTheDocument();
+    expect(screen.getByText(/Adesão e carga por semana/i)).toBeInTheDocument();
     expect(screen.getByText(/Sinais de atenção/i)).toBeInTheDocument();
     // conteúdo global do dashboard não aparece no drill-down
     expect(screen.queryByText(/Top atletas/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Treinos da semana/i)).not.toBeInTheDocument();
   });
 
-  it('mostra a tendência de forma (PMC) junto da tendência de carga; vazio sem série', () => {
+  it('mostra a Forma (PMC) junto de adesão e carga por semana; vazio sem série', () => {
     renderPage();
 
-    expect(screen.getByText(/Tendência de carga/i)).toBeInTheDocument();
-    expect(screen.getByText(/Tendência de forma \(PMC\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Adesão e carga por semana/i)).toBeInTheDocument();
+    expect(screen.getByText(/Forma \(PMC\)/i)).toBeInTheDocument();
     // mock default sem série → estado vazio, sem montar o chart (recharts)
     expect(screen.getByText(/Sem histórico de PMC/i)).toBeInTheDocument();
     expect(screen.queryByText('stub-pmc-chart')).not.toBeInTheDocument();
