@@ -19,19 +19,27 @@ import { glassSx } from '../../../theme/tokens';
 import { overlayWhite } from '../../../theme/overlays';
 import { FAIXA_APRESENTACAO } from '../../../types/FaixaTsb';
 import type { MetricTone } from '../../../types/FaixaTsb';
-import { buildPmcChartModel } from '../adapters/pmcChartModel';
+import { buildPmcChartModel, DEFAULT_RANGES } from '../adapters/pmcChartModel';
+import { PmcChartControls } from './PmcChartControls';
+import type { PMCViewMode } from './PmcChartControls';
 import type { PMCDataPoint, PMCGap, PMCRange, PmcChartRow, PmcGapArea, PmcSeriesKey } from '../adapters/pmcChartModel';
 
 export type { PMCDataPoint, PMCGap, PMCRange } from '../adapters/pmcChartModel';
+export type { PMCViewMode } from './PmcChartControls';
 
 export interface PMCChartProps {
   data: PMCDataPoint[];
   range: PMCRange;
-  defaultMode?: 'simple' | 'advanced';
+  defaultMode?: PMCViewMode;
+  /** Modo controlado pelo pai — com `embedded`, que não desenha os controles. */
+  mode?: PMCViewMode;
   onRangeChange?: (range: PMCRange) => void;
   /** Períodos sem treinos registrados: área hachurada + linhas tracejadas. */
   gaps?: PMCGap[];
-  /** Sem vidro nem título próprio — para viver dentro de um `SectionCard`. */
+  /**
+   * Dentro de um card do Diagnóstico: sem vidro, título nem controles. Modo e período vêm do pai
+   * (`mode`, `range`), que desenha `PmcChartControls` no cabeçalho do card.
+   */
   embedded?: boolean;
   /** O que o modo Simples mostra: carga diária (TSS) ou Forma (TSB) colorida pela faixa. */
   simpleMetric?: 'tss' | 'forma';
@@ -40,7 +48,7 @@ export interface PMCChartProps {
   unavailable?: boolean;
 }
 
-type ViewMode = 'simple' | 'advanced';
+type ViewMode = PMCViewMode;
 
 // ── Chart tokens ──────────────────────────────────────────────────────────────
 
@@ -50,20 +58,6 @@ const CHART_TOOLTIP_BG = surface[700];
 const CHART_TOOLTIP_COLOR = surface[50];
 const CHART_HEIGHT = 240;
 
-const RANGE_LABELS: Record<PMCRange, string> = {
-  '4w': '4s',
-  '8w': '8s',
-  '12w': '12s',
-  '6m': '6m',
-  '1y': '1a',
-};
-
-/**
- * Todas as telas recebem a série padrão do backend (90 dias) e nenhuma refaz a consulta ao trocar o
- * período; oferecer 6m/1a mostraria meses sem dado como se o atleta não tivesse treinado. Uma tela
- * que buscar por período passa `ranges` explicitamente.
- */
-const DEFAULT_RANGES: PMCRange[] = ['4w', '8w', '12w'];
 const NO_GAPS: PMCGap[] = [];
 
 /**
@@ -100,35 +94,27 @@ function toneOf(row: PmcChartRow): MetricTone {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-interface ToggleButtonProps {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-  small?: boolean;
-}
+const ORDEM_TONS: MetricTone[] = ['success', 'neutral', 'warning', 'danger'];
 
-function ToggleButton({ label, active, onClick, small = false }: ToggleButtonProps) {
+/**
+ * Legenda do modo Simples "forma": as 9 faixas do backend agrupadas pelo tom de
+ * `FAIXA_APRESENTACAO` — derivada do mapa, para não divergir dele.
+ */
+const FORMA_LEGEND = ORDEM_TONS.map((tone) => {
+  const labels = Object.values(FAIXA_APRESENTACAO).filter((f) => f.tone === tone).map((f) => f.label);
+  const texto = labels.map((l, i) => (i === 0 ? l : l.toLowerCase())).join(' · ');
+  return { tone, label: texto };
+}).filter((l) => l.label.length > 0);
+
+function FormaLegend() {
   return (
-    <Box
-      component="button"
-      type="button"
-      aria-pressed={active}
-      onClick={onClick}
-      sx={{
-        px: small ? 1 : 1.5,
-        py: small ? 0.25 : 0.5,
-        fontSize: small ? '0.72rem' : '0.78rem',
-        fontWeight: active ? 700 : 500,
-        cursor: 'pointer',
-        border: 'none',
-        borderRadius: 1,
-        bgcolor: active ? surface[700] : 'transparent',
-        color: active ? surface[50] : surface[400],
-        transition: 'all 0.15s ease',
-        '&:hover': { bgcolor: active ? surface[700] : surface[800], color: surface[50] },
-      }}
-    >
-      {label}
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: { xs: 1.25, md: 2 }, mb: 1.5 }}>
+      {FORMA_LEGEND.map((l) => (
+        <Box key={l.tone} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+          <Box sx={{ width: 10, height: 10, borderRadius: 0.5, bgcolor: TONE_COLOR[l.tone] }} />
+          <Typography sx={{ fontSize: '0.75rem', color: surface[300] }}>{l.label}</Typography>
+        </Box>
+      ))}
     </Box>
   );
 }
@@ -331,6 +317,7 @@ export function PMCChart({
   data,
   range,
   defaultMode = 'simple',
+  mode: modeProp,
   onRangeChange,
   gaps = NO_GAPS,
   embedded = false,
@@ -338,19 +325,23 @@ export function PMCChart({
   ranges = DEFAULT_RANGES,
   unavailable = false,
 }: PMCChartProps) {
-  const [mode, setMode] = useState<ViewMode>(defaultMode);
+  const [internalMode, setInternalMode] = useState<ViewMode>(defaultMode);
   const [internalRange, setInternalRange] = useState<PMCRange>(range);
   const patternId = `pmc-gap-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
 
-  const model = useMemo(() => buildPmcChartModel(data, gaps, internalRange), [data, gaps, internalRange]);
+  // Embutido, o pai controla modo e período (os controles estão no cabeçalho do card).
+  const mode = modeProp ?? internalMode;
+  const activeRange = embedded ? range : internalRange;
+  const model = useMemo(() => buildPmcChartModel(data, gaps, activeRange), [data, gaps, activeRange]);
 
   function handleRangeChange(r: PMCRange) {
     setInternalRange(r);
     onRangeChange?.(r);
   }
 
+  // Embutido, o subtítulo do card já diz o que o modo mostra.
   const subLabel =
-    mode === 'advanced'
+    mode === 'advanced' || embedded
       ? null
       : simpleMetric === 'forma'
         ? 'Forma diária (TSB), colorida pela faixa'
@@ -358,22 +349,14 @@ export function PMCChart({
 
   const body = (
     <>
-      <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1.5, mb: 2, justifyContent: embedded ? 'flex-end' : undefined }}>
-        {embedded ? null : (
+      {embedded ? null : (
+        <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1.5, mb: 2 }}>
           <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: surface[50], flex: 1, minWidth: '120px' }}>
             Desempenho
           </Typography>
-        )}
-        <Box sx={{ display: 'flex', bgcolor: `${surface[0]}0A`, borderRadius: 1, p: 0.25, gap: 0.25 }}>
-          <ToggleButton label="Simples" active={mode === 'simple'} onClick={() => setMode('simple')} />
-          <ToggleButton label="Avançado" active={mode === 'advanced'} onClick={() => setMode('advanced')} />
+          <PmcChartControls mode={mode} onModeChange={setInternalMode} range={internalRange} onRangeChange={handleRangeChange} ranges={ranges} />
         </Box>
-        <Box sx={{ display: 'flex', bgcolor: `${surface[0]}0A`, borderRadius: 1, p: 0.25, gap: 0.25 }}>
-          {ranges.map((r) => (
-            <ToggleButton key={r} label={RANGE_LABELS[r]} active={internalRange === r} onClick={() => handleRangeChange(r)} small />
-          ))}
-        </Box>
-      </Box>
+      )}
 
       {unavailable ? (
         <Typography sx={{ fontSize: '0.85rem', color: surface[400], py: 4, textAlign: 'center' }}>
@@ -382,7 +365,10 @@ export function PMCChart({
       ) : mode === 'advanced' ? (
         <SeriesLegend latest={model.latest} />
       ) : (
-        <Typography sx={{ fontSize: '0.75rem', color: surface[500], mb: 1.5 }}>{subLabel}</Typography>
+        <>
+          {subLabel ? <Typography sx={{ fontSize: '0.75rem', color: surface[500], mb: 1.5 }}>{subLabel}</Typography> : null}
+          {simpleMetric === 'forma' ? <FormaLegend /> : null}
+        </>
       )}
 
       {unavailable ? null : mode === 'simple' ? (

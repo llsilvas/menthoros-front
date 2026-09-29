@@ -56,11 +56,21 @@ describe('PMCChart', () => {
     expect(screen.getByRole('button', { name: 'Avançado' })).toBeInTheDocument();
   });
 
-  it('embutido num SectionCard não repete o título', () => {
-    render(<PMCChart data={serie(90)} range="12w" embedded />);
+  /** Embutido no card do Diagnóstico: o card desenha título e controles no cabeçalho. */
+  it('embutido não repete título nem controles; modo e período vêm do pai', () => {
+    render(<PMCChart data={serie(90)} range="4w" mode="advanced" embedded />);
 
     expect(screen.queryByText('Desempenho')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Avançado' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Avançado' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '4s' })).not.toBeInTheDocument();
+    expect(screen.getByText('Condicionamento')).toBeInTheDocument();
+  });
+
+  it('modo Simples de forma mostra a legenda das faixas, agrupadas pelo tom do backend', () => {
+    render(<PMCChart data={serie(30)} range="4w" mode="simple" simpleMetric="forma" embedded />);
+
+    expect(screen.getByText('Forma ideal · descansado')).toBeInTheDocument();
+    expect(screen.getByText('Fadiga excessiva · fadiga alta')).toBeInTheDocument();
   });
 
   it('consulta que falhou mostra "Dado indisponível", não um gráfico vazio', () => {

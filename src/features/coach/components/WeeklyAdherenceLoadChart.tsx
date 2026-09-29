@@ -45,6 +45,20 @@ const TONE_LEGEND: Array<{ tone: MetricTone; label: string }> = [
   { tone: 'danger', label: '< 40%' },
 ];
 
+/** Legenda da escala de adesão — vai na ação do card, à direita do título. */
+export function AdherenceToneLegend() {
+  return (
+    <Box role="list" aria-label="Escala de adesão" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
+      {TONE_LEGEND.map((l) => (
+        <Box key={l.tone} role="listitem" sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
+          <Box sx={{ width: 10, height: 10, borderRadius: 0.5, bgcolor: TONE_COLOR[l.tone] }} />
+          <Typography sx={{ fontSize: '0.72rem', color: surface[300] }}>{l.label}</Typography>
+        </Box>
+      ))}
+    </Box>
+  );
+}
+
 /** Semanas consecutivas sem registro viram uma única área hachurada. */
 function noDataRuns(weeks: WeeklyDiagnosisPoint[]): Array<{ x1: string; x2: string }> {
   const runs: Array<{ x1: string; x2: string }> = [];
@@ -142,14 +156,6 @@ export function WeeklyAdherenceLoadChart({ weeks, gaps, adherenceAvailable, pmcA
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, justifyContent: 'flex-end' }}>
-        {TONE_LEGEND.map((l) => (
-          <Box key={l.tone} sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
-            <Box sx={{ width: 10, height: 10, borderRadius: 0.5, bgcolor: TONE_COLOR[l.tone] }} />
-            <Typography sx={{ fontSize: '0.72rem', color: surface[300] }}>{l.label}</Typography>
-          </Box>
-        ))}
-      </Box>
 
       <Box>
         <PanelLabel>Adesão ao plano</PanelLabel>

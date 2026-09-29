@@ -3,6 +3,13 @@ import type { FaixaTsbStatus } from '../../../types/FaixaTsb';
 
 export type PMCRange = '4w' | '8w' | '12w' | '6m' | '1y';
 
+/**
+ * Todas as telas recebem a série padrão do backend (90 dias) e nenhuma refaz a consulta ao trocar o
+ * período; oferecer 6m/1a mostraria meses sem dado como se o atleta não tivesse treinado. Uma tela
+ * que buscar por período passa `ranges` explicitamente.
+ */
+export const DEFAULT_RANGES: PMCRange[] = ['4w', '8w', '12w'];
+
 export interface PMCDataPoint {
   date: Date;
   tss: number;

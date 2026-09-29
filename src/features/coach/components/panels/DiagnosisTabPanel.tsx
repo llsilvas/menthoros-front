@@ -7,19 +7,29 @@ import { content, primary, semantic, surface } from '../../../../theme/tokens';
 import { KpiStrip } from '../KpiStrip';
 import { SectionCard } from '../SectionCard';
 import { EmptyMetricState } from '../EmptyMetricState';
-import { WeeklyAdherenceLoadChart } from '../WeeklyAdherenceLoadChart';
+import { AdherenceToneLegend, WeeklyAdherenceLoadChart } from '../WeeklyAdherenceLoadChart';
+import { DiagnosisChartCard } from '../DiagnosisChartCard';
+import { PmcChartControls } from '../../../athlete/components/PmcChartControls';
+import type { PMCViewMode } from '../../../athlete/components/PmcChartControls';
 import { AIInsightCard } from '../AIInsightCard';
 import { PmcBackfillNotice } from '../PmcBackfillNotice';
 import { usePmcBackfillNotice } from '../../../../hooks/usePmcBackfillNotice';
 import type { CoachAttentionItem } from '../../../../types/Coach';
 import { ACTION_BTN_END_ICON_SX } from '../../../../shared/components/actionButtonSx';
 import { buildDiagnosisMetrics } from '../../adapters/diagnosisMetricsAdapters';
+import { DIAGNOSIS_WEEKS } from '../../adapters/diagnosisChartsAdapters';
 import type { CoachAthleteRow } from '../../types/CoachInbox';
 import type { LimiareisInferidosDto } from '../../../../types/AtletaPerfilCoach';
 import type { PMCDataPoint, PMCGap, PMCRange } from '../../../athlete/components/PMCChart';
 
-// Lazy como nas demais superfícies: mantém o recharts fora do chunk principal.
+// Lazy como nas demais superfícies: mantém o recharts fora do chunk principal. Os controles do PMC
+// vivem num arquivo sem recharts, para o cabeçalho do card não puxar o gráfico junto.
 const PMCChart = lazy(() => import('../../../athlete/components/PMCChart'));
+
+const PMC_SUBTITLE: Record<PMCViewMode, string> = {
+  advanced: 'Condicionamento, cansaço e forma diários',
+  simple: 'Forma diária (TSB), colorida pela faixa',
+};
 
 const CONFIANCA_LABEL: Record<'ALTA' | 'MEDIA' | 'BAIXA', string> = {
   ALTA:  'Alta confiança',
@@ -99,6 +109,9 @@ export function DiagnosisTabPanel({ selected, attentionItem, attentionRecencyDay
   const metrics = buildDiagnosisMetrics(selected);
   const statusColor = PLAN_STATUS_COLOR[selected.planStatus];
   const [pmcRange, setPmcRange] = useState<PMCRange>('12w');
+  const [pmcMode, setPmcMode] = useState<PMCViewMode>('advanced');
+  const kmMode = selected.weeklyDiagnosis.some((w) => w.distanceKm != null);
+  const weeksSubtitle = `Últimas ${DIAGNOSIS_WEEKS} semanas · acima: adesão (treinos feitos / planejados) · abaixo: carga em ${kmMode ? 'km' : 'TSS'}`;
   const { dismissed: pmcNoticeDismissed, dismiss: dismissPmcNotice } = usePmcBackfillNotice();
   const pmcGaps = useMemo<PMCGap[]>(
     () => selected.dataGaps.map((g) => ({ start: parseISO(g.start), end: parseISO(g.end) })),
@@ -169,16 +182,28 @@ export function DiagnosisTabPanel({ selected, attentionItem, attentionRecencyDay
         Substitui "Adesão nas últimas semanas" (barras S1…Sn sem data) e "Tendência de carga" (que
         plotava CTL diário — condicionamento — com tooltip "Ponto N · Valor").
       */}
-      <SectionCard title="Adesão e carga por semana">
+      <DiagnosisChartCard
+        title="Adesão e carga por semana"
+        subtitle={weeksSubtitle}
+        action={selected.adherenceAvailable && selected.weeklyDiagnosis.some((w) => w.adherence != null) ? <AdherenceToneLegend /> : undefined}
+      >
         <WeeklyAdherenceLoadChart
           weeks={selected.weeklyDiagnosis}
           gaps={selected.dataGaps}
           adherenceAvailable={selected.adherenceAvailable}
           pmcAvailable={selected.pmcAvailable}
         />
-      </SectionCard>
+      </DiagnosisChartCard>
 
-      <SectionCard title="Forma (PMC)">
+      <DiagnosisChartCard
+        title="Forma (PMC)"
+        subtitle={PMC_SUBTITLE[pmcMode]}
+        action={
+          selected.pmcAvailable && pmc.length > 0 ? (
+            <PmcChartControls mode={pmcMode} onModeChange={setPmcMode} range={pmcRange} onRangeChange={setPmcRange} />
+          ) : undefined
+        }
+      >
         {pmc.length > 0 && !pmcNoticeDismissed && <PmcBackfillNotice onDismiss={dismissPmcNotice} />}
         {!selected.pmcAvailable ? (
           <Typography sx={{ fontSize: '0.82rem', color: surface[400] }}>Dado indisponível</Typography>
@@ -194,18 +219,10 @@ export function DiagnosisTabPanel({ selected, attentionItem, attentionRecencyDay
               </Box>
             }
           >
-            <PMCChart
-              data={pmc}
-              range={pmcRange}
-              defaultMode="advanced"
-              onRangeChange={setPmcRange}
-              gaps={pmcGaps}
-              simpleMetric="forma"
-              embedded
-            />
+            <PMCChart data={pmc} range={pmcRange} mode={pmcMode} gaps={pmcGaps} simpleMetric="forma" embedded />
           </Suspense>
         )}
-      </SectionCard>
+      </DiagnosisChartCard>
 
 
 

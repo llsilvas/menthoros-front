@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { WeeklyAdherenceLoadChart } from './WeeklyAdherenceLoadChart';
+import { render, screen, within } from '@testing-library/react';
+import { AdherenceToneLegend, WeeklyAdherenceLoadChart } from './WeeklyAdherenceLoadChart';
 import { describeWeek } from '../adapters/diagnosisChartsAdapters';
 import type { WeeklyDiagnosisPoint } from '../types/CoachInbox';
 
@@ -34,11 +34,17 @@ describe('WeeklyAdherenceLoadChart', () => {
     expect(screen.getByText('Sem plano nem carga nas últimas 8 semanas.')).toBeInTheDocument();
   });
 
-  it('com dados, mostra os dois painéis e a legenda de tons', () => {
+  it('com dados, mostra os dois painéis; a legenda fica no cabeçalho do card, fora do gráfico', () => {
     render(<WeeklyAdherenceLoadChart weeks={[semana()]} gaps={[]} {...DISPONIVEL} />);
     expect(screen.getByText(/adesão ao plano/i)).toBeInTheDocument();
     expect(screen.getByText(/carga semanal \(tss\)/i)).toBeInTheDocument();
-    for (const faixa of ['≥ 90%', '70–89%', '40–69%', '< 40%']) expect(screen.getByText(faixa)).toBeInTheDocument();
+    expect(screen.queryByText('≥ 90%')).not.toBeInTheDocument();
+  });
+
+  it('legenda da escala de adesão em 4 faixas', () => {
+    render(<AdherenceToneLegend />);
+    const itens = within(screen.getByRole('list', { name: 'Escala de adesão' })).getAllByRole('listitem');
+    expect(itens.map((i) => i.textContent)).toEqual(['≥ 90%', '70–89%', '40–69%', '< 40%']);
   });
 
   /** A lacuna precisa ser dita em texto: o gráfico sozinho não é lido por leitor de tela. */

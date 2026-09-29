@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { DiagnosisTabPanel } from './DiagnosisTabPanel';
 import type { CoachAthleteRow, WeeklyDiagnosisPoint } from '../../types/CoachInbox';
 
@@ -226,6 +227,42 @@ describe('DiagnosisTabPanel', () => {
 
       expect(screen.getByText('Dado indisponível')).toBeInTheDocument();
       expect(screen.queryByText(/sem histórico de pmc/i)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('cards dos gráficos no padrão da Proposta (patch v2)', () => {
+    const pmc = Array.from({ length: 30 }, (_, i) => ({ date: new Date(2026, 8, i - 1), tss: 50, ctl: 40, atl: 45, tsb: -5 }));
+
+    it('gráfico semanal: subtítulo diz o que mede e a unidade; legenda da escala no cabeçalho', () => {
+      render(<DiagnosisTabPanel selected={atleta()} pmc={[]} onOpenPlan={vi.fn()} />);
+
+      const card = within(screen.getByRole('region', { name: 'Adesão e carga por semana' }));
+      expect(card.getByText('Últimas 8 semanas · acima: adesão (treinos feitos / planejados) · abaixo: carga em TSS')).toBeInTheDocument();
+      expect(card.getByRole('list', { name: 'Escala de adesão' })).toBeInTheDocument();
+    });
+
+    it('com km do backend, o subtítulo diz km', () => {
+      const semanas = atleta().weeklyDiagnosis.map((w) => ({ ...w, distanceKm: 12 }));
+      render(<DiagnosisTabPanel selected={atleta({ weeklyDiagnosis: semanas })} pmc={[]} onOpenPlan={vi.fn()} />);
+
+      expect(screen.getByText(/abaixo: carga em km$/)).toBeInTheDocument();
+    });
+
+    it('PMC: modo e período no cabeçalho do card; subtítulo acompanha o modo', async () => {
+      render(<DiagnosisTabPanel selected={atleta()} pmc={pmc} onOpenPlan={vi.fn()} />);
+
+      const card = within(screen.getByRole('region', { name: 'Forma (PMC)' }));
+      expect(card.getByText('Condicionamento, cansaço e forma diários')).toBeInTheDocument();
+      await userEvent.click(card.getByRole('button', { name: 'Simples' }));
+      expect(card.getByText('Forma diária (TSB), colorida pela faixa')).toBeInTheDocument();
+      const periodos = within(card.getByRole('group', { name: 'Período' }));
+      expect(periodos.getAllByRole('button').map((b) => b.textContent)).toEqual(['4s', '8s', '12s']);
+    });
+
+    it('PMC sem série: sem controles', () => {
+      render(<DiagnosisTabPanel selected={atleta()} pmc={[]} onOpenPlan={vi.fn()} />);
+
+      expect(within(screen.getByRole('region', { name: 'Forma (PMC)' })).queryByRole('button')).not.toBeInTheDocument();
     });
   });
 
