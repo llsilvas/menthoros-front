@@ -239,10 +239,13 @@ describe('assessAcwrConfidence', () => {
 });
 
 describe('adherenceTone', () => {
-  it('usa os limiares do tile', () => {
-    expect(adherenceTone(85)).toBe('success');
+  it('escala da Proposta em 4 faixas (BVA)', () => {
+    expect(adherenceTone(90)).toBe('success');
+    expect(adherenceTone(89)).toBe('neutral');
     expect(adherenceTone(70)).toBe('neutral');
     expect(adherenceTone(69)).toBe('warning');
+    expect(adherenceTone(40)).toBe('warning');
+    expect(adherenceTone(39)).toBe('danger');
   });
 });
 
@@ -271,11 +274,11 @@ describe('buildAdherenceTile', () => {
   const janela = { percent: 31, completed: 5, planned: 16, weeks: 4 };
 
   it('janela do perfil tem prioridade sobre o roster', () => {
-    expect(buildAdherenceTile(janela, true, 90)).toEqual({ value: '31%', delta: '5 de 16 treinos planejados', tone: 'warning' });
+    expect(buildAdherenceTile(janela, true, 90)).toEqual({ value: '31%', delta: '5 de 16 treinos planejados', tone: 'danger' });
   });
 
   it('sem janela, usa o roster (perfil ainda não carregou)', () => {
-    expect(buildAdherenceTile(null, true, 88)).toEqual({ value: '88%', delta: 'Últimas 4 semanas', tone: 'success' });
+    expect(buildAdherenceTile(null, true, 88)).toEqual({ value: '88%', delta: 'Últimas 4 semanas', tone: 'neutral' });
   });
 
   it('consulta que falhou → indisponível, mesmo com roster', () => {

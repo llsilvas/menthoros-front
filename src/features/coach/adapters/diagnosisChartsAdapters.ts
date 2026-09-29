@@ -217,9 +217,10 @@ export function assessAcwrConfidence(pmc: PmcPontoRaw[], gaps: DataGap[], agora:
 
 /** Tom da aderência — o mesmo para o tile e para as barras. */
 export function adherenceTone(percent: number): MetricTone {
-  if (percent >= 85) return 'success';
+  if (percent >= 90) return 'success';
   if (percent >= 70) return 'neutral';
-  return 'warning';
+  if (percent >= 40) return 'warning';
+  return 'danger';
 }
 
 /** Tom da barra semanal: a semana em curso fica neutra, porque os treinos que faltam ainda vão acontecer. */

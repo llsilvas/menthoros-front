@@ -38,7 +38,7 @@ describe('WeeklyAdherenceLoadChart', () => {
     render(<WeeklyAdherenceLoadChart weeks={[semana()]} gaps={[]} {...DISPONIVEL} />);
     expect(screen.getByText(/adesão ao plano/i)).toBeInTheDocument();
     expect(screen.getByText(/carga semanal \(tss\)/i)).toBeInTheDocument();
-    expect(screen.getByText('≥ 85%')).toBeInTheDocument();
+    for (const faixa of ['≥ 90%', '70–89%', '40–69%', '< 40%']) expect(screen.getByText(faixa)).toBeInTheDocument();
   });
 
   /** A lacuna precisa ser dita em texto: o gráfico sozinho não é lido por leitor de tela. */

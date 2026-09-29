@@ -41,7 +41,7 @@ describe('buildAthleteKpis', () => {
   });
 
   it('aderência mostra a conta da janela, no tom das barras', () => {
-    expect(porChave(atleta()).adherence).toMatchObject({ value: '31%', detail: '5 de 16 treinos planejados', tone: 'warning' });
+    expect(porChave(atleta()).adherence).toMatchObject({ value: '31%', detail: '5 de 16 treinos planejados', tone: 'danger' });
   });
 
   it('aderência sem janela e sem perfil cai no roster', () => {

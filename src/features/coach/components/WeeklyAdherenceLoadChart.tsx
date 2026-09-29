@@ -37,10 +37,12 @@ const TONE_COLOR: Record<MetricTone, string> = {
   danger: semantic.danger[500],
 };
 
+// Escala da Proposta. 70–89% era lime lá; lime é reservado a marca/ação, então fica neutro claro.
 const TONE_LEGEND: Array<{ tone: MetricTone; label: string }> = [
-  { tone: 'success', label: '≥ 85%' },
-  { tone: 'neutral', label: '70–84%' },
-  { tone: 'warning', label: '< 70%' },
+  { tone: 'success', label: '≥ 90%' },
+  { tone: 'neutral', label: '70–89%' },
+  { tone: 'warning', label: '40–69%' },
+  { tone: 'danger', label: '< 40%' },
 ];
 
 /** Semanas consecutivas sem registro viram uma única área hachurada. */
