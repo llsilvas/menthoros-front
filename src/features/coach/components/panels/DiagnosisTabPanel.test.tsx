@@ -268,6 +268,15 @@ describe('DiagnosisTabPanel', () => {
       const card = within(screen.getByRole('region', { name: 'Limiares inferidos' }));
       expect(card.getByText('Estimados pelos treinos dos últimos 30 dias')).toBeInTheDocument();
     });
+
+    /** O backend já formata com a unidade ("4:35/km"); o front repetia " /km". */
+    it('pace limiar sem unidade duplicada', () => {
+      render(<DiagnosisTabPanel selected={atleta()} limiareisInferidos={LIMIARES} pmc={[]} onOpenPlan={vi.fn()} />);
+
+      const card = within(screen.getByRole('region', { name: 'Limiares inferidos' }));
+      expect(card.getByText('4:35/km')).toBeInTheDocument();
+      expect(card.queryByText(/\/km\s*\/km/)).not.toBeInTheDocument();
+    });
   });
 
   describe('cards dos gráficos no padrão da Proposta (patch v2)', () => {

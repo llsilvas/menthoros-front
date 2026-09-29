@@ -66,7 +66,8 @@ function LimiareisCard({ limiares }: { limiares: LimiareisInferidosDto }) {
           <Box>
             <Typography sx={{ fontSize: '0.72rem', color: surface[400] }}>Pace limiar</Typography>
             <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: surface[50] }}>
-              {limiares.paceLimiarEstimadoFormatado} /km
+              {/* O backend já formata com a unidade ("4:35/km"). */}
+              {limiares.paceLimiarEstimadoFormatado}
             </Typography>
             {limiares.confiancaInferenciaPace && (
               <Typography sx={{ fontSize: '0.6875rem', color: CONFIANCA_COLOR[limiares.confiancaInferenciaPace] }}>
