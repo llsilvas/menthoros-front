@@ -37,7 +37,7 @@ export function DiagnosisCard({ title, subtitle, action, children }: DiagnosisCa
     >
       <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1.5 }}>
         <Box sx={{ minWidth: 0 }}>
-          <Typography component="h3" sx={{ fontSize: '0.875rem', fontWeight: 600, color: surface[50], lineHeight: 1.3 }}>
+          <Typography component="h3" sx={{ fontSize: { xs: '1rem', xl: '1.05rem' }, fontWeight: 600, color: surface[50], lineHeight: 1.3 }}>
             {title}
           </Typography>
           {subtitle ? (
