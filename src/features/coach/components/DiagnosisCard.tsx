@@ -3,9 +3,9 @@ import { Box, Typography } from '@mui/material';
 import { elevation } from '../../../shared/design-tokens';
 import { content, surface } from '../../../theme/tokens';
 
-interface DiagnosisChartCardProps {
+interface DiagnosisCardProps {
   title: string;
-  /** Diz o que o gráfico mede e em que unidade — o título sozinho não diz. */
+  /** Diz o que o conteúdo mostra (num gráfico, também a unidade) — o título sozinho não diz. */
   subtitle?: string;
   /** Controles ou legenda, alinhados à direita do título. */
   action?: ReactNode;
@@ -13,11 +13,11 @@ interface DiagnosisChartCardProps {
 }
 
 /**
- * Card dos gráficos do Diagnóstico (padrão da Proposta). Diferente do `SectionCard`: título em
- * caixa normal com subtítulo explicativo e a ação na mesma linha, sem barra de cabeçalho — o
- * gráfico é o conteúdo, e o cabeçalho precisa dizer o que ele mede.
+ * Card da aba Diagnóstico (padrão da Proposta). Diferente do `SectionCard`: título em caixa normal
+ * com subtítulo explicativo e a ação na mesma linha, sem barra de cabeçalho — o cabeçalho diz o
+ * que o conteúdo mostra, em vez de só nomeá-lo.
  */
-export function DiagnosisChartCard({ title, subtitle, action, children }: DiagnosisChartCardProps) {
+export function DiagnosisCard({ title, subtitle, action, children }: DiagnosisCardProps) {
   return (
     <Box
       component="section"

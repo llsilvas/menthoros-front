@@ -3,6 +3,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DiagnosisTabPanel } from './DiagnosisTabPanel';
 import type { CoachAthleteRow, WeeklyDiagnosisPoint } from '../../types/CoachInbox';
+import type { CoachAttentionItem } from '../../../../types/Coach';
 
 const SEMANA: WeeklyDiagnosisPoint = {
   weekStart: '2026-09-21',
@@ -227,6 +228,28 @@ describe('DiagnosisTabPanel', () => {
 
       expect(screen.getByText('Dado indisponível')).toBeInTheDocument();
       expect(screen.queryByText(/sem histórico de pmc/i)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Sinais de atenção no mesmo card dos gráficos', () => {
+    it('sem sinal ativo: subtítulo diz que o conteúdo é o resumo do perfil', () => {
+      render(<DiagnosisTabPanel selected={atleta()} pmc={[]} onOpenPlan={vi.fn()} />);
+
+      const card = within(screen.getByRole('region', { name: 'Sinais de atenção' }));
+      expect(card.getByText('Nenhum sinal ativo na fila de atenção · resumo do perfil')).toBeInTheDocument();
+    });
+
+    it('com sinal ativo: subtítulo anuncia a estrutura do insight', () => {
+      const item = {
+        atletaId: 'a1', athleteName: 'Ana Silva', severity: 'ALTA', priorityScore: 90, primaryReason: 'ADERENCIA',
+        suggestedAction: 'Falar com a atleta.', generatedAt: '2026-09-28T12:00:00Z', evidence: [],
+        explanation: { rationale: 'Três treinos perdidos.', sourceRules: [], confidence: 'HIGH' },
+      } as unknown as CoachAttentionItem;
+      render(<DiagnosisTabPanel selected={atleta()} attentionItem={item} pmc={[]} onOpenPlan={vi.fn()} />);
+
+      const card = within(screen.getByRole('region', { name: 'Sinais de atenção' }));
+      expect(card.getByText('Por que este atleta está na fila · evidência e ação sugerida')).toBeInTheDocument();
+      expect(card.getByText('Três treinos perdidos.')).toBeInTheDocument();
     });
   });
 

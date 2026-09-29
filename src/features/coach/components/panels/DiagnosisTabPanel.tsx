@@ -8,7 +8,7 @@ import { KpiStrip } from '../KpiStrip';
 import { SectionCard } from '../SectionCard';
 import { EmptyMetricState } from '../EmptyMetricState';
 import { AdherenceToneLegend, WeeklyAdherenceLoadChart } from '../WeeklyAdherenceLoadChart';
-import { DiagnosisChartCard } from '../DiagnosisChartCard';
+import { DiagnosisCard } from '../DiagnosisCard';
 import { PmcChartControls } from '../../../athlete/components/PmcChartControls';
 import type { PMCViewMode } from '../../../athlete/components/PmcChartControls';
 import { AIInsightCard } from '../AIInsightCard';
@@ -135,7 +135,10 @@ export function DiagnosisTabPanel({ selected, attentionItem, attentionRecencyDay
         todas as métricas e gráficos: o coach decide pelo "porquê", e o número é evidência do
         insight — não o contrário. A ordem está travada por teste.
       */}
-      <SectionCard title="Sinais de atenção">
+      <DiagnosisCard
+        title="Sinais de atenção"
+        subtitle={attentionItem ? 'Por que este atleta está na fila · evidência e ação sugerida' : 'Nenhum sinal ativo na fila de atenção · resumo do perfil'}
+      >
         {attentionItem ? (
           /*
             Com item da fila de atenção, o insight vem ESTRUTURADO. O DTO já trazia motivo,
@@ -155,7 +158,7 @@ export function DiagnosisTabPanel({ selected, attentionItem, attentionRecencyDay
             ))}
           </Box>
         )}
-      </SectionCard>
+      </DiagnosisCard>
 
 
 
@@ -182,7 +185,7 @@ export function DiagnosisTabPanel({ selected, attentionItem, attentionRecencyDay
         Substitui "Adesão nas últimas semanas" (barras S1…Sn sem data) e "Tendência de carga" (que
         plotava CTL diário — condicionamento — com tooltip "Ponto N · Valor").
       */}
-      <DiagnosisChartCard
+      <DiagnosisCard
         title="Adesão e carga por semana"
         subtitle={weeksSubtitle}
         action={selected.adherenceAvailable && selected.weeklyDiagnosis.some((w) => w.adherence != null) ? <AdherenceToneLegend /> : undefined}
@@ -193,9 +196,9 @@ export function DiagnosisTabPanel({ selected, attentionItem, attentionRecencyDay
           adherenceAvailable={selected.adherenceAvailable}
           pmcAvailable={selected.pmcAvailable}
         />
-      </DiagnosisChartCard>
+      </DiagnosisCard>
 
-      <DiagnosisChartCard
+      <DiagnosisCard
         title="Forma (PMC)"
         subtitle={PMC_SUBTITLE[pmcMode]}
         action={
@@ -222,7 +225,7 @@ export function DiagnosisTabPanel({ selected, attentionItem, attentionRecencyDay
             <PMCChart data={pmc} range={pmcRange} mode={pmcMode} gaps={pmcGaps} simpleMetric="forma" embedded />
           </Suspense>
         )}
-      </DiagnosisChartCard>
+      </DiagnosisCard>
 
 
 
