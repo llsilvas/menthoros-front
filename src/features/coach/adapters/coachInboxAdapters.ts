@@ -1,4 +1,4 @@
-import { parseISO, startOfDay, subDays } from 'date-fns';
+import { differenceInCalendarDays, parseISO, startOfDay, subDays } from 'date-fns';
 import { formatWorkoutTypeLabel, statusLabel } from '../components/coachInboxHelpers';
 import type {
   AttentionReason,
@@ -169,13 +169,12 @@ export function calcularPrevisaoForma(
   return { tsbPrevisto, formaPrevista: formFromTSB(tsbPrevisto) };
 }
 
-const MS_POR_DIA = 86_400_000;
-
 /** Dias até a próxima prova futura do perfil. -1 quando não há prova cadastrada. */
 export function calcularDiasAteProva(profile: AtletaPerfilCoachDto | null, hoje: Date): number {
   const proxima = provasOrdenadas(profile)[0];
   if (!proxima) return -1;
-  return Math.ceil((new Date(`${proxima.dataProva}T12:00:00`).getTime() - hoje.getTime()) / MS_POR_DIA);
+  // Dia civil: a conta em horas somava um dia de manhã (ceil sobre o meio-dia da prova).
+  return differenceInCalendarDays(parseISO(proxima.dataProva), hoje);
 }
 
 export function statusToSegment(status: CoachAtletaStatus): SegmentFilter {

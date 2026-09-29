@@ -220,6 +220,16 @@ describe('calcularDiasAteProva', () => {
   it('retorna valor <= 0 quando a prova já passou', () => {
     expect(calcularDiasAteProva(profileComProvas(['2026-06-20']), hoje)).toBeLessThanOrEqual(0);
   });
+  /** Dia civil, não horas: antes era ceil(meio-dia da prova − agora), que de manhã somava um dia. */
+  it('independe do horário do acesso', () => {
+    const provas = profileComProvas(['2026-07-10']);
+    expect(calcularDiasAteProva(provas, new Date('2026-06-26T00:05:00'))).toBe(14);
+    expect(calcularDiasAteProva(provas, new Date('2026-06-26T23:55:00'))).toBe(14);
+  });
+
+  it('prova hoje é 0 a qualquer hora', () => {
+    expect(calcularDiasAteProva(profileComProvas(['2026-06-26']), new Date('2026-06-26T08:00:00'))).toBe(0);
+  });
 });
 
 describe('getStrainZone', () => {
