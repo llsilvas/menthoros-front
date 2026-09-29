@@ -312,6 +312,17 @@ describe('classifyGaps', () => {
     expect(classifyGaps([gap], aderencia, distance)[0].kind).toBe('SEM_REGISTRO');
   });
 
+  /**
+   * Codex (/qa 29/09): a semana de 14/09 contém o último treino (15/09) ANTES da lacuna que começa
+   * em 16/09. Contá-la como "houve treino na lacuna" rotulava uma pausa real como "sem TSS".
+   */
+  it('semana que só toca a borda da lacuna não reclassifica', () => {
+    const aberta: DataGap = { start: '2026-09-16', end: '2026-09-29', days: 14, open: true, kind: 'SEM_REGISTRO' };
+    const aderencia = [{ semanaInicio: '2026-09-14', totalPlanejado: 4, totalRealizado: 1, percentual: 25 }];
+    const distance: DistanceSummaryDto = { weekly: [{ weekStart: '2026-09-14', distanceKm: 8 }], last7DaysKm: 0, previous7DaysKm: 0 };
+    expect(classifyGaps([aberta], aderencia, distance)[0].kind).toBe('SEM_REGISTRO');
+  });
+
   it('treino fora da lacuna não reclassifica', () => {
     const aderencia = [{ semanaInicio: '2026-09-21', totalPlanejado: 4, totalRealizado: 4, percentual: 100 }];
     expect(classifyGaps([gap], aderencia, null)[0].kind).toBe('SEM_REGISTRO');

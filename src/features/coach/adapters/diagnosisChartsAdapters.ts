@@ -70,6 +70,10 @@ export function detectDataGaps(pmc: PmcPontoRaw[], agora: Date, minDays = GAP_MI
 /**
  * Reclassifica lacunas de TSS em que houve treino: semana com `totalRealizado > 0` ou km > 0
  * dentro da lacuna → `SEM_TSS`. Sem isso, a legenda diz "sem treinos" ao lado de barras de 75%.
+ *
+ * Só conta semana INTEIRA dentro da lacuna (o mesmo critério de `noData` em `buildWeeklyDiagnosis`):
+ * a semana que toca a borda pode conter justamente o último treino antes da pausa, e o dado é
+ * semanal — não dá para saber em que dia ele caiu.
  */
 export function classifyGaps(
   gaps: DataGap[],
@@ -81,9 +85,9 @@ export function classifyGaps(
     ...(distance?.weekly ?? []).filter((w) => w.distanceKm > 0).map((w) => startOfWeek(parseISO(w.weekStart), WEEK)),
   ];
   return gaps.map((g) => {
-    const inicio = startOfWeek(parseISO(g.start), WEEK);
+    const inicio = parseISO(g.start);
     const fim = parseISO(g.end);
-    const houveTreino = semanasComTreino.some((s) => s >= inicio && s <= fim);
+    const houveTreino = semanasComTreino.some((s) => s >= inicio && addDays(s, 6) <= fim);
     return houveTreino ? { ...g, kind: 'SEM_TSS' as const } : g;
   });
 }
