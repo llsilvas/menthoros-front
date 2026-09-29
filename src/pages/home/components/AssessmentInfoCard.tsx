@@ -122,7 +122,7 @@ export default function AssessmentInfoCard() {
               label={primaryRole}
               size="small"
               sx={{
-                bgcolor: `33`,
+                bgcolor: alpha(primary[500], 0.2),
                 color: primary[500],
                 fontWeight: 700,
                 fontSize: '0.75rem',

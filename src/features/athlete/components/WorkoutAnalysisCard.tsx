@@ -1,8 +1,9 @@
 import { Box, Skeleton, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { primary, surface } from '../../../theme/tokens';
-import { elevation } from '../../../shared/design-tokens';
 import { radius } from '../../../shared/design-tokens/density';
+import { Card } from '../../../shared/components/Card';
+import { CardHeader } from '../../../shared/components/CardHeader';
 import type { WorkoutAnalysisView } from '../adapters/buildWorkoutAnalysisView';
 
 export interface WorkoutAnalysisCardProps {
@@ -48,24 +49,12 @@ export function WorkoutAnalysisCard({ view }: WorkoutAnalysisCardProps) {
     const pendente = view.status === 'pending';
 
     return (
-        <Box
+        <Card
             data-testid="workout-analysis-card"
-            sx={{
-                bgcolor: elevation.card,
-                border: `1px solid ${surface[700]}`,
-                borderRadius: radius.lg,
-                p: 2,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 2,
-            }}
+            variant="flat"
+            sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
         >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-                <SparkleIcon />
-                <Typography variant="h6" sx={{ flex: 1, color: surface[50] }}>
-                    Análise do treino
-                </Typography>
-            </Box>
+            <CardHeader icon={<SparkleIcon />} title="Análise do treino" />
 
             {!pendente && view.reconhecimento && (
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.25 }}>
@@ -163,7 +152,7 @@ export function WorkoutAnalysisCard({ view }: WorkoutAnalysisCardProps) {
                     </Typography>
                 </>
             )}
-        </Box>
+        </Card>
     );
 }
 
