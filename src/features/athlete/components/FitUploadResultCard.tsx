@@ -1,6 +1,7 @@
 import { Box, Button, Typography } from '@mui/material';
 import { surface, primary } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
+import { Card } from '../../../shared/components/Card';
 import { buildFitUploadPreview } from '../adapters/fitUploadResultAdapter';
 import type { TreinoRealizadoDto } from '../../../types/TreinoManual';
 
@@ -14,15 +15,10 @@ export function FitUploadResultCard({ treino, onImportarOutro, onVoltar }: FitUp
   const { duracaoLabel, distanciaLabel, fcLabel, lapsLabel } = buildFitUploadPreview(treino);
 
   return (
-    <Box
-      sx={{
-        bgcolor: elevation.card,
-        borderRadius: 1,
-        p: 2.5,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 2,
-      }}
+    <Card
+      variant="solid"
+      padding={2.5}
+      sx={{ border: 'none', borderRadius: 1, display: 'flex', flexDirection: 'column', gap: 2 }}
     >
       <Typography variant="h6" sx={{ color: surface[50] }}>
         Treino importado com sucesso
@@ -59,7 +55,7 @@ export function FitUploadResultCard({ treino, onImportarOutro, onVoltar }: FitUp
           Voltar para Home
         </Button>
       </Box>
-    </Box>
+    </Card>
   );
 }
 

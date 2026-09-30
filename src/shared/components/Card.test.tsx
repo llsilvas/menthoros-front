@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { Card } from './Card';
 import { buildCardSx } from './cardStyles';
 import type { BuildCardSxArgs } from './cardStyles';
-import { elevation } from '../design-tokens';
+import { elevation, surface } from '../design-tokens';
 import { content, glassSx, semantic } from '../../theme/tokens';
 import { radius } from '../design-tokens/density';
 
@@ -28,6 +28,19 @@ describe('buildCardSx', () => {
         expect(sx.backgroundColor).toBe(glassSx.backgroundColor);
         expect(sx.border).toBe(glassSx.border);
         expect(sx.boxShadow).toBe(glassSx.boxShadow);
+    });
+
+    it('variante solid: fundo elevation.card (default) e borda sólida surface[700]', () => {
+        const sx = sxOf({ variant: 'solid' });
+        expect(sx.backgroundColor).toBe(elevation.card);
+        expect(sx.border).toBe(`1px solid ${surface[700]}`);
+        expect(sx.borderRadius).toBe(radius.lg);
+    });
+
+    it('variante solid + surfaceLevel="panel": fundo elevation.panel (TodayHeroCard e família)', () => {
+        const sx = sxOf({ variant: 'solid', surfaceLevel: 'panel' });
+        expect(sx.backgroundColor).toBe(elevation.panel);
+        expect(sx.border).toBe(`1px solid ${surface[700]}`);
     });
 
     it('padding: default 2, aceita override', () => {

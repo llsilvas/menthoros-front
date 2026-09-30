@@ -2,10 +2,12 @@ import { Box } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 import type { ElementType, MouseEventHandler, ReactNode } from 'react';
 import { buildCardSx } from './cardStyles';
-import type { CardStateColor, CardVariant } from './cardStyles';
+import type { CardStateColor, CardSurfaceLevel, CardVariant } from './cardStyles';
 
 export interface CardProps {
   variant?: CardVariant;
+  /** Só lido quando variant="solid" (default 'card') — ver CardSurfaceLevel em cardStyles.ts. */
+  surfaceLevel?: CardSurfaceLevel;
   /** Liga cursor: pointer e um estilo de :hover. Presença de `onClick` implica isso mesmo sem a prop. */
   interactive?: boolean;
   onClick?: MouseEventHandler<HTMLDivElement>;
@@ -22,6 +24,7 @@ export interface CardProps {
 
 export function Card({
   variant = 'flat',
+  surfaceLevel,
   interactive,
   onClick,
   stateColor,
@@ -33,7 +36,7 @@ export function Card({
   sx,
 }: CardProps) {
   const isInteractive = Boolean(interactive) || Boolean(onClick);
-  const cardSx = buildCardSx({ variant, isInteractive, stateColor, padding });
+  const cardSx = buildCardSx({ variant, isInteractive, stateColor, padding, surfaceLevel });
   const extraSx = Array.isArray(sx) ? sx : sx ? [sx] : [];
   const mergedSx: SxProps<Theme> = [cardSx, ...extraSx];
 
