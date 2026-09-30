@@ -1,6 +1,7 @@
 import { Box, Typography } from '@mui/material';
 import { EmojiEvents as EmojiEventsIcon } from '@mui/icons-material';
-import { glassSx, surface, primary } from '../../../theme/tokens';
+import { surface, primary } from '../../../theme/tokens';
+import { Card } from '../../../shared/components/Card';
 import type { KudosRecente, MotivoKudos } from '../../../types/Kudos';
 
 // Frase completa com o possessivo já concordado em gênero — "esforço" é masculino
@@ -22,7 +23,7 @@ export function KudosCard({ kudos }: KudosCardProps) {
   if (kudos.length === 0) return null;
 
   return (
-    <Box sx={{ ...glassSx, borderRadius: 2, p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+    <Card variant="glass" sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
       {kudos.slice(0, 3).map((k) => (
         <Box key={k.id} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <EmojiEventsIcon sx={{ color: primary[500], fontSize: 24 }} />
@@ -31,7 +32,7 @@ export function KudosCard({ kudos }: KudosCardProps) {
           </Typography>
         </Box>
       ))}
-    </Box>
+    </Card>
   );
 }
 
