@@ -20,6 +20,14 @@ describe('buildPmcDataPoints', () => {
         expect(pt.tss).toBe(85);
     });
 
+    it('leva a faixa de forma resolvida pelo backend (modo Simples colore por ela)', () => {
+        const [pt] = buildPmcDataPoints([
+            { data: '2026-06-17', ctl: 52, atl: 60, tsb: -8, tss: 85, statusForma: 'ACUMULANDO_FADIGA' },
+        ]);
+
+        expect(pt.statusForma).toBe('ACUMULANDO_FADIGA');
+    });
+
     it('retorna lista vazia para entrada vazia', () => {
         expect(buildPmcDataPoints([])).toEqual([]);
     });

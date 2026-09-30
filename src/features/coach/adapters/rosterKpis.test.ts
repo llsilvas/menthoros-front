@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { deriveRosterKpis } from './rosterKpis';
+import { deriveRosterKpis, buildRosterKpiViews } from './rosterKpis';
+import type { RosterKpis } from './rosterKpis';
 import type { CoachAtletaResumo } from '../../../types/Coach';
 
 const HOJE = new Date('2026-06-17T12:00:00Z');
@@ -45,4 +46,33 @@ describe('deriveRosterKpis', () => {
         );
         expect(kpis.noActivity7d).toBe(3);
     });
+});
+
+describe('buildRosterKpiViews', () => {
+  const views = (k: Partial<RosterKpis> = {}) =>
+    Object.fromEntries(buildRosterKpiViews({ total: 5, atRisk: 4, inTaper: 0, noActivity7d: 3, ...k }).map((v) => [v.key, v]));
+
+  it('quatro células na ordem, com a base de cada número na linha de apoio', () => {
+    expect(buildRosterKpiViews({ total: 5, atRisk: 4, inTaper: 0, noActivity7d: 3 }).map((v) => [v.label, v.value, v.detail])).toEqual([
+      ['Atletas', '5', '2 com treino nos últimos 7 dias'],
+      ['Em risco', '4', 'Status atenção ou alerta'],
+      ['Em taper', '0', 'Nenhum atleta na fase de taper'],
+      ['Sem atividade', '3', 'Sem treino há 7 dias ou mais'],
+    ]);
+  });
+
+  it('qualificadores', () => {
+    expect(views().noActivity.qualifier).toBe('7 dias');
+    expect(views().total.qualifier).toBeNull();
+  });
+
+  it('valores neutros: o ícone da célula carrega a cor, não um marcador de estado', () => {
+    expect(Object.values(views()).every((v) => v.tone === 'neutral' && v.badge === null)).toBe(true);
+  });
+
+  it('textos no singular e sem risco', () => {
+    expect(views({ total: 1, noActivity7d: 0 }).total.detail).toBe('1 com treino nos últimos 7 dias');
+    expect(views({ atRisk: 0 }).atRisk.detail).toBe('Nenhum atleta em atenção');
+    expect(views({ inTaper: 1 }).inTaper.detail).toBe('Na fase de taper antes da prova');
+  });
 });

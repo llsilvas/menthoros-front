@@ -1,25 +1,34 @@
-import { lazy, Suspense, useState } from 'react';
-import { Box, Button, Chip, CircularProgress, LinearProgress, Typography } from '@mui/material';
+import { lazy, Suspense, useMemo, useState } from 'react';
+import { Box, Button, Chip, CircularProgress, Typography } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import { primary, semantic, surface } from '../../../../theme/tokens';
-import { DetailMetric } from '../DetailMetric';
-import { TrendCard } from '../TrendCard';
-import { SectionCard } from '../SectionCard';
+import { parseISO } from 'date-fns';
+import { content, primary, semantic, surface } from '../../../../theme/tokens';
+import { KpiStrip } from '../KpiStrip';
 import { EmptyMetricState } from '../EmptyMetricState';
+import { AdherenceToneLegend, WeeklyAdherenceLoadChart } from '../WeeklyAdherenceLoadChart';
+import { DiagnosisCard } from '../DiagnosisCard';
+import { PmcChartControls } from '../../../athlete/components/PmcChartControls';
+import type { PMCViewMode } from '../../../athlete/components/PmcChartControls';
 import { AIInsightCard } from '../AIInsightCard';
 import { PmcBackfillNotice } from '../PmcBackfillNotice';
 import { usePmcBackfillNotice } from '../../../../hooks/usePmcBackfillNotice';
 import type { CoachAttentionItem } from '../../../../types/Coach';
-import { formatKm, formatPercent } from '../coachInboxHelpers';
 import { ACTION_BTN_END_ICON_SX } from '../../../../shared/components/actionButtonSx';
-import { getAcuteLoadTone, getMonotonyTone, getStrainZone } from '../../adapters/coachInboxAdapters';
+import { buildDiagnosisMetrics } from '../../adapters/diagnosisMetricsAdapters';
+import { DIAGNOSIS_WEEKS } from '../../adapters/diagnosisChartsAdapters';
 import type { CoachAthleteRow } from '../../types/CoachInbox';
 import type { LimiareisInferidosDto } from '../../../../types/AtletaPerfilCoach';
-import type { PMCDataPoint, PMCRange } from '../../../athlete/components/PMCChart';
+import type { PMCDataPoint, PMCGap, PMCRange } from '../../../athlete/components/PMCChart';
 
-// Lazy como nas demais superfícies: mantém o recharts fora do chunk principal.
+// Lazy como nas demais superfícies: mantém o recharts fora do chunk principal. Os controles do PMC
+// vivem num arquivo sem recharts, para o cabeçalho do card não puxar o gráfico junto.
 const PMCChart = lazy(() => import('../../../athlete/components/PMCChart'));
+
+const PMC_SUBTITLE: Record<PMCViewMode, string> = {
+  advanced: 'Condicionamento, cansaço e forma diários',
+  simple: 'Forma diária (TSB), colorida pela faixa',
+};
 
 const CONFIANCA_LABEL: Record<'ALTA' | 'MEDIA' | 'BAIXA', string> = {
   ALTA:  'Alta confiança',
@@ -38,7 +47,7 @@ function LimiareisCard({ limiares }: { limiares: LimiareisInferidosDto }) {
   const temPace = limiares.paceLimiarEstimadoFormatado != null;
   if (!temFc && !temPace) return null;
   return (
-    <SectionCard title="Limiares inferidos">
+    <DiagnosisCard title="Limiares inferidos" subtitle="Estimados pelos treinos dos últimos 30 dias">
       <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
         {temFc && (
           <Box>
@@ -57,7 +66,8 @@ function LimiareisCard({ limiares }: { limiares: LimiareisInferidosDto }) {
           <Box>
             <Typography sx={{ fontSize: '0.72rem', color: surface[400] }}>Pace limiar</Typography>
             <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, color: surface[50] }}>
-              {limiares.paceLimiarEstimadoFormatado} /km
+              {/* O backend já formata com a unidade ("4:35/km"). */}
+              {limiares.paceLimiarEstimadoFormatado}
             </Typography>
             {limiares.confiancaInferenciaPace && (
               <Typography sx={{ fontSize: '0.6875rem', color: CONFIANCA_COLOR[limiares.confiancaInferenciaPace] }}>
@@ -67,7 +77,7 @@ function LimiareisCard({ limiares }: { limiares: LimiareisInferidosDto }) {
           </Box>
         )}
       </Box>
-    </SectionCard>
+    </DiagnosisCard>
   );
 }
 
@@ -96,20 +106,27 @@ interface DiagnosisTabPanelProps {
 }
 
 export function DiagnosisTabPanel({ selected, attentionItem, attentionRecencyDays = null, limiareisInferidos, pmc, onOpenPlan }: DiagnosisTabPanelProps) {
-  const strainZone = getStrainZone(selected.quickStats.strain);
+  const metrics = buildDiagnosisMetrics(selected);
   const statusColor = PLAN_STATUS_COLOR[selected.planStatus];
   const [pmcRange, setPmcRange] = useState<PMCRange>('12w');
+  const [pmcMode, setPmcMode] = useState<PMCViewMode>('advanced');
+  const kmMode = selected.weeklyDiagnosis.some((w) => w.distanceKm != null);
+  const weeksSubtitle = `Últimas ${DIAGNOSIS_WEEKS} semanas · acima: adesão (treinos feitos / planejados) · abaixo: carga em ${kmMode ? 'km' : 'TSS'}`;
   const { dismissed: pmcNoticeDismissed, dismiss: dismissPmcNotice } = usePmcBackfillNotice();
+  const pmcGaps = useMemo<PMCGap[]>(
+    () => selected.dataGaps.map((g) => ({ start: parseISO(g.start), end: parseISO(g.end) })),
+    [selected.dataGaps],
+  );
 
   /*
     Ordem: situação → evidência → explicação → ação → detalhe.
-      1. Sinais de atenção  — o porquê, que é como o coach decide
-      2. Métricas           — evidência imediata
-      3. Adesão             — evidência dos motivos de engajamento (ADERENCIA/INATIVIDADE), os mais
-                              comuns na fila; estava em 6º, atrás de dois charts de carga
-      4-5. Tendências       — evidência de médio prazo
-      6. Próximo treino     — ação/contexto, depois da evidência que a justifica
-      7. Limiares           — detalhe de referência
+      1. Sinais de atenção       — o porquê, que é como o coach decide
+      2. Métricas                — evidência imediata
+      3. Adesão e carga/semana   — evidência dos motivos de engajamento (ADERENCIA/INATIVIDADE), os
+                                   mais comuns na fila; adesão e carga no MESMO eixo semanal
+      4. Forma (PMC)             — evidência de médio prazo
+      5. Próximo treino          — ação/contexto, depois da evidência que a justifica
+      6. Limiares                — detalhe de referência
   */
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 0.9, sm: 1.05, lg: 1.25, xl: 1.5 } }}>
@@ -118,7 +135,10 @@ export function DiagnosisTabPanel({ selected, attentionItem, attentionRecencyDay
         todas as métricas e gráficos: o coach decide pelo "porquê", e o número é evidência do
         insight — não o contrário. A ordem está travada por teste.
       */}
-      <SectionCard title="Sinais de atenção">
+      <DiagnosisCard
+        title="Sinais de atenção"
+        subtitle={attentionItem ? 'Por que este atleta está na fila · evidência e ação sugerida' : 'Nenhum sinal ativo na fila de atenção · resumo do perfil'}
+      >
         {attentionItem ? (
           /*
             Com item da fila de atenção, o insight vem ESTRUTURADO. O DTO já trazia motivo,
@@ -138,36 +158,17 @@ export function DiagnosisTabPanel({ selected, attentionItem, attentionRecencyDay
             ))}
           </Box>
         )}
-      </SectionCard>
+      </DiagnosisCard>
 
 
 
       {selected.quickStats.hasWindowData ? (
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: { xs: 0.9, sm: 1.05, lg: 1.25, xl: 1.5 } }}>
-          {/*
-            Sem faixa "ideal" (UX-005). "Ideal: 110-150 km" e "Ideal: < 2.0" eram fixos e iguais para
-            todo atleta — o mesmo intervalo para um iniciante de 20 km/semana e para um maratonista.
-            Referência que ignora o atleta não é referência: é ruído com aparência de precisão. O
-            `tone` continua sinalizando o estado, agora também por ícone (task 2.4).
-          */}
-          <DetailMetric label="Carga aguda" value={formatKm(selected.quickStats.acuteLoad)} tone={getAcuteLoadTone(selected.quickStats.acuteLoad)} />
-          <DetailMetric label="Monotonia" value={selected.quickStats.monotony.toFixed(2)} tone={getMonotonyTone(selected.quickStats.monotony)} />
-          <DetailMetric
-            label="Strain"
-            value={selected.quickStats.strain != null ? String(selected.quickStats.strain) : '—'}
-            subtitle={strainZone.label}
-            tone={strainZone.tone}
-          />
-          {/*
-            O subtítulo era a string fixa "Boa" — afirmada inclusive quando o próprio `tone` marcava
-            atenção. Um rótulo que contradiz o dado ao lado é pior que rótulo nenhum.
-          */}
-          <DetailMetric
-            label="Recuperação"
-            value={formatPercent(selected.quickStats.recovery)}
-            tone={selected.quickStats.recovery < 80 ? 'warning' : 'success'}
-          />
-        </Box>
+        /*
+          Sem faixa "ideal" (UX-005): um intervalo fixo, igual para todo atleta, não é referência.
+          O tom sinaliza o estado, também por ícone; a linha de apoio diz a base de cada número.
+          Mesma faixa do topo do atleta: células planas separadas por linha, não cards soltos.
+        */
+        <KpiStrip items={metrics} testIdPrefix="metric" sx={{ border: `1px solid ${content.divider}` }} />
       ) : (
         /*
           Sem série na janela, os números desta grade são fallback: carga cai para 0 e monotonia
@@ -180,47 +181,36 @@ export function DiagnosisTabPanel({ selected, attentionItem, attentionRecencyDay
         />
       )}
 
-      <SectionCard title="Adesão nas últimas semanas">
-        {selected.adherenceTrend.length === 0 ? (
-          <Typography sx={{ fontSize: '0.82rem', color: surface[400] }}>Sem dados de adesão.</Typography>
-        ) : (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 0.75, sm: 0.85, lg: 1, xl: 1.2 } }}>
-            {selected.adherenceTrend.map((value, index) => (
-              <Box key={`${selected.id}-adherence-${index}`} sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-                <Typography sx={{ width: 40, fontSize: '0.6875rem', color: surface[400] }}>S{index + 1}</Typography>
-                <LinearProgress
-                  variant="determinate"
-                  value={value}
-                  sx={{
-                    flex: 1,
-                    height: 5,
-                    borderRadius: 999,
-                    bgcolor: `${surface[0]}14`,
-                    '& .MuiLinearProgress-bar': {
-                      bgcolor: value >= 85 ? semantic.success[500] : value >= 70 ? primary[500] : semantic.warning[500],
-                      borderRadius: 999,
-                    },
-                  }}
-                />
-                <Typography sx={{ width: 36, textAlign: 'right', fontSize: '0.6875rem', color: surface[200], fontWeight: 700 }}>{value}%</Typography>
-              </Box>
-            ))}
-          </Box>
-        )}
-      </SectionCard>
+      {/*
+        Substitui "Adesão nas últimas semanas" (barras S1…Sn sem data) e "Tendência de carga" (que
+        plotava CTL diário — condicionamento — com tooltip "Ponto N · Valor").
+      */}
+      <DiagnosisCard
+        title="Adesão e carga por semana"
+        subtitle={weeksSubtitle}
+        action={selected.adherenceAvailable && selected.weeklyDiagnosis.some((w) => w.adherence != null) ? <AdherenceToneLegend /> : undefined}
+      >
+        <WeeklyAdherenceLoadChart
+          weeks={selected.weeklyDiagnosis}
+          gaps={selected.dataGaps}
+          adherenceAvailable={selected.adherenceAvailable}
+          pmcAvailable={selected.pmcAvailable}
+        />
+      </DiagnosisCard>
 
-      <SectionCard title="Tendência de carga">
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', mb: 1 }}>
-          <Typography sx={{ fontSize: '0.8rem', color: selected.loadDelta >= 0 ? semantic.success[500] : semantic.danger[500], fontWeight: 700 }}>
-            {selected.loadDelta >= 0 ? '+' : ''}{selected.loadDelta}% vs semana anterior
-          </Typography>
-        </Box>
-        <TrendCard data={selected.loadTrend} />
-      </SectionCard>
-
-      <SectionCard title="Tendência de forma (PMC)">
+      <DiagnosisCard
+        title="Forma (PMC)"
+        subtitle={PMC_SUBTITLE[pmcMode]}
+        action={
+          selected.pmcAvailable && pmc.length > 0 ? (
+            <PmcChartControls mode={pmcMode} onModeChange={setPmcMode} range={pmcRange} onRangeChange={setPmcRange} />
+          ) : undefined
+        }
+      >
         {pmc.length > 0 && !pmcNoticeDismissed && <PmcBackfillNotice onDismiss={dismissPmcNotice} />}
-        {pmc.length === 0 ? (
+        {!selected.pmcAvailable ? (
+          <Typography sx={{ fontSize: '0.82rem', color: surface[400] }}>Dado indisponível</Typography>
+        ) : pmc.length === 0 ? (
           <Typography sx={{ fontSize: '0.82rem', color: surface[400] }}>
             Sem histórico de PMC para exibir ainda.
           </Typography>
@@ -232,15 +222,16 @@ export function DiagnosisTabPanel({ selected, attentionItem, attentionRecencyDay
               </Box>
             }
           >
-            <PMCChart data={pmc} range={pmcRange} defaultMode="advanced" onRangeChange={setPmcRange} />
+            <PMCChart data={pmc} range={pmcRange} mode={pmcMode} gaps={pmcGaps} simpleMetric="forma" embedded />
           </Suspense>
         )}
-      </SectionCard>
+      </DiagnosisCard>
 
 
 
-      <SectionCard
+      <DiagnosisCard
         title="Próximo treino"
+        subtitle="Primeiro treino pendente do plano vigente, a partir de hoje"
         action={
           <Button size="small" endIcon={<ArrowForwardIcon fontSize="small" />} sx={{ ...ACTION_BTN_END_ICON_SX, px: { xs: 0.75, xl: 1 } }} onClick={onOpenPlan}>
             Abrir plano
@@ -260,7 +251,7 @@ export function DiagnosisTabPanel({ selected, attentionItem, attentionRecencyDay
             sx={{ bgcolor: `${statusColor}16`, color: statusColor, border: `1px solid ${statusColor}44`, fontWeight: 700 }}
           />
         </Box>
-      </SectionCard>
+      </DiagnosisCard>
 
       {limiareisInferidos && <LimiareisCard limiares={limiareisInferidos} />}
 

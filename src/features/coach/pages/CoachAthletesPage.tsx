@@ -16,11 +16,12 @@ import {
 } from '@mui/material';
 import {
   People as PeopleIcon,
+  GroupsRounded as GroupsRoundedIcon,
+  PersonalInjuryOutlined as PersonalInjuryOutlinedIcon,
+  SportsScoreRounded as SportsScoreRoundedIcon,
+  EventBusyOutlined as EventBusyOutlinedIcon,
   Search as SearchIcon,
   PersonAdd as PersonAddIcon,
-  Warning as WarningIcon,
-  Speed as SpeedIcon,
-  WifiOff as WifiOffIcon,
   EventNote as EventNoteIcon,
   TrendingUp as TrendingUpIcon,
   Sync as SyncIcon,
@@ -47,7 +48,7 @@ import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { GHOST_BTN_SX } from '../../../shared/components/actionButtonSx';
 import { AtletasService } from '../../../api/services/AtletasService';
 import type { Atleta, CreateAtleta, UpdateAtleta } from '../../../types/Atleta';
-import { primary, surface, semantic, glassSx } from '../../../theme/tokens';
+import { content, primary, surface, semantic, glassSx } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import { AthleteNameCell } from '../components/AthleteNameCell';
 import { useRegisterPlanGenerationReload } from '../context/planGenerationContext';
@@ -59,12 +60,14 @@ import { useCoachRoster } from '../../../hooks/useCoachRoster';
 import { EncerrarLoteDialog } from '../../../components/features/planos/EncerrarLoteDialog';
 import { BatchPlanDialog } from '../../../components/features/planos/BatchPlanDialog';
 import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
-import { deriveRosterKpis, daysSinceLastActivity, INACTIVITY_THRESHOLD_DAYS } from '../adapters/rosterKpis';
+import { buildRosterKpiViews, deriveRosterKpis, daysSinceLastActivity, INACTIVITY_THRESHOLD_DAYS } from '../adapters/rosterKpis';
+import type { RosterKpiKey } from '../adapters/rosterKpis';
+import { KpiStrip } from '../components/KpiStrip';
 import { calcularAcwr, getAcwrZone } from '../adapters/coachInboxAdapters';
 import { resolveStatusCobrancaBadge, formatProximoVencimento } from '../adapters/cobrancaAdapters';
-import type { MetricTone } from '../types/AthleteForm';
 import type { CoachAtletaStatus } from '../../../types/Coach';
 import type { AthleteBillingStatus } from '../../../types/Atleta';
+import { toneColor } from '../../../theme/toneColor';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -100,13 +103,6 @@ const STATUS_LABEL: Record<CoachAtletaStatus, string> = {
 const TSB_DANGER_THRESHOLD = -30;
 
 /** Mapeia o tom de uma métrica para a cor concreta do design system. */
-const TONE_COLOR: Record<MetricTone, string> = {
-  neutral: surface[400],
-  success: semantic.success[500],
-  warning: semantic.warning[500],
-  danger:  semantic.danger[500],
-};
-
 const TRAINING_PHASES: readonly TrainingPhase[] = ['BASE', 'BUILD', 'ESPECIFICO', 'TAPER', 'RECOVERY'];
 
 function asTrainingPhase(fase?: string): TrainingPhase | null {
@@ -132,58 +128,14 @@ const VIEWS: ViewDef[] = [
   { key: 'taper',   label: 'Em taper', filter: (a) => a.phase === 'TAPER' },
 ];
 
-// ── KPI Card ──────────────────────────────────────────────────────────────────
+// ── KPI icons ─────────────────────────────────────────────────────────────────
 
-interface KpiCardProps {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  accentColor?: string;
-}
-
-function KpiCard({ icon, label, value, accentColor }: KpiCardProps) {
-  return (
-    <Box
-      sx={{
-        ...glassSx,
-        borderRadius: 2,
-        px: 2,
-        py: 1.5,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1.5,
-        flex: '1 1 0',
-        minWidth: 120,
-      }}
-    >
-      <Box
-        sx={{
-          width: 36,
-          height: 36,
-          borderRadius: '50%',
-          backgroundColor: accentColor ? `${accentColor}1A` : `${surface[0]}0F`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: accentColor ?? surface[400],
-          flexShrink: 0,
-        }}
-      >
-        {icon}
-      </Box>
-      <Box>
-        <Typography
-          sx={{ fontSize: '1.25rem', fontWeight: 700, color: surface[50], lineHeight: 1.1 }}
-        >
-          {value}
-        </Typography>
-        <Typography sx={{ fontSize: '0.7rem', color: surface[400], lineHeight: 1.3 }}>
-          {label}
-        </Typography>
-      </Box>
-    </Box>
-  );
-}
+const ROSTER_KPI_ICON: Record<RosterKpiKey, React.ReactNode> = {
+  total: <GroupsRoundedIcon sx={{ color: surface[200] }} />,
+  atRisk: <PersonalInjuryOutlinedIcon sx={{ color: semantic.danger[500] }} />,
+  inTaper: <SportsScoreRoundedIcon sx={{ color: semantic.success[500] }} />,
+  noActivity: <EventBusyOutlinedIcon sx={{ color: semantic.warning[500] }} />,
+};
 
 // ── Bulk action bar ────────────────────────────────────────────────────────────
 
@@ -361,6 +313,7 @@ export default function CoachAthletesPage() {
 
   // KPIs (sempre sobre o roster completo)
   const kpis = useMemo(() => deriveRosterKpis(roster, hoje), [roster, hoje]);
+  const rosterKpiViews = useMemo(() => buildRosterKpiViews(kpis), [kpis]);
 
   const selectedCount = selection.type === 'include' ? selection.ids.size : 0;
   const selectedAtletaIds = useMemo(
@@ -463,7 +416,7 @@ export default function CoachAthletesPage() {
       align: 'left',
       renderCell: ({ row }) => {
         const acwr = row.acwr;
-        const color = acwr == null ? 'inherit' : TONE_COLOR[getAcwrZone(acwr).tone];
+        const color = acwr == null ? 'inherit' : toneColor(getAcwrZone(acwr).tone, surface[400]);
         return (
           <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', color }}>
             <MetricCell value={acwr != null ? acwr.toFixed(2) : '—'} size="sm" tooltip="Razão Carga Aguda:Crônica (ATL/CTL) — risco de lesão" />
@@ -702,33 +655,12 @@ export default function CoachAthletesPage() {
         ))}
       </Stack>
 
-      {/* ── KPI row ── */}
-      <Stack direction="row" spacing={1.5} flexWrap="wrap">
-        <KpiCard
-          icon={<PeopleIcon sx={{ fontSize: 18 }} />}
-          label="Total atletas"
-          value={kpis.total}
-          accentColor={primary[500]}
-        />
-        <KpiCard
-          icon={<WarningIcon sx={{ fontSize: 18 }} />}
-          label="Em risco"
-          value={kpis.atRisk}
-          accentColor={semantic.danger[500]}
-        />
-        <KpiCard
-          icon={<SpeedIcon sx={{ fontSize: 18 }} />}
-          label="Em taper"
-          value={kpis.inTaper}
-          accentColor={semantic.success[500]}
-        />
-        <KpiCard
-          icon={<WifiOffIcon sx={{ fontSize: 18 }} />}
-          label="Sem atividade 7d"
-          value={kpis.noActivity7d}
-          accentColor={semantic.warning[500]}
-        />
-      </Stack>
+      {/* ── KPI row: mesma faixa do Inbox; o ícone identifica a métrica pela cor ── */}
+      <KpiStrip
+        items={rosterKpiViews.map((v) => ({ ...v, icon: ROSTER_KPI_ICON[v.key] }))}
+        testIdPrefix="roster-kpi"
+        sx={{ border: `1px solid ${content.divider}`, borderRadius: 2, overflow: 'hidden' }}
+      />
 
       {/* ── Bulk action bar (visible when selection > 0) ── */}
       {selectedCount > 0 && <BulkBar count={selectedCount} />}

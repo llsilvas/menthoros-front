@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as reactRouter from 'react-router';
@@ -100,6 +100,16 @@ describe('CoachAthletesPage — ações por atleta', () => {
       </MemoryRouter>,
     );
   }
+
+  /** Mesmo padrão da faixa de KPIs do Inbox: célula com rótulo, valor e a base do número. */
+  it('KPIs do topo na faixa do Inbox, com ícone e linha de apoio', () => {
+    renderPage();
+    const atletas = within(screen.getByTestId('roster-kpi-total'));
+    expect(atletas.getByText('Atletas')).toBeInTheDocument();
+    expect(atletas.getByText('1')).toBeInTheDocument();
+    expect(atletas.getByTestId('kpi-icon')).toBeInTheDocument();
+    for (const key of ['atRisk', 'inTaper', 'noActivity']) expect(screen.getByTestId(`roster-kpi-${key}`)).toBeInTheDocument();
+  });
 
   it('expõe a coluna de Ações e os itens do menu por atleta', () => {
     renderPage();

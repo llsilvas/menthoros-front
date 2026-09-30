@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { format, startOfWeek, subDays, subWeeks } from 'date-fns';
 import * as reactRouter from 'react-router';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import CoachInboxPage from './CoachInboxPage';
@@ -52,6 +53,21 @@ const makeProfile = (pmc: PmcPontoRaw[] = []): AtletaPerfilCoachDto => ({
   geradoEm: '2026-06-24T13:32:25Z',
   avisos: null,
 });
+
+/** Segunda-feira `n` semanas antes da atual (a página usa a data real, não uma fixa). */
+const segunda = (n: number) => format(subWeeks(startOfWeek(new Date(), { weekStartsOn: 1 }), n), 'yyyy-MM-dd');
+/** Dia `n` dias antes de hoje. */
+const diasAtras = (n: number) => format(subDays(new Date(), n), 'yyyy-MM-dd');
+
+function mockPerfil(over: Partial<AtletaPerfilCoachDto>) {
+  vi.mocked(useAthleteProfile).mockReturnValue({
+    profile: { ...makeProfile(), ...over },
+    isLoading: false,
+    error: null,
+    errorKind: null,
+    fetchProfile: vi.fn().mockResolvedValue(undefined),
+  });
+}
 
 const mockRefetchQueue = vi.fn();
 const mockFetchDashboard = vi.fn();
@@ -241,18 +257,18 @@ describe('CoachInboxPage', () => {
     expect(screen.getByText(/Carga aguda/i)).toBeInTheDocument();
     expect(screen.getByText(/Monotonia/i)).toBeInTheDocument();
     expect(screen.getByText(/Strain/i)).toBeInTheDocument();
-    expect(screen.getByText(/Adesão nas últimas semanas/i)).toBeInTheDocument();
+    expect(screen.getByText(/Adesão e carga por semana/i)).toBeInTheDocument();
     expect(screen.getByText(/Sinais de atenção/i)).toBeInTheDocument();
     // conteúdo global do dashboard não aparece no drill-down
     expect(screen.queryByText(/Top atletas/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Treinos da semana/i)).not.toBeInTheDocument();
   });
 
-  it('mostra a tendência de forma (PMC) junto da tendência de carga; vazio sem série', () => {
+  it('mostra a Forma (PMC) junto de adesão e carga por semana; vazio sem série', () => {
     renderPage();
 
-    expect(screen.getByText(/Tendência de carga/i)).toBeInTheDocument();
-    expect(screen.getByText(/Tendência de forma \(PMC\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Adesão e carga por semana/i)).toBeInTheDocument();
+    expect(screen.getByText(/Forma \(PMC\)/i)).toBeInTheDocument();
     // mock default sem série → estado vazio, sem montar o chart (recharts)
     expect(screen.getByText(/Sem histórico de PMC/i)).toBeInTheDocument();
     expect(screen.queryByText('stub-pmc-chart')).not.toBeInTheDocument();
@@ -280,11 +296,11 @@ describe('CoachInboxPage', () => {
      * positivo/atenção, como se fossem medição real. O mock default (`makeProfile()`, sem pmc) é
      * exatamente esse cenário.
      */
-    it('Aderência, Carga (7d), Forma e ACWR mostram valor neutro, sem ícone de estado', () => {
+    it('Aderência, Carga, Forma e ACWR mostram valor neutro, sem ícone de estado', () => {
       renderPage();
 
-      for (const label of ['Aderência', 'Carga (7d)', 'Forma', 'ACWR']) {
-        const tile = within(screen.getByText(label).closest('div') as HTMLElement);
+      for (const key of ['adherence', 'load', 'form', 'acwr']) {
+        const tile = within(screen.getByTestId(`kpi-${key}`));
         expect(tile.getByText('—')).toBeInTheDocument();
         expect(tile.queryByTitle('Adequado')).not.toBeInTheDocument();
         expect(tile.queryByTitle('Atenção')).not.toBeInTheDocument();
@@ -292,9 +308,90 @@ describe('CoachInboxPage', () => {
       }
     });
 
-    it('com dado na janela, zero legítimo de aderência continua numérico', () => {
+    /**
+     * Reescrito em fix-coach-diagnosis-charts. Antes a aderência dependia de `hasWindowData`, que é
+     * do PMC: um zero de aderência só aparecia se houvesse série PMC. Agora a aderência tem
+     * disponibilidade própria — o zero legítimo é "0 de 4 treinos", com ou sem PMC.
+     */
+    it('zero legítimo de aderência continua numérico, mesmo sem PMC', () => {
+      mockPerfil({ aderenciaSemanal: [{ semanaInicio: segunda(1), totalPlanejado: 4, totalRealizado: 0, percentual: 0 }] });
+
+      renderPage();
+
+      expect(within(screen.getByTestId('kpi-adherence')).getByText('0%')).toBeInTheDocument();
+    });
+  });
+
+  it('resumo do topo na faixa de KPIs, com ícone por métrica', () => {
+    renderPage();
+
+    for (const key of ['ativos', 'treinos', 'atencao', 'exibidos']) {
+      expect(within(screen.getByTestId(`inbox-kpi-${key}`)).getByTestId('kpi-icon')).toBeInTheDocument();
+    }
+    expect(within(screen.getByTestId('inbox-kpi-ativos')).getByText('Atletas ativos')).toBeInTheDocument();
+  });
+
+  describe('cabeçalho e faixa de KPIs (fix-coach-diagnosis-charts)', () => {
+    const KPI: Record<string, string> = { Aderência: 'kpi-adherence', Carga: 'kpi-load', Forma: 'kpi-form', ACWR: 'kpi-acwr' };
+    const tileDe = (label: string) => within(screen.getByTestId(KPI[label]));
+
+    it('cabeçalho não repete aderência e carga; faixa com 4 células e sem tile de prova', () => {
+      renderPage();
+
+      expect(screen.queryByText('Aderência geral')).not.toBeInTheDocument();
+      expect(screen.queryByText('Carga semanal')).not.toBeInTheDocument();
+      for (const testId of Object.values(KPI)) expect(screen.getByTestId(testId)).toBeInTheDocument();
+      expect(within(screen.getByTestId('kpi-adherence')).getByText('4 sem', { exact: false })).toBeInTheDocument();
+      expect(screen.queryByText('Próxima Prova')).not.toBeInTheDocument();
+    });
+
+    it('próxima prova no cabeçalho, com nome e contagem', () => {
+      mockPerfil({ proximaProva: { nomeProva: 'Mizuno Athenas Run Longer 2026', dataProva: diasAtras(-20), provaAlvo: true } as AtletaPerfilCoachDto['proximaProva'] });
+
+      renderPage();
+
+      const prova = within(screen.getByTestId('inbox-proxima-prova'));
+      expect(prova.getByText('Prova alvo')).toBeInTheDocument();
+      expect(prova.getByText('Mizuno Athenas Run Longer 2026')).toBeInTheDocument();
+      expect(prova.getByText(/· em 20 dias$/)).toBeInTheDocument();
+    });
+
+    it('sem prova cadastrada, o cabeçalho diz isso', () => {
+      renderPage();
+
+      expect(within(screen.getByTestId('inbox-proxima-prova')).getByText('Sem prova cadastrada')).toBeInTheDocument();
+    });
+
+    it('aderência vem das 4 semanas completas do perfil, mesmo com PMC vazio', () => {
+      mockPerfil({
+        aderenciaSemanal: [
+          { semanaInicio: segunda(4), totalPlanejado: 4, totalRealizado: 0, percentual: 0 },
+          { semanaInicio: segunda(3), totalPlanejado: 4, totalRealizado: 1, percentual: 25 },
+          { semanaInicio: segunda(2), totalPlanejado: 4, totalRealizado: 2, percentual: 50 },
+          { semanaInicio: segunda(1), totalPlanejado: 4, totalRealizado: 2, percentual: 50 },
+          // Semana em curso: treinos ainda por vir contam como planejados no backend.
+          { semanaInicio: segunda(0), totalPlanejado: 4, totalRealizado: 0, percentual: 0 },
+        ],
+      });
+
+      renderPage();
+
+      expect(tileDe('Aderência').getByText('31%')).toBeInTheDocument();
+      expect(tileDe('Aderência').getByText('5 de 16 treinos planejados')).toBeInTheDocument();
+    });
+
+    it('sem perfil, a aderência usa o valor do roster', () => {
+      vi.mocked(useCoachDashboard).mockReturnValue({
+        dashboard: {
+          ...DASHBOARD_STUB,
+          roster: { ...DASHBOARD_STUB.roster, items: [{ ...DASHBOARD_STUB.roster.items[0], aderenciaPercentual: 38 }] },
+        },
+        loading: false,
+        error: null,
+        fetchDashboard: mockFetchDashboard,
+      });
       vi.mocked(useAthleteProfile).mockReturnValue({
-        profile: makeProfile([{ data: '2026-06-20', ctl: 40, atl: 40, tsb: 0, tss: 0 }]),
+        profile: null,
         isLoading: false,
         error: null,
         errorKind: null,
@@ -303,8 +400,66 @@ describe('CoachInboxPage', () => {
 
       renderPage();
 
-      const tile = within(screen.getByText('Aderência').closest('div') as HTMLElement);
-      expect(tile.getByText('0%')).toBeInTheDocument();
+      expect(tileDe('Aderência').getByText('38%')).toBeInTheDocument();
+    });
+
+    it('consulta de aderência que falhou: "Dado indisponível", sem número', () => {
+      mockPerfil({ avisos: ['aderenciaSemanal'] });
+
+      renderPage();
+
+      expect(tileDe('Aderência').getByText('—')).toBeInTheDocument();
+      expect(tileDe('Aderência').getByText('Dado indisponível')).toBeInTheDocument();
+    });
+
+    it('delta de carga em TSS 7d vs 7d anteriores', () => {
+      const pmc = Array.from({ length: 14 }, (_, i) => ({
+        data: diasAtras(13 - i),
+        ctl: 40,
+        atl: 40,
+        tsb: 0,
+        tss: i >= 7 ? 15 : 10,
+      }));
+      mockPerfil({ pmc });
+
+      renderPage();
+
+      expect(tileDe('Carga').getByText('TSS +50% vs. 7 dias anteriores')).toBeInTheDocument();
+    });
+
+    it('sem TSS nos 7 dias anteriores: sem base para comparar', () => {
+      mockPerfil({ pmc: [{ data: diasAtras(1), ctl: 40, atl: 40, tsb: 0, tss: 60 }] });
+
+      renderPage();
+
+      expect(tileDe('Carga').getByText('Sem carga nos 7 dias anteriores para comparar')).toBeInTheDocument();
+    });
+
+    it('TSB com uma casa decimal, em pt-BR', () => {
+      mockPerfil({ pmc: [{ data: diasAtras(0), ctl: 40, atl: 53.61, tsb: -13.61, tss: 60, statusForma: 'ACUMULANDO_FADIGA' }] });
+
+      renderPage();
+
+      expect(tileDe('Forma').getByText('TSB -13,6')).toBeInTheDocument();
+    });
+
+    it('ACWR após retorno sem base crônica: selo "Baixa confiança" e motivo, sem "Risco"', () => {
+      // Retorno de 3 dias após 87 dias zerados; ATL/CTL final bem acima de 1,5.
+      const pmc = Array.from({ length: 90 }, (_, i) => ({
+        data: diasAtras(89 - i),
+        ctl: 10,
+        atl: i >= 87 ? 20.3 : 1,
+        tsb: -10,
+        tss: i >= 87 ? 60 : 0,
+      }));
+      mockPerfil({ pmc });
+
+      renderPage();
+
+      expect(tileDe('ACWR').getByText('2,03')).toBeInTheDocument();
+      expect(tileDe('ACWR').getByText('Baixa confiança')).toBeInTheDocument();
+      expect(tileDe('ACWR').getByText(/Base crônica incompleta|Histórico/)).toBeInTheDocument();
+      expect(tileDe('ACWR').queryByText(/Risco/)).not.toBeInTheDocument();
     });
   });
 
