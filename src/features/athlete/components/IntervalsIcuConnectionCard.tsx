@@ -6,6 +6,7 @@ import { ptBR } from 'date-fns/locale';
 import { useIntervalsIcuConnection } from '../../../hooks/features/useIntervalsIcuConnection';
 import { useIntervalsIcuCallbackResult } from '../../../hooks/features/useIntervalsIcuCallbackResult';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
+import { Card } from '../../../shared/components/Card';
 import { primary, surface, semantic } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 
@@ -43,15 +44,10 @@ export function IntervalsIcuConnectionCard() {
   };
 
   return (
-    <Box
-      sx={{
-        bgcolor: elevation.card,
-        borderRadius: 1,
-        p: 2.5,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 2,
-      }}
+    <Card
+      variant="solid"
+      padding={2.5}
+      sx={{ border: 'none', borderRadius: 1, display: 'flex', flexDirection: 'column', gap: 2 }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <LinkIcon sx={{ color: primary[500], fontSize: 20 }} />
@@ -152,7 +148,7 @@ export function IntervalsIcuConnectionCard() {
           </Box>
         </>
       )}
-    </Box>
+    </Card>
   );
 }
 

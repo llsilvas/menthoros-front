@@ -1,6 +1,7 @@
 import { Box, Button, Typography } from '@mui/material';
 import { surface, primary } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
+import { Card } from '../../../shared/components/Card';
 import { buildPostWorkoutFeedback } from '../adapters/postWorkoutFeedbackAdapter';
 import type { WorkoutAnalysisView } from '../adapters/buildWorkoutAnalysisView';
 import { WorkoutAnalysisCard } from './WorkoutAnalysisCard';
@@ -17,15 +18,10 @@ export function PostWorkoutFeedbackCard({ treino, onVoltar, analysisView }: Post
   const { tipoLabel, duracaoLabel, distanciaLabel, tssLabel, mensagem } = buildPostWorkoutFeedback(treino);
 
   return (
-    <Box
-      sx={{
-        bgcolor: elevation.card,
-        borderRadius: 1,
-        p: 2.5,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 2,
-      }}
+    <Card
+      variant="solid"
+      padding={2.5}
+      sx={{ border: 'none', borderRadius: 1, display: 'flex', flexDirection: 'column', gap: 2 }}
     >
       <Typography variant="h6" sx={{ color: surface[50] }}>
         {tipoLabel}
@@ -59,7 +55,7 @@ export function PostWorkoutFeedbackCard({ treino, onVoltar, analysisView }: Post
       >
         Voltar para Home
       </Button>
-    </Box>
+    </Card>
   );
 }
 

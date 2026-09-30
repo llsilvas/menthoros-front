@@ -1,9 +1,8 @@
 import type { ReactNode } from 'react';
 import { Box, Link, Typography } from '@mui/material';
 import { Link as RouterLink } from 'react-router';
-import { elevation } from '../../../../shared/design-tokens';
-import { radius } from '../../../../shared/design-tokens/density';
 import { surface } from '../../../../theme/tokens';
+import { Card } from '../../../../shared/components/Card';
 import { ROUTES } from '../../../../constants/routes';
 
 export interface ProgressBlockCardProps {
@@ -21,7 +20,7 @@ export interface ProgressBlockCardProps {
  */
 export function ProgressBlockCard({ pergunta, periodo, testId, children, acao }: ProgressBlockCardProps) {
   return (
-    <Box data-testid={testId} sx={{ bgcolor: elevation.card, border: `1px solid ${surface[700]}`, borderRadius: radius.lg, p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+    <Card variant="solid" data-testid={testId} sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
       <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 1 }}>
         <Typography variant="h6">{pergunta}</Typography>
         {periodo && <Typography variant="caption" sx={{ color: surface[500], flexShrink: 0 }}>{periodo}</Typography>}
@@ -33,6 +32,6 @@ export function ProgressBlockCard({ pergunta, periodo, testId, children, acao }:
           Falar com o coach →
         </Link>
       </Box>
-    </Box>
+    </Card>
   );
 }

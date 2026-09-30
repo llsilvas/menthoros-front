@@ -1,8 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-    Card,
-    CardContent,
-    CardActions,
     Button,
     Typography,
     Box,
@@ -31,7 +28,9 @@ import type { TreinoPlanejado } from '../../../types/TreinoPlanejado';
 import type { AnaliseWorkout } from '../../../types/AnaliseWorkout';
 import { PRIMARY_CAUSE_LABEL } from '../../../types/AnaliseWorkout';
 import { getSafeValue, getSafeNumber } from '../../../utils/safeValues';
-import { glassSx, glass, semantic, surface } from '../../../theme/tokens';
+import { semantic, surface } from '../../../theme/tokens';
+import { Card } from '../../../shared/components/Card';
+import type { CardStateColor } from '../../../shared/components/cardStyles';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { GHOST_BTN_SX } from '../../../shared/components/actionButtonSx';
 import { effortColor } from '../../../shared/theme/workoutColors';
@@ -107,25 +106,20 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
     }, [isRealizado, treino.treinoRealizadoId, currentRpe]);
 
     const mostrarInsight = isRealizado && (analiseStatus === 'done' || analiseStatus === 'pending' || analiseStatus === 'loading');
+    const stateColor: CardStateColor | undefined = isRealizado ? 'success' : isPerdido ? 'danger' : undefined;
 
     return (
         <Card
-            elevation={1}
+            variant="glass"
+            stateColor={stateColor}
             sx={{
-                ...glassSx,
                 height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
-                border: isRealizado || isPerdido ? '2px solid' : `1px solid ${glass.border}`,
-                borderColor: isRealizado ? semantic.success[500] : isPerdido ? semantic.danger[500] : undefined,
-                bgcolor: isRealizado
-                    ? `${semantic.success[500]}40`
-                    : isPerdido
-                    ? `${semantic.danger[500]}14`
-                    : glass.background,
+                gap: 1.5,
             }}
         >
-            <CardContent sx={{ flexGrow: 1 }}>
+            <Box sx={{ flexGrow: 1 }}>
                 {/* Header: dia da semana + icone de status */}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                     <Chip
@@ -222,15 +216,13 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                         </Box>
                     )}
                 </Stack>
-            </CardContent>
+            </Box>
 
             {mostrarInsight && (
                 <Box
                     sx={{
                         px: 2,
                         py: 1.5,
-                        mx: 2,
-                        mb: 2,
                         background: `linear-gradient(135deg, ${semantic.warning[500]}1F 0%, ${semantic.warning[500]}0F 100%)`,
                         border: `1px solid ${semantic.warning[500]}40`,
                         borderRadius: 1.5,
@@ -354,74 +346,72 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                 </Box>
             )}
 
-            <CardActions sx={{ px: 2, pb: 2, pt: 0 }}>
-                <Stack direction="row" spacing={1} sx={{ width: '100%' }}>
+            <Stack direction="row" spacing={1} sx={{ width: '100%' }}>
+                <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<InfoIcon />}
+                    onClick={onDetalhes}
+                    sx={{ flex: 1, minWidth: 0 }}
+                >
+                    Detalhes
+                </Button>
+                {isRealizado && treino.treinoRealizadoId && (
                     <Button
                         variant="outlined"
                         size="small"
-                        startIcon={<InfoIcon />}
-                        onClick={onDetalhes}
-                        sx={{ flex: 1, minWidth: 0 }}
+                        startIcon={currentRpe != null ? <EditIcon /> : <AddIcon />}
+                        onClick={() => {
+                            setRpeValue(currentRpe ?? 5);
+                            setRpeDialogOpen(true);
+                        }}
+                        sx={{
+                            flex: 1,
+                            minWidth: 0,
+                            color: currentRpe != null ? 'text.secondary' : 'warning.main',
+                            borderColor: currentRpe != null ? 'divider' : 'warning.main',
+                        }}
                     >
-                        Detalhes
+                        RPE
                     </Button>
-                    {isRealizado && treino.treinoRealizadoId && (
-                        <Button
-                            variant="outlined"
-                            size="small"
-                            startIcon={currentRpe != null ? <EditIcon /> : <AddIcon />}
-                            onClick={() => {
-                                setRpeValue(currentRpe ?? 5);
-                                setRpeDialogOpen(true);
-                            }}
-                            sx={{
-                                flex: 1,
-                                minWidth: 0,
-                                color: currentRpe != null ? 'text.secondary' : 'warning.main',
-                                borderColor: currentRpe != null ? 'divider' : 'warning.main',
-                            }}
-                        >
-                            RPE
-                        </Button>
-                    )}
-                    {podeMarcardPerdido && (
-                        <Button
-                            variant="outlined"
-                            size="small"
-                            startIcon={<CancelIcon />}
-                            onClick={onMarcarPerdido}
-                            sx={{
-                                flex: 1,
-                                minWidth: 0,
-                                color: semantic.danger[500],
-                                borderColor: semantic.danger[500],
-                                '&:hover': {
-                                    bgcolor: `${semantic.danger[500]}14`,
-                                    borderColor: semantic.danger[700],
-                                },
-                            }}
-                        >
-                            Perdido
-                        </Button>
-                    )}
-                    {!isRealizado && !isPerdido && (
-                        <Button
-                            variant="contained"
-                            size="small"
-                            startIcon={<TrophyIcon />}
-                            onClick={onMarcarRealizado}
-                            sx={{
-                                flex: 1,
-                                minWidth: 0,
-                                bgcolor: 'success.main',
-                                '&:hover': { bgcolor: 'success.dark' },
-                            }}
-                        >
-                            Realizado
-                        </Button>
-                    )}
-                </Stack>
-            </CardActions>
+                )}
+                {podeMarcardPerdido && (
+                    <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={<CancelIcon />}
+                        onClick={onMarcarPerdido}
+                        sx={{
+                            flex: 1,
+                            minWidth: 0,
+                            color: semantic.danger[500],
+                            borderColor: semantic.danger[500],
+                            '&:hover': {
+                                bgcolor: `${semantic.danger[500]}14`,
+                                borderColor: semantic.danger[700],
+                            },
+                        }}
+                    >
+                        Perdido
+                    </Button>
+                )}
+                {!isRealizado && !isPerdido && (
+                    <Button
+                        variant="contained"
+                        size="small"
+                        startIcon={<TrophyIcon />}
+                        onClick={onMarcarRealizado}
+                        sx={{
+                            flex: 1,
+                            minWidth: 0,
+                            bgcolor: 'success.main',
+                            '&:hover': { bgcolor: 'success.dark' },
+                        }}
+                    >
+                        Realizado
+                    </Button>
+                )}
+            </Stack>
 
             {/* Dialog de RPE */}
             <CoachDialog

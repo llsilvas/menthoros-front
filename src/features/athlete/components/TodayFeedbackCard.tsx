@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Alert, Box, Button, Chip, TextField, Typography } from '@mui/material';
 import { elevation } from '../../../shared/design-tokens';
-import { radius } from '../../../shared/design-tokens/density';
 import { primary, surface, content, backgrounds } from '../../../theme/tokens';
+import { Card } from '../../../shared/components/Card';
 import { SENSACAO_LABELS, type Sensacao } from '../../../types/AthleteFeedback';
 import type { AthleteRealizadoHoje } from '../../../types/AthleteHome';
 import { tipoTreinoLabel } from '../adapters/homeAdapter';
@@ -38,11 +38,11 @@ export function TodayFeedbackCard({ realizado, onSubmit, submitting = false, err
   const fonte = realizado.fonteDados ? FONTE_LABELS[realizado.fonteDados] ?? realizado.fonteDados : null;
 
   return (
-    <Box
-      sx={{
-        bgcolor: elevation.panel, border: `1px solid ${surface[700]}`, borderRadius: radius.lg,
-        p: 2.5, display: 'flex', flexDirection: 'column', gap: 2,
-      }}
+    <Card
+      variant="solid"
+      surfaceLevel="panel"
+      padding={2.5}
+      sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
     >
       <Box>
         <Typography variant="overline" sx={{ color: surface[400] }}>Treino feito</Typography>
@@ -118,7 +118,7 @@ export function TodayFeedbackCard({ realizado, onSubmit, submitting = false, err
       >
         {submitting ? 'Enviando…' : 'Enviar'}
       </Button>
-    </Box>
+    </Card>
   );
 }
 

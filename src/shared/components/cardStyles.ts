@@ -1,13 +1,16 @@
 import { alpha } from '@mui/material/styles';
 import type { SxProps, Theme } from '@mui/material/styles';
-import { elevation } from '../design-tokens';
+import { elevation, surface } from '../design-tokens';
 import { radius } from '../design-tokens/density';
 import { content, glassSx, glassSxHover, semantic, transitions } from '../../theme/tokens';
 
 // PMn = achado da rodada 2 do pré-mortem (Codex, DoR check); CAn = critério de aceite do proposal.
 // Ambos documentados em menthoros-product/openspec/changes/standardize-card-foundation/{design,proposal}.md.
 
-export type CardVariant = 'flat' | 'glass';
+export type CardVariant = 'flat' | 'glass' | 'solid';
+// Só relevante para variant="solid" — os cards da Home do atleta (TodayHeroCard e companhia)
+// usam elevation.panel como fundo, mais recuado que o elevation.card dos demais.
+export type CardSurfaceLevel = 'card' | 'panel';
 export type CardStateColor = 'success' | 'danger' | 'warning' | 'info';
 
 const STATE_COLOR_HEX: Record<CardStateColor, string> = {
@@ -28,6 +31,8 @@ export interface BuildCardSxArgs {
   isInteractive: boolean;
   stateColor?: CardStateColor;
   padding: 2 | 2.5 | 3;
+  /** Só lido quando variant="solid" (default 'card'). */
+  surfaceLevel?: CardSurfaceLevel;
 }
 
 export function buildCardSx({
@@ -35,6 +40,7 @@ export function buildCardSx({
   isInteractive,
   stateColor,
   padding,
+  surfaceLevel = 'card',
 }: BuildCardSxArgs): SxProps<Theme> {
   const sx: Record<string, unknown> = {
     borderRadius: radius.lg,
@@ -44,6 +50,12 @@ export function buildCardSx({
 
   if (variant === 'glass') {
     Object.assign(sx, glassSx);
+  } else if (variant === 'solid') {
+    // Receita usada em features/athlete (TodayHeroCard, WeekOverviewCard, ReadinessCard, ...):
+    // borda sólida em vez da translúcida do flat — chegou a 7+ componentes por cópia, nunca
+    // formalizada aqui até esta migração.
+    sx.backgroundColor = surfaceLevel === 'panel' ? elevation.panel : elevation.card;
+    sx.border = `1px solid ${surface[700]}`;
   } else {
     sx.backgroundColor = elevation.card;
     sx.border = `1px solid ${content.cardBorder}`;

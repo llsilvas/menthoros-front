@@ -5,6 +5,7 @@ import { Add as AddIcon } from '@mui/icons-material';
 import { elevation } from '../../../shared/design-tokens';
 import { radius } from '../../../shared/design-tokens/density';
 import { primary, surface } from '../../../theme/tokens';
+import { Card } from '../../../shared/components/Card';
 import { ROUTES } from '../../../constants/routes';
 import { WorkoutProfile, type WorkoutProfileData } from '../../workout/profile';
 
@@ -32,12 +33,12 @@ export function TodayHeroCard({ nextWorkout, onRegister }: TodayHeroCardProps) {
   const cor = nextWorkout?.color ?? surface[500];
 
   return (
-    <Box
+    <Card
+      variant="solid"
+      surfaceLevel="panel"
+      padding={2.5}
       sx={{
         background: `linear-gradient(135deg, ${elevation.panel} 0%, ${elevation.card} 100%)`,
-        border: `1px solid ${surface[700]}`,
-        borderRadius: radius.lg,
-        p: 2.5,
         display: 'flex',
         flexDirection: 'column',
         gap: 2,
@@ -93,7 +94,7 @@ export function TodayHeroCard({ nextWorkout, onRegister }: TodayHeroCardProps) {
           </Link>
         </Box>
       </Box>
-    </Box>
+    </Card>
   );
 }
 
