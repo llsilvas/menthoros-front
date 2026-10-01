@@ -10,31 +10,47 @@ import { radius } from '../../../shared/design-tokens/density';
 import { primary, semantic, surface } from '../../../theme/tokens';
 import { ROUTES, athleteRaceEditRoute } from '../../../constants/routes';
 import { useAthleteRaces } from '../../../hooks/useAthleteRaces';
-import { buildAthleteRaceList, TERRENO_LABELS, type AthleteRaceView } from '../adapters/raceAdapters';
+import { buildAthleteRaceList, TERRENO_LABELS, type AthleteRaceView, type RaceCategory } from '../adapters/raceAdapters';
+
+/**
+ * Hierarquia visual por categoria (reorganizar-listagem-provas-atleta, CA3–CA5): `alvo` mantém o
+ * destaque atual (borda lime + ícone + label); `proxima` ganha cor própria (`semantic.info`) sem
+ * acumular com a de alvo (CA4 — nunca as duas ao mesmo tempo); `historico` fica esmaecida.
+ */
+const CATEGORY_STYLE: Record<RaceCategory, { border: string; titleColor: string; dimmed: boolean; label?: { text: string; color: string } }> = {
+  alvo: { border: `${primary[500]}66`, titleColor: primary[500], dimmed: false, label: { text: 'PROVA-ALVO', color: primary[500] } },
+  proxima: { border: `${semantic.info[500]}66`, titleColor: semantic.info[500], dimmed: false },
+  futura: { border: surface[700], titleColor: surface[50], dimmed: false },
+  historico: { border: surface[800], titleColor: surface[300], dimmed: true },
+};
 
 function RaceCard({ race, onEdit, onCancel }: { race: AthleteRaceView; onEdit: () => void; onCancel: () => void }) {
-  const destaque = race.alvo && !race.realizada;
+  const categoria = race.categoria ?? 'futura';
+  const estilo = CATEGORY_STYLE[categoria];
+  const destaque = categoria === 'alvo';
   return (
     <Box
       data-testid="race-card"
       data-alvo={race.alvo ? 'true' : 'false'}
+      data-categoria={categoria}
       sx={{
         bgcolor: elevation.card,
-        border: `1px solid ${destaque ? `${primary[500]}66` : surface[700]}`,
+        border: `1px solid ${estilo.border}`,
         borderRadius: radius.lg,
         p: 2,
         display: 'flex',
         flexDirection: 'column',
         gap: 1,
+        opacity: estilo.dimmed ? 0.65 : 1,
       }}
     >
-      {destaque && (
+      {estilo.label && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-          <FlagIcon sx={{ color: primary[500], fontSize: 16 }} />
-          <Typography variant="caption" sx={{ color: primary[500], fontWeight: 700, letterSpacing: 0.5 }}>PROVA-ALVO</Typography>
+          <FlagIcon sx={{ color: estilo.label.color, fontSize: 16 }} />
+          <Typography variant="caption" sx={{ color: estilo.label.color, fontWeight: 700, letterSpacing: 0.5 }}>{estilo.label.text}</Typography>
         </Box>
       )}
-      <Typography variant={destaque ? 'h6' : 'subtitle1'} sx={{ fontWeight: 700, color: surface[50] }}>{race.nome}</Typography>
+      <Typography variant={destaque ? 'h6' : 'subtitle1'} sx={{ fontWeight: 700, color: estilo.titleColor }}>{race.nome}</Typography>
       <Typography variant="body2" sx={{ color: surface[400] }}>
         {race.dataLabel} · {race.distanciaLabel} · {TERRENO_LABELS[race.terreno]}
         {race.tempoObjetivo ? ` · meta ${race.tempoObjetivo}` : ''}

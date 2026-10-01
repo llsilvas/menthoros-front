@@ -43,8 +43,59 @@ describe('buildAthleteRaceView', () => {
 });
 
 describe('buildAthleteRaceList', () => {
-  it('alvo primeiro, depois por data', () => {
-    expect(buildAthleteRaceList([realizada, secundaria, alvo], HOJE).map((r) => r.id)).toEqual(['a', 'c', 'b']);
+  it('CA1 — ordem cronológica: futuras ascendente, passadas (histórico) depois, descendente', () => {
+    // alvo (dez/26, futura), secundaria (out/26, futura, não-alvo), realizada (jun/26, passada)
+    // Bug anterior: alvo sempre primeiro, deixando a realizada (passada) antes da secundaria (futura).
+    expect(buildAthleteRaceList([realizada, secundaria, alvo], HOJE).map((r) => r.id))
+      .toEqual(['b', 'a', 'c']);
+  });
+
+  it('CA2 — prova-alvo distante não pula pro topo quando há uma não-alvo mais próxima', () => {
+    const resultado = buildAthleteRaceList([alvo, secundaria], HOJE);
+    expect(resultado[0].id).toBe('b'); // secundaria (out/26) é mais próxima que a alvo (dez/26)
+    expect(resultado[0].categoria).toBe('proxima');
+    expect(resultado[1].id).toBe('a');
+    expect(resultado[1].categoria).toBe('alvo');
+  });
+
+  it('CA3 — próxima prova (não-alvo) recebe a categoria "proxima"', () => {
+    const resultado = buildAthleteRaceList([alvo, secundaria], HOJE);
+    const proxima = resultado.find((r) => r.id === 'b');
+    expect(proxima?.categoria).toBe('proxima');
+  });
+
+  it('CA4 — alvo sendo a mais próxima: sem acúmulo, ninguém mais recebe "proxima"', () => {
+    const alvoProxima: Prova = { ...secundaria, id: 'f', provaAlvo: true };
+    const resultado = buildAthleteRaceList([alvoProxima, alvo], HOJE);
+    expect(resultado[0].id).toBe('f');
+    expect(resultado[0].categoria).toBe('alvo');
+    expect(resultado[1].categoria).toBe('alvo'); // a mais distante também é alvo, continua "alvo"
+    expect(resultado.some((r) => r.categoria === 'proxima')).toBe(false);
+  });
+
+  it('CA5 — prova passada recebe a categoria "historico"', () => {
+    const resultado = buildAthleteRaceList([realizada], HOJE);
+    expect(resultado[0].categoria).toBe('historico');
+  });
+
+  it('CA6 — sem prova-alvo, a mais próxima recebe "proxima" normalmente', () => {
+    const resultado = buildAthleteRaceList([secundaria], HOJE);
+    expect(resultado[0].categoria).toBe('proxima');
+  });
+
+  it('demais provas futuras (não a mais próxima, não alvo) recebem "futura"', () => {
+    const terceira: Prova = { ...secundaria, id: 'g', dataProva: '2026-11-01' };
+    const resultado = buildAthleteRaceList([secundaria, terceira], HOJE);
+    expect(resultado.map((r) => r.id)).toEqual(['b', 'g']);
+    expect(resultado[0].categoria).toBe('proxima');
+    expect(resultado[1].categoria).toBe('futura');
+  });
+
+  it('múltiplas passadas ficam em histórico, mais recente primeiro', () => {
+    const maisAntiga: Prova = { ...realizada, id: 'h', dataProva: '2026-01-10' };
+    const resultado = buildAthleteRaceList([maisAntiga, realizada], HOJE);
+    expect(resultado.map((r) => r.id)).toEqual(['c', 'h']);
+    expect(resultado.every((r) => r.categoria === 'historico')).toBe(true);
   });
 });
 

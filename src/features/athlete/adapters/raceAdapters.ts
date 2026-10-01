@@ -8,6 +8,17 @@ export type Terreno = 'RUA' | 'TRAIL';
 
 export const TERRENO_LABELS: Record<Terreno, string> = { RUA: 'Rua', TRAIL: 'Trail' };
 
+/**
+ * Categoria visual do card na lista "Minhas provas" (reorganizar-listagem-provas-atleta).
+ * - `alvo`: prova-alvo futura — destaque maior, sem depender de ser a mais próxima.
+ * - `proxima`: a prova futura mais próxima por data, SÓ quando essa prova não é a alvo (CA4: se a
+ *   alvo for a mais próxima, nenhuma outra prova herda a categoria `proxima`).
+ * - `futura`: demais provas futuras, sem destaque.
+ * - `historico`: provas passadas (por data, não pelo campo `realizada` — uma prova passada e nunca
+ *   registrada como realizada ainda é histórico, não deve poluir a seção de futuras).
+ */
+export type RaceCategory = 'alvo' | 'proxima' | 'futura' | 'historico';
+
 /** View model de uma prova nas telas do atleta (lista, faixa do Plano). */
 export interface AthleteRaceView {
   id: string;
@@ -27,6 +38,8 @@ export interface AthleteRaceView {
   /** Mínimo da tabela, derivado pelo backend; ausente em prova legada sem derivação. */
   semanasMinimas?: number;
   preparacaoCurta: boolean;
+  /** Preenchida só por `buildAthleteRaceList` — depende da posição da prova na lista ordenada. */
+  categoria?: RaceCategory;
 }
 
 export function terrenoDe(tipoProva: TipoProva): Terreno {
@@ -62,11 +75,35 @@ export function buildAthleteRaceView(prova: Prova, hoje: Date = new Date()): Ath
   };
 }
 
-/** Lista para a tela "Minhas provas": alvo primeiro, depois por data. */
+/**
+ * Lista para a tela "Minhas provas" (reorganizar-listagem-provas-atleta): ordem cronológica vence
+ * sobre alvo — futuras ascendente (a mais próxima no topo), passadas depois, como histórico
+ * (descendente — a mais recente primeiro). A prova-alvo não pula posição por ser alvo; ela aparece
+ * onde cai no calendário, com a categoria `alvo` para o destaque visual (CA1, CA2).
+ */
 export function buildAthleteRaceList(provas: Prova[], hoje: Date = new Date()): AthleteRaceView[] {
-  return provas
-    .map((p) => buildAthleteRaceView(p, hoje))
-    .sort((a, b) => Number(b.alvo) - Number(a.alvo) || a.dataIso.localeCompare(b.dataIso));
+  const hojeIso = format(hoje, 'yyyy-MM-dd');
+  const views = provas.map((p) => buildAthleteRaceView(p, hoje));
+
+  const futuras = views
+    .filter((v) => v.dataIso >= hojeIso)
+    .sort((a, b) => a.dataIso.localeCompare(b.dataIso));
+  const passadas = views
+    .filter((v) => v.dataIso < hojeIso)
+    .sort((a, b) => b.dataIso.localeCompare(a.dataIso));
+
+  // A categoria `proxima` é só da prova mais próxima por data (futuras[0]), e só quando ela não é
+  // alvo — se a alvo for a mais próxima, nenhuma outra prova herda `proxima` (CA3, CA4, CA6).
+  const maisProxima = futuras[0];
+  const proximaNaoAlvoId = maisProxima && !maisProxima.alvo ? maisProxima.id : undefined;
+
+  const futurasComCategoria = futuras.map((v): AthleteRaceView => ({
+    ...v,
+    categoria: v.alvo ? 'alvo' : v.id === proximaNaoAlvoId ? 'proxima' : 'futura',
+  }));
+  const passadasComCategoria = passadas.map((v): AthleteRaceView => ({ ...v, categoria: 'historico' }));
+
+  return [...futurasComCategoria, ...passadasComCategoria];
 }
 
 /** Prova-alvo futura e não realizada; `null` quando não há. */

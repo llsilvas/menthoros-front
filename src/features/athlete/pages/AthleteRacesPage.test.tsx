@@ -50,25 +50,32 @@ describe('AthleteRacesPage', () => {
   });
   afterEach(() => vi.useRealTimers());
 
-  it('alvo em destaque com semanas e aviso; secundária com chips; realizada sem ações', () => {
+  it('ordem cronológica: próxima (secundária) primeiro, alvo distante depois, histórico por último', () => {
     mockHook([REALIZADA, SECUNDARIA, ALVO]);
     renderPage();
 
     const cards = screen.getAllByTestId('race-card');
     expect(cards).toHaveLength(3);
-    expect(cards[0]).toHaveAttribute('data-alvo', 'true');
-    expect(cards[0]).toHaveTextContent('Maratona SP');
-    expect(cards[0]).toHaveTextContent('faltam 13 semanas de 16 recomendadas');
-    expect(within(cards[0]).getByText('Preparação curta')).toBeInTheDocument();
 
-    const secundaria = cards.find((c) => c.textContent?.includes('Trilha da Serra'))!;
-    expect(secundaria).toHaveTextContent('30 km · Trail');
-    expect(within(secundaria).getByText('Planejada')).toBeInTheDocument();
-    expect(within(secundaria).getByRole('button', { name: /editar/i })).toBeInTheDocument();
+    // CA2/CA3: a secundária (out/25) é mais próxima que a alvo (dez/06) e não pula posição — ela
+    // fica em primeiro, com a categoria "proxima", não a alvo (que é mais distante).
+    expect(cards[0]).toHaveTextContent('Trilha da Serra');
+    expect(cards[0]).toHaveAttribute('data-alvo', 'false');
+    expect(cards[0]).toHaveAttribute('data-categoria', 'proxima');
+    expect(within(cards[0]).getByText('Planejada')).toBeInTheDocument();
+    expect(within(cards[0]).getByRole('button', { name: /editar/i })).toBeInTheDocument();
 
-    const realizada = cards.find((c) => c.textContent?.includes('Meia do Rio'))!;
-    expect(within(realizada).getByText('Realizada')).toBeInTheDocument();
-    expect(within(realizada).queryByRole('button', { name: /editar|cancelar/i })).toBeNull();
+    expect(cards[1]).toHaveTextContent('Maratona SP');
+    expect(cards[1]).toHaveAttribute('data-alvo', 'true');
+    expect(cards[1]).toHaveAttribute('data-categoria', 'alvo');
+    expect(cards[1]).toHaveTextContent('faltam 13 semanas de 16 recomendadas');
+    expect(within(cards[1]).getByText('Preparação curta')).toBeInTheDocument();
+
+    // CA5: histórico (passada) sempre por último, independente de ser alvo ou não.
+    expect(cards[2]).toHaveTextContent('Meia do Rio');
+    expect(cards[2]).toHaveAttribute('data-categoria', 'historico');
+    expect(within(cards[2]).getByText('Realizada')).toBeInTheDocument();
+    expect(within(cards[2]).queryByRole('button', { name: /editar|cancelar/i })).toBeNull();
   });
 
   it('estado vazio com CTA de cadastro', async () => {
