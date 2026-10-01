@@ -471,7 +471,9 @@ describe('buildSelectedAthleteFromDashboard — diagnóstico', () => {
     });
   }
 
-  const aderencia4Semanas = [
+  // Série semanal que alimenta as barras do gráfico — independente de `aderencia4Semanas`, que é
+  // o agregado só da janela (fix-adherence-count-until-today, D5).
+  const semanasRecentes = [
     { semanaInicio: '2026-08-31', totalPlanejado: 4, totalRealizado: 0, percentual: 0 },
     { semanaInicio: '2026-09-07', totalPlanejado: 4, totalRealizado: 1, percentual: 25 },
     { semanaInicio: '2026-09-14', totalPlanejado: 4, totalRealizado: 2, percentual: 50 },
@@ -479,10 +481,19 @@ describe('buildSelectedAthleteFromDashboard — diagnóstico', () => {
     { semanaInicio: '2026-09-28', totalPlanejado: 4, totalRealizado: 0, percentual: 0 }, // em curso
   ];
 
-  it('aderência vem da janela do perfil, a mesma base das barras — não do roster', () => {
-    const row = buildSelectedAthleteFromDashboard(roster, perfil({ aderenciaSemanal: aderencia4Semanas }), hoje);
+  it('aderência vem de `aderencia4Semanas` do perfil — não do roster', () => {
+    const row = buildSelectedAthleteFromDashboard(
+      roster,
+      perfil({ aderenciaSemanal: semanasRecentes, aderencia4Semanas: { realizado: 5, planejado: 16, percentual: 31 } }),
+      hoje,
+    );
     expect(row.adherence).toBe(31);
     expect(row.adherenceWindow).toEqual({ percent: 31, completed: 5, planned: 16, weeks: 4 });
+  });
+
+  it('perfil carregado sem nada devido na janela: tile não cai no roster (D4/D6)', () => {
+    const row = buildSelectedAthleteFromDashboard(roster, perfil({ aderenciaSemanal: semanasRecentes }), hoje);
+    expect(row.adherenceWindow).toBeNull();
   });
 
   it('sem perfil, aderência cai no roster', () => {
@@ -492,7 +503,7 @@ describe('buildSelectedAthleteFromDashboard — diagnóstico', () => {
   });
 
   it('aderência válida continua disponível com PMC vazio', () => {
-    const row = buildSelectedAthleteFromDashboard(roster, perfil({ aderenciaSemanal: aderencia4Semanas, pmc: [] }), hoje);
+    const row = buildSelectedAthleteFromDashboard(roster, perfil({ aderenciaSemanal: semanasRecentes, pmc: [] }), hoje);
     expect(row.adherenceAvailable).toBe(true);
     expect(row.quickStats.hasWindowData).toBe(false);
   });

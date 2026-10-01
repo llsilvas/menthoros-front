@@ -14,11 +14,22 @@ export interface PmcPontoRaw {
     statusForma?: FaixaTsbStatus;
 }
 
-/** Aderência semanal ao plano de treino. */
+/** Aderência semanal ao plano de treino. Só semanas com ao menos um treino devido (fix-adherence-count-until-today). */
 export interface AderenciasSemanalDto {
     semanaInicio: string;
     totalPlanejado: number;
     totalRealizado: number;
+    percentual: number;
+}
+
+/**
+ * Aderência da semana atual + 3 anteriores, mesma função que alimenta `roster.aderenciaPercentual`
+ * (fix-adherence-count-until-today, D5) — roster e perfil concordam por construção. Ausente quando
+ * não há treino devido na janela (nunca 0%, ver D6).
+ */
+export interface Aderencia4SemanasDto {
+    realizado: number;
+    planejado: number;
     percentual: number;
 }
 
@@ -132,6 +143,8 @@ export interface AtletaPerfilCoachDto {
     realizadosRecentes?: RealizadoRecenteDto[];
     /** Ausente em backend anterior ao campo ou quando a consulta falha (`avisos` traz "distanceSummary"). */
     distanceSummary?: DistanceSummaryDto | null;
+    /** Ausente sem treino devido na janela (D6) ou em backend anterior ao campo. */
+    aderencia4Semanas?: Aderencia4SemanasDto | null;
 }
 
 /** Treino realizado recente, com feedback do atleta quando registrado (athlete-training-loop, D3). */

@@ -147,7 +147,7 @@ export default function AthleteProgressPage() {
           <BlockState pergunta="Estou cumprindo o plano?" testId="progress-adherence"
             error={aderenciaError} errorMessage="Não foi possível carregar sua aderência ao plano." onRetry={refetchAderencia}
             loading={aderenciaLoading && aderencia.length === 0} empty={!adherence}
-            emptyMessage="Sem plano aprovado nas últimas semanas — a aderência aparece quando houver.">
+            emptyMessage="Nada venceu ainda nas últimas semanas — a aderência aparece quando houver treino vencido.">
             {adherence && <AdherenceBlock reading={adherence} />}
           </BlockState>
 

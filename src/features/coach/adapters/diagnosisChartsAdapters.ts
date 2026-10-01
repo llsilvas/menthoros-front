@@ -1,7 +1,6 @@
 import { addDays, differenceInCalendarDays, format, parseISO, startOfDay, startOfWeek, subDays } from 'date-fns';
-import { buildAderenciaResumo } from '../../athlete/adapters/aderenciaAdapter';
 import { formatKmPt, plural } from './format';
-import type { AderenciasSemanalDto, DistanceSummaryDto, PmcPontoRaw } from '../../../types/AtletaPerfilCoach';
+import type { Aderencia4SemanasDto, AderenciasSemanalDto, DistanceSummaryDto, PmcPontoRaw } from '../../../types/AtletaPerfilCoach';
 import type { MetricTone } from '../types/AthleteForm';
 import type { AcwrConfidence, AdherenceWindow, DataGap, WeeklyDiagnosisPoint } from '../types/CoachInbox';
 
@@ -156,28 +155,17 @@ export function buildWeeklyDiagnosis(
 }
 
 /**
- * Aderência das últimas `weeks` semanas civis **completas**: Σ realizado ÷ Σ planejado das entradas
- * de `aderenciaSemanal` na janela — as mesmas que o gráfico exibe. `null` sem plano na janela.
- *
- * A semana em curso fica de fora: o backend conta como planejado todo treino a partir do início da
- * consulta, inclusive os que ainda vão acontecer nesta semana. Na segunda-feira um atleta perfeito
- * teria 0 de 4, e a aderência subiria sozinha ao longo da semana. Semanas futuras já planejadas
- * também ficam de fora pelo mesmo motivo.
+ * Mapeia `aderencia4Semanas` do perfil (semana atual + 3 anteriores, só treinos devidos — mesma
+ * função do backend que alimenta `roster.aderenciaPercentual`, fix-adherence-count-until-today D5)
+ * para o formato que o tile e as barras consomem. `null` sem nada devido na janela — nunca 0%.
  */
-export function buildAdherenceWindow(aderencia: AderenciasSemanalDto[], agora: Date, weeks = 4): AdherenceWindow | null {
-  const semanaAtual = startOfWeek(diaCivil(agora), WEEK);
-  const inicioJanela = subDays(semanaAtual, 7 * weeks);
-  const naJanela = aderencia.filter((a) => {
-    const semana = startOfWeek(parseISO(a.semanaInicio), WEEK);
-    return semana >= inicioJanela && semana < semanaAtual;
-  });
-  const resumo = buildAderenciaResumo(naJanela);
-  if (!resumo || resumo.totalPlanejado <= 0) return null;
+export function buildAdherenceWindowFromAderencia4Semanas(aderencia4Semanas: Aderencia4SemanasDto | null | undefined): AdherenceWindow | null {
+  if (!aderencia4Semanas) return null;
   return {
-    percent: Math.round((resumo.totalRealizado / resumo.totalPlanejado) * 100),
-    completed: resumo.totalRealizado,
-    planned: resumo.totalPlanejado,
-    weeks: naJanela.length,
+    percent: Math.round(aderencia4Semanas.percentual),
+    completed: aderencia4Semanas.realizado,
+    planned: aderencia4Semanas.planejado,
+    weeks: 4,
   };
 }
 
@@ -255,7 +243,9 @@ export function describeWeek(
     ? INDISPONIVEL_ADESAO
     : week.adherence != null
       ? `Adesão ${week.adherence}% (${week.completed} de ${week.planned})${week.current ? ' · semana em curso' : ''}`
-      : 'Sem plano na semana';
+      : week.current
+        ? 'Nada vencido ainda nesta semana'
+        : 'Sem plano na semana';
   // Conta dias, não treinos: o ponto PMC já é o agregado do dia.
   const km = week.distanceKm != null ? `${formatKmPt(week.distanceKm)} km` : null;
   const tss =
@@ -299,5 +289,5 @@ export function buildAdherenceTile(
   if (rosterFallback != null) {
     return { value: `${Math.round(rosterFallback)}%`, delta: 'Últimas 4 semanas', tone: adherenceTone(rosterFallback) };
   }
-  return { value: '—', delta: 'Sem plano na janela', tone: 'neutral' };
+  return { value: '—', delta: 'Sem treino vencido na janela', tone: 'neutral' };
 }

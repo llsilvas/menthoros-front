@@ -314,7 +314,10 @@ describe('CoachInboxPage', () => {
      * disponibilidade própria — o zero legítimo é "0 de 4 treinos", com ou sem PMC.
      */
     it('zero legítimo de aderência continua numérico, mesmo sem PMC', () => {
-      mockPerfil({ aderenciaSemanal: [{ semanaInicio: segunda(1), totalPlanejado: 4, totalRealizado: 0, percentual: 0 }] });
+      mockPerfil({
+        aderenciaSemanal: [{ semanaInicio: segunda(1), totalPlanejado: 4, totalRealizado: 0, percentual: 0 }],
+        aderencia4Semanas: { realizado: 0, planejado: 4, percentual: 0 },
+      });
 
       renderPage();
 
@@ -365,13 +368,14 @@ describe('CoachInboxPage', () => {
     it('aderência vem das 4 semanas completas do perfil, mesmo com PMC vazio', () => {
       mockPerfil({
         aderenciaSemanal: [
-          { semanaInicio: segunda(4), totalPlanejado: 4, totalRealizado: 0, percentual: 0 },
           { semanaInicio: segunda(3), totalPlanejado: 4, totalRealizado: 1, percentual: 25 },
           { semanaInicio: segunda(2), totalPlanejado: 4, totalRealizado: 2, percentual: 50 },
           { semanaInicio: segunda(1), totalPlanejado: 4, totalRealizado: 2, percentual: 50 },
-          // Semana em curso: treinos ainda por vir contam como planejados no backend.
+          // Semana em curso: só o treino já vencido conta (fix-adherence-count-until-today).
           { semanaInicio: segunda(0), totalPlanejado: 4, totalRealizado: 0, percentual: 0 },
         ],
+        // Mesmo agregado que o roster usa — vem pronto do backend (D5), não é recomputado no front.
+        aderencia4Semanas: { realizado: 5, planejado: 16, percentual: 31 },
       });
 
       renderPage();

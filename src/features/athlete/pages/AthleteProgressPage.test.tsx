@@ -103,7 +103,7 @@ describe('AthleteProgressPage', () => {
     vi.mocked(useAthleteRecordes).mockReturnValue({ recordes: [], loading: false, error: null, fetchRecordes: noop });
     renderPage();
     expect(screen.getByText(/ainda não há histórico de forma/i)).toBeInTheDocument();
-    expect(screen.getByText(/sem plano aprovado nas últimas semanas/i)).toBeInTheDocument();
+    expect(screen.getByText(/nada venceu ainda nas últimas semanas/i)).toBeInTheDocument();
     expect(screen.getByText(/ainda sem recordes/i)).toBeInTheDocument();
     // vazio também tem saída para o coach (D1)
     expect(screen.getAllByRole('link', { name: /falar com o coach/i })).toHaveLength(5);
