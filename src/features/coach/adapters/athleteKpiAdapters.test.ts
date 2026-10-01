@@ -48,8 +48,8 @@ describe('buildAthleteKpis', () => {
     expect(porChave(atleta({ adherenceWindow: null }), 38).adherence).toMatchObject({ value: '38%', detail: 'Últimas 4 semanas' });
   });
 
-  it('aderência sem janela, com perfil: sem plano, sem número do roster', () => {
-    expect(porChave(atleta({ adherenceWindow: null }), null).adherence).toMatchObject({ value: '—', detail: 'Sem plano na janela', tone: 'neutral' });
+  it('aderência sem janela, com perfil: nada vencido, sem número do roster', () => {
+    expect(porChave(atleta({ adherenceWindow: null }), null).adherence).toMatchObject({ value: '—', detail: 'Sem treino vencido na janela', tone: 'neutral' });
   });
 
   it('consulta de aderência que falhou: "Dado indisponível"', () => {

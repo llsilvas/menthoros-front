@@ -104,6 +104,11 @@ describe('describeWeek (tooltip)', () => {
     expect(describeWeek(semana({ adherence: null, planned: null, completed: null }), DISPONIVEL).adherence).toBe('Sem plano na semana');
   });
 
+  it('semana ATUAL sem entrada de aderência → "Nada vencido ainda nesta semana", não "Sem plano" (CA7)', () => {
+    expect(describeWeek(semana({ current: true, adherence: null, planned: null, completed: null }), DISPONIVEL).adherence)
+      .toBe('Nada vencido ainda nesta semana');
+  });
+
   it('consulta de aderência que falhou → "Dado indisponível", nunca "Sem plano na semana"', () => {
     const r = describeWeek(semana({ adherence: null, planned: null, completed: null }), { adherenceAvailable: false, pmcAvailable: true });
     expect(r.adherence).toBe('Adesão: dado indisponível');

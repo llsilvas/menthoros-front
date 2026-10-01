@@ -23,11 +23,11 @@ export function AdherenceBlock({ reading }: AdherenceBlockProps) {
           const pct = s.planejado > 0 ? (s.realizado / s.planejado) * 100 : 0;
           return (
             <Box key={s.semanaInicio} data-testid="progress-week-bar" data-current={s.corrente ? 'true' : undefined} data-no-plan={s.semPlano ? 'true' : undefined} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.75 }}>
-              <Box sx={{ width: '100%', height: 48, borderRadius: 1.5, bgcolor: surface[700], position: 'relative', overflow: 'hidden', opacity: s.semPlano ? 0.4 : 1 }}>
+              <Box sx={{ width: '100%', height: 48, borderRadius: 1.5, bgcolor: surface[700], position: 'relative', overflow: 'hidden', opacity: s.semPlano || s.nadaVencido ? 0.4 : 1 }}>
                 <Box sx={{ position: 'absolute', bottom: 0, width: '100%', height: `${pct}%`, bgcolor: s.corrente ? alpha(primary[500], 0.45) : primary[500] }} />
               </Box>
               <Typography variant="caption" sx={{ color: s.corrente ? primary[500] : surface[400], fontVariantNumeric: 'tabular-nums' }}>
-                {s.semPlano ? 'sem plano' : `${s.realizado}/${s.planejado}${s.corrente ? ' · esta' : ''}`}
+                {s.semPlano ? 'sem plano' : s.nadaVencido ? 'nada vencido ainda' : `${s.realizado}/${s.planejado}${s.corrente ? ' · esta' : ''}`}
               </Typography>
             </Box>
           );

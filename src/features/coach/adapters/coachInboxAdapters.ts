@@ -17,7 +17,7 @@ import type { CoachAthleteRow, RaceItem, SegmentFilter } from '../types/CoachInb
 import { formFromTSB } from '../types/AthleteForm';
 import {
   assessAcwrConfidence,
-  buildAdherenceWindow,
+  buildAdherenceWindowFromAderencia4Semanas,
   buildWeeklyDiagnosis,
   calculateLoadDelta7d,
   classifyGaps,
@@ -232,8 +232,9 @@ export function buildSelectedAthleteFromDashboard(
   const adherenceAvailable = isFieldAvailable(profile?.avisos, 'aderenciaSemanal');
   const pmcAvailable = isFieldAvailable(profile?.avisos, 'pmc');
   const dataGaps = classifyGaps(detectDataGaps(pmcPoints, hoje), adherencePoints, distance);
-  // KPI e barras saem da MESMA série (antes: KPI do roster, barras do perfil — não batiam).
-  const adherenceWindow = buildAdherenceWindow(adherencePoints, hoje);
+  // Mesmo campo que alimenta `roster.aderenciaPercentual` (D5): tile e roster concordam por
+  // construção, não por dois cálculos (fix-adherence-count-until-today).
+  const adherenceWindow = buildAdherenceWindowFromAderencia4Semanas(profile?.aderencia4Semanas);
 
   return {
     id: roster.atletaId,

@@ -27,7 +27,11 @@ export interface CoachAtletaResumo {
     lastActivity?: string;
     /** Volume realizado na semana atual (km). */
     weeklyVolume: number;
-    /** Percentual de aderência das últimas 4 semanas (0–100); ausente quando sem plano. */
+    /**
+     * Percentual de aderência da semana atual + 3 anteriores (0–100), só treinos devidos
+     * (fix-adherence-count-until-today); ausente sem treino devido na janela — nunca 0%. Mesma
+     * função que alimenta `aderencia4Semanas` do perfil: concordam por construção.
+     */
     aderenciaPercentual?: number;
     /** Próximo vencimento (menor mensalidade em aberto); ausente junto com billingStatus. */
     nextDueDate?: string;
