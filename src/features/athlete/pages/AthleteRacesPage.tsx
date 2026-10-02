@@ -15,13 +15,16 @@ import { buildAthleteRaceList, TERRENO_LABELS, type AthleteRaceView, type RaceCa
 /**
  * Hierarquia visual por categoria (reorganizar-listagem-provas-atleta, CA3–CA5): `alvo` mantém o
  * destaque atual (borda lime + ícone + label); `proxima` ganha cor própria (`semantic.info`) sem
- * acumular com a de alvo (CA4 — nunca as duas ao mesmo tempo); `historico` fica esmaecida.
+ * acumular com a de alvo (CA4 — nunca as duas ao mesmo tempo); `historico` fica esmaecida pelo
+ * fundo mais escuro (`elevation.base`, em vez de `elevation.card`) — NÃO por `opacity` no card
+ * inteiro: opacity reduz o contraste do texto junto (achado do Codex review, 2026-10-01 — data e
+ * distância ficavam abaixo de 4,5:1, informação que o atleta ainda precisa ler).
  */
-const CATEGORY_STYLE: Record<RaceCategory, { border: string; titleColor: string; dimmed: boolean; label?: { text: string; color: string } }> = {
-  alvo: { border: `${primary[500]}66`, titleColor: primary[500], dimmed: false, label: { text: 'PROVA-ALVO', color: primary[500] } },
-  proxima: { border: `${semantic.info[500]}66`, titleColor: semantic.info[500], dimmed: false },
-  futura: { border: surface[700], titleColor: surface[50], dimmed: false },
-  historico: { border: surface[800], titleColor: surface[300], dimmed: true },
+const CATEGORY_STYLE: Record<RaceCategory, { border: string; bg: string; titleColor: string; label?: { text: string; color: string } }> = {
+  alvo: { border: `${primary[500]}66`, bg: elevation.card, titleColor: primary[500], label: { text: 'PROVA-ALVO', color: primary[500] } },
+  proxima: { border: `${semantic.info[500]}66`, bg: elevation.card, titleColor: semantic.info[500] },
+  futura: { border: surface[700], bg: elevation.card, titleColor: surface[50] },
+  historico: { border: surface[800], bg: elevation.base, titleColor: surface[300] },
 };
 
 function RaceCard({ race, onEdit, onCancel }: { race: AthleteRaceView; onEdit: () => void; onCancel: () => void }) {
@@ -34,14 +37,13 @@ function RaceCard({ race, onEdit, onCancel }: { race: AthleteRaceView; onEdit: (
       data-alvo={race.alvo ? 'true' : 'false'}
       data-categoria={categoria}
       sx={{
-        bgcolor: elevation.card,
+        bgcolor: estilo.bg,
         border: `1px solid ${estilo.border}`,
         borderRadius: radius.lg,
         p: 2,
         display: 'flex',
         flexDirection: 'column',
         gap: 1,
-        opacity: estilo.dimmed ? 0.65 : 1,
       }}
     >
       {estilo.label && (

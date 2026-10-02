@@ -97,6 +97,23 @@ describe('buildAthleteRaceList', () => {
     expect(resultado.map((r) => r.id)).toEqual(['c', 'h']);
     expect(resultado.every((r) => r.categoria === 'historico')).toBe(true);
   });
+
+  it('regressão (Codex review, 2026-10-01) — prova-alvo já realizada vai pro histórico, não pro destaque', () => {
+    // Resultado lançado antes da data oficial: dataProva ainda é futura, mas foiRealizada=true.
+    // Sem a guarda, cairia em "futuras" e ganharia a categoria "alvo" (banner + chip "Realizada"
+    // ao mesmo tempo — estado contraditório que o código anterior, `alvo && !realizada`, evitava).
+    const alvoJaRealizada: Prova = { ...alvo, foiRealizada: true };
+    const resultado = buildAthleteRaceList([alvoJaRealizada, secundaria], HOJE);
+
+    expect(resultado[0].id).toBe('b'); // secundaria passa a ser a única futura, logo "proxima"
+    expect(resultado[0].categoria).toBe('proxima');
+    expect(resultado[1].id).toBe('a');
+    expect(resultado[1].categoria).toBe('historico');
+  });
+
+  it('lista vazia não quebra', () => {
+    expect(buildAthleteRaceList([], HOJE)).toEqual([]);
+  });
 });
 
 describe('selectTargetRace / countUpcomingRaces', () => {

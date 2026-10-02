@@ -8,6 +8,12 @@ export type Terreno = 'RUA' | 'TRAIL';
 
 export const TERRENO_LABELS: Record<Terreno, string> = { RUA: 'Rua', TRAIL: 'Trail' };
 
+/** `dataIso >= hoje`. Único critério de "é futura" do arquivo — achado do clean-code-reviewer,
+ * 2026-10-01: a comparação lexicográfica de `yyyy-MM-dd` estava duplicada em 3 funções. */
+function isFutura(dataIso: string, hoje: Date): boolean {
+  return dataIso >= format(hoje, 'yyyy-MM-dd');
+}
+
 /**
  * Categoria visual do card na lista "Minhas provas" (reorganizar-listagem-provas-atleta).
  * - `alvo`: prova-alvo futura — destaque maior, sem depender de ser a mais próxima.
@@ -80,16 +86,21 @@ export function buildAthleteRaceView(prova: Prova, hoje: Date = new Date()): Ath
  * sobre alvo — futuras ascendente (a mais próxima no topo), passadas depois, como histórico
  * (descendente — a mais recente primeiro). A prova-alvo não pula posição por ser alvo; ela aparece
  * onde cai no calendário, com a categoria `alvo` para o destaque visual (CA1, CA2).
+ *
+ * Uma prova marcada `realizada` sempre vai para o histórico, mesmo com `dataIso` ainda não passada
+ * (ex.: resultado lançado antes da data oficial) — achado do Codex review, 2026-10-01: o código
+ * anterior (`race.alvo && !race.realizada`) já excluía provas concluídas do destaque de alvo, e a
+ * categorização só por data perdia essa guarda, deixando o banner "PROVA-ALVO" junto do chip
+ * "Realizada" no mesmo card.
  */
 export function buildAthleteRaceList(provas: Prova[], hoje: Date = new Date()): AthleteRaceView[] {
-  const hojeIso = format(hoje, 'yyyy-MM-dd');
   const views = provas.map((p) => buildAthleteRaceView(p, hoje));
 
   const futuras = views
-    .filter((v) => v.dataIso >= hojeIso)
+    .filter((v) => isFutura(v.dataIso, hoje) && !v.realizada)
     .sort((a, b) => a.dataIso.localeCompare(b.dataIso));
   const passadas = views
-    .filter((v) => v.dataIso < hojeIso)
+    .filter((v) => !isFutura(v.dataIso, hoje) || v.realizada)
     .sort((a, b) => b.dataIso.localeCompare(a.dataIso));
 
   // A categoria `proxima` é só da prova mais próxima por data (futuras[0]), e só quando ela não é
@@ -108,15 +119,13 @@ export function buildAthleteRaceList(provas: Prova[], hoje: Date = new Date()): 
 
 /** Prova-alvo futura e não realizada; `null` quando não há. */
 export function selectTargetRace(provas: Prova[], hoje: Date = new Date()): AthleteRaceView | null {
-  const hojeIso = format(hoje, 'yyyy-MM-dd');
-  const alvo = provas.find((p) => p.provaAlvo === true && p.foiRealizada !== true && p.dataProva >= hojeIso);
+  const alvo = provas.find((p) => p.provaAlvo === true && p.foiRealizada !== true && isFutura(p.dataProva, hoje));
   return alvo ? buildAthleteRaceView(alvo, hoje) : null;
 }
 
 /** Provas futuras não realizadas (candidatas a alvo). */
 export function countUpcomingRaces(provas: Prova[], hoje: Date = new Date()): number {
-  const hojeIso = format(hoje, 'yyyy-MM-dd');
-  return provas.filter((p) => p.foiRealizada !== true && p.dataProva >= hojeIso).length;
+  return provas.filter((p) => p.foiRealizada !== true && isFutura(p.dataProva, hoje)).length;
 }
 
 /** Segunda-feira da semana que contém `d`, hora zerada. */
