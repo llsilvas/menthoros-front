@@ -201,6 +201,18 @@ describe('AthleteHomePage', () => {
       expect(screen.getByRole('button', { name: /registrar mesmo assim/i })).toBeInTheDocument();
     });
 
+    it('sem treino hoje mas com próximo treino futuro (janela de 14 dias): mostra "Descanso", não o treino futuro rotulado como hoje', () => {
+      mockHome({ home: {
+        hoje: HOJE_ISO,
+        proximoTreino: { data: '2026-08-31', tipoTreino: 'LONGO', descricao: 'Longão 18km', statusTreino: 'PENDENTE' },
+        metricasChave: { ctl: 74, atl: 71, tsb: 3, tss: 62, statusForma: 'FORMA_IDEAL' },
+      } });
+      renderPage();
+      expect(screen.getByTestId('home-next-workout')).toHaveTextContent('Descanso');
+      expect(screen.queryByText('Longão 18km')).toBeNull();
+      expect(screen.queryByRole('link', { name: /ver etapas e começar/i })).toBeNull();
+    });
+
     it('enviar o feedback chama o hook com o realizado do dia e recarrega a Home', async () => {
       mockHome({ home: {
         hoje: HOJE_ISO,

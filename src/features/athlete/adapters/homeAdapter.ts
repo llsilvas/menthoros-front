@@ -1,4 +1,3 @@
-import { isSameDay, parseISO } from 'date-fns';
 import type { AthleteHome } from '../../../types/AthleteHome';
 import type { TimeOfDay } from '../../../shared/design-tokens/gradients';
 import { workoutTypeColor } from '../../../theme/activeTheme';
@@ -57,7 +56,8 @@ export function buildNextWorkout(home: AthleteHome | null): HomeNextWorkout | nu
     color: workoutTypeColor(p.tipoTreino),
     estimatedDuration: p.duracaoMin,
     profile,
-    isToday: Boolean(p.data) && isSameDay(parseISO(p.data!), new Date()),
+    // "Hoje" é `home.hoje` (fuso do atleta, resolvido pelo backend) — nunca o relógio do aparelho.
+    isToday: Boolean(p.data) && p.data === home?.hoje,
   };
 }
 

@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import { format } from 'date-fns';
 import { timeOfDayNow, buildNextWorkout } from './homeAdapter';
 import type { AthleteHome } from '../../../types/AthleteHome';
 
@@ -27,18 +26,18 @@ describe('homeAdapter', () => {
       expect(workout?.description).toBe('Longão 18km Z2');
     });
 
-    it('isToday: true quando a data do próximo treino é hoje, false quando é futura', () => {
-      // Data LOCAL, não UTC: a implementação compara com isSameDay(new Date()) em horário
-      // local — com toISOString(), depois das 21h em GMT-3 o teste quebrava toda noite.
-      const hojeIso = format(new Date(), 'yyyy-MM-dd');
-      const hoje = buildNextWorkout({ proximoTreino: { tipoTreino: 'FACIL', data: hojeIso } });
-      const futuro = buildNextWorkout({ proximoTreino: { tipoTreino: 'FACIL', data: '2099-01-01' } });
+    it('isToday: true quando a data do próximo treino é home.hoje, false quando é futura', () => {
+      // Compara com `home.hoje` (fuso do atleta, resolvido pelo backend) — nunca com o relógio
+      // do aparelho, senão um treino de dias no futuro (janela de 14 dias da Home) vazaria como
+      // "hoje" quando o aparelho estivesse num fuso adiantado.
+      const hoje = buildNextWorkout({ hoje: '2026-10-02', proximoTreino: { tipoTreino: 'FACIL', data: '2026-10-02' } });
+      const futuro = buildNextWorkout({ hoje: '2026-10-02', proximoTreino: { tipoTreino: 'FACIL', data: '2026-10-05' } });
       expect(hoje?.isToday).toBe(true);
       expect(futuro?.isToday).toBe(false);
     });
 
     it('isToday: false quando o próximo treino não tem data', () => {
-      const workout = buildNextWorkout({ proximoTreino: { tipoTreino: 'FACIL' } });
+      const workout = buildNextWorkout({ hoje: '2026-10-02', proximoTreino: { tipoTreino: 'FACIL' } });
       expect(workout?.isToday).toBe(false);
     });
 
