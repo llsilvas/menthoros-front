@@ -10,17 +10,35 @@ import { radius } from '../../../shared/design-tokens/density';
 import { primary, semantic, surface } from '../../../theme/tokens';
 import { ROUTES, athleteRaceEditRoute } from '../../../constants/routes';
 import { useAthleteRaces } from '../../../hooks/useAthleteRaces';
-import { buildAthleteRaceList, TERRENO_LABELS, type AthleteRaceView } from '../adapters/raceAdapters';
+import { buildAthleteRaceList, TERRENO_LABELS, type AthleteRaceView, type RaceCategory } from '../adapters/raceAdapters';
+
+/**
+ * Hierarquia visual por categoria (reorganizar-listagem-provas-atleta, CA3–CA5): `alvo` mantém o
+ * destaque atual (borda lime + ícone + label); `proxima` ganha cor própria (`semantic.info`) sem
+ * acumular com a de alvo (CA4 — nunca as duas ao mesmo tempo); `historico` fica esmaecida pelo
+ * fundo mais escuro (`elevation.base`, em vez de `elevation.card`) — NÃO por `opacity` no card
+ * inteiro: opacity reduz o contraste do texto junto (achado do Codex review, 2026-10-01 — data e
+ * distância ficavam abaixo de 4,5:1, informação que o atleta ainda precisa ler).
+ */
+const CATEGORY_STYLE: Record<RaceCategory, { border: string; bg: string; titleColor: string; label?: { text: string; color: string } }> = {
+  alvo: { border: `${primary[500]}66`, bg: elevation.card, titleColor: primary[500], label: { text: 'PROVA-ALVO', color: primary[500] } },
+  proxima: { border: `${semantic.info[500]}66`, bg: elevation.card, titleColor: semantic.info[500] },
+  futura: { border: surface[700], bg: elevation.card, titleColor: surface[50] },
+  historico: { border: surface[800], bg: elevation.base, titleColor: surface[300] },
+};
 
 function RaceCard({ race, onEdit, onCancel }: { race: AthleteRaceView; onEdit: () => void; onCancel: () => void }) {
-  const destaque = race.alvo && !race.realizada;
+  const categoria = race.categoria ?? 'futura';
+  const estilo = CATEGORY_STYLE[categoria];
+  const destaque = categoria === 'alvo';
   return (
     <Box
       data-testid="race-card"
       data-alvo={race.alvo ? 'true' : 'false'}
+      data-categoria={categoria}
       sx={{
-        bgcolor: elevation.card,
-        border: `1px solid ${destaque ? `${primary[500]}66` : surface[700]}`,
+        bgcolor: estilo.bg,
+        border: `1px solid ${estilo.border}`,
         borderRadius: radius.lg,
         p: 2,
         display: 'flex',
@@ -28,13 +46,13 @@ function RaceCard({ race, onEdit, onCancel }: { race: AthleteRaceView; onEdit: (
         gap: 1,
       }}
     >
-      {destaque && (
+      {estilo.label && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-          <FlagIcon sx={{ color: primary[500], fontSize: 16 }} />
-          <Typography variant="caption" sx={{ color: primary[500], fontWeight: 700, letterSpacing: 0.5 }}>PROVA-ALVO</Typography>
+          <FlagIcon sx={{ color: estilo.label.color, fontSize: 16 }} />
+          <Typography variant="caption" sx={{ color: estilo.label.color, fontWeight: 700, letterSpacing: 0.5 }}>{estilo.label.text}</Typography>
         </Box>
       )}
-      <Typography variant={destaque ? 'h6' : 'subtitle1'} sx={{ fontWeight: 700, color: surface[50] }}>{race.nome}</Typography>
+      <Typography variant={destaque ? 'h6' : 'subtitle1'} sx={{ fontWeight: 700, color: estilo.titleColor }}>{race.nome}</Typography>
       <Typography variant="body2" sx={{ color: surface[400] }}>
         {race.dataLabel} · {race.distanciaLabel} · {TERRENO_LABELS[race.terreno]}
         {race.tempoObjetivo ? ` · meta ${race.tempoObjetivo}` : ''}
