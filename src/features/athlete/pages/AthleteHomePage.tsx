@@ -251,7 +251,9 @@ export default function AthleteHomePage() {
 
       {(todayState === 'PLANEJADO' || todayState === 'DESCANSO') && (
         <TodayHeroCard
-          nextWorkout={nextWorkout}
+          // DESCANSO: proximoTreino pode ser dias no futuro (janela de 14 dias da Home) — não é o
+          // treino de hoje, então o card não recebe conteúdo e cai no fallback "Descanso".
+          nextWorkout={todayState === 'PLANEJADO' ? nextWorkout : null}
           onRegister={() => navigate(ROUTES.ATHLETE_TRAINING_LOG)}
         />
       )}

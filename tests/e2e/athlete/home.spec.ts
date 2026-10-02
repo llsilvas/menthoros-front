@@ -51,6 +51,7 @@ async function mockarHome(page: Page, opcoes: Opcoes = {}) {
   await page.route('**/api/v1/users/me**', (route) => route.fulfill(json(ME)))
   await page.route('**/api/v1/atletas/me/home', (route) =>
     route.fulfill(json({
+      hoje: CHECKIN_SALVO.data,
       proximoTreino: {
         data: CHECKIN_SALVO.data, tipoTreino: 'INTERVALADO', descricao: '2 × (4 min forte / 2 min leve)', duracaoMin: 45, zonaAlvo: 'Z4', tssPlanejado: 70, intensidadePlanejada: 0.95,
         etapas: [
