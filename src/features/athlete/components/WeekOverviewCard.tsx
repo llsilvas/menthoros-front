@@ -4,9 +4,8 @@ import { alpha } from '@mui/material/styles';
 import { LocalFireDepartment as StreakIcon, Flag as ProvaIcon, Check as CheckIcon } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { elevation } from '../../../shared/design-tokens';
-import { radius } from '../../../shared/design-tokens/density';
 import { primary, surface, semantic } from '../../../theme/tokens';
+import { Card } from '../../../shared/components/Card';
 import type { DiaOverview, WeekOverview } from '../adapters/buildWeekOverview';
 import { formatKm } from '../../../utils/formatKm';
 import { ROUTES } from '../../../constants/routes';
@@ -52,7 +51,7 @@ export function WeekOverviewCard({ overview, provaConhecida = true }: WeekOvervi
   const periodo = `${format(dias[0].date, 'd', { locale: ptBR })} – ${format(dias[6].date, "d 'de' MMM", { locale: ptBR })}`;
 
   return (
-    <Box sx={{ bgcolor: elevation.card, border: `1px solid ${surface[700]}`, borderRadius: radius.lg, p: 2, display: 'flex', flexDirection: 'column', gap: 1.75 }}>
+    <Card variant="solid" sx={{ display: 'flex', flexDirection: 'column', gap: 1.75 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="h6">Sua semana</Typography>
         <Typography variant="body2" sx={{ color: surface[400] }}>{periodo}</Typography>
@@ -104,7 +103,7 @@ export function WeekOverviewCard({ overview, provaConhecida = true }: WeekOvervi
           </Typography>
         </Box>
       </Box>
-    </Box>
+    </Card>
   );
 }
 

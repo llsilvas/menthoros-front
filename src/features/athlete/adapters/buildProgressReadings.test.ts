@@ -73,10 +73,22 @@ describe('buildAdherenceReading', () => {
     ], HOJE)!;
     expect(r.semanas.map((s) => s.semanaInicio)).toEqual(['2026-08-03', '2026-08-10', '2026-08-17', '2026-08-24']);
     expect(r.semanas.map((s) => s.semPlano)).toEqual([true, false, true, false]);
+    expect(r.semanas.map((s) => s.nadaVencido)).toEqual([false, false, false, false]);
     expect(r.semanas[3].corrente).toBe(true);
     expect(r.realizado).toBe(5);
     expect(r.planejado).toBe(7);
     expect(r.percentual).toBe(71);
+  });
+
+  it('semana corrente sem entrada → "nada vencido ainda", nunca "sem plano" (CA7/D4)', () => {
+    const r = buildAdherenceReading([
+      { semanaInicio: '2026-08-03', totalPlanejado: 4, totalRealizado: 4, percentual: 100 },
+      { semanaInicio: '2026-08-10', totalPlanejado: 4, totalRealizado: 3, percentual: 75 },
+      { semanaInicio: '2026-08-17', totalPlanejado: 4, totalRealizado: 4, percentual: 100 },
+      // 2026-08-24 (corrente) sem entrada: nada venceu ainda nesta semana.
+    ], HOJE)!;
+    const corrente = r.semanas[3];
+    expect(corrente).toMatchObject({ semanaInicio: '2026-08-24', semPlano: false, nadaVencido: true, corrente: true });
   });
 
   it('lista vazia → null (sem dados, não 0 de 0)', () => {

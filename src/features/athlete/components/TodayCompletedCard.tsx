@@ -1,7 +1,6 @@
-import { Box, Typography } from '@mui/material';
-import { elevation } from '../../../shared/design-tokens';
-import { radius } from '../../../shared/design-tokens/density';
+import { Typography } from '@mui/material';
 import { surface, primary } from '../../../theme/tokens';
+import { Card } from '../../../shared/components/Card';
 import { SENSACAO_LABELS, type Sensacao } from '../../../types/AthleteFeedback';
 import type { AthleteRealizadoHoje } from '../../../types/AthleteHome';
 import { tipoTreinoLabel } from '../adapters/homeAdapter';
@@ -15,11 +14,11 @@ export interface TodayCompletedCardProps {
 /** Resumo do dia quando o feedback já foi respondido (D1, estado FEITO). */
 export function TodayCompletedCard({ realizado, sensacoes = [], comentario }: TodayCompletedCardProps) {
   return (
-    <Box
-      sx={{
-        bgcolor: elevation.panel, border: `1px solid ${surface[700]}`, borderRadius: radius.lg,
-        p: 2.5, display: 'flex', flexDirection: 'column', gap: 1,
-      }}
+    <Card
+      variant="solid"
+      surfaceLevel="panel"
+      padding={2.5}
+      sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}
     >
       <Typography variant="overline" sx={{ color: surface[400] }}>Treino feito</Typography>
       <Typography variant="h4">{tipoTreinoLabel(realizado.tipoTreino)}</Typography>
@@ -37,7 +36,7 @@ export function TodayCompletedCard({ realizado, sensacoes = [], comentario }: To
       {comentario && (
         <Typography variant="body2" sx={{ color: surface[300], fontStyle: 'italic' }}>{comentario}</Typography>
       )}
-    </Box>
+    </Card>
   );
 }
 

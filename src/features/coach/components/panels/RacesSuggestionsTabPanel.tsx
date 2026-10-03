@@ -11,9 +11,10 @@ interface RacesSuggestionsTabPanelProps {
   selectedProfile: AtletaPerfilCoachDto | null;
   onOpenCalendar: () => void;
   onOpenSuggestions: () => void;
+  onDecisao?: () => void;
 }
 
-export function RacesSuggestionsTabPanel({ selected, selectedProfile, onOpenCalendar, onOpenSuggestions }: RacesSuggestionsTabPanelProps) {
+export function RacesSuggestionsTabPanel({ selected, selectedProfile, onOpenCalendar, onOpenSuggestions, onDecisao }: RacesSuggestionsTabPanelProps) {
   return (
     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', xl: '1fr 1.1fr' }, gap: { xs: 0.9, sm: 1, lg: 1.1, xl: 2 } }}>
       <SectionCard
@@ -98,7 +99,11 @@ export function RacesSuggestionsTabPanel({ selected, selectedProfile, onOpenCale
       </SectionCard>
 
       <SectionCard title="Sugestões recentes">
-        <RecentSuggestionsPanel sugestoes={selectedProfile?.sugestoesRecentes ?? []} onVerTodas={onOpenSuggestions} />
+        <RecentSuggestionsPanel
+          sugestoes={selectedProfile?.sugestoesRecentes ?? []}
+          onVerTodas={onOpenSuggestions}
+          onDecisao={onDecisao}
+        />
       </SectionCard>
     </Box>
   );

@@ -1,42 +1,56 @@
-import { useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { Box, Typography } from '@mui/material';
 import {
-  BarChart,
   Bar,
-  LineChart,
+  BarChart,
+  CartesianGrid,
+  Cell,
   Line,
+  LineChart,
+  ReferenceArea,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  ReferenceLine,
 } from 'recharts';
 import { primary, surface, semantic } from '../../../theme/tokens';
 import { glassSx } from '../../../theme/tokens';
 import { overlayWhite } from '../../../theme/overlays';
+import { FAIXA_APRESENTACAO } from '../../../types/FaixaTsb';
+import type { MetricTone } from '../../../types/FaixaTsb';
+import { font } from '../../../theme/theme.premium';
+import { buildPmcChartModel, DEFAULT_RANGES } from '../adapters/pmcChartModel';
+import { PmcChartControls } from './PmcChartControls';
+import type { PMCViewMode } from './PmcChartControls';
+import type { PMCDataPoint, PMCGap, PMCRange, PmcChartRow, PmcGapArea, PmcSeriesKey } from '../adapters/pmcChartModel';
+import { toneColor } from '../../../theme/toneColor';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-export interface PMCDataPoint {
-  date: Date;
-  tss: number;
-  ctl: number;
-  atl: number;
-  tsb: number;
-}
-
-export type PMCRange = '4w' | '8w' | '12w' | '6m' | '1y';
+export type { PMCDataPoint, PMCGap, PMCRange } from '../adapters/pmcChartModel';
+export type { PMCViewMode } from './PmcChartControls';
 
 export interface PMCChartProps {
   data: PMCDataPoint[];
   range: PMCRange;
-  defaultMode?: 'simple' | 'advanced';
+  defaultMode?: PMCViewMode;
+  /** Modo controlado pelo pai — com `embedded`, que não desenha os controles. */
+  mode?: PMCViewMode;
   onRangeChange?: (range: PMCRange) => void;
+  /** Períodos sem treinos registrados: área hachurada + linhas tracejadas. */
+  gaps?: PMCGap[];
+  /**
+   * Dentro de um card do Diagnóstico: sem vidro, título nem controles. Modo e período vêm do pai
+   * (`mode`, `range`), que desenha `PmcChartControls` no cabeçalho do card.
+   */
+  embedded?: boolean;
+  /** O que o modo Simples mostra: carga diária (TSS) ou Forma (TSB) colorida pela faixa. */
+  simpleMetric?: 'tss' | 'forma';
+  ranges?: PMCRange[];
+  /** A consulta da série falhou no backend: mostra o aviso em vez de um gráfico vazio. */
+  unavailable?: boolean;
 }
 
-type ViewMode = 'simple' | 'advanced';
+type ViewMode = PMCViewMode;
 
 // ── Chart tokens ──────────────────────────────────────────────────────────────
 
@@ -44,195 +58,262 @@ const CHART_GRID_STROKE = overlayWhite[8];
 const CHART_AXIS_STROKE = surface[400];
 const CHART_TOOLTIP_BG = surface[700];
 const CHART_TOOLTIP_COLOR = surface[50];
+const CHART_HEIGHT = 240;
 
-// ── Range labels ──────────────────────────────────────────────────────────────
+const NO_GAPS: PMCGap[] = [];
 
-const RANGE_LABELS: Record<PMCRange, string> = {
-  '4w': '4s',
-  '8w': '8s',
-  '12w': '12s',
-  '6m': '6m',
-  '1y': '1a',
-};
+/**
+ * Forma saía em `primary[500]`: lime é reservado a marca/ação primária (`forbidden-uses.ts`) e
+ * disputava atenção com o destaque da tela. Off-white separa bem de verde e vermelho.
+ */
+const SERIES: ReadonlyArray<{ key: PmcSeriesKey; label: string; code: string; color: string }> = [
+  { key: 'ctl', label: 'Condicionamento', code: 'CTL', color: semantic.success[500] },
+  { key: 'atl', label: 'Cansaço', code: 'ATL', color: semantic.danger[500] },
+  { key: 'tsb', label: 'Forma', code: 'TSB', color: surface[50] },
+];
 
-const ALL_RANGES: PMCRange[] = ['4w', '8w', '12w', '6m', '1y'];
+// Vale para os dois tipos de lacuna: no PMC, o que falta é TSS — pode ter havido treino sem carga.
+const GAP_LABEL = 'Sem carga registrada';
 
-// ── Advanced legend translator ────────────────────────────────────────────────
+// ── Formatters ────────────────────────────────────────────────────────────────
 
-const ADVANCED_LABELS: Record<string, string> = {
-  ctl: 'Condicionamento',
-  atl: 'Cansaço',
-  tsb: 'Forma',
-};
+const formatTick = (t: number) => new Date(t).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+const formatDay = (t: number) => new Date(t).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+const formatNumber = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const formatSigned = (v: number) => `${v > 0 ? '+' : ''}${formatNumber(v)}`;
+const formatSeries = (key: PmcSeriesKey, v: number) => (key === 'tsb' ? formatSigned(v) : formatNumber(v));
 
-function legendFormatter(value: string): string {
-  return ADVANCED_LABELS[value] ?? value;
-}
-
-// ── Date formatter ────────────────────────────────────────────────────────────
-
-function formatDate(date: Date): string {
-  return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+function toneOf(row: PmcChartRow): MetricTone {
+  return row.statusForma ? FAIXA_APRESENTACAO[row.statusForma]?.tone ?? 'neutral' : 'neutral';
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-interface ToggleButtonProps {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-  small?: boolean;
-}
+const ORDEM_TONS: MetricTone[] = ['success', 'neutral', 'warning', 'danger'];
 
-function ToggleButton({ label, active, onClick, small = false }: ToggleButtonProps) {
+/**
+ * Legenda do modo Simples "forma": as 9 faixas do backend agrupadas pelo tom de
+ * `FAIXA_APRESENTACAO` — derivada do mapa, para não divergir dele.
+ */
+const FORMA_LEGEND = ORDEM_TONS.map((tone) => {
+  const labels = Object.values(FAIXA_APRESENTACAO).filter((f) => f.tone === tone).map((f) => f.label);
+  const texto = labels.map((l, i) => (i === 0 ? l : l.toLowerCase())).join(' · ');
+  return { tone, label: texto };
+}).filter((l) => l.label.length > 0);
+
+function FormaLegend() {
   return (
-    <Box
-      component="button"
-      onClick={onClick}
-      sx={{
-        px: small ? 1 : 1.5,
-        py: small ? 0.25 : 0.5,
-        fontSize: small ? '0.72rem' : '0.78rem',
-        fontWeight: active ? 700 : 500,
-        cursor: 'pointer',
-        border: 'none',
-        borderRadius: 1,
-        bgcolor: active ? surface[700] : 'transparent',
-        color: active ? surface[50] : surface[400],
-        transition: 'all 0.15s ease',
-        '&:hover': {
-          bgcolor: active ? surface[700] : surface[800],
-          color: active ? surface[50] : surface[50],
-        },
-      }}
-    >
-      {label}
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: { xs: 1.25, md: 2 }, mb: 1.5 }}>
+      {FORMA_LEGEND.map((l) => (
+        <Box key={l.tone} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+          <Box sx={{ width: 10, height: 10, borderRadius: 0.5, bgcolor: toneColor(l.tone, surface[300]) }} />
+          <Typography sx={{ fontSize: '0.75rem', color: surface[300] }}>{l.label}</Typography>
+        </Box>
+      ))}
     </Box>
   );
 }
 
-// ── Simple chart (TSS bars) ───────────────────────────────────────────────────
-
-interface SimpleChartProps {
-  chartData: Array<{ dateLabel: string; tss: number }>;
+function GapPattern({ id }: { id: string }) {
+  return (
+    <defs>
+      <pattern id={id} width={6} height={6} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <rect width={2} height={6} fill={overlayWhite[10]} />
+      </pattern>
+    </defs>
+  );
 }
 
-function SimpleChart({ chartData }: SimpleChartProps) {
+interface TooltipContentProps {
+  active?: boolean;
+  payload?: ReadonlyArray<{ payload?: unknown }>;
+  view: ViewMode;
+  simpleMetric: 'tss' | 'forma';
+}
+
+function PmcTooltip({ active, payload, view, simpleMetric }: TooltipContentProps) {
+  const row = active ? (payload?.[0]?.payload as PmcChartRow | undefined) : undefined;
+  if (!row || row.missing) return null;
+
+  const linhas: Array<{ label: string; value: string; color: string }> = [];
+  if (view === 'advanced') {
+    for (const s of SERIES) {
+      const v = row[s.key];
+      if (v != null) linhas.push({ label: s.label, value: formatSeries(s.key, v), color: s.color });
+    }
+  } else if (simpleMetric === 'forma' && row.tsb != null) {
+    const faixa = row.statusForma ? FAIXA_APRESENTACAO[row.statusForma]?.label : null;
+    linhas.push({ label: 'Forma', value: formatSigned(row.tsb), color: toneColor(toneOf(row), surface[300]) });
+    if (faixa) linhas.push({ label: 'Faixa', value: faixa, color: toneColor(toneOf(row), surface[300]) });
+  } else if (row.tss != null) {
+    linhas.push({ label: 'TSS', value: String(Math.round(row.tss)), color: surface[50] });
+  }
+
   return (
-    <ResponsiveContainer width="100%" height={220}>
-      <BarChart data={chartData} margin={{ top: 5, right: 16, left: 0, bottom: 5 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID_STROKE} vertical={false} />
-        <XAxis
-          dataKey="dateLabel"
-          stroke={CHART_AXIS_STROKE}
-          tick={{ fontSize: 11, fill: CHART_AXIS_STROKE }}
-          tickLine={false}
-          axisLine={false}
-        />
-        <YAxis
-          stroke={CHART_AXIS_STROKE}
-          tick={{ fontSize: 11, fill: CHART_AXIS_STROKE }}
-          tickLine={false}
-          axisLine={false}
-          width={32}
-        />
-        <Tooltip
-          contentStyle={{
-            backgroundColor: CHART_TOOLTIP_BG,
-            border: 'none',
-            borderRadius: 6,
-            color: CHART_TOOLTIP_COLOR,
-            fontSize: '0.8rem',
-          }}
-          cursor={{ fill: `${primary[500]}14` }}
-        />
-        <Bar
-          dataKey="tss"
-          name="TSS"
-          fill={`${primary[500]}66`}
-          stroke={primary[500]}
-          strokeWidth={1}
-          radius={[2, 2, 0, 0]}
-          isAnimationActive={false}
-        />
+    <Box sx={{ bgcolor: CHART_TOOLTIP_BG, color: CHART_TOOLTIP_COLOR, borderRadius: 1.5, px: 1.25, py: 1, fontSize: '0.8rem', minWidth: 160 }}>
+      <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, mb: 0.5 }}>{formatDay(row.t)}</Typography>
+      {linhas.map((l) => (
+        <Box key={l.label} sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
+          <Typography sx={{ fontSize: '0.78rem', color: surface[300] }}>{l.label}</Typography>
+          <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: l.color }}>{l.value}</Typography>
+        </Box>
+      ))}
+      {row.inGap ? (
+        <Typography sx={{ fontSize: '0.72rem', color: surface[400], mt: 0.5 }}>Estimado — {GAP_LABEL.toLowerCase()}</Typography>
+      ) : null}
+    </Box>
+  );
+}
+
+function SeriesLegend({ latest }: { latest: PmcChartRow | null }) {
+  if (!latest) return null;
+  return (
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: { xs: 2, md: 3 }, mb: 1.5 }}>
+      {SERIES.map((s) => {
+        const v = latest[s.key];
+        return (
+          <Box key={s.key}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              <Box sx={{ width: 12, height: 3, borderRadius: 2, bgcolor: s.color }} />
+              <Typography sx={{ fontSize: '0.75rem', color: surface[300] }}>{s.label}</Typography>
+              <Typography sx={{ fontSize: '0.6875rem', color: surface[500] }}>{s.code}</Typography>
+            </Box>
+            <Typography sx={{ fontSize: '1.1rem', fontWeight: 700, color: surface[50], fontVariantNumeric: 'tabular-nums' }}>
+              {v != null ? formatSeries(s.key, v) : '—'}
+            </Typography>
+          </Box>
+        );
+      })}
+      <Typography sx={{ fontSize: '0.75rem', color: surface[500], pb: 0.4 }}>
+        {formatTick(latest.t)}{latest.inGap ? ' · estimado' : ''}
+      </Typography>
+    </Box>
+  );
+}
+
+interface ChartBodyProps {
+  rows: PmcChartRow[];
+  ticks: number[];
+  gapAreas: PmcGapArea[];
+  patternId: string;
+  simpleMetric: 'tss' | 'forma';
+}
+
+function sharedAxes(ticks: number[]) {
+  return [
+    <CartesianGrid key="grid" strokeDasharray="3 3" stroke={CHART_GRID_STROKE} vertical={false} />,
+    <XAxis
+      key="x"
+      dataKey="t"
+      ticks={ticks}
+      interval={0}
+      tickFormatter={formatTick}
+      stroke={CHART_AXIS_STROKE}
+      tick={{ fontSize: 11, fill: CHART_AXIS_STROKE, fontFamily: font.text }}
+      tickLine={false}
+      axisLine={false}
+    />,
+    <YAxis
+      key="y"
+      stroke={CHART_AXIS_STROKE}
+      tick={{ fontSize: 11, fill: CHART_AXIS_STROKE, fontFamily: font.text }}
+      tickLine={false}
+      axisLine={false}
+      width={36}
+    />,
+  ];
+}
+
+function gapLayers(gapAreas: PmcGapArea[], patternId: string) {
+  return gapAreas.map((g) => (
+    <ReferenceArea
+      key={`gap-${g.x1}`}
+      x1={g.x1}
+      x2={g.x2}
+      fill={`url(#${patternId})`}
+      fillOpacity={1}
+      strokeOpacity={0}
+      label={{ value: GAP_LABEL, position: 'insideTop', fill: surface[300], fontSize: 12, fontFamily: font.text }}
+    />
+  ));
+}
+
+function SimpleChart({ rows, ticks, gapAreas, patternId, simpleMetric }: ChartBodyProps) {
+  const forma = simpleMetric === 'forma';
+  return (
+    <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+      <BarChart data={rows} margin={{ top: 20, right: 16, left: 0, bottom: 5 }}>
+        <GapPattern id={patternId} />
+        {sharedAxes(ticks)}
+        {gapLayers(gapAreas, patternId)}
+        <Tooltip content={<PmcTooltip view="simple" simpleMetric={simpleMetric} />} cursor={{ fill: overlayWhite[4] }} />
+        {forma ? <ReferenceLine y={0} stroke={surface[500]} strokeWidth={1} /> : null}
+        {forma ? (
+          <Bar dataKey="tsb" name="Forma" radius={[2, 2, 0, 0]} isAnimationActive={false}>
+            {rows.map((r) => (
+              <Cell key={r.t} fill={toneColor(toneOf(r), surface[300])} fillOpacity={r.inGap ? 0.35 : 0.85} />
+            ))}
+          </Bar>
+        ) : (
+          // DÍVIDA: lime aqui também viola `forbidden-uses.ts`; fora do escopo desta change.
+          <Bar dataKey="tss" name="TSS" fill={`${primary[500]}66`} stroke={primary[500]} strokeWidth={1} radius={[2, 2, 0, 0]} isAnimationActive={false} />
+        )}
       </BarChart>
     </ResponsiveContainer>
   );
 }
 
-// ── Advanced chart (CTL / ATL / TSB lines) ────────────────────────────────────
-
-interface AdvancedChartProps {
-  chartData: Array<{ dateLabel: string; ctl: number; atl: number; tsb: number }>;
+interface IsolatedDotProps {
+  cx?: number;
+  cy?: number;
+  index?: number;
+  payload?: PmcChartRow;
 }
 
-function AdvancedChart({ chartData }: AdvancedChartProps) {
+/** Só o ponto sem vizinho (série esparsa) ganha marcador; o resto da linha segue sem pontos. */
+function isolatedDot({ cx, cy, index, payload }: IsolatedDotProps, color: string) {
+  if (!payload?.isolated || cx == null || cy == null) return <g key={`dot-${index}`} />;
+  return <circle key={`dot-${index}`} cx={cx} cy={cy} r={2.5} fill={color} />;
+}
+
+function AdvancedChart({ rows, ticks, gapAreas, patternId }: ChartBodyProps) {
   return (
-    <ResponsiveContainer width="100%" height={220}>
-      <LineChart data={chartData} margin={{ top: 5, right: 16, left: 0, bottom: 5 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID_STROKE} vertical={false} />
-        <XAxis
-          dataKey="dateLabel"
-          stroke={CHART_AXIS_STROKE}
-          tick={{ fontSize: 11, fill: CHART_AXIS_STROKE }}
-          tickLine={false}
-          axisLine={false}
-        />
-        <YAxis
-          stroke={CHART_AXIS_STROKE}
-          tick={{ fontSize: 11, fill: CHART_AXIS_STROKE }}
-          tickLine={false}
-          axisLine={false}
-          width={36}
-        />
-        <Tooltip
-          contentStyle={{
-            backgroundColor: CHART_TOOLTIP_BG,
-            border: 'none',
-            borderRadius: 6,
-            color: CHART_TOOLTIP_COLOR,
-            fontSize: '0.8rem',
-          }}
-          formatter={(value, name) => [
-            Number(value).toFixed(1),
-            legendFormatter(String(name ?? '')),
-          ]}
-        />
-        <Legend
-          wrapperStyle={{ paddingTop: '12px', fontSize: '0.8rem' }}
-          formatter={legendFormatter}
-        />
-        {/* Zero reference line for TSB */}
-        <ReferenceLine
-          y={0}
-          stroke={surface[500]}
-          strokeDasharray="4 4"
-          strokeWidth={1}
-        />
-        <Line
-          type="monotone"
-          dataKey="ctl"
-          stroke={semantic.success[500]}
-          strokeWidth={2}
-          dot={false}
-          isAnimationActive={false}
-        />
-        <Line
-          type="monotone"
-          dataKey="atl"
-          stroke={semantic.danger[500]}
-          strokeWidth={2}
-          dot={false}
-          isAnimationActive={false}
-        />
-        <Line
-          type="monotone"
-          dataKey="tsb"
-          stroke={primary[500]}
-          strokeWidth={2}
-          dot={false}
-          isAnimationActive={false}
-        />
+    <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+      <LineChart data={rows} margin={{ top: 20, right: 16, left: 0, bottom: 5 }}>
+        <GapPattern id={patternId} />
+        {sharedAxes(ticks)}
+        {gapLayers(gapAreas, patternId)}
+        <Tooltip content={<PmcTooltip view="advanced" simpleMetric="tss" />} cursor={{ stroke: surface[600] }} />
+        <ReferenceLine y={0} stroke={surface[500]} strokeDasharray="4 4" strokeWidth={1} />
+        {SERIES.map((s) => (
+          <Line
+            key={`${s.key}-est`}
+            type="linear"
+            dataKey={`${s.key}Est`}
+            stroke={s.color}
+            strokeWidth={1.5}
+            strokeDasharray="3 4"
+            strokeOpacity={0.55}
+            dot={false}
+            activeDot={false}
+            connectNulls={false}
+            isAnimationActive={false}
+            legendType="none"
+          />
+        ))}
+        {SERIES.map((s) => (
+          <Line
+            key={s.key}
+            type="monotone"
+            dataKey={`${s.key}Solid`}
+            name={s.label}
+            stroke={s.color}
+            strokeWidth={2}
+            dot={(props: IsolatedDotProps) => isolatedDot(props, s.color)}
+            connectNulls={false}
+            isAnimationActive={false}
+          />
+        ))}
       </LineChart>
     </ResponsiveContainer>
   );
@@ -244,121 +325,72 @@ export function PMCChart({
   data,
   range,
   defaultMode = 'simple',
+  mode: modeProp,
   onRangeChange,
+  gaps = NO_GAPS,
+  embedded = false,
+  simpleMetric = 'tss',
+  ranges = DEFAULT_RANGES,
+  unavailable = false,
 }: PMCChartProps) {
-  const [mode, setMode] = useState<ViewMode>(defaultMode);
+  const [internalMode, setInternalMode] = useState<ViewMode>(defaultMode);
   const [internalRange, setInternalRange] = useState<PMCRange>(range);
+  const patternId = `pmc-gap-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
+
+  // Embutido, o pai controla modo e período (os controles estão no cabeçalho do card).
+  const mode = modeProp ?? internalMode;
+  const activeRange = embedded ? range : internalRange;
+  const model = useMemo(() => buildPmcChartModel(data, gaps, activeRange), [data, gaps, activeRange]);
+  // Há série, mas o período escolhido cai todo antes dela: sem isto, eixo e grade vazios.
+  const semValorNoPeriodo = data.length > 0 && !model.hasValues;
 
   function handleRangeChange(r: PMCRange) {
     setInternalRange(r);
     onRangeChange?.(r);
   }
 
-  // Shared chart data with formatted date labels
-  const chartData = data.map((pt) => ({
-    dateLabel: formatDate(pt.date),
-    tss: pt.tss,
-    ctl: pt.ctl,
-    atl: pt.atl,
-    tsb: pt.tsb,
-  }));
+  // Embutido, o subtítulo do card já diz o que o modo mostra.
+  const subLabel =
+    mode === 'advanced' || embedded
+      ? null
+      : simpleMetric === 'forma'
+        ? 'Forma diária (TSB), colorida pela faixa'
+        : 'Carga de treino diária (TSS)';
 
-  return (
-    <Box
-      sx={{
-        ...glassSx,
-        borderRadius: 2,
-        p: 2.5,
-      }}
-    >
-      {/* Header */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 1.5,
-          mb: 2,
-        }}
-      >
-        {/* Title */}
-        <Typography
-          sx={{
-            fontSize: '0.9rem',
-            fontWeight: 700,
-            color: surface[50],
-            flex: 1,
-            minWidth: '120px',
-          }}
-        >
-          Desempenho
-        </Typography>
-
-        {/* Mode toggle */}
-        <Box
-          sx={{
-            display: 'flex',
-            bgcolor: `${surface[0]}0A`,
-            borderRadius: 1,
-            p: 0.25,
-            gap: 0.25,
-          }}
-        >
-          <ToggleButton
-            label="Simples"
-            active={mode === 'simple'}
-            onClick={() => setMode('simple')}
-          />
-          <ToggleButton
-            label="Avançado"
-            active={mode === 'advanced'}
-            onClick={() => setMode('advanced')}
-          />
+  const body = (
+    <>
+      {embedded ? null : (
+        <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1.5, mb: 2 }}>
+          <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: surface[50], flex: 1, minWidth: '120px' }}>
+            Desempenho
+          </Typography>
+          <PmcChartControls mode={mode} onModeChange={setInternalMode} range={internalRange} onRangeChange={handleRangeChange} ranges={ranges} />
         </Box>
-
-        {/* Range chips */}
-        <Box
-          sx={{
-            display: 'flex',
-            bgcolor: `${surface[0]}0A`,
-            borderRadius: 1,
-            p: 0.25,
-            gap: 0.25,
-          }}
-        >
-          {ALL_RANGES.map((r) => (
-            <ToggleButton
-              key={r}
-              label={RANGE_LABELS[r]}
-              active={internalRange === r}
-              onClick={() => handleRangeChange(r)}
-              small
-            />
-          ))}
-        </Box>
-      </Box>
-
-      {/* Sub-label */}
-      <Typography
-        sx={{
-          fontSize: '0.75rem',
-          color: surface[500],
-          mb: 1.5,
-        }}
-      >
-        {mode === 'simple'
-          ? 'Carga de treino diária (TSS)'
-          : 'Condicionamento · Cansaço · Forma'}
-      </Typography>
-
-      {/* Chart */}
-      {mode === 'simple' ? (
-        <SimpleChart chartData={chartData} />
-      ) : (
-        <AdvancedChart chartData={chartData} />
       )}
-    </Box>
+
+      {unavailable || semValorNoPeriodo ? (
+        <Typography sx={{ fontSize: '0.85rem', color: surface[400], py: 4, textAlign: 'center' }}>
+          {unavailable ? 'Dado indisponível' : 'Sem dados no período selecionado'}
+        </Typography>
+      ) : mode === 'advanced' ? (
+        <SeriesLegend latest={model.latest} />
+      ) : (
+        <>
+          {subLabel ? <Typography sx={{ fontSize: '0.75rem', color: surface[500], mb: 1.5 }}>{subLabel}</Typography> : null}
+          {simpleMetric === 'forma' ? <FormaLegend /> : null}
+        </>
+      )}
+
+      {unavailable || semValorNoPeriodo ? null : mode === 'simple' ? (
+        <SimpleChart rows={model.rows} ticks={model.ticks} gapAreas={model.gapAreas} patternId={patternId} simpleMetric={simpleMetric} />
+      ) : (
+        <AdvancedChart rows={model.rows} ticks={model.ticks} gapAreas={model.gapAreas} patternId={patternId} simpleMetric={simpleMetric} />
+      )}
+    </>
   );
+
+  if (embedded) return <Box>{body}</Box>;
+  return <Box sx={{ ...glassSx, borderRadius: 2, p: 2.5 }}>{body}</Box>;
 }
 
 export default PMCChart;

@@ -1,8 +1,7 @@
 import { Box, Typography } from '@mui/material';
 import { surface } from '../../../theme/tokens';
 import { activeTheme } from '../../../theme/activeTheme';
-import { elevation } from '../../../shared/design-tokens';
-import { radius } from '../../../shared/design-tokens/density';
+import { Card } from '../../../shared/components/Card';
 
 export interface ReadinessCardProps {
   score: number; // 0-100
@@ -34,7 +33,7 @@ export function ReadinessCard({ score, recommendation, comCheckinHoje = false }:
   const pct = Math.max(0, Math.min(100, score));
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.75, bgcolor: elevation.card, border: `1px solid ${surface[700]}`, borderRadius: radius.lg, px: 2, py: 1.75 }}>
+    <Card variant="solid" sx={{ display: 'flex', alignItems: 'center', gap: 1.75, px: 2, py: 1.75 }}>
       <Box role="img" aria-label={`Prontidão ${Math.round(score)} de 100, ${label}`} sx={{ position: 'relative', width: 56, height: 56, flexShrink: 0 }}>
         <svg width="56" height="56" viewBox="0 0 56 56" aria-hidden>
           <circle cx="28" cy="28" r={RAIO} fill="none" stroke={surface[700]} strokeWidth="5" />
@@ -64,7 +63,7 @@ export function ReadinessCard({ score, recommendation, comCheckinHoje = false }:
           <Typography variant="body2" sx={{ color: surface[400] }}>{recommendation}</Typography>
         )}
       </Box>
-    </Box>
+    </Card>
   );
 }
 

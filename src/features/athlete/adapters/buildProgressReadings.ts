@@ -40,7 +40,10 @@ export interface AdherenceWeek {
   semanaInicio: string;
   planejado: number;
   realizado: number;
+  /** Semana (não corrente) sem entrada de aderência — sem plano, de fato. */
   semPlano: boolean;
+  /** Semana corrente sem entrada: nada venceu ainda, não "sem plano" (fix-adherence-count-until-today). */
+  nadaVencido: boolean;
   corrente: boolean;
 }
 
@@ -98,7 +101,11 @@ export function buildZonesReading(zones: AthleteZones | null): ZonesReading | nu
   return { percentuais, dominante, totalSegundos: zones.duracaoTotalSegundos };
 }
 
-/** Sempre 4 semanas: o backend só devolve as que têm treino planejado; as ausentes entram como "sem plano". */
+/**
+ * Sempre 4 semanas: o backend só devolve as que têm treino devido (fix-adherence-count-until-today).
+ * Semana ausente entra como "sem plano" — exceto a corrente, que entra como "nada vencido ainda": o
+ * plano existe, só não há treino vencido nela (ex.: segunda de manhã).
+ */
 export function buildAdherenceReading(aderencia: AthleteAderencia[], hoje: Date = new Date()): AdherenceReading | null {
   if (aderencia.length === 0) return null;
   const segundaCorrente = startOfWeek(hoje, { weekStartsOn: 1 });
@@ -107,12 +114,15 @@ export function buildAdherenceReading(aderencia: AthleteAderencia[], hoje: Date 
     const inicio = new Date(segundaCorrente.getFullYear(), segundaCorrente.getMonth(), segundaCorrente.getDate() - i * 7);
     const chave = iso(inicio);
     const dado = aderencia.find((a) => a.semanaInicio === chave);
+    const corrente = i === 0;
+    const semEntrada = !dado;
     semanas.push({
       semanaInicio: chave,
       planejado: dado?.totalPlanejado ?? 0,
       realizado: dado?.totalRealizado ?? 0,
-      semPlano: !dado,
-      corrente: i === 0,
+      semPlano: semEntrada && !corrente,
+      nadaVencido: semEntrada && corrente,
+      corrente,
     });
   }
   const planejado = semanas.reduce((t, s) => t + s.planejado, 0);

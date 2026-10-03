@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { buildInboxQueue, calcularMonotonia, calcularLoadDelta, calcularAcwr, getAcwrZone, getAcuteLoadTone, getMonotonyTone, calcularStrain, getStrainZone, calcularPrevisaoForma, calcularDiasAteProva } from './coachInboxAdapters';
+import { format, subDays } from 'date-fns';
+import { buildInboxQueue, buildRosterRowFromSummary, buildSelectedAthleteFromDashboard, calcularMonotonia, calcularLoadDelta, calcularAcwr, getAcwrZone, getMonotonyTone, calcularStrain, contarDiasComTreino7d, getStrainZone, calcularPrevisaoForma, calcularDiasAteProva } from './coachInboxAdapters';
 import type { PmcPontoRaw, AtletaPerfilCoachDto } from '../../../types/AtletaPerfilCoach';
 import type { Prova } from '../../../types/Prova';
+import { formatWorkoutTypeLabel } from '../components/coachInboxHelpers';
 import type { CoachAtletaResumo, CoachAttentionItem, CoachDashboardRosterPage } from '../../../types/Coach';
 
 function pmc(over: Partial<PmcPontoRaw>): PmcPontoRaw {
@@ -14,36 +16,45 @@ function profileComProvas(datas: string[]): AtletaPerfilCoachDto {
   } as AtletaPerfilCoachDto;
 }
 
+const AGORA = new Date('2026-09-28T15:30:00');
+/** Ponto PMC `n` dias antes de AGORA. */
+const dia = (n: number, tss: number) => pmc({ data: format(subDays(AGORA, n), 'yyyy-MM-dd'), tss });
+
 describe('calcularMonotonia', () => {
-  it('retorna 1.0 com menos de 3 pontos (fallback)', () => {
-    expect(calcularMonotonia([])).toBe(1.0);
-    expect(calcularMonotonia([pmc({ tss: 80 }), pmc({ tss: 90 })])).toBe(1.0);
+  it('null com menos de 3 dias com treino — sem número inventado', () => {
+    expect(calcularMonotonia([], AGORA)).toBeNull();
+    expect(calcularMonotonia([dia(1, 80), dia(0, 90)], AGORA)).toBeNull();
   });
 
   it('retorna 1.0 quando stddev é zero (treinos idênticos)', () => {
-    const pts = Array.from({ length: 7 }, () => pmc({ tss: 70 }));
-    expect(calcularMonotonia(pts)).toBe(1.0);
+    const pts = Array.from({ length: 7 }, (_, i) => dia(6 - i, 70));
+    expect(calcularMonotonia(pts, AGORA)).toBe(1.0);
   });
 
-  it('calcula mean/stddev para série variada (BVA: exatamente 3 pontos)', () => {
-    const pts = [pmc({ tss: 70 }), pmc({ tss: 80 }), pmc({ tss: 90 })];
-    const result = calcularMonotonia(pts);
+  it('calcula mean/stddev para série variada (BVA: exatamente 3 dias)', () => {
+    const result = calcularMonotonia([dia(2, 70), dia(1, 80), dia(0, 90)], AGORA);
     expect(result).toBeGreaterThan(1.0);
     expect(result).toBeLessThan(15.0);
   });
 
-  it('usa apenas os últimos 7 pontos de um array maior', () => {
-    const pts = [
-      pmc({ tss: 200 }), pmc({ tss: 200 }), pmc({ tss: 200 }),
-      pmc({ tss: 70 }), pmc({ tss: 70 }), pmc({ tss: 70 }),
-      pmc({ tss: 70 }), pmc({ tss: 70 }), pmc({ tss: 70 }), pmc({ tss: 70 }),
-    ];
-    expect(calcularMonotonia(pts)).toBe(1.0);
+  it('usa os 7 dias civis até hoje, não as 7 últimas posições do array', () => {
+    const pts = [dia(9, 200), dia(8, 200), dia(7, 200), ...Array.from({ length: 7 }, (_, i) => dia(6 - i, 70))];
+    expect(calcularMonotonia(pts, AGORA)).toBe(1.0);
   });
 
-  it('ignora pontos com tss zero ou ausente', () => {
-    const pts = [pmc({ tss: 0 }), pmc({ tss: 0 }), pmc({ tss: 80 }), pmc({ tss: 90 })];
-    expect(calcularMonotonia(pts)).toBe(1.0);
+  it('série que parou há 12 dias não tem base na janela', () => {
+    const pts = Array.from({ length: 7 }, (_, i) => dia(18 - i, 60 + i * 10));
+    expect(calcularMonotonia(pts, AGORA)).toBeNull();
+  });
+
+  it('ignora dias com tss zero ou ausente', () => {
+    expect(calcularMonotonia([dia(3, 0), dia(2, 0), dia(1, 80), dia(0, 90)], AGORA)).toBeNull();
+  });
+});
+
+describe('contarDiasComTreino7d', () => {
+  it('conta dias com TSS > 0 nos 7 dias civis até hoje', () => {
+    expect(contarDiasComTreino7d([dia(8, 50), dia(6, 50), dia(3, 0), dia(1, 40), dia(0, 30)], AGORA)).toBe(3);
   });
 });
 
@@ -133,13 +144,6 @@ describe('getAcwrZone', () => {
   });
 });
 
-describe('getAcuteLoadTone', () => {
-  it('BVA: 120 ainda é success (limiar é > 120)', () => {
-    expect(getAcuteLoadTone(120)).toBe('success');
-    expect(getAcuteLoadTone(121)).toBe('warning');
-  });
-});
-
 describe('getMonotonyTone', () => {
   it('BVA: 1.4 ainda é success (limiar é > 1.4)', () => {
     expect(getMonotonyTone(1.4)).toBe('success');
@@ -148,29 +152,26 @@ describe('getMonotonyTone', () => {
 });
 
 describe('calcularStrain', () => {
-  it('retorna null com menos de 3 pontos de TSS', () => {
-    expect(calcularStrain([])).toBeNull();
-    expect(calcularStrain([pmc({ tss: 80 }), pmc({ tss: 90 })])).toBeNull();
+  it('null com menos de 3 dias com treino na janela', () => {
+    expect(calcularStrain([], AGORA)).toBeNull();
+    expect(calcularStrain([dia(1, 80), dia(0, 90)], AGORA)).toBeNull();
+    expect(calcularStrain(Array.from({ length: 7 }, (_, i) => dia(6 - i, 0)), AGORA)).toBeNull();
   });
 
-  it('retorna null quando todos os tss são zero', () => {
-    const pts = Array.from({ length: 7 }, () => pmc({ tss: 0 }));
-    expect(calcularStrain(pts)).toBeNull();
-  });
-
-  it('strain = TSS_semanal × monotonia para treinos idênticos (monotonia=1.0)', () => {
+  it('strain = TSS semanal × monotonia para treinos idênticos (monotonia=1.0)', () => {
     // 7 × 70 = 490, monotonia 1.0 → 490
-    const pts = Array.from({ length: 7 }, () => pmc({ tss: 70 }));
-    expect(calcularStrain(pts)).toBe(490);
+    expect(calcularStrain(Array.from({ length: 7 }, (_, i) => dia(6 - i, 70)), AGORA)).toBe(490);
+  });
+
+  it('soma só os 7 dias civis, não treinos anteriores à janela', () => {
+    const pts = [dia(10, 500), ...Array.from({ length: 7 }, (_, i) => dia(6 - i, 70))];
+    expect(calcularStrain(pts, AGORA)).toBe(490);
   });
 
   it('strain supera o TSS semanal quando há variabilidade (monotonia > 1)', () => {
-    const pts = [
-      pmc({ tss: 30 }), pmc({ tss: 30 }), pmc({ tss: 150 }),
-      pmc({ tss: 30 }), pmc({ tss: 150 }), pmc({ tss: 30 }), pmc({ tss: 150 }),
-    ];
-    const tssSemanal = 30 + 30 + 150 + 30 + 150 + 30 + 150; // 570
-    expect(calcularStrain(pts)).toBeGreaterThan(tssSemanal);
+    const tss = [30, 30, 150, 30, 150, 30, 150];
+    const pts = tss.map((t, i) => dia(6 - i, t));
+    expect(calcularStrain(pts, AGORA)).toBeGreaterThan(570);
   });
 });
 
@@ -219,6 +220,16 @@ describe('calcularDiasAteProva', () => {
 
   it('retorna valor <= 0 quando a prova já passou', () => {
     expect(calcularDiasAteProva(profileComProvas(['2026-06-20']), hoje)).toBeLessThanOrEqual(0);
+  });
+  /** Dia civil, não horas: antes era ceil(meio-dia da prova − agora), que de manhã somava um dia. */
+  it('independe do horário do acesso', () => {
+    const provas = profileComProvas(['2026-07-10']);
+    expect(calcularDiasAteProva(provas, new Date('2026-06-26T00:05:00'))).toBe(14);
+    expect(calcularDiasAteProva(provas, new Date('2026-06-26T23:55:00'))).toBe(14);
+  });
+
+  it('prova hoje é 0 a qualquer hora', () => {
+    expect(calcularDiasAteProva(profileComProvas(['2026-06-26']), new Date('2026-06-26T08:00:00'))).toBe(0);
   });
 });
 
@@ -431,5 +442,146 @@ describe('buildInboxQueue', () => {
     expect(rows).toHaveLength(1);
     expect(pinnedCount).toBe(0);
     expect(hiddenAttentionCount).toBe(0);
+  });
+});
+
+describe('buildSelectedAthleteFromDashboard — diagnóstico', () => {
+  const hoje = new Date(2026, 8, 28, 15, 30);
+  const roster = atletaResumo({ atletaId: 'a1', nome: 'Ana', aderenciaPercentual: 38 });
+
+  function perfil(over: Partial<AtletaPerfilCoachDto>): AtletaPerfilCoachDto {
+    return {
+      pmc: [],
+      aderenciaSemanal: [],
+      planoVigente: null,
+      provas: [],
+      sinaisRecentes: [],
+      avisos: null,
+      ...over,
+    } as unknown as AtletaPerfilCoachDto;
+  }
+
+  function diario(inicio: string, dias: number, tss: (i: number) => number): PmcPontoRaw[] {
+    const base = new Date(`${inicio}T12:00:00`);
+    return Array.from({ length: dias }, (_, i) => {
+      const d = new Date(base);
+      d.setDate(base.getDate() + i);
+      const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      return pmc({ data: iso, tss: tss(i), ctl: 10, atl: 20, tsb: -10 });
+    });
+  }
+
+  // Série semanal que alimenta as barras do gráfico — independente de `aderencia4Semanas`, que é
+  // o agregado só da janela (fix-adherence-count-until-today, D5).
+  const semanasRecentes = [
+    { semanaInicio: '2026-08-31', totalPlanejado: 4, totalRealizado: 0, percentual: 0 },
+    { semanaInicio: '2026-09-07', totalPlanejado: 4, totalRealizado: 1, percentual: 25 },
+    { semanaInicio: '2026-09-14', totalPlanejado: 4, totalRealizado: 2, percentual: 50 },
+    { semanaInicio: '2026-09-21', totalPlanejado: 4, totalRealizado: 2, percentual: 50 },
+    { semanaInicio: '2026-09-28', totalPlanejado: 4, totalRealizado: 0, percentual: 0 }, // em curso
+  ];
+
+  it('aderência vem de `aderencia4Semanas` do perfil — não do roster', () => {
+    const row = buildSelectedAthleteFromDashboard(
+      roster,
+      perfil({ aderenciaSemanal: semanasRecentes, aderencia4Semanas: { realizado: 5, planejado: 16, percentual: 31 } }),
+      hoje,
+    );
+    expect(row.adherence).toBe(31);
+    expect(row.adherenceWindow).toEqual({ percent: 31, completed: 5, planned: 16, weeks: 4 });
+  });
+
+  it('perfil carregado sem nada devido na janela: tile não cai no roster (D4/D6)', () => {
+    const row = buildSelectedAthleteFromDashboard(roster, perfil({ aderenciaSemanal: semanasRecentes }), hoje);
+    expect(row.adherenceWindow).toBeNull();
+  });
+
+  it('sem perfil, aderência cai no roster', () => {
+    const row = buildSelectedAthleteFromDashboard(roster, null, hoje);
+    expect(row.adherence).toBe(38);
+    expect(row.adherenceWindow).toBeNull();
+  });
+
+  it('aderência válida continua disponível com PMC vazio', () => {
+    const row = buildSelectedAthleteFromDashboard(roster, perfil({ aderenciaSemanal: semanasRecentes, pmc: [] }), hoje);
+    expect(row.adherenceAvailable).toBe(true);
+    expect(row.quickStats.hasWindowData).toBe(false);
+  });
+
+  it('consulta de aderência que falhou fica indisponível, sem virar semana "sem plano"', () => {
+    const row = buildSelectedAthleteFromDashboard(roster, perfil({ avisos: ['aderenciaSemanal'] }), hoje);
+    expect(row.adherenceAvailable).toBe(false);
+    expect(row.pmcAvailable).toBe(true);
+  });
+
+  it('consulta de PMC que falhou fica indisponível e não gera lacuna', () => {
+    const row = buildSelectedAthleteFromDashboard(roster, perfil({ avisos: ['pmc'] }), hoje);
+    expect(row.pmcAvailable).toBe(false);
+    expect(row.dataGaps).toEqual([]);
+  });
+
+  it('delta de carga é TSS 7d vs 7d anteriores, não variação de CTL', () => {
+    // 7 dias anteriores com TSS 10, últimos 7 com TSS 15.
+    const serie = diario('2026-09-15', 14, (i) => (i >= 7 ? 15 : 10));
+    const row = buildSelectedAthleteFromDashboard(roster, perfil({ pmc: serie }), hoje);
+    expect(row.loadDelta).toBe(50);
+  });
+
+  it('série e lacunas e confiança do ACWR vêm dos adapters do diagnóstico', () => {
+    // Retorno de 3 dias depois de 87 dias zerados: sem base crônica.
+    const serie = diario('2026-07-01', 90, (i) => (i >= 87 ? 60 : 0));
+    const row = buildSelectedAthleteFromDashboard(roster, perfil({ pmc: serie }), hoje);
+    expect(row.weeklyDiagnosis).toHaveLength(8);
+    expect(row.quickStats.acwrConfidence?.level).toBe('BAIXA');
+  });
+});
+
+describe('buildRosterRowFromSummary — defaults do diagnóstico', () => {
+  it('linha de roster não finge ter série nem confiança avaliada', () => {
+    const row = buildRosterRowFromSummary(atletaResumo({ atletaId: 'a1', nome: 'Ana' }));
+    expect(row).toMatchObject({ adherenceWindow: null, loadDelta: null, weeklyDiagnosis: [], dataGaps: [] });
+    expect(row.quickStats.acwrConfidence).toBeNull();
+  });
+});
+
+/**
+ * "Próximo treino" pegava `treinos[0]` — o primeiro do plano, não o próximo a partir de hoje. Na
+ * terça mostrava o treino de segunda, já passado.
+ */
+describe('buildSelectedAthleteFromDashboard — próximo treino', () => {
+  const terca = new Date(2026, 8, 29, 9, 0);
+  const roster = atletaResumo({ atletaId: 'a1', nome: 'Ana' });
+  const treino = (diaSemana: string, tipoTreino: string, statusExecucao = 'PENDENTE') =>
+    ({ diaSemana, tipoTreino, distanciaKm: 8, statusExecucao, duracaoMin: 'PT45M', zonaAlvo: 'Z2' });
+  const comPlano = (treinos: ReturnType<typeof treino>[], semanaInicio = '2026-09-28') =>
+    ({
+      pmc: [], aderenciaSemanal: [], provas: [], sinaisRecentes: [], avisos: null,
+      planoVigente: { planoId: 'p1', semanaInicio, semanaFim: '2026-10-04', reviewStatus: 'APROVADO', treinos },
+    }) as unknown as AtletaPerfilCoachDto;
+  const proximo = (perfil: AtletaPerfilCoachDto, hoje = terca) => buildSelectedAthleteFromDashboard(roster, perfil, hoje).nextWorkout;
+
+  it('pula os dias que já passaram: na terça, o de terça é "Hoje"', () => {
+    const plano = comPlano([treino('SEGUNDA', 'FACIL'), treino('TERCA', 'RECUPERACAO'), treino('QUINTA', 'INTERVALADO')]);
+    expect(proximo(plano)).toMatchObject({ title: formatWorkoutTypeLabel('RECUPERACAO'), when: 'Hoje' });
+  });
+
+  it('treino de hoje já feito: vai para o seguinte, com o dia por extenso', () => {
+    const plano = comPlano([treino('TERCA', 'RECUPERACAO', 'REALIZADO'), treino('QUINTA', 'INTERVALADO')]);
+    expect(proximo(plano)).toMatchObject({ title: formatWorkoutTypeLabel('INTERVALADO'), when: 'Quinta' });
+  });
+
+  it('amanhã e ordem de chegada fora da ordem da semana', () => {
+    const plano = comPlano([treino('SABADO', 'LONGAO'), treino('QUARTA', 'FACIL')]);
+    expect(proximo(plano)).toMatchObject({ title: formatWorkoutTypeLabel('FACIL'), when: 'Amanhã' });
+  });
+
+  it('plano da semana seguinte: o primeiro treino dela', () => {
+    const plano = comPlano([treino('SEGUNDA', 'FACIL')], '2026-10-05');
+    expect(proximo(plano)).toMatchObject({ title: formatWorkoutTypeLabel('FACIL'), when: 'Segunda' });
+  });
+
+  it('nada restante na semana: diz isso, sem mostrar treino passado', () => {
+    const plano = comPlano([treino('SEGUNDA', 'FACIL')]);
+    expect(proximo(plano)).toMatchObject({ title: 'Sem treino planejado', when: 'Sem data', objective: 'Nenhum treino restante no plano vigente.' });
   });
 });

@@ -63,10 +63,10 @@ describe('ZonesBlock', () => {
 describe('AdherenceBlock', () => {
   it('N de M, percentual, quatro barras com corrente e "sem plano"', () => {
     renderComRouter(<AdherenceBlock reading={{ realizado: 5, planejado: 7, percentual: 71, semanas: [
-      { semanaInicio: '2026-08-03', planejado: 0, realizado: 0, semPlano: true, corrente: false },
-      { semanaInicio: '2026-08-10', planejado: 4, realizado: 3, semPlano: false, corrente: false },
-      { semanaInicio: '2026-08-17', planejado: 0, realizado: 0, semPlano: true, corrente: false },
-      { semanaInicio: '2026-08-24', planejado: 3, realizado: 2, semPlano: false, corrente: true },
+      { semanaInicio: '2026-08-03', planejado: 0, realizado: 0, semPlano: true, nadaVencido: false, corrente: false },
+      { semanaInicio: '2026-08-10', planejado: 4, realizado: 3, semPlano: false, nadaVencido: false, corrente: false },
+      { semanaInicio: '2026-08-17', planejado: 0, realizado: 0, semPlano: true, nadaVencido: false, corrente: false },
+      { semanaInicio: '2026-08-24', planejado: 3, realizado: 2, semPlano: false, nadaVencido: false, corrente: true },
     ] }} />);
     expect(screen.getByTestId('progress-adherence-count')).toHaveTextContent('5 de 7');
     expect(screen.getByText(/treinos feitos · 71%/)).toBeInTheDocument();
@@ -77,6 +77,18 @@ describe('AdherenceBlock', () => {
     expect(within(bars[3]).getByText(/2\/3 · esta/)).toBeInTheDocument();
     // Sem veredito: a pergunta é a única ocorrência de "cumprindo"; nenhuma frase avalia o atleta.
     expect(screen.queryByText(/falhando|abaixo do planejado|muito bem|mal/i)).toBeNull();
+  });
+
+  it('semana corrente sem nada vencido: "nada vencido ainda", nunca "sem plano" (CA7)', () => {
+    renderComRouter(<AdherenceBlock reading={{ realizado: 5, planejado: 7, percentual: 71, semanas: [
+      { semanaInicio: '2026-08-03', planejado: 4, realizado: 3, semPlano: false, nadaVencido: false, corrente: false },
+      { semanaInicio: '2026-08-10', planejado: 0, realizado: 0, semPlano: true, nadaVencido: false, corrente: false },
+      { semanaInicio: '2026-08-17', planejado: 3, realizado: 2, semPlano: false, nadaVencido: false, corrente: false },
+      { semanaInicio: '2026-08-24', planejado: 0, realizado: 0, semPlano: false, nadaVencido: true, corrente: true },
+    ] }} />);
+    const bars = screen.getAllByTestId('progress-week-bar');
+    expect(within(bars[3]).getByText('nada vencido ainda')).toBeInTheDocument();
+    expect(bars[3].dataset.noPlan).toBeUndefined();
   });
 });
 

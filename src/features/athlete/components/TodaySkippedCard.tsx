@@ -1,7 +1,6 @@
-import { Box, Button, Typography } from '@mui/material';
-import { elevation } from '../../../shared/design-tokens';
-import { radius } from '../../../shared/design-tokens/density';
+import { Button, Typography } from '@mui/material';
 import { surface, primary } from '../../../theme/tokens';
+import { Card } from '../../../shared/components/Card';
 import { MOTIVO_PULO_LABELS, type MotivoPulo } from '../../../types/AthleteWorkoutToday';
 
 export interface TodaySkippedCardProps {
@@ -14,11 +13,11 @@ export function TodaySkippedCard({ motivoPulo, onRegister }: TodaySkippedCardPro
   const label = motivoPulo && motivoPulo in MOTIVO_PULO_LABELS ? MOTIVO_PULO_LABELS[motivoPulo as MotivoPulo] : null;
 
   return (
-    <Box
-      sx={{
-        bgcolor: elevation.panel, border: `1px solid ${surface[700]}`, borderRadius: radius.lg,
-        p: 2.5, display: 'flex', flexDirection: 'column', gap: 1.5,
-      }}
+    <Card
+      variant="solid"
+      surfaceLevel="panel"
+      padding={2.5}
+      sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}
     >
       <Typography variant="h4">Hoje você pulou</Typography>
       <Typography variant="body2" sx={{ color: surface[400] }}>
@@ -30,7 +29,7 @@ export function TodaySkippedCard({ motivoPulo, onRegister }: TodaySkippedCardPro
       >
         Registrar mesmo assim
       </Button>
-    </Box>
+    </Card>
   );
 }
 

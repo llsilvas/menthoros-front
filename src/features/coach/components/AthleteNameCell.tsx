@@ -54,9 +54,13 @@ export function AthleteNameCell({ id, name, hasPendingSuggestion }: AthleteNameC
                     : {}),
             }}
         >
-            <Box sx={{ position: 'relative', flexShrink: 0 }}>
+            {/*
+              Wrapper do tamanho do avatar: como bloco, ele esticava até a altura da célula do grid, e
+              o ponto (top 0) ia parar na divisória entre as linhas, longe do avatar.
+            */}
+            <Box sx={{ position: 'relative', flexShrink: 0, display: 'inline-flex', alignSelf: 'center' }}>
                 <CoachAthleteAvatar athlete={{ id, name }} size="xs" status="none" />
-                {hasPendingSuggestion ? <PendingSuggestionDot top={0} right={0} /> : null}
+                {hasPendingSuggestion ? <PendingSuggestionDot top={-1} right={-1} /> : null}
             </Box>
             <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                 <Typography sx={{ fontSize: '0.8rem', fontWeight: 500, color: surface[50] }} noWrap>

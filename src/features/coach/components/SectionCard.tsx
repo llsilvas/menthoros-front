@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Box, Typography } from '@mui/material';
-import { elevation } from '../../../shared/design-tokens';
+import { Card } from '../../../shared/components/Card';
 import { content, surface } from '../../../theme/tokens';
 
 interface SectionCardProps {
@@ -11,14 +11,7 @@ interface SectionCardProps {
 
 export function SectionCard({ title, action, children }: SectionCardProps) {
   return (
-    <Box
-      sx={{
-        border: `1px solid ${content.cardBorder}`,
-        borderRadius: 2,
-        backgroundColor: elevation.card,
-        overflow: 'hidden',
-      }}
-    >
+    <Card variant="flat" sx={{ p: 0, overflow: 'hidden' }}>
       <Box
         sx={{
           px: { xs: 1.2, xl: 2 },
@@ -44,6 +37,6 @@ export function SectionCard({ title, action, children }: SectionCardProps) {
         {action}
       </Box>
       <Box sx={{ p: { xs: 1, xl: 1.25 } }}>{children}</Box>
-    </Box>
+    </Card>
   );
 }

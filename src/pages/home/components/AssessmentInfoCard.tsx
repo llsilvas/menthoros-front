@@ -1,6 +1,5 @@
 import {
   Box,
-  Paper,
   Stack,
   Typography,
   Chip,
@@ -11,7 +10,8 @@ import {
 } from '@mui/icons-material';
 import { useUserInfo } from '../../../hooks/useUserInfo';
 import { alpha } from '@mui/material/styles';
-import { glassSx, glassSxHover, transitions, primary, surface, semantic } from '../../../theme/tokens';
+import { Card } from '../../../shared/components/Card';
+import { primary, surface, semantic } from '../../../theme/tokens';
 import { overlayWhite } from '../../../theme/overlays';
 
 export default function AssessmentInfoCard() {
@@ -30,14 +30,7 @@ export default function AssessmentInfoCard() {
   const primaryRole = userInfo.roles?.[0] ? getRoleLabel(userInfo.roles[0]) : 'Usuário';
 
   return (
-    <Paper
-      sx={{
-        p: 2.5,
-        transition: transitions.default,
-        ...glassSx,
-        '&:hover': glassSxHover,
-      }}
-    >
+    <Card variant="glass" padding={2.5}>
       <Stack spacing={2}>
         <Box
           sx={{
@@ -122,7 +115,7 @@ export default function AssessmentInfoCard() {
               label={primaryRole}
               size="small"
               sx={{
-                bgcolor: `33`,
+                bgcolor: alpha(primary[500], 0.2),
                 color: primary[500],
                 fontWeight: 700,
                 fontSize: '0.75rem',
@@ -156,6 +149,6 @@ export default function AssessmentInfoCard() {
           </Stack>
         </Box>
       </Stack>
-    </Paper>
+    </Card>
   );
 }

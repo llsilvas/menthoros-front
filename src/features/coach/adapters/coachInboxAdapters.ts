@@ -1,3 +1,4 @@
+import { differenceInCalendarDays, parseISO, startOfDay, subDays } from 'date-fns';
 import { formatWorkoutTypeLabel, statusLabel } from '../components/coachInboxHelpers';
 import type {
   AttentionReason,
@@ -8,26 +9,63 @@ import type {
   CoachDashboardRosterPage,
 } from '../../../types/Coach';
 import type { DashboardStatusFilter } from '../hooks/useDashboardFilters';
-import type { AtletaPerfilCoachDto, PmcPontoRaw } from '../../../types/AtletaPerfilCoach';
+import type { AtletaPerfilCoachDto, PlanoVigenteDto, PmcPontoRaw, TreinoPlanejadoResumoDto } from '../../../types/AtletaPerfilCoach';
+import { DIA_SEMANA_LABELS } from '../../../types/Atleta';
+import { indiceDoDia, weekDatesFromInicio } from '../../../utils/semana';
 import type { Prova } from '../../../types/Prova';
 import type { CoachAthleteRow, RaceItem, SegmentFilter } from '../types/CoachInbox';
 import { formFromTSB } from '../types/AthleteForm';
+import {
+  assessAcwrConfidence,
+  buildAdherenceWindowFromAderencia4Semanas,
+  buildWeeklyDiagnosis,
+  calculateLoadDelta7d,
+  classifyGaps,
+  detectDataGaps,
+  DIAGNOSIS_WEEKS,
+  isFieldAvailable,
+} from './diagnosisChartsAdapters';
 import type { FormVariant, MetricTone } from '../types/AthleteForm';
 
-/** TSS positivos dos últimos `n` dias do histórico PMC (descansos com tss=0 são descartados). */
-function ultimosTssValidos(pmcPoints: PmcPontoRaw[], n = 7): number[] {
-  return pmcPoints.slice(-n).map((p) => p.tss ?? 0).filter((v) => v > 0);
+/** Dias civis que a janela de monotonia/strain cobre, contando hoje. */
+const JANELA_MONOTONIA_DIAS = 7;
+/** Menos dias com treino que isso não sustenta desvio padrão com sentido. */
+export const MONOTONIA_MIN_DIAS = 3;
+
+/**
+ * TSS positivos dos 7 dias civis até `hoje` (descansos com tss=0 são descartados). Por data, não
+ * por posição: numa série que parou há 12 dias, as 7 últimas posições são treinos antigos.
+ */
+function tssPositivosDaJanela(pmcPoints: PmcPontoRaw[], hoje: Date): number[] {
+  const fim = startOfDay(hoje);
+  const inicio = subDays(fim, JANELA_MONOTONIA_DIAS - 1);
+  return pmcPoints
+    .filter((p) => {
+      const d = parseISO(p.data);
+      return d >= inicio && d <= fim;
+    })
+    .map((p) => p.tss ?? 0)
+    .filter((v) => v > 0);
 }
 
-export function calcularMonotonia(pmcPoints: PmcPontoRaw[]): number {
-  const ultimos7 = ultimosTssValidos(pmcPoints);
-  if (ultimos7.length < 3) return 1.0;
-  const media = ultimos7.reduce((a, b) => a + b, 0) / ultimos7.length;
-  const variancia = ultimos7.reduce((a, b) => a + (b - media) ** 2, 0) / ultimos7.length;
+export function contarDiasComTreino7d(pmcPoints: PmcPontoRaw[], hoje: Date): number {
+  return tssPositivosDaJanela(pmcPoints, hoje).length;
+}
+
+/** Monotonia (média ÷ desvio do TSS da semana). `null` sem base — antes caía em 1.0, que parecia medição. */
+export function calcularMonotonia(pmcPoints: PmcPontoRaw[], hoje: Date): number | null {
+  const tss = tssPositivosDaJanela(pmcPoints, hoje);
+  if (tss.length < MONOTONIA_MIN_DIAS) return null;
+  const media = tss.reduce((a, b) => a + b, 0) / tss.length;
+  const variancia = tss.reduce((a, b) => a + (b - media) ** 2, 0) / tss.length;
   const stddev = Math.sqrt(variancia);
   return stddev === 0 ? 1.0 : parseFloat((media / stddev).toFixed(2));
 }
 
+/**
+ * Variação % de **CTL** (condicionamento) em 7 posições do array. NÃO é variação de carga — para
+ * isso use `calculateLoadDelta7d`. Era exibida como "% vs semana anterior" ao lado de km.
+ */
 export function calcularLoadDelta(pmcPoints: PmcPontoRaw[]): number {
   if (pmcPoints.length < 8) return 0;
   const ctlAtual = pmcPoints[pmcPoints.length - 1]?.ctl ?? 0;
@@ -46,11 +84,10 @@ export function calcularAcwr(atl: number | null, ctl: number | null): number | n
  * Une volume e homogeneidade num único sinal de qualidade do ciclo.
  * Fallback: null quando há menos de 3 pontos de TSS positivos.
  */
-export function calcularStrain(pmcPoints: PmcPontoRaw[]): number | null {
-  const ultimos7Tss = ultimosTssValidos(pmcPoints);
-  if (ultimos7Tss.length < 3) return null;
-  const tssSemanal = ultimos7Tss.reduce((a, b) => a + b, 0);
-  const monotonia = calcularMonotonia(pmcPoints);
+export function calcularStrain(pmcPoints: PmcPontoRaw[], hoje: Date): number | null {
+  const monotonia = calcularMonotonia(pmcPoints, hoje);
+  if (monotonia == null) return null;
+  const tssSemanal = tssPositivosDaJanela(pmcPoints, hoje).reduce((a, b) => a + b, 0);
   return parseFloat((tssSemanal * monotonia).toFixed(0));
 }
 
@@ -64,11 +101,6 @@ export function getStrainZone(strain: number | null): { tone: MetricTone; label:
   if (strain >= 300) return { tone: 'warning', label: 'Alto' };
   if (strain >= 150) return { tone: 'success', label: 'Moderado' };
   return { tone: 'neutral', label: 'Baixo' };
-}
-
-/** Tom da carga aguda (ATL): acima de ~120 km/semana sinaliza atenção. */
-export function getAcuteLoadTone(acuteLoad: number): MetricTone {
-  return acuteLoad > 120 ? 'warning' : 'success';
 }
 
 /** Tom da monotonia (Foster): acima de 1.4 sinaliza treino pouco variado. */
@@ -139,13 +171,12 @@ export function calcularPrevisaoForma(
   return { tsbPrevisto, formaPrevista: formFromTSB(tsbPrevisto) };
 }
 
-const MS_POR_DIA = 86_400_000;
-
 /** Dias até a próxima prova futura do perfil. -1 quando não há prova cadastrada. */
 export function calcularDiasAteProva(profile: AtletaPerfilCoachDto | null, hoje: Date): number {
   const proxima = provasOrdenadas(profile)[0];
   if (!proxima) return -1;
-  return Math.ceil((new Date(`${proxima.dataProva}T12:00:00`).getTime() - hoje.getTime()) / MS_POR_DIA);
+  // Dia civil: a conta em horas somava um dia de manhã (ceil sobre o meio-dia da prova).
+  return differenceInCalendarDays(parseISO(proxima.dataProva), hoje);
 }
 
 export function statusToSegment(status: CoachAtletaStatus): SegmentFilter {
@@ -155,6 +186,34 @@ export function statusToSegment(status: CoachAtletaStatus): SegmentFilter {
   return 'stable';
 }
 
+/**
+ * Próximo treino a partir de hoje: a data vem de `semanaInicio` + dia da semana (o resumo não traz
+ * data). Antes era `treinos[0]`, o primeiro do plano — na terça, o coach via o treino de segunda.
+ * Treino de hoje já executado sai; só `PENDENTE` (ou sem status) ainda está por fazer.
+ */
+export function pickNextWorkout(
+  plano: PlanoVigenteDto | null,
+  agora: Date,
+): { treino: TreinoPlanejadoResumoDto; when: string } | null {
+  if (!plano?.treinos.length) return null;
+  const hoje = startOfDay(agora);
+  const datas = weekDatesFromInicio(plano.semanaInicio);
+  const proximo = plano.treinos
+    .map((treino) => ({ treino, i: indiceDoDia(treino.diaSemana) }))
+    .filter(({ treino, i }) => i >= 0 && (treino.statusExecucao == null || treino.statusExecucao === 'PENDENTE'))
+    .map(({ treino, i }) => ({ treino, dias: differenceInCalendarDays(datas[i], hoje) }))
+    .filter(({ dias }) => dias >= 0)
+    .sort((a, b) => a.dias - b.dias)[0];
+  if (!proximo) return null;
+  const when =
+    proximo.dias === 0
+      ? 'Hoje'
+      : proximo.dias === 1
+        ? 'Amanhã'
+        : DIA_SEMANA_LABELS[proximo.treino.diaSemana.trim().toUpperCase() as keyof typeof DIA_SEMANA_LABELS] ?? proximo.treino.diaSemana;
+  return { treino: proximo.treino, when };
+}
+
 export function buildSelectedAthleteFromDashboard(
   roster: CoachAtletaResumo,
   profile: AtletaPerfilCoachDto | null,
@@ -162,12 +221,20 @@ export function buildSelectedAthleteFromDashboard(
 ): CoachAthleteRow {
   const pmcPoints = profile?.pmc ?? [];
   const adherencePoints = profile?.aderenciaSemanal ?? [];
-  const firstWorkout = profile?.planoVigente?.treinos[0] ?? null;
+  const distance = profile?.distanceSummary ?? null;
+  const proximo = pickNextWorkout(profile?.planoVigente ?? null, hoje);
+  const firstWorkout = proximo?.treino ?? null;
   const latestPmc = pmcPoints[pmcPoints.length - 1] ?? null;
   const latestAdherence = adherencePoints[adherencePoints.length - 1] ?? null;
 
   const diasAteProva = calcularDiasAteProva(profile, hoje);
   const previsao = calcularPrevisaoForma(latestPmc?.ctl ?? null, latestPmc?.atl ?? null, diasAteProva);
+  const adherenceAvailable = isFieldAvailable(profile?.avisos, 'aderenciaSemanal');
+  const pmcAvailable = isFieldAvailable(profile?.avisos, 'pmc');
+  const dataGaps = classifyGaps(detectDataGaps(pmcPoints, hoje), adherencePoints, distance);
+  // Mesmo campo que alimenta `roster.aderenciaPercentual` (D5): tile e roster concordam por
+  // construção, não por dois cálculos (fix-adherence-count-until-today).
+  const adherenceWindow = buildAdherenceWindowFromAderencia4Semanas(profile?.aderencia4Semanas);
 
   return {
     id: roster.atletaId,
@@ -183,21 +250,29 @@ export function buildSelectedAthleteFromDashboard(
     trainingType: 'Corrida',
     statusLabel: statusLabel(roster.status),
     decision: 'PENDING',
-    adherence: roster.aderenciaPercentual ?? latestAdherence?.percentual ?? 0,
+    adherence: adherenceWindow?.percent ?? roster.aderenciaPercentual ?? latestAdherence?.percentual ?? 0,
+    adherenceWindow,
+    adherenceAvailable,
+    pmcAvailable,
     load7d: roster.weeklyVolume,
-    loadDelta: calcularLoadDelta(pmcPoints),
+    loadDelta: calculateLoadDelta7d(pmcPoints, hoje),
+    distance7d: distance ? { lastKm: distance.last7DaysKm, previousKm: distance.previous7DaysKm } : null,
     delay: 0,
     nextWorkout: {
       title: firstWorkout ? formatWorkoutTypeLabel(firstWorkout.tipoTreino) : 'Sem treino planejado',
-      when: firstWorkout ? firstWorkout.diaSemana : 'Sem data',
+      when: proximo?.when ?? 'Sem data',
       zone: firstWorkout?.zonaAlvo ?? '—',
       duration: formatDuration(firstWorkout?.duracaoMin),
       distance: firstWorkout ? `${firstWorkout.distanciaKm} km` : '—',
-      objective: firstWorkout ? 'Treino vindo do backend.' : 'Nenhum treino planejado no plano vigente.',
+      objective: firstWorkout
+        ? 'Treino vindo do backend.'
+        : profile?.planoVigente?.treinos.length
+          ? 'Nenhum treino restante no plano vigente.'
+          : 'Nenhum treino planejado no plano vigente.',
     },
     raceCalendar: buildRaceCalendarFromProfile(profile),
-    loadTrend: pmcPoints.map((p) => p.ctl).length > 0 ? pmcPoints.map((p) => p.ctl) : [roster.weeklyVolume],
-    adherenceTrend: adherencePoints.map((p) => p.percentual),
+    weeklyDiagnosis: buildWeeklyDiagnosis(pmcPoints, adherencePoints, dataGaps, hoje, DIAGNOSIS_WEEKS, distance),
+    dataGaps,
     notes: profile?.avisos?.length ? profile.avisos.join(' · ') : 'Sem observações adicionais.',
     suggestedActions: profile?.sinaisRecentes.length
       ? profile.sinaisRecentes.map((s) => s.acaoSugerida).slice(0, 3)
@@ -207,14 +282,16 @@ export function buildSelectedAthleteFromDashboard(
       // sincronizou). Os campos abaixo têm fallback numérico, e número com fallback é
       // indistinguível de medição real depois que sai do adapter.
       hasWindowData: pmcPoints.length > 0,
-      acuteLoad: latestPmc?.atl ?? roster.weeklyVolume,
-      monotony: calcularMonotonia(pmcPoints),
+      // ATL é TSS/dia. O fallback antigo era `roster.weeklyVolume` (km) — outra unidade no mesmo campo.
+      acuteLoad: latestPmc?.atl ?? null,
+      monotony: calcularMonotonia(pmcPoints, hoje),
+      trainingDays7d: contarDiasComTreino7d(pmcPoints, hoje),
       tsb: latestPmc?.tsb ?? null,
       // precedência: PMC mais recente (mais granular/atual) > roster (pode estar stale)
       statusForma: latestPmc?.statusForma ?? roster.statusForma ?? null,
       acwr: calcularAcwr(latestPmc?.atl ?? null, latestPmc?.ctl ?? null),
-      strain: calcularStrain(pmcPoints),
-      recovery: latestAdherence?.percentual ?? 0,
+      acwrConfidence: assessAcwrConfidence(pmcPoints, dataGaps, hoje),
+      strain: calcularStrain(pmcPoints, hoje),
     },
     racePrediction: previsao ? { diasAteProva, ...previsao } : null,
   };
@@ -236,8 +313,12 @@ export function buildRosterRowFromSummary(roster: CoachAtletaResumo): CoachAthle
     statusLabel: statusLabel(roster.status),
     decision: 'PENDING',
     adherence: roster.aderenciaPercentual ?? 0,
+    adherenceWindow: null,
+    adherenceAvailable: true,
+    pmcAvailable: true,
     load7d: roster.weeklyVolume,
-    loadDelta: 0,
+    loadDelta: null,
+    distance7d: null,
     delay: 0,
     nextWorkout: {
       title: 'Resumo do dashboard',
@@ -248,21 +329,22 @@ export function buildRosterRowFromSummary(roster: CoachAtletaResumo): CoachAthle
       objective: 'Abra o atleta para ver o detalhe completo.',
     },
     raceCalendar: [],
-    loadTrend: [roster.weeklyVolume],
-    adherenceTrend: [],
+    weeklyDiagnosis: [],
+    dataGaps: [],
     notes: 'Resumo agregado carregado do dashboard.',
     suggestedActions: ['Abrir o perfil do atleta'],
     quickStats: {
       // Linha do roster: o dashboard não traz série PMC, então nunca há dados de janela aqui — o
       // painel completo vem do perfil, buscado à parte.
       hasWindowData: false,
-      acuteLoad: roster.weeklyVolume,
-      monotony: 1,
+      acuteLoad: null,
+      monotony: null,
+      trainingDays7d: 0,
       tsb: null,
       statusForma: roster.statusForma ?? null,
       acwr: calcularAcwr(roster.atl ?? null, roster.ctl ?? null),
+      acwrConfidence: null, // roster não traz histórico; avaliado só no perfil
       strain: null, // resumo do roster não traz histórico PMC; strain só no perfil completo
-      recovery: 0,
     },
     racePrediction: null, // resumo não traz provas nem PMC
   };
