@@ -33,6 +33,25 @@ describe('buildPmcChartModel', () => {
     expect(m.rows[4]).toMatchObject({ missing: true, ctl: null, ctlSolid: null });
   });
 
+  /**
+   * Antes: dia `missing` sem `gaps` declarado não gerava `gapArea` nenhuma — a linha sólida só
+   * parava e recomeçava, sem hachura nem aviso. Parecia gráfico quebrado (achado do usuário em
+   * 2026-10-04), não um buraco de dado conhecido.
+   */
+  it('dia ausente sem lacuna declarada ainda vira área hachurada (missing)', () => {
+    const m = buildPmcChartModel(serie('2026-09-01', 28, (i) => i === 4), [], '4w', HOJE);
+    const dia = (iso: string) => m.rows.find((r) => r.t === d(iso).getTime())!;
+
+    expect(m.gapAreas).toEqual([{ x1: d('2026-09-05').getTime(), x2: d('2026-09-05').getTime(), kind: 'missing' }]);
+    expect(dia('2026-09-05').ctlEst).toBeNull();
+  });
+
+  it('lacuna declarada sem retorno do backend: uma área só, não duas sobrepostas', () => {
+    const gaps = [{ start: d('2026-09-17'), end: HOJE }];
+    const m = buildPmcChartModel(serie('2026-09-01', 16), gaps, '4w', HOJE);
+    expect(m.gapAreas).toHaveLength(1);
+  });
+
   it('ticks semanais contados do último dia', () => {
     const m = buildPmcChartModel(serie('2026-06-01', 120), [], '4w', HOJE);
     expect(m.ticks).toEqual([0, 7, 14, 21].map((k) => addDays(d('2026-09-07'), k).getTime()));
@@ -43,7 +62,7 @@ describe('buildPmcChartModel', () => {
     const m = buildPmcChartModel(serie('2026-09-01', 28), gaps, '4w', HOJE);
     const dia = (iso: string) => m.rows.find((r) => r.t === d(iso).getTime())!;
 
-    expect(m.gapAreas).toEqual([{ x1: d('2026-09-10').getTime(), x2: d('2026-09-12').getTime() }]);
+    expect(m.gapAreas).toEqual([{ x1: d('2026-09-10').getTime(), x2: d('2026-09-12').getTime(), kind: 'declared' }]);
     expect(dia('2026-09-11')).toMatchObject({ inGap: true, ctlSolid: null });
     expect(dia('2026-09-11').ctlEst).not.toBeNull();
     expect(dia('2026-09-09').ctlEst).not.toBeNull();
@@ -63,7 +82,7 @@ describe('buildPmcChartModel', () => {
     const m = buildPmcChartModel(dados, gaps, '4w', HOJE);
 
     expect(m.rows[m.rows.length - 1].t).toBe(HOJE.getTime());
-    expect(m.gapAreas).toEqual([{ x1: d('2026-09-17').getTime(), x2: HOJE.getTime() }]);
+    expect(m.gapAreas).toEqual([{ x1: d('2026-09-17').getTime(), x2: HOJE.getTime(), kind: 'declared' }]);
   });
 
   it('lacuna aberta sem valores do backend: sem linha no trecho, nada inventado', () => {

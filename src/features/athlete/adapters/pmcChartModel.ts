@@ -57,6 +57,10 @@ export interface PmcChartRow {
 export interface PmcGapArea {
   x1: number;
   x2: number;
+  /** `declared`: `PMCGap` do caller (sem treino, mas o backend tem CTL/ATL/TSB do dia — linha tracejada
+   * cobre o trecho). `missing`: o backend não mandou nada para o dia — sem valor pra tracejar, só a
+   * área hachurada avisa que o buraco é esperado, não quebra de gráfico. */
+  kind: 'declared' | 'missing';
 }
 
 export interface PmcChartModel {
@@ -144,16 +148,31 @@ export function buildPmcChartModel(
     r.isolated = temSolido(r) && !temSolido(rows[i - 1]) && !temSolido(rows[i + 1]);
   });
 
-  const gapAreas: PmcGapArea[] = [];
-  let inicioRun = -1;
-  rows.forEach((r, i) => {
-    if (r.inGap && inicioRun < 0) inicioRun = i;
-    const fecha = inicioRun >= 0 && (!r.inGap || i === rows.length - 1);
-    if (fecha) {
-      gapAreas.push({ x1: rows[inicioRun].t, x2: rows[r.inGap ? i : i - 1].t });
-      inicioRun = -1;
-    }
-  });
+  /**
+   * Áreas hachuradas do gráfico: lacunas declaradas (`r.inGap`, vindas do `gaps` do caller) e
+   * trechos `missing` que o caller não declarou. Sem isso, um dia sem ponto no meio da série (ex.:
+   * backfill incompleto) desenha uma linha simplesmente cortada, sem nada — parece gráfico quebrado
+   * em vez de buraco de dado conhecido. `missing` só gera área própria fora de uma lacuna já
+   * declarada — uma lacuna aberta sem retorno do backend (ex.: série parou há semanas) é `inGap` E
+   * `missing` ao mesmo tempo, e já tem área (e aviso) próprios; duplicar a hachura ali não ajuda.
+   */
+  const coletarAreas = (achatado: (r: PmcChartRow) => boolean, kind: PmcGapArea['kind']): PmcGapArea[] => {
+    const areas: PmcGapArea[] = [];
+    let inicioRun = -1;
+    rows.forEach((r, i) => {
+      if (achatado(r) && inicioRun < 0) inicioRun = i;
+      const fecha = inicioRun >= 0 && (!achatado(r) || i === rows.length - 1);
+      if (fecha) {
+        areas.push({ x1: rows[inicioRun].t, x2: rows[achatado(r) ? i : i - 1].t, kind });
+        inicioRun = -1;
+      }
+    });
+    return areas;
+  };
+  const gapAreas: PmcGapArea[] = [
+    ...coletarAreas((r) => r.inGap, 'declared'),
+    ...coletarAreas((r) => r.missing && !r.inGap, 'missing'),
+  ].sort((a, b) => a.x1 - b.x1);
 
   const passo = range === '6m' || range === '1y' ? 28 : 7;
   const ticks: number[] = [];

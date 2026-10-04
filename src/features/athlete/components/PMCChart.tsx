@@ -72,8 +72,9 @@ const SERIES: ReadonlyArray<{ key: PmcSeriesKey; label: string; code: string; co
   { key: 'tsb', label: 'Forma', code: 'TSB', color: surface[50] },
 ];
 
-// Vale para os dois tipos de lacuna: no PMC, o que falta é TSS — pode ter havido treino sem carga.
 const GAP_LABEL = 'Sem carga registrada';
+/** `missing`: o backend não mandou ponto pro dia (ex.: backfill incompleto) — diferente de "sem treino". */
+const MISSING_LABEL = 'Sem dado no período';
 
 // ── Formatters ────────────────────────────────────────────────────────────────
 
@@ -233,7 +234,13 @@ function gapLayers(gapAreas: PmcGapArea[], patternId: string) {
       fill={`url(#${patternId})`}
       fillOpacity={1}
       strokeOpacity={0}
-      label={{ value: GAP_LABEL, position: 'insideTop', fill: surface[300], fontSize: 12, fontFamily: font.text }}
+      label={{
+        value: g.kind === 'missing' ? MISSING_LABEL : GAP_LABEL,
+        position: 'insideTop',
+        fill: surface[300],
+        fontSize: 12,
+        fontFamily: font.text,
+      }}
     />
   ));
 }
