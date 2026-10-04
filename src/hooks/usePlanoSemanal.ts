@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { PlanoSemanalService } from '../api/services/PlanoSemanalService';
+import { PlanoSemanasService } from '../services/PlanoSemanasService';
 import type { PlanoSemanal } from '../types/PlanoSemanal';
 
 export const usePlanoSemanal = () => {
@@ -7,9 +8,12 @@ export const usePlanoSemanal = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<Error | null>(null);
 
+    /**
+     * Carrega, numa chamada, os planos em andamento do atleta e as 4 últimas semanas concluídas
+     * (o limite é do backend). Antes usava `GET /planos/{atletaId}`, que devolve um único plano e
+     * nunca um concluído — por isso o histórico não aparecia.
+     */
     const fetchPlanosPorAtleta = useCallback(async (atletaId: string) => {
-        console.log('usePlanoSemanal - fetchPlanosPorAtleta iniciado para:', atletaId);
-
         if (!atletaId) {
             console.error('atletaId é obrigatório');
             setError(new Error('ID do atleta é obrigatório'));
@@ -19,30 +23,14 @@ export const usePlanoSemanal = () => {
         try {
             setLoading(true);
             setError(null);
-            console.log('Chamando PlanoSemanalService.listarPlanosPorAtleta...');
-
-            const response = await PlanoSemanalService.listarPlanosPorAtleta(atletaId);
-            console.log('Response completa:', response);
-            console.log('Tipo da response:', typeof response);
-            console.log('É array?', Array.isArray(response));
-
-            if (Array.isArray(response)) {
-                console.log('Definindo planos com array:', response);
-                setPlanos(response);
-            } else if (response && typeof response === 'object') {
-                console.log('Response é um objeto único, convertendo para array:', response);
-                setPlanos([response]);
-            } else {
-                console.error('Response em formato inesperado:', response);
-                setPlanos([]);
-            }
+            const response = await PlanoSemanasService.listarSemanasDoAtleta(atletaId);
+            setPlanos(Array.isArray(response) ? response : []);
         } catch (err) {
             console.error('Erro no fetchPlanosPorAtleta:', err);
             setError(err instanceof Error ? err : new Error('Erro ao buscar planos semanais'));
             setPlanos([]);
         } finally {
             setLoading(false);
-            console.log('fetchPlanosPorAtleta finalizado');
         }
     }, []);
 

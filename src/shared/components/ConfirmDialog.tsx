@@ -1,4 +1,4 @@
-import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
+import { Alert, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
 import { surface } from '../../theme/tokens';
 import { DANGER_BTN_SX, PRIMARY_BTN_SX } from './actionButtonSx';
 
@@ -12,6 +12,8 @@ interface ConfirmDialogProps {
     cancelLabel?: string;
     severity?: ConfirmSeverity;
     loading?: boolean;
+    /** Erro da última tentativa de confirmação — mantém o dialog aberto para o usuário tentar de novo. */
+    errorMessage?: string | null;
     onClose: () => void;
     onConfirm: () => void | Promise<void>;
 }
@@ -24,6 +26,7 @@ export function ConfirmDialog({
     cancelLabel = 'Cancelar',
     severity = 'default',
     loading = false,
+    errorMessage,
     onClose,
     onConfirm,
 }: ConfirmDialogProps) {
@@ -37,6 +40,11 @@ export function ConfirmDialog({
             <DialogTitle sx={{ fontFamily: (t) => t.typography.h4.fontFamily, fontWeight: 800 }}>{title}</DialogTitle>
             <DialogContent>
                 <DialogContentText sx={{ color: surface[200] }}>{message}</DialogContentText>
+                {errorMessage && (
+                    <Alert severity="error" sx={{ mt: 1.5 }}>
+                        {errorMessage}
+                    </Alert>
+                )}
             </DialogContent>
             <DialogActions sx={{ px: 2, pb: 2, gap: 1 }}>
                 <Button onClick={onClose} size="small" disabled={loading} sx={{ color: surface[400] }}>

@@ -64,3 +64,10 @@ export const SECONDARY_OUTLINE_SX = {
   borderColor: surface[600],
   '&:hover': { color: surface[50], borderColor: surface[500], bgcolor: content.cardBgHover },
 } as const;
+
+/** Mixin `outlined` pedindo atenção (ex.: RPE ainda não preenchido) — accent warning em vez do neutro. */
+export const WARNING_OUTLINE_SX = {
+  color: semantic.warning[500],
+  borderColor: semantic.warning[500],
+  '&:hover': { color: semantic.warning[400], borderColor: semantic.warning[400], bgcolor: content.cardBgHover },
+} as const;
