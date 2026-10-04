@@ -4,6 +4,7 @@ import EventBusyIcon from '@mui/icons-material/EventBusy';
 import { useEncerrarSemana } from '../../../hooks/useEncerrarSemana';
 import type { EncerramentoSemanaResult } from '../../../types/Encerramento';
 import { EncerramentoSemanaResumo } from './EncerramentoSemanaResumo';
+import { SECONDARY_OUTLINE_SX } from '../../../shared/components/actionButtonSx';
 
 interface EncerrarSemanaButtonProps {
     planoId: string;
@@ -46,6 +47,7 @@ export const EncerrarSemanaButton: React.FC<EncerrarSemanaButtonProps> = ({
                 startIcon={<EventBusyIcon />}
                 onClick={handleClick}
                 disabled={loading}
+                sx={{ ...SECONDARY_OUTLINE_SX, textTransform: 'none' }}
             >
                 Encerrar semana
             </Button>

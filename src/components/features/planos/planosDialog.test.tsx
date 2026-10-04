@@ -138,3 +138,34 @@ describe('PlanosDialog — geração de plano (assíncrona)', () => {
         expect(resetMock.mock.calls.length).toBeGreaterThan(chamadasNoMount);
     });
 });
+
+describe('PlanosDialog — faixa de KPIs', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        vi.spyOn(console, 'log').mockImplementation(() => {});
+    });
+
+    it('mostra planejado, realizado e treinos, sem "Volume alvo" (igual ao planejado)', () => {
+        mockBatchHook();
+        mockPlanoHook({
+            planos: [
+                {
+                    id: 'p1',
+                    semanaInicio: '2026-09-28',
+                    semanaFim: '2026-10-04',
+                    status: 'ATIVO',
+                    volumePlanejadoKm: 42,
+                    volumeAlvoKm: 42,
+                    treinosPlanejados: [],
+                } as unknown as PlanoHook['planos'][number],
+            ],
+        });
+
+        render(<PlanosDialog open onClose={vi.fn()} atletaId="a1" atletaNome="Ana" />);
+
+        expect(screen.getByText('Volume planejado')).toBeInTheDocument();
+        expect(screen.getByText('Volume realizado')).toBeInTheDocument();
+        expect(screen.getByText('Treinos')).toBeInTheDocument();
+        expect(screen.queryByText('Volume alvo')).toBeNull();
+    });
+});
