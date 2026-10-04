@@ -8,17 +8,13 @@ import {
     Slider,
 } from '@mui/material';
 import {
-    DirectionsRun as RunIcon,
-    Schedule as ScheduleIcon,
     CheckCircle as CheckCircleIcon,
     RadioButtonUnchecked as PendingIcon,
     Cancel as CancelIcon,
-    Speed as SpeedIcon,
     InfoOutlined as InfoIcon,
     EmojiEvents as TrophyIcon,
     LightbulbOutlined as InsightIcon,
     ExpandMore as ExpandMoreIcon,
-    FitnessCenter as RpeIcon,
     Edit as EditIcon,
     Add as AddIcon,
 } from '@mui/icons-material';
@@ -28,41 +24,39 @@ import type { TreinoPlanejado } from '../../../types/TreinoPlanejado';
 import type { AnaliseWorkout } from '../../../types/AnaliseWorkout';
 import { PRIMARY_CAUSE_LABEL } from '../../../types/AnaliseWorkout';
 import { getSafeValue, getSafeNumber } from '../../../utils/safeValues';
-import { semantic, surface } from '../../../theme/tokens';
+import { content, semantic, surface } from '../../../theme/tokens';
 import { Card } from '../../../shared/components/Card';
-import type { CardStateColor } from '../../../shared/components/cardStyles';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
-import { GHOST_BTN_SX } from '../../../shared/components/actionButtonSx';
+import { GHOST_BTN_SX, SECONDARY_OUTLINE_SX, SUCCESS_BTN_SX, WARNING_OUTLINE_SX } from '../../../shared/components/actionButtonSx';
 import { effortColor } from '../../../shared/theme/workoutColors';
+import { activeTheme, workoutTypeColor } from '../../../theme/activeTheme';
+import { formatarDataCurta, formatarDiaCurto, formatarKm, rotuloTipoTreino } from './planoSemanaUtils';
 
 interface TreinoCardProps {
     treino: TreinoPlanejado;
     onDetalhes: () => void;
     onMarcarRealizado: () => void;
     onMarcarPerdido?: () => void;
+    /** Chamado após salvar o RPE: o card só guarda o valor em estado local, então quem monta a
+     * lista precisa recarregar os dados — senão trocar de semana e voltar mostra o RPE antigo. */
+    onRpeSalvo?: () => void;
 }
 
-const MetricItem: React.FC<{ icon: React.ReactNode; label: string; value: string }> = ({
-    icon,
-    label,
-    value,
-}) => (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-        {icon}
-        <Box>
-            <Typography variant="caption" color="text.secondary">
-                {label}
-            </Typography>
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {value}
-            </Typography>
-        </Box>
+const MONO = activeTheme.font.mono;
+
+/** Linha rótulo/valor para métricas extras (ritmo alvo, RPE realizado). Número em mono. */
+const MetricRow: React.FC<{ label: string; value: string; color?: string }> = ({ label, value, color }) => (
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 1 }}>
+        <Typography sx={{ fontSize: '0.75rem', color: surface[400] }}>{label}</Typography>
+        <Typography sx={{ fontFamily: MONO, fontSize: '0.8125rem', fontWeight: 700, color: color ?? surface[50] }}>
+            {value}
+        </Typography>
     </Box>
 );
 
 const RPE_MARKS = [1,2,3,4,5,6,7,8,9,10].map(v => ({ value: v, label: String(v) }));
 
-const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRealizado, onMarcarPerdido }) => {
+const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRealizado, onMarcarPerdido, onRpeSalvo }) => {
     const [expandedInsight, setExpandedInsight] = useState(false);
     const [rpeDialogOpen, setRpeDialogOpen] = useState(false);
     const [rpeValue, setRpeValue] = useState<number>(treino.percepcaoEsforcoRealizado ?? 5);
@@ -106,116 +100,93 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
     }, [isRealizado, treino.treinoRealizadoId, currentRpe]);
 
     const mostrarInsight = isRealizado && (analiseStatus === 'done' || analiseStatus === 'pending' || analiseStatus === 'loading');
-    const stateColor: CardStateColor | undefined = isRealizado ? 'success' : isPerdido ? 'danger' : undefined;
+    // Estado: borda 1px + tinta suave. O texto do estado vai no cabeçalho — cor nunca é o único sinal.
+    const estadoCor = isRealizado ? semantic.success[500] : isPerdido ? semantic.danger[500] : null;
+    const estadoLabel = isRealizado ? 'Realizado' : isPerdido ? 'Perdido' : 'Pendente';
+    const tipoCodigo = String(getSafeValue(treino.tipoTreino));
+    const diaCurto = formatarDiaCurto(String(getSafeValue(treino.diaSemana)));
+    const dataCurta = treino.dataTreino ? formatarDataCurta(treino.dataTreino) : null;
+    const metricas = [
+        { label: 'Distância', value: formatarKm(getSafeNumber(treino.distanciaKm)) },
+        { label: 'Duração', value: duracaoDisplay ?? '—' },
+        { label: 'Esforço esp.', value: typeof rpeEsperado === 'number' ? `${rpeEsperado}/10` : '—' },
+    ];
 
     return (
         <Card
-            variant="glass"
-            stateColor={stateColor}
+            variant="flat"
             sx={{
                 height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 1.5,
+                ...(estadoCor ? { borderColor: `${estadoCor}73`, backgroundColor: `${estadoCor}14` } : {}),
             }}
         >
             <Box sx={{ flexGrow: 1 }}>
-                {/* Header: dia da semana + icone de status */}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                    <Chip
-                        label={getSafeValue(treino.diaSemana)}
-                        size="small"
-                        color="primary"
-                        variant="outlined"
-                    />
-                    {isRealizado ? (
-                        <CheckCircleIcon color="success" fontSize="small" />
-                    ) : isPerdido ? (
-                        <CancelIcon sx={{ color: 'error.main' }} fontSize="small" />
-                    ) : (
-                        <PendingIcon color="action" fontSize="small" />
-                    )}
+                {/* Cabeçalho: dia · data e estado (ícone + texto) */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1, mb: 1.25 }}>
+                    <Box
+                        component="span"
+                        sx={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            height: 22,
+                            px: 1,
+                            borderRadius: '11px',
+                            border: `1px solid ${content.cardBorder}`,
+                            fontFamily: MONO,
+                            fontSize: '0.6875rem',
+                            fontWeight: 700,
+                            color: surface[200],
+                        }}
+                    >
+                        {dataCurta ? `${diaCurto} · ${dataCurta}` : diaCurto}
+                    </Box>
+                    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, fontSize: '0.75rem', fontWeight: 600, color: surface[200] }}>
+                        {isRealizado ? (
+                            <CheckCircleIcon sx={{ fontSize: 16, color: semantic.success[500] }} />
+                        ) : isPerdido ? (
+                            <CancelIcon sx={{ fontSize: 16, color: semantic.danger[500] }} />
+                        ) : (
+                            <PendingIcon sx={{ fontSize: 16, color: surface[500] }} />
+                        )}
+                        {estadoLabel}
+                    </Box>
                 </Box>
 
-                {/* Tipo de treino */}
-                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
-                    {getSafeValue(treino.tipoTreino)}
-                </Typography>
+                {/* Tipo: cor da categoria + rótulo PT-BR */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.25, minWidth: 0 }}>
+                    <Box aria-hidden sx={{ flex: 'none', width: 10, height: 10, borderRadius: '3px', bgcolor: workoutTypeColor(tipoCodigo) }} />
+                    <Typography sx={{ fontSize: '0.9375rem', lineHeight: 1.3, fontWeight: 600, color: surface[50] }}>
+                        {rotuloTipoTreino(tipoCodigo)}
+                    </Typography>
+                </Box>
 
-                {/* Métricas */}
-                <Stack spacing={1}>
-                    <MetricItem
-                        icon={<RunIcon fontSize="small" color="action" />}
-                        label="Distância"
-                        value={`${getSafeNumber(treino.distanciaKm)} km`}
-                    />
-                    {duracaoDisplay && (
-                        <MetricItem
-                            icon={<ScheduleIcon fontSize="small" color="action" />}
-                            label="Duração"
-                            value={duracaoDisplay}
-                        />
-                    )}
-                    {ritmoAlvo && (
-                        <MetricItem
-                            icon={<SpeedIcon fontSize="small" color="action" />}
-                            label="Ritmo alvo"
-                            value={String(ritmoAlvo)}
-                        />
-                    )}
-                    {typeof rpeEsperado === 'number' && (
-                        <MetricItem
-                            icon={<SpeedIcon fontSize="small" color="action" />}
-                            label="Esforço esperado"
-                            value={`${rpeEsperado}/10`}
-                        />
-                    )}
-                    {isRealizado && (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-                            <RpeIcon fontSize="small" color="action" />
-                            <Box sx={{ flexGrow: 1 }}>
-                                <Typography variant="caption" color="text.secondary">
-                                    Esforço realizado (RPE)
-                                </Typography>
-                                {currentRpe != null ? (
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                        <Typography
-                                            variant="body2"
-                                            sx={{ fontWeight: 700, color: effortColor(currentRpe) }}
-                                        >
-                                            {currentRpe}/10
-                                        </Typography>
-                                        {treino.treinoRealizadoId && (
-                                            <EditIcon
-                                                fontSize="inherit"
-                                                sx={{ cursor: 'pointer', color: 'text.secondary', fontSize: '0.85rem' }}
-                                                onClick={() => {
-                                                    setRpeValue(currentRpe);
-                                                    setRpeDialogOpen(true);
-                                                }}
-                                            />
-                                        )}
-                                    </Box>
-                                ) : treino.treinoRealizadoId ? (
-                                    <Typography
-                                        variant="body2"
-                                        sx={{ color: 'warning.main', cursor: 'pointer', fontWeight: 600 }}
-                                        onClick={() => {
-                                            setRpeValue(5);
-                                            setRpeDialogOpen(true);
-                                        }}
-                                    >
-                                        + Adicionar RPE
-                                    </Typography>
-                                ) : (
-                                    <Typography variant="body2" color="text.disabled">
-                                        —
-                                    </Typography>
-                                )}
-                            </Box>
+                {/* Métricas principais: 3 colunas, números em mono */}
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 1 }}>
+                    {metricas.map((m) => (
+                        <Box key={m.label} sx={{ minWidth: 0 }}>
+                            <Typography sx={{ fontSize: '0.6875rem', lineHeight: 1.3, color: surface[400] }}>{m.label}</Typography>
+                            <Typography sx={{ fontFamily: MONO, fontSize: '0.8125rem', fontWeight: 700, color: surface[50] }}>
+                                {m.value}
+                            </Typography>
                         </Box>
-                    )}
-                </Stack>
+                    ))}
+                </Box>
+
+                {(ritmoAlvo || isRealizado) && (
+                    <Box sx={{ mt: 1.25, pt: 1.25, borderTop: `1px solid ${content.divider}`, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        {ritmoAlvo && <MetricRow label="Ritmo alvo" value={String(ritmoAlvo)} />}
+                        {isRealizado && (
+                            <MetricRow
+                                label="Esforço realizado (RPE)"
+                                value={currentRpe != null ? `${currentRpe}/10` : '—'}
+                                color={currentRpe != null ? effortColor(currentRpe) : undefined}
+                            />
+                        )}
+                    </Box>
+                )}
             </Box>
 
             {mostrarInsight && (
@@ -352,7 +323,7 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                     size="small"
                     startIcon={<InfoIcon />}
                     onClick={onDetalhes}
-                    sx={{ flex: 1, minWidth: 0 }}
+                    sx={{ ...SECONDARY_OUTLINE_SX, textTransform: 'none', flex: 1, minWidth: 0 }}
                 >
                     Detalhes
                 </Button>
@@ -368,8 +339,7 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                         sx={{
                             flex: 1,
                             minWidth: 0,
-                            color: currentRpe != null ? 'text.secondary' : 'warning.main',
-                            borderColor: currentRpe != null ? 'divider' : 'warning.main',
+                            ...(currentRpe != null ? SECONDARY_OUTLINE_SX : WARNING_OUTLINE_SX),
                         }}
                     >
                         RPE
@@ -401,12 +371,7 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                         size="small"
                         startIcon={<TrophyIcon />}
                         onClick={onMarcarRealizado}
-                        sx={{
-                            flex: 1,
-                            minWidth: 0,
-                            bgcolor: 'success.main',
-                            '&:hover': { bgcolor: 'success.dark' },
-                        }}
+                        sx={{ ...SUCCESS_BTN_SX, flex: 1, minWidth: 0 }}
                     >
                         Realizado
                     </Button>
@@ -442,6 +407,7 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                                     });
                                     setCurrentRpe(rpeValue);
                                     setRpeDialogOpen(false);
+                                    onRpeSalvo?.();
                                 } finally {
                                     setSavingRpe(false);
                                 }

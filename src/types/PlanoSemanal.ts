@@ -72,13 +72,6 @@ export const calcularProgressoVolume = (realizado: number, planejado: number): n
   return Math.round((realizado / planejado) * 100);
 };
 
-export const formatarPeriodoSemana = (inicio: string, fim: string): string => {
-  const dataInicio = new Date(inicio);
-  const dataFim = new Date(fim);
-
-  return `${dataInicio.toLocaleDateString('pt-BR')} - ${dataFim.toLocaleDateString('pt-BR')}`;
-};
-
 export const obterStatusColor = (status: PlanoStatus): string => {
   const statusColors: Record<PlanoStatus, string> = {
     PLANEJADO: surface[500],
