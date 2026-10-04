@@ -3,7 +3,6 @@ import {
     Button,
     Typography,
     Box,
-    Chip,
     Stack,
     Slider,
 } from '@mui/material';
@@ -14,7 +13,7 @@ import {
     InfoOutlined as InfoIcon,
     EmojiEvents as TrophyIcon,
     LightbulbOutlined as InsightIcon,
-    ExpandMore as ExpandMoreIcon,
+    ChevronRight as ChevronRightIcon,
     Edit as EditIcon,
     Add as AddIcon,
 } from '@mui/icons-material';
@@ -22,7 +21,6 @@ import { TreinoService } from '../../../api/services/TreinoService';
 import { AnaliseService } from '../../../api/services/AnaliseService';
 import type { TreinoPlanejado } from '../../../types/TreinoPlanejado';
 import type { AnaliseWorkout } from '../../../types/AnaliseWorkout';
-import { PRIMARY_CAUSE_LABEL } from '../../../types/AnaliseWorkout';
 import { getSafeValue, getSafeNumber } from '../../../utils/safeValues';
 import { content, semantic, surface } from '../../../theme/tokens';
 import { Card } from '../../../shared/components/Card';
@@ -30,6 +28,7 @@ import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { GHOST_BTN_SX, SECONDARY_OUTLINE_SX, SUCCESS_BTN_SX, WARNING_OUTLINE_SX } from '../../../shared/components/actionButtonSx';
 import { effortColor } from '../../../shared/theme/workoutColors';
 import { activeTheme, workoutTypeColor } from '../../../theme/activeTheme';
+import InsightTreinoDialog, { CausaChip, NotaExecucao } from './InsightTreinoDialog';
 import { formatarDataCurta, formatarDiaCurto, formatarKm, rotuloTipoTreino } from './planoSemanaUtils';
 
 interface TreinoCardProps {
@@ -57,7 +56,7 @@ const MetricRow: React.FC<{ label: string; value: string; color?: string }> = ({
 const RPE_MARKS = [1,2,3,4,5,6,7,8,9,10].map(v => ({ value: v, label: String(v) }));
 
 const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRealizado, onMarcarPerdido, onRpeSalvo }) => {
-    const [expandedInsight, setExpandedInsight] = useState(false);
+    const [insightOpen, setInsightOpen] = useState(false);
     const [rpeDialogOpen, setRpeDialogOpen] = useState(false);
     const [rpeValue, setRpeValue] = useState<number>(treino.percepcaoEsforcoRealizado ?? 5);
     const [currentRpe, setCurrentRpe] = useState<number | undefined>(treino.percepcaoEsforcoRealizado);
@@ -192,47 +191,13 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
             {mostrarInsight && (
                 <Box
                     sx={{
-                        px: 2,
-                        py: 1.5,
-                        background: `linear-gradient(135deg, ${semantic.warning[500]}1F 0%, ${semantic.warning[500]}0F 100%)`,
-                        border: `1px solid ${semantic.warning[500]}40`,
+                        px: 1.5,
+                        py: 1.25,
+                        bgcolor: content.inputBg,
+                        border: `1px solid ${content.divider}`,
                         borderRadius: 1.5,
-                        backdropFilter: 'blur(8px)',
                     }}
                 >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                        <InsightIcon
-                            fontSize="small"
-                            sx={{ color: semantic.warning[400], flexShrink: 0 }}
-                        />
-                        <Typography
-                            variant="caption"
-                            sx={{
-                                color: surface[200],
-                                fontWeight: 600,
-                                textTransform: 'uppercase',
-                                letterSpacing: 0.5,
-                                fontSize: '0.7rem',
-                                flexGrow: 1,
-                            }}
-                        >
-                            Coach Insight
-                        </Typography>
-                        {analise?.executionScore != null && (
-                            <Chip
-                                label={`${analise.executionScore}/10`}
-                                size="small"
-                                sx={{
-                                    bgcolor: effortColor(analise.executionScore),
-                                    color: surface[900],
-                                    fontWeight: 700,
-                                    fontSize: '0.7rem',
-                                    height: 20,
-                                }}
-                            />
-                        )}
-                    </Box>
-
                     {(analiseStatus === 'loading' || analiseStatus === 'pending') && (
                         <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
                             {analiseStatus === 'loading' ? 'Carregando análise…' : 'Análise AI em andamento…'}
@@ -241,13 +206,27 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
 
                     {analiseStatus === 'done' && analise && (
                         <>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 1 }}>
+                                {analise.primaryCause ? (
+                                    <CausaChip causa={analise.primaryCause} />
+                                ) : (
+                                    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, color: surface[200] }}>
+                                        <InsightIcon fontSize="small" />
+                                        <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                                            Coach Insight
+                                        </Typography>
+                                    </Box>
+                                )}
+                                {analise.executionScore != null && <NotaExecucao valor={analise.executionScore} />}
+                            </Box>
+
                             <Typography
                                 variant="body2"
                                 sx={{
                                     color: surface[200],
                                     lineHeight: 1.5,
-                                    display: expandedInsight ? 'block' : '-webkit-box',
-                                    WebkitLineClamp: expandedInsight ? 'unset' : 2,
+                                    display: '-webkit-box',
+                                    WebkitLineClamp: 2,
                                     WebkitBoxOrient: 'vertical',
                                     overflow: 'hidden',
                                     wordBreak: 'break-word',
@@ -256,61 +235,13 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                                 {analise.summary}
                             </Typography>
 
-                            {expandedInsight && analise.recommendation && (
-                                <Box sx={{ mt: 1, pt: 1, borderTop: `1px solid ${semantic.warning[500]}33` }}>
-                                    <Typography variant="caption" sx={{ fontWeight: 600, color: surface[400] }}>
-                                        Recomendação
-                                    </Typography>
-                                    <Typography variant="body2" sx={{ color: surface[200], lineHeight: 1.5 }}>
-                                        {analise.recommendation}
-                                    </Typography>
-                                    {analise.primaryCause && (
-                                        <Chip
-                                            label={PRIMARY_CAUSE_LABEL[analise.primaryCause]}
-                                            size="small"
-                                            sx={{ mt: 0.75, bgcolor: `${semantic.warning[500]}26`, fontSize: '0.7rem' }}
-                                        />
-                                    )}
-                                </Box>
-                            )}
-
-                            {expandedInsight && analise.atletaComoFoi && (
-                                <Box sx={{ mt: 1, pt: 1, borderTop: `1px solid ${semantic.warning[500]}33` }}>
-                                    <Typography variant="caption" sx={{ fontWeight: 600, color: surface[400] }}>
-                                        O que o atleta leu
-                                    </Typography>
-                                    {[analise.atletaReconhecimento, analise.atletaComoFoi, analise.atletaEsforco, analise.atletaProximoTreino]
-                                        .filter(Boolean)
-                                        .map((texto, idx) => (
-                                            <Typography key={`atleta-${idx}`} variant="body2" sx={{ color: surface[200], lineHeight: 1.5, mt: 0.5 }}>
-                                                {texto}
-                                            </Typography>
-                                        ))}
-                                </Box>
-                            )}
-
                             <Button
                                 size="small"
-                                onClick={() => setExpandedInsight(!expandedInsight)}
-                                sx={{
-                                    mt: 0.5,
-                                    textTransform: 'none',
-                                    color: semantic.warning[400],
-                                    fontSize: '0.75rem',
-                                    p: 0,
-                                    '&:hover': { bgcolor: 'transparent' },
-                                }}
-                                endIcon={
-                                    <ExpandMoreIcon
-                                        fontSize="small"
-                                        sx={{
-                                            transition: 'transform 0.3s ease',
-                                            transform: expandedInsight ? 'rotate(180deg)' : 'rotate(0deg)',
-                                        }}
-                                    />
-                                }
+                                onClick={() => setInsightOpen(true)}
+                                endIcon={<ChevronRightIcon fontSize="small" />}
+                                sx={{ ...GHOST_BTN_SX, mt: 0.5, minHeight: 32, px: 0, textTransform: 'none', fontSize: '0.75rem', fontWeight: 600 }}
                             >
-                                {expandedInsight ? 'Ver menos' : 'Ver mais'}
+                                Ver insight completo
                             </Button>
                         </>
                     )}
@@ -449,6 +380,16 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                     </Box>
                 </Box>
             </CoachDialog>
+
+            {analise && (
+                <InsightTreinoDialog
+                    open={insightOpen}
+                    onClose={() => setInsightOpen(false)}
+                    analise={analise}
+                    titulo={`${rotuloTipoTreino(tipoCodigo)} · ${formatarKm(getSafeNumber(treino.distanciaKm))}`}
+                    dia={treino.dataTreino ? `${diaCurto} · ${formatarDataCurta(treino.dataTreino)}` : undefined}
+                />
+            )}
         </Card>
     );
 };

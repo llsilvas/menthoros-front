@@ -87,7 +87,6 @@ export function PlanoSemanaPanel({
     );
 
     const volumePlanejado = getSafeNumber(plano.volumePlanejadoKm);
-    const volumeAlvo = getSafeNumber(plano.volumeAlvoKm);
     const volumeRealizado = calcularVolumeRealizado(treinos);
     const treinosRealizados = treinos.filter(isTreinoRealizado).length;
     const progresso = calcularProgressoVolume(volumeRealizado, volumePlanejado);
@@ -100,7 +99,6 @@ export function PlanoSemanaPanel({
     const kpis: ComponentProps<typeof KpiStrip>['items'] = [
         { key: 'planejado', label: 'Volume planejado', qualifier: null, value: formatarKm(volumePlanejado), detail: 'Previsto no plano da semana', tone: 'neutral', badge: null },
         { key: 'realizado', label: 'Volume realizado', qualifier: null, value: formatarKm(volumeRealizado), detail: 'Soma dos treinos já realizados', tone: 'neutral', badge: null },
-        { key: 'alvo', label: 'Volume alvo', qualifier: null, value: formatarKm(volumeAlvo), detail: 'Meta de volume da semana', tone: 'neutral', badge: null },
         { key: 'treinos', label: 'Treinos', qualifier: null, value: `${treinosRealizados}/${treinos.length}`, detail: 'Realizados no plano', tone: 'neutral', badge: null },
     ];
 
@@ -191,7 +189,7 @@ export function PlanoSemanaPanel({
             {treinos.length > 0 && (
                 <Box component="section" aria-label="Treinos da semana">
                     <Typography sx={{ ...EYEBROW_SX, mb: 1 }}>Treinos da semana · {treinos.length}</Typography>
-                    <Grid container spacing={1.5}>
+                    <Grid container spacing={1.5} sx={{ alignItems: 'flex-start' }}>
                         {ordenarPorDiaSemana(treinos).map((treino, index) => (
                             <Grid size={{ xs: 12, sm: 6, md: 4 }} key={treino.id || index}>
                                 <TreinoCard
