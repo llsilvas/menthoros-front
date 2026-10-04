@@ -87,7 +87,6 @@ export function PlanoSemanaPanel({
     );
 
     const volumePlanejado = getSafeNumber(plano.volumePlanejadoKm);
-    const volumeAlvo = getSafeNumber(plano.volumeAlvoKm);
     const volumeRealizado = calcularVolumeRealizado(treinos);
     const treinosRealizados = treinos.filter(isTreinoRealizado).length;
     const progresso = calcularProgressoVolume(volumeRealizado, volumePlanejado);
@@ -100,7 +99,6 @@ export function PlanoSemanaPanel({
     const kpis: ComponentProps<typeof KpiStrip>['items'] = [
         { key: 'planejado', label: 'Volume planejado', qualifier: null, value: formatarKm(volumePlanejado), detail: 'Previsto no plano da semana', tone: 'neutral', badge: null },
         { key: 'realizado', label: 'Volume realizado', qualifier: null, value: formatarKm(volumeRealizado), detail: 'Soma dos treinos já realizados', tone: 'neutral', badge: null },
-        { key: 'alvo', label: 'Volume alvo', qualifier: null, value: formatarKm(volumeAlvo), detail: 'Meta de volume da semana', tone: 'neutral', badge: null },
         { key: 'treinos', label: 'Treinos', qualifier: null, value: `${treinosRealizados}/${treinos.length}`, detail: 'Realizados no plano', tone: 'neutral', badge: null },
     ];
 

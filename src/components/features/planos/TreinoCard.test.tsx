@@ -50,27 +50,50 @@ function renderCard() {
     );
 }
 
-describe('TreinoCard — o que o atleta leu', () => {
+describe('TreinoCard — insight', () => {
     beforeEach(() => {
         vi.clearAllMocks();
     });
 
-    it('expandir o insight mostra o bloco do atleta em somente leitura', async () => {
+    it('mostra causa, nota rotulada e resumo no card, sem expansão inline', async () => {
+        getAnalise.mockResolvedValue(analise({ primaryCause: 'NORMAL' }));
+        renderCard();
+
+        expect(await screen.findByText('Execução dentro do esperado')).toBeInTheDocument();
+        expect(screen.getByText('Execução Normal')).toBeInTheDocument();
+        expect(screen.getByText('8/10')).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /ver mais/i })).toBeNull();
+        expect(screen.queryByText('Manter a carga atual')).toBeNull();
+        expect(screen.queryByText('O que o atleta leu')).toBeNull();
+    });
+
+    it('sem ritmo alvo, a linha continua no card com "—" (mantém a altura alinhada na linha do grid)', async () => {
+        getAnalise.mockResolvedValue(analise());
+        renderCard();
+
+        await screen.findByText('Execução dentro do esperado');
+        expect(screen.getByText('Ritmo alvo')).toBeInTheDocument();
+        expect(screen.getByText('Ritmo alvo').parentElement).toHaveTextContent('—');
+    });
+
+    it('"Ver insight completo" abre o dialog com a recomendação e o bloco do atleta recolhido', async () => {
         getAnalise.mockResolvedValue(analise());
         const user = userEvent.setup();
         renderCard();
 
-        expect(await screen.findByText('Execução dentro do esperado')).toBeInTheDocument();
-        expect(screen.queryByText('O que o atleta leu')).toBeNull();
+        await screen.findByText('Execução dentro do esperado');
+        await user.click(screen.getByRole('button', { name: /ver insight completo/i }));
 
-        await user.click(screen.getByRole('button', { name: /ver mais/i }));
+        expect(screen.getByText('Manter a carga atual')).toBeInTheDocument();
+        expect(screen.queryByText('Saiu como planejado.')).toBeNull();
 
-        expect(screen.getByText('O que o atleta leu')).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: /o que o atleta leu/i }));
+
         expect(screen.getByText('Saiu como planejado.')).toBeInTheDocument();
         expect(screen.getByText('Capriche no sono hoje.')).toBeInTheDocument();
     });
 
-    it('análise antiga (sem bloco do atleta) não renderiza a seção', async () => {
+    it('análise antiga (sem bloco do atleta) não renderiza a seção no dialog', async () => {
         getAnalise.mockResolvedValue(analise({
             atletaReconhecimento: undefined,
             atletaComoFoi: undefined,
@@ -80,9 +103,10 @@ describe('TreinoCard — o que o atleta leu', () => {
         const user = userEvent.setup();
         renderCard();
 
-        expect(await screen.findByText('Execução dentro do esperado')).toBeInTheDocument();
-        await user.click(screen.getByRole('button', { name: /ver mais/i }));
+        await screen.findByText('Execução dentro do esperado');
+        await user.click(screen.getByRole('button', { name: /ver insight completo/i }));
 
-        expect(screen.queryByText('O que o atleta leu')).toBeNull();
+        expect(screen.getByText('Manter a carga atual')).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /o que o atleta leu/i })).toBeNull();
     });
 });
