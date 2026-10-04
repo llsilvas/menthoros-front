@@ -34,15 +34,31 @@ export const CausaChip: React.FC<{ causa: PrimaryAnalysisCause }> = ({ causa }) 
 };
 
 /**
+ * Causa principal em texto + ponto, sem pílula: versão minimalista para o card de treino.
+ * O estado continua no texto e na cor do ponto (âmbar quando não é `NORMAL`).
+ */
+export const CausaTexto: React.FC<{ causa: PrimaryAnalysisCause }> = ({ causa }) => (
+    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
+        <Box
+            component="span"
+            sx={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0, bgcolor: causa !== 'NORMAL' ? semantic.warning[500] : surface[400] }}
+        />
+        <Typography component="span" sx={{ fontSize: '0.6875rem', lineHeight: 1.3, color: surface[200] }}>
+            {PRIMARY_CAUSE_LABEL[causa]}
+        </Typography>
+    </Box>
+);
+
+/**
  * Nota de execução da análise. Neutra de propósito: o RPE realizado também é "x/10" e usa cor de
  * esforço; o rótulo "Execução" e a ausência de cor evitam confundir os dois números.
  */
-export const NotaExecucao: React.FC<{ valor: number }> = ({ valor }) => (
+export const NotaExecucao: React.FC<{ valor: number; compacto?: boolean }> = ({ valor, compacto = false }) => (
     <Box sx={{ display: 'inline-flex', alignItems: 'baseline', gap: 0.5 }}>
         <Typography component="span" sx={{ fontSize: '0.6875rem', color: surface[400] }}>
             Execução
         </Typography>
-        <Typography component="span" sx={{ fontFamily: MONO, fontSize: '0.8125rem', fontWeight: 700, color: surface[50] }}>
+        <Typography component="span" sx={{ fontFamily: MONO, fontSize: compacto ? '0.6875rem' : '0.8125rem', fontWeight: 700, color: compacto ? surface[200] : surface[50] }}>
             {valor}/10
         </Typography>
     </Box>

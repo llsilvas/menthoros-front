@@ -28,7 +28,7 @@ import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { GHOST_BTN_SX, SECONDARY_OUTLINE_SX, SUCCESS_BTN_SX, WARNING_OUTLINE_SX } from '../../../shared/components/actionButtonSx';
 import { effortColor } from '../../../shared/theme/workoutColors';
 import { activeTheme, workoutTypeColor } from '../../../theme/activeTheme';
-import InsightTreinoDialog, { CausaChip, NotaExecucao } from './InsightTreinoDialog';
+import InsightTreinoDialog, { CausaTexto, NotaExecucao } from './InsightTreinoDialog';
 import { formatarDataCurta, formatarDiaCurto, formatarKm, rotuloTipoTreino } from './planoSemanaUtils';
 
 interface TreinoCardProps {
@@ -190,42 +190,32 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
             </Box>
 
             {mostrarInsight && (
-                <Box
-                    sx={{
-                        px: 1.5,
-                        py: 1.25,
-                        bgcolor: content.inputBg,
-                        border: `1px solid ${content.divider}`,
-                        borderRadius: 1.5,
-                    }}
-                >
+                <Box sx={{ pt: 1.25, borderTop: `1px solid ${content.divider}` }}>
                     {(analiseStatus === 'loading' || analiseStatus === 'pending') && (
-                        <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
+                        <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', fontStyle: 'italic' }}>
                             {analiseStatus === 'loading' ? 'Carregando análise…' : 'Análise AI em andamento…'}
                         </Typography>
                     )}
 
                     {analiseStatus === 'done' && analise && (
                         <>
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 1 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.75 }}>
                                 {analise.primaryCause ? (
-                                    <CausaChip causa={analise.primaryCause} />
+                                    <CausaTexto causa={analise.primaryCause} />
                                 ) : (
-                                    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, color: surface[200] }}>
-                                        <InsightIcon fontSize="small" />
-                                        <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                                            Coach Insight
-                                        </Typography>
+                                    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, color: surface[400] }}>
+                                        <InsightIcon sx={{ fontSize: 14 }} />
+                                        <Typography sx={{ fontSize: '0.6875rem', lineHeight: 1.3 }}>Coach Insight</Typography>
                                     </Box>
                                 )}
-                                {analise.executionScore != null && <NotaExecucao valor={analise.executionScore} />}
+                                {analise.executionScore != null && <NotaExecucao valor={analise.executionScore} compacto />}
                             </Box>
 
                             <Typography
-                                variant="body2"
                                 sx={{
+                                    fontSize: '0.75rem',
                                     color: surface[200],
-                                    lineHeight: 1.5,
+                                    lineHeight: 1.35,
                                     display: '-webkit-box',
                                     WebkitLineClamp: 2,
                                     WebkitBoxOrient: 'vertical',
@@ -239,15 +229,15 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                             <Button
                                 size="small"
                                 onClick={() => setInsightOpen(true)}
-                                endIcon={<ChevronRightIcon fontSize="small" />}
+                                endIcon={<ChevronRightIcon sx={{ fontSize: 14 }} />}
                                 sx={{
                                     ...GHOST_BTN_SX,
                                     color: surface[200],
-                                    mt: 0.5,
-                                    minHeight: 32,
+                                    mt: 0.25,
+                                    minHeight: 28,
                                     px: 0,
                                     textTransform: 'none',
-                                    fontSize: '0.75rem',
+                                    fontSize: '0.6875rem',
                                     fontWeight: 600,
                                     '&:hover': { color: surface[50], bgcolor: 'transparent', textDecoration: 'underline' },
                                 }}
