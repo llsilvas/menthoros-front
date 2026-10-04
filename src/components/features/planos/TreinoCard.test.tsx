@@ -67,6 +67,15 @@ describe('TreinoCard — insight', () => {
         expect(screen.queryByText('O que o atleta leu')).toBeNull();
     });
 
+    it('sem ritmo alvo, a linha continua no card com "—" (mantém a altura alinhada na linha do grid)', async () => {
+        getAnalise.mockResolvedValue(analise());
+        renderCard();
+
+        await screen.findByText('Execução dentro do esperado');
+        expect(screen.getByText('Ritmo alvo')).toBeInTheDocument();
+        expect(screen.getByText('Ritmo alvo').parentElement).toHaveTextContent('—');
+    });
+
     it('"Ver insight completo" abre o dialog com a recomendação e o bloco do atleta recolhido', async () => {
         getAnalise.mockResolvedValue(analise());
         const user = userEvent.setup();

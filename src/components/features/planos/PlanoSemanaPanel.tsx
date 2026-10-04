@@ -189,7 +189,7 @@ export function PlanoSemanaPanel({
             {treinos.length > 0 && (
                 <Box component="section" aria-label="Treinos da semana">
                     <Typography sx={{ ...EYEBROW_SX, mb: 1 }}>Treinos da semana · {treinos.length}</Typography>
-                    <Grid container spacing={1.5} sx={{ alignItems: 'flex-start' }}>
+                    <Grid container spacing={1.5}>
                         {ordenarPorDiaSemana(treinos).map((treino, index) => (
                             <Grid size={{ xs: 12, sm: 6, md: 4 }} key={treino.id || index}>
                                 <TreinoCard

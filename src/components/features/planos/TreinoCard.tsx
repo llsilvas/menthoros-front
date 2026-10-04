@@ -174,9 +174,10 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                     ))}
                 </Box>
 
+                {/* "Ritmo alvo" sempre aparece (— quando ausente): sem isso a linha do grid fica irregular. */}
                 {(ritmoAlvo || isRealizado) && (
                     <Box sx={{ mt: 1.25, pt: 1.25, borderTop: `1px solid ${content.divider}`, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                        {ritmoAlvo && <MetricRow label="Ritmo alvo" value={String(ritmoAlvo)} />}
+                        <MetricRow label="Ritmo alvo" value={ritmoAlvo ? String(ritmoAlvo) : '—'} />
                         {isRealizado && (
                             <MetricRow
                                 label="Esforço realizado (RPE)"
@@ -239,7 +240,17 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                                 size="small"
                                 onClick={() => setInsightOpen(true)}
                                 endIcon={<ChevronRightIcon fontSize="small" />}
-                                sx={{ ...GHOST_BTN_SX, mt: 0.5, minHeight: 32, px: 0, textTransform: 'none', fontSize: '0.75rem', fontWeight: 600 }}
+                                sx={{
+                                    ...GHOST_BTN_SX,
+                                    color: surface[200],
+                                    mt: 0.5,
+                                    minHeight: 32,
+                                    px: 0,
+                                    textTransform: 'none',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 600,
+                                    '&:hover': { color: surface[50], bgcolor: 'transparent', textDecoration: 'underline' },
+                                }}
                             >
                                 Ver insight completo
                             </Button>
