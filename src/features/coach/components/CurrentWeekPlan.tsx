@@ -119,11 +119,12 @@ function TreinoCard({
                 {treino.distanciaKm.toFixed(1)} km{duracaoDisplay ? ` · ${duracaoDisplay}` : ''}
             </Typography>
 
-            {(treino.zonaAlvo || treino.percepcaoEsforcoEsperada) && (
+            {(treino.zonaAlvo || treino.percepcaoEsforcoEsperada || treino.tssPlanejado != null) && (
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
                     {[
                         treino.zonaAlvo,
                         treino.percepcaoEsforcoEsperada ? `RPE ${treino.percepcaoEsforcoEsperada}` : null,
+                        treino.tssPlanejado != null ? `TSS ${treino.tssPlanejado}` : null,
                     ]
                         .filter(Boolean)
                         .join(' · ')}

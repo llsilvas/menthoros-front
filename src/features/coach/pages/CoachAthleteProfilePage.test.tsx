@@ -229,7 +229,8 @@ describe('CoachAthleteProfilePage', () => {
         mockHook({ profile: {
             ...STUB_PROFILE,
             realizadosRecentes: [{
-                id: 'r1', dataTreino: '2026-08-27', tipoTreino: 'FACIL', fonteDados: 'MANUAL',
+                id: 'r1', dataTreino: '2026-08-27', tipoTreino: 'FACIL',
+                fonteDados: { value: 'MANUAL', label: 'Manual' },
                 duracaoMin: 40, percepcaoEsforco: 6, feedbackRegistradoEm: '2026-08-27T19:00:00',
             }],
         } });

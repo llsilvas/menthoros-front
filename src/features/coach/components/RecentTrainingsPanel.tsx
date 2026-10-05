@@ -32,7 +32,11 @@ export function RecentTrainingsPanel({ realizados }: RecentTrainingsPanelProps) 
               {format(parseISO(r.dataTreino), "d 'de' MMM", { locale: ptBR })} — {r.tipoTreino ?? 'Treino'}
             </Typography>
             <Typography variant="caption" sx={{ color: surface[400] }}>
-              {[r.duracaoMin != null ? `${r.duracaoMin} min` : null, r.fonteDados].filter(Boolean).join(' · ')}
+              {[
+                r.duracaoMin != null ? `${r.duracaoMin} min` : null,
+                r.tssCalculado != null ? `TSS ${r.tssCalculado}` : null,
+                r.fonteDados?.label,
+              ].filter(Boolean).join(' · ')}
             </Typography>
           </Box>
           {r.feedbackRegistradoEm && (

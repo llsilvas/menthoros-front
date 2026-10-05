@@ -43,6 +43,8 @@ export interface TreinoPlanejadoResumoDto {
     duracaoMin?: string;   // ISO-8601, ex: "PT60M" ou "PT1H30M"
     zonaAlvo?: string;
     percepcaoEsforcoEsperada?: number;
+    /** TSS planejado/estimado do treino; ausente quando não calculado. */
+    tssPlanejado?: number | null;
     etapas?: EtapaTreinoDto[];
     /** Status de sincronização com o intervals.icu/Garmin (nome do enum StatusSincronizacao). */
     statusSincronizacao?: string;
@@ -152,10 +154,11 @@ export interface RealizadoRecenteDto {
     id: string;
     dataTreino: string;
     tipoTreino?: string;
-    fonteDados?: string;
+    fonteDados?: { value: string; label: string };
     duracaoMin?: number;
     distanciaKm?: number;
     percepcaoEsforco?: number;
+    tssCalculado?: number;
     sensacoes?: string[];
     feedbackAtleta?: string;
     /** Ausente = "Como foi?" ainda não respondido. */
