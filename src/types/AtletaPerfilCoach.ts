@@ -152,10 +152,11 @@ export interface RealizadoRecenteDto {
     id: string;
     dataTreino: string;
     tipoTreino?: string;
-    fonteDados?: string;
+    fonteDados?: { value: string; label: string };
     duracaoMin?: number;
     distanciaKm?: number;
     percepcaoEsforco?: number;
+    tssCalculado?: number;
     sensacoes?: string[];
     feedbackAtleta?: string;
     /** Ausente = "Como foi?" ainda não respondido. */
