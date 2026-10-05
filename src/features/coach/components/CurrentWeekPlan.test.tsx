@@ -15,6 +15,7 @@ const TREINO_SEGUNDA: TreinoPlanejadoResumoDto = {
     duracaoMin: 'PT60M',
     zonaAlvo: 'Z2',
     percepcaoEsforcoEsperada: 5,
+    tssPlanejado: 65,
 };
 
 const TREINO_QUARTA: TreinoPlanejadoResumoDto = {
@@ -90,7 +91,7 @@ describe('CurrentWeekPlan', () => {
         expect(screen.getByText(/60 min/)).toBeInTheDocument();
     });
 
-    it('exibe zona alvo e RPE nos cards', () => {
+    it('exibe zona alvo, RPE e TSS planejado nos cards', () => {
         render(
             <CurrentWeekPlan
                 plano={PLANO_APROVADO}
@@ -101,6 +102,23 @@ describe('CurrentWeekPlan', () => {
 
         expect(screen.getByText(/Z2/)).toBeInTheDocument();
         expect(screen.getByText(/RPE 5/)).toBeInTheDocument();
+        expect(screen.getByText(/TSS 65/)).toBeInTheDocument();
+    });
+
+    it('não exibe TSS quando tssPlanejado é null/ausente', () => {
+        const planoSemTss = {
+            ...PLANO_APROVADO,
+            treinos: [{ ...TREINO_SEGUNDA, tssPlanejado: null }],
+        };
+        render(
+            <CurrentWeekPlan
+                plano={planoSemTss}
+                onGerarPlano={onGerarPlano}
+                onRevisarPlano={onRevisarPlano}
+            />,
+        );
+
+        expect(screen.queryByText(/TSS/)).not.toBeInTheDocument();
     });
 
     it('converte corretamente PT1H30M para 90 min', () => {
