@@ -4,13 +4,15 @@ import { RecentTrainingsPanel } from './RecentTrainingsPanel';
 import type { RealizadoRecenteDto } from '../../../types/AtletaPerfilCoach';
 
 const COM_FEEDBACK: RealizadoRecenteDto = {
-  id: 'r1', dataTreino: '2026-08-27', tipoTreino: 'FACIL', fonteDados: 'INTERVALS_ICU',
-  duracaoMin: 40, percepcaoEsforco: 6, sensacoes: ['PERNAS_PESADAS'], feedbackAtleta: 'Cansado',
+  id: 'r1', dataTreino: '2026-08-27', tipoTreino: 'FACIL',
+  fonteDados: { value: 'INTERVALS_ICU', label: 'intervals.icu' },
+  duracaoMin: 40, percepcaoEsforco: 6, tssCalculado: 85, sensacoes: ['PERNAS_PESADAS'], feedbackAtleta: 'Cansado',
   feedbackRegistradoEm: '2026-08-27T19:00:00',
 };
 
 const SEM_FEEDBACK: RealizadoRecenteDto = {
-  id: 'r2', dataTreino: '2026-08-26', tipoTreino: 'INTERVALADO', fonteDados: 'MANUAL', duracaoMin: 50,
+  id: 'r2', dataTreino: '2026-08-26', tipoTreino: 'INTERVALADO',
+  fonteDados: { value: 'MANUAL', label: 'Manual' }, duracaoMin: 50,
 };
 
 describe('RecentTrainingsPanel', () => {
@@ -29,5 +31,12 @@ describe('RecentTrainingsPanel', () => {
   it('sem carimbo: não mostra feedback como se estivesse completo', () => {
     render(<RecentTrainingsPanel realizados={[SEM_FEEDBACK]} />);
     expect(screen.queryByText(/rpe/i)).toBeNull();
+  });
+
+  it('mostra TSS e o label da fonte de dados (não o objeto bruto)', () => {
+    render(<RecentTrainingsPanel realizados={[COM_FEEDBACK]} />);
+    expect(screen.getByText(/tss 85/i)).toBeInTheDocument();
+    expect(screen.getByText(/intervals\.icu/i)).toBeInTheDocument();
+    expect(screen.queryByText(/object object/i)).toBeNull();
   });
 });
