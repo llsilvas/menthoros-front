@@ -21,4 +21,20 @@ describe('TodayCompletedCard', () => {
     render(<TodayCompletedCard realizado={REALIZADO} sensacoes={[]} />);
     expect(screen.queryByText(/pernas pesadas/i)).toBeNull();
   });
+
+  it('sem analysisView, não mostra o card de análise', () => {
+    render(<TodayCompletedCard realizado={REALIZADO} />);
+    expect(screen.queryByTestId('workout-analysis-card')).toBeNull();
+  });
+
+  it('com analysisView, mostra o card de análise dentro do card do treino', () => {
+    render(
+      <TodayCompletedCard
+        realizado={REALIZADO}
+        analysisView={{ status: 'done', comoFoi: 'Saiu como planejado.', stats: [] }}
+      />,
+    );
+    expect(screen.getByTestId('workout-analysis-card')).toBeInTheDocument();
+    expect(screen.getByText('Saiu como planejado.')).toBeInTheDocument();
+  });
 });
