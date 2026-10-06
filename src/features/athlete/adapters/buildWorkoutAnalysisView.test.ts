@@ -44,6 +44,16 @@ describe('buildWorkoutAnalysisView', () => {
         expect(view.planLine).toBeUndefined();
     });
 
+    it('plan line: ausente quando a distância bate no valor formatado, mesmo com floats diferentes', () => {
+        const view = buildWorkoutAnalysisView({
+            ...completa,
+            executado: { duracaoMin: 61, distanciaKm: 11.04, rpe: 6 },
+            planejado: { duracaoMin: 61, distanciaKm: 11.01, rpeEsperado: 6 },
+        });
+
+        expect(view.planLine).toBeUndefined();
+    });
+
     it('plan line: ausente quando não há planejado', () => {
         const view = buildWorkoutAnalysisView({ ...completa, planejado: undefined });
 

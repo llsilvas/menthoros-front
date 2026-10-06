@@ -41,9 +41,10 @@ function SectionLabel({ children, color = surface[400] }: { children: string; co
 }
 
 /**
- * Card "Análise do treino" na visão do atleta (analise-ia-treino-atleta, canvas aprovado):
- * reconhecimento → números executado vs. plano → "Como foi" → "O que o seu esforço diz" →
- * "Para o próximo treino". Presentacional: recebe o view model pronto do adapter.
+ * Card "Análise do treino" na visão do atleta (analise-ia-treino-atleta, refinado em
+ * refine-athlete-workout-analysis-card): linha de métricas em mono → linha de plano (só se
+ * divergir) → contêiner `ai-highlight` com reconhecimento/comoFoi/proximoTreino sempre visíveis e
+ * esforco atrás de "Ver análise completa". Presentacional: recebe o view model pronto do adapter.
  */
 export function WorkoutAnalysisCard({ view }: WorkoutAnalysisCardProps) {
     const pendente = view.status === 'pending';
@@ -127,7 +128,11 @@ export function WorkoutAnalysisCard({ view }: WorkoutAnalysisCardProps) {
                         )}
 
                         {expandido && view.esforco && (
-                            <Typography variant="body1" sx={{ color: surface[300], textWrap: 'pretty' }}>
+                            <Typography
+                                id="workout-analysis-esforco"
+                                variant="body1"
+                                sx={{ color: surface[300], textWrap: 'pretty' }}
+                            >
                                 {view.esforco}
                             </Typography>
                         )}
@@ -136,6 +141,7 @@ export function WorkoutAnalysisCard({ view }: WorkoutAnalysisCardProps) {
                             <Button
                                 size="small"
                                 aria-expanded={expandido}
+                                aria-controls="workout-analysis-esforco"
                                 onClick={() => setExpandido((v) => !v)}
                                 sx={{ alignSelf: 'flex-start', px: 0, minHeight: 32, color: primary[500] }}
                             >

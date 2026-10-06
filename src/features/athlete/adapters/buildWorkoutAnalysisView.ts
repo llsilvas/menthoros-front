@@ -46,10 +46,14 @@ export function buildWorkoutAnalysisView(dto: AthleteWorkoutAnalysis): WorkoutAn
         }
     }
     if (executado.distanciaKm != null) {
-        metrics.push({ key: 'distancia', text: `${formatKm(executado.distanciaKm)} km` });
+        const distanciaExecutadaFmt = formatKm(executado.distanciaKm);
+        metrics.push({ key: 'distancia', text: `${distanciaExecutadaFmt} km` });
         if (planejado?.distanciaKm != null) {
-            planParts.push(`${formatKm(planejado.distanciaKm)} km`);
-            if (planejado.distanciaKm !== executado.distanciaKm) algumDifere = true;
+            const distanciaPlanejadaFmt = formatKm(planejado.distanciaKm);
+            planParts.push(`${distanciaPlanejadaFmt} km`);
+            // Compara os textos formatados (1 casa decimal), não o valor bruto: 11,04 e 11,01
+            // exibem ambos "11,0 km" — comparar o float acusaria divergência que não existe na tela.
+            if (distanciaPlanejadaFmt !== distanciaExecutadaFmt) algumDifere = true;
         }
     }
     if (executado.rpe != null) {
