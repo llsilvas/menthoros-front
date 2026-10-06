@@ -42,7 +42,7 @@ export function TodayCompletedCard({ realizado, sensacoes = [], comentario, anal
       {comentario && (
         <Typography variant="body2" sx={{ color: surface[300], fontStyle: 'italic' }}>{comentario}</Typography>
       )}
-      {analysisView && <WorkoutAnalysisCard view={analysisView} />}
+      {analysisView && <WorkoutAnalysisCard view={analysisView} embedded />}
     </Card>
   );
 }

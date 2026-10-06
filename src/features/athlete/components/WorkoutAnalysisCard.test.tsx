@@ -26,7 +26,7 @@ describe('WorkoutAnalysisCard', () => {
         expect(screen.getByText('Análise do treino')).toBeInTheDocument();
         // Texto quebrado em spans (RPE com cor própria) — match pelo textContent agregado.
         expect(
-            screen.getByText((_, el) => el?.textContent === '58 min · 11,2 km · 7/10' && el.tagName === 'H6'),
+            screen.getByText((_, el) => el?.textContent === '58 min · 11,2 km · 7/10' && el.tagName === 'P'),
         ).toBeInTheDocument();
         expect(screen.getByText('plano 61 min · 11,0 km · RPE esperado 6/10')).toBeInTheDocument();
         expect(screen.getByText('Você segurou o ritmo nos dois blocos.')).toBeInTheDocument();
@@ -42,6 +42,22 @@ describe('WorkoutAnalysisCard', () => {
         const highlight = screen.getByTestId('ai-highlight');
         expect(highlight).toContainElement(screen.getByText('Você segurou o ritmo nos dois blocos.'));
         expect(highlight).toContainElement(screen.getByText('Capriche no sono hoje.'));
+    });
+
+    it('embedded: sem o card/cabeçalho externo (data-testid card-header) — o rótulo "Análise do treino" migra para dentro do ai-highlight', () => {
+        render(<WorkoutAnalysisCard view={done} embedded />);
+
+        expect(screen.queryByTestId('card-header')).not.toBeInTheDocument();
+        const highlight = screen.getByTestId('ai-highlight');
+        expect(highlight).toContainElement(screen.getByText('Análise do treino'));
+        expect(screen.getByText('Você segurou o ritmo nos dois blocos.')).toBeInTheDocument();
+    });
+
+    it('não-embedded (default): mantém o card/cabeçalho externo "Análise do treino", sem repeti-lo dentro do ai-highlight', () => {
+        render(<WorkoutAnalysisCard view={done} />);
+
+        expect(screen.getByTestId('card-header')).toBeInTheDocument();
+        expect(screen.getAllByText('Análise do treino')).toHaveLength(1);
     });
 
     it('done: "Ver análise completa" expande só o esforco, mantendo proximoTreino visível antes e depois', async () => {
