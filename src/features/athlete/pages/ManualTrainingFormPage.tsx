@@ -33,9 +33,12 @@ export default function ManualTrainingFormPage() {
     const { upload, uploading, reset: resetFitUpload } = useFitUpload();
     const { status: calibracaoStatus, fetchStatus: fetchCalibracao } = useCalibracao();
     const [treinoRegistrado, setTreinoRegistrado] = useState<TreinoRealizadoDto | null>(null);
-    // Análise da IA do treino recém-registrado: 200 PENDING já na primeira consulta (o backend
-    // responde por elegibilidade antes mesmo de a linha existir) — o card mostra "Analisando…".
-    const { analysis, status: analysisStatus } = useAthleteWorkoutAnalysis(treinoRegistrado?.id ?? null);
+    const [treinoImportado, setTreinoImportado] = useState<TreinoRealizadoDto | null>(null);
+    // Análise da IA do treino recém-concluído, seja por registro manual ou importação .fit: 200
+    // PENDING já na primeira consulta (o backend responde por elegibilidade antes mesmo de a linha
+    // existir) — o card mostra "Analisando…".
+    const realizadoId = treinoRegistrado?.id ?? treinoImportado?.id ?? null;
+    const { analysis, status: analysisStatus } = useAthleteWorkoutAnalysis(realizadoId);
     // Enquanto a primeira consulta voa, o card já mostra "Analisando…" — sem flash da frase
     // fixa que a change substitui (QA/Codex). Erro cai no fallback da frase fixa, que é honesto.
     const analysisView = useMemo(() => {
@@ -43,7 +46,6 @@ export default function ManualTrainingFormPage() {
         if (analysisStatus === 'loading') return { status: 'pending' as const, stats: [] };
         return null;
     }, [analysis, analysisStatus]);
-    const [treinoImportado, setTreinoImportado] = useState<TreinoRealizadoDto | null>(null);
     const [toast, setToast] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
         open: false,
         message: '',
@@ -123,6 +125,7 @@ export default function ManualTrainingFormPage() {
                         treino={treinoImportado}
                         onImportarOutro={handleImportarOutro}
                         onVoltar={() => navigate(ROUTES.ATHLETE_HOME)}
+                        analysisView={analysisView}
                     />
                 ) : (
                     <FileUploadZone onFileSelected={handleFitUpload} disabled={uploading} />
