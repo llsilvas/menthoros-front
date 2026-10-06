@@ -6,6 +6,7 @@ import { ptBR } from 'date-fns/locale';
 import { TodayHeroCard } from '../components/TodayHeroCard';
 import { TodayFeedbackCard } from '../components/TodayFeedbackCard';
 import { TodayCompletedCard } from '../components/TodayCompletedCard';
+import { TodayWorkoutAnalysisDrawer } from '../components/TodayWorkoutAnalysisDrawer';
 import { TodaySkippedCard } from '../components/TodaySkippedCard';
 import { ReadinessCard } from '../components/ReadinessCard';
 import { QuickCheckInModal } from '../components/QuickCheckInModal';
@@ -72,6 +73,7 @@ export default function AthleteHomePage() {
   // persistir entre sessões (sessionStorage por semanaFim) é follow-up documentado na proposal.
   const [bannerDispensado, setBannerDispensado] = useState(false);
   const [calibracaoBannerDispensado, setCalibracaoBannerDispensado] = useState(false);
+  const [analysisDrawerOpen, setAnalysisDrawerOpen] = useState(false);
 
   // `useCalibracao().error` entra aqui — a Home anterior não o lia e a falha era silenciosa.
   const erros = useAggregatedFetchErrors([
@@ -239,8 +241,15 @@ export default function AthleteHomePage() {
           realizado={home.realizadoHoje}
           sensacoes={home.realizadoHoje.sensacoes as Sensacao[] | undefined}
           comentario={home.realizadoHoje.feedbackAtleta}
+          onClick={() => setAnalysisDrawerOpen(true)}
         />
       )}
+
+      <TodayWorkoutAnalysisDrawer
+        realizadoId={home?.realizadoHoje?.id ?? null}
+        open={analysisDrawerOpen}
+        onClose={() => setAnalysisDrawerOpen(false)}
+      />
 
       {todayState === 'PULADO' && (
         <TodaySkippedCard

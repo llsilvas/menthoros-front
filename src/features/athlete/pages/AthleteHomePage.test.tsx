@@ -190,6 +190,23 @@ describe('AthleteHomePage', () => {
       expect(screen.queryByRole('button', { name: /registrar treino/i })).toBeNull();
     });
 
+    it('treino feito: clicar no card abre o drawer de análise com o id do realizado', async () => {
+      mockHome({ home: {
+        hoje: HOJE_ISO,
+        realizadoHoje: {
+          id: 'r1', fonteDados: 'MANUAL', tipoTreino: 'FACIL', duracaoMin: 40, percepcaoEsforco: 6,
+          feedbackRegistradoEm: '2026-08-26T19:00:00',
+        },
+        metricasChave: { ctl: 74, atl: 71, tsb: 3, tss: 62, statusForma: 'FORMA_IDEAL' },
+      } });
+      renderPage();
+
+      expect(screen.queryByText('Análise do treino')).toBeNull();
+      await userEvent.click(screen.getByRole('button', { name: /ver análise do treino/i }));
+
+      expect(screen.getByText('Análise do treino')).toBeInTheDocument();
+    });
+
     it('planejado de hoje pulado: "Hoje você pulou" no lugar do hero', () => {
       mockHome({ home: {
         hoje: HOJE_ISO,
