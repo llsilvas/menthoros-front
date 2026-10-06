@@ -27,14 +27,20 @@ describe('TodayCompletedCard', () => {
     expect(screen.queryByTestId('workout-analysis-card')).toBeNull();
   });
 
-  it('com analysisView, mostra o card de análise dentro do card do treino', () => {
+  it('sem analysisView, mostra o subtítulo de duração/RPE', () => {
+    render(<TodayCompletedCard realizado={REALIZADO} />);
+    expect(screen.getByText(/40 min · RPE 6\/10/)).toBeInTheDocument();
+  });
+
+  it('com analysisView, mostra o card de análise dentro do card do treino e omite o subtítulo (sem duplicar com a linha de métricas do card)', () => {
     render(
       <TodayCompletedCard
         realizado={REALIZADO}
-        analysisView={{ status: 'done', comoFoi: 'Saiu como planejado.', stats: [] }}
+        analysisView={{ status: 'done', reconhecimento: 'Bom treino.', comoFoi: 'Saiu como planejado.', metrics: [] }}
       />,
     );
     expect(screen.getByTestId('workout-analysis-card')).toBeInTheDocument();
-    expect(screen.getByText('Saiu como planejado.')).toBeInTheDocument();
+    expect(screen.getByText('Bom treino.')).toBeInTheDocument();
+    expect(screen.queryByText(/40 min · RPE 6\/10/)).not.toBeInTheDocument();
   });
 });

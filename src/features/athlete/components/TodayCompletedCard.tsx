@@ -26,12 +26,14 @@ export function TodayCompletedCard({ realizado, sensacoes = [], comentario, anal
     >
       <Typography variant="overline" sx={{ color: surface[400] }}>Treino feito</Typography>
       <Typography variant="h4">{tipoTreinoLabel(realizado.tipoTreino)}</Typography>
-      <Typography variant="body2" sx={{ color: surface[400] }}>
-        {[
-          realizado.duracaoMin != null ? `${realizado.duracaoMin} min` : null,
-          realizado.percepcaoEsforco != null ? `RPE ${realizado.percepcaoEsforco}/10` : null,
-        ].filter(Boolean).join(' · ')}
-      </Typography>
+      {!analysisView && (
+        <Typography variant="body2" sx={{ color: surface[400] }}>
+          {[
+            realizado.duracaoMin != null ? `${realizado.duracaoMin} min` : null,
+            realizado.percepcaoEsforco != null ? `RPE ${realizado.percepcaoEsforco}/10` : null,
+          ].filter(Boolean).join(' · ')}
+        </Typography>
+      )}
       {sensacoes.length > 0 && (
         <Typography variant="body2" sx={{ color: primary[400] }}>
           {sensacoes.map((s) => SENSACAO_LABELS[s]).join(', ')}
@@ -40,7 +42,7 @@ export function TodayCompletedCard({ realizado, sensacoes = [], comentario, anal
       {comentario && (
         <Typography variant="body2" sx={{ color: surface[300], fontStyle: 'italic' }}>{comentario}</Typography>
       )}
-      {analysisView && <WorkoutAnalysisCard view={analysisView} />}
+      {analysisView && <WorkoutAnalysisCard view={analysisView} embedded />}
     </Card>
   );
 }

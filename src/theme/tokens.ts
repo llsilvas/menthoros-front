@@ -1,5 +1,5 @@
 import { primary, surface, elevation } from '../shared/design-tokens';
-import { glass as premiumGlass } from './theme.premium';
+import { glass as premiumGlass, aiHighlight as premiumAiHighlight, font as premiumFont } from './theme.premium';
 
 export { primary, surface, semantic, categorical, external } from '../shared/design-tokens';
 
@@ -88,6 +88,13 @@ export type ZoneKey = 'Z1' | 'Z2' | 'Z3' | 'Z4' | 'Z5';
 // Token canônico vive em `theme.premium.ts` (task 3.1) — reexportado aqui pra
 // não quebrar os consumidores que importam `glass` de `theme/tokens`.
 export const glass = premiumGlass;
+
+// Token canônico vive em `theme.premium.ts` — reexportado aqui pelo mesmo
+// motivo de `glass`: é o caminho que os componentes de treino já importam.
+export const aiHighlight = premiumAiHighlight;
+
+// Idem — família mono para números tabulares (ex.: linha de métricas do treino).
+export const font = premiumFont;
 
 export const glassSx = {
   backgroundColor:       glass.background,

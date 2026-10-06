@@ -227,14 +227,14 @@ describe('AthleteHomePage', () => {
         metricasChave: { ctl: 74, atl: 71, tsb: 3, tss: 62, statusForma: 'FORMA_IDEAL' },
       } });
       vi.mocked(useAthleteWorkoutAnalysis).mockReturnValue({
-        analysis: { status: 'COMPLETED', comoFoi: 'Saiu como planejado.', executado: {} },
+        analysis: { status: 'COMPLETED', reconhecimento: 'Bom treino.', comoFoi: 'Saiu como planejado.', executado: {} },
         status: 'done', error: null, loading: false,
       });
       renderPage();
 
       expect(screen.getByText(/treino feito/i)).toBeInTheDocument();
       expect(screen.getByTestId('workout-analysis-card')).toBeInTheDocument();
-      expect(screen.getByText('Saiu como planejado.')).toBeInTheDocument();
+      expect(screen.getByText('Bom treino.')).toBeInTheDocument();
     });
 
     it('planejado de hoje pulado: "Hoje você pulou" no lugar do hero', () => {
