@@ -52,12 +52,15 @@ export function useSugestaoDecisao(onDecisao?: () => void) {
       id: string,
       acao: 'aprovar' | 'rejeitar',
       onResultado: (detalhe: SugestaoCoachOutputDto) => void,
+      motivoRejeicao?: string,
     ) => {
       setDeciding(true);
       setDecisionMessage(null);
 
       try {
-        const atualizado = await SugestaoService[acao](id);
+        const atualizado = acao === 'rejeitar'
+          ? await SugestaoService.rejeitar(id, motivoRejeicao)
+          : await SugestaoService.aprovar(id);
         onResultado(atualizado);
         onDecisao?.();
       } catch (err) {

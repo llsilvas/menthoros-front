@@ -53,6 +53,28 @@ describe('useSugestaoDecisao', () => {
     expect(result.current.decisionMessage).toBeNull();
   });
 
+  it('rejeitar sem motivo: chama SugestaoService.rejeitar(id, undefined)', async () => {
+    vi.mocked(SugestaoService.rejeitar).mockResolvedValue(makeDetail({ status: 'REJECTED' }));
+    const { result } = renderHook(() => useSugestaoDecisao());
+
+    await act(async () => {
+      await result.current.decidir('s1', 'rejeitar', vi.fn());
+    });
+
+    expect(SugestaoService.rejeitar).toHaveBeenCalledWith('s1', undefined);
+  });
+
+  it('rejeitar com motivo: repassa o motivo para SugestaoService.rejeitar', async () => {
+    vi.mocked(SugestaoService.rejeitar).mockResolvedValue(makeDetail({ status: 'REJECTED' }));
+    const { result } = renderHook(() => useSugestaoDecisao());
+
+    await act(async () => {
+      await result.current.decidir('s1', 'rejeitar', vi.fn(), 'volume alto demais');
+    });
+
+    expect(SugestaoService.rejeitar).toHaveBeenCalledWith('s1', 'volume alto demais');
+  });
+
   it('falha na mutação, mas reconsulta mostra sugestão já decidida (422 de outra sessão): notifica o pai (bug real corrigido)', async () => {
     vi.mocked(SugestaoService.aprovar).mockRejectedValue(new Error('422'));
     vi.mocked(SugestaoService.detalhe).mockResolvedValue(makeDetail({ status: 'REJECTED' }));

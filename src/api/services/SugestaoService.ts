@@ -54,25 +54,30 @@ export class SugestaoService {
             path: { 'id': id },
             errors: {
                 404: 'Sugestão não encontrada',
+                409: 'Outra decisão concorrente já transicionou a sugestão',
                 422: 'Transição ilegal: REJECTED → APPROVED',
             },
         });
     }
 
     /**
-     * Rejeita uma sugestão PENDING (PENDING → REJECTED).
+     * Rejeita uma sugestão PENDING (PENDING → REJECTED). `motivoRejeicao` é opcional.
      * Re-rejeitar já-REJECTED é no-op. APPROVED → REJECTED lança 422.
      * @param id UUID da sugestão
+     * @param motivoRejeicao motivo opcional da rejeição (máx. 500 caracteres)
      * @returns sugestão atualizada
      * @throws ApiError
      */
-    public static rejeitar(id: string): CancelablePromise<SugestaoCoachOutputDto> {
+    public static rejeitar(id: string, motivoRejeicao?: string): CancelablePromise<SugestaoCoachOutputDto> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v1/coach/sugestoes/{id}/rejeitar',
             path: { 'id': id },
+            body: motivoRejeicao ? { motivoRejeicao } : undefined,
+            mediaType: 'application/json',
             errors: {
                 404: 'Sugestão não encontrada',
+                409: 'Outra decisão concorrente já transicionou a sugestão',
                 422: 'Transição ilegal: APPROVED → REJECTED',
             },
         });
