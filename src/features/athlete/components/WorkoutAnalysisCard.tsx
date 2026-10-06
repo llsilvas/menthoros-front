@@ -1,6 +1,6 @@
-import { Box, Skeleton, Typography } from '@mui/material';
-import { alpha } from '@mui/material/styles';
-import { primary, surface } from '../../../theme/tokens';
+import { useState } from 'react';
+import { Box, Button, Skeleton, Typography } from '@mui/material';
+import { primary, surface, aiHighlight, font, backgrounds } from '../../../theme/tokens';
 import { radius } from '../../../shared/design-tokens/density';
 import { Card } from '../../../shared/components/Card';
 import { CardHeader } from '../../../shared/components/CardHeader';
@@ -8,26 +8,22 @@ import type { WorkoutAnalysisView } from '../adapters/buildWorkoutAnalysisView';
 
 export interface WorkoutAnalysisCardProps {
     view: WorkoutAnalysisView;
+    /**
+     * Sem `Card`/`CardHeader` em volta — usado só pela Home (`TodayCompletedCard`), onde o
+     * `WorkoutAnalysisCard` já mora dentro do card do treino (board do founder: sem card-em-card).
+     * `WorkoutDetailDrawer` e `PostWorkoutFeedbackCard` continuam com o card completo, porque ali
+     * não há um card de treino em volta.
+     */
+    embedded?: boolean;
 }
 
-/** Ícone de análise (sparkle) — SVG inline, sem emoji, escala e recolore com o tema. */
-function SparkleIcon({ size = 20 }: { size?: number }) {
+/** Ícone de análise (sparkle) — SVG inline, sem emoji, escala e recolore com o tema. Exportado para o teaser da Home reusar o mesmo símbolo. */
+export function SparkleIcon({ size = 20 }: { size?: number }) {
     return (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={primary[500]}
             strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" />
             <path d="M19 16l.7 2.3L22 19l-2.3.7L19 22l-.7-2.3L16 19l2.3-.7z" />
-        </svg>
-    );
-}
-
-function TrophyIcon() {
-    return (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={primary[500]}
-            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden
-            style={{ flexShrink: 0, marginTop: 1 }}>
-            <path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z" />
-            <path d="M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3" />
         </svg>
     );
 }
@@ -41,12 +37,144 @@ function SectionLabel({ children, color = surface[400] }: { children: string; co
 }
 
 /**
- * Card "Análise do treino" na visão do atleta (analise-ia-treino-atleta, canvas aprovado):
- * reconhecimento → números executado vs. plano → "Como foi" → "O que o seu esforço diz" →
- * "Para o próximo treino". Presentacional: recebe o view model pronto do adapter.
+ * Card "Análise do treino" na visão do atleta (analise-ia-treino-atleta, refinado em
+ * refine-athlete-workout-analysis-card): linha de métricas em mono → linha de plano (só se
+ * divergir) → contêiner `ai-highlight` com só o `reconhecimento` (resumo) visível; comoFoi,
+ * proximoTreino e esforco ficam atrás de "Ver análise completa" para o card fechado caber em
+ * poucas linhas (ajuste pós-review, 2026-10-06 — decisão explícita do founder de recolher também
+ * o proximoTreino, revertendo a decisão anterior de mantê-lo sempre visível). Presentacional:
+ * recebe o view model pronto do adapter.
  */
-export function WorkoutAnalysisCard({ view }: WorkoutAnalysisCardProps) {
+export function WorkoutAnalysisCard({ view, embedded = false }: WorkoutAnalysisCardProps) {
     const pendente = view.status === 'pending';
+    const [expandido, setExpandido] = useState(false);
+
+    const corpo = (
+        <>
+            {view.metrics.length > 0 && (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                    <Typography
+                        sx={{
+                            fontFamily: font.mono,
+                            fontVariantNumeric: 'tabular-nums',
+                            fontSize: '0.8125rem',
+                            lineHeight: '18px',
+                            color: surface[300],
+                        }}
+                    >
+                        {view.metrics.map((item, i) => (
+                            <span key={item.key} style={{ color: item.color }}>
+                                {i > 0 && ' · '}
+                                {item.text}
+                            </span>
+                        ))}
+                    </Typography>
+                    {view.planLine && (
+                        <Typography
+                            variant="caption"
+                            sx={{ fontFamily: font.mono, color: surface[400] }}
+                        >
+                            {view.planLine}
+                        </Typography>
+                    )}
+                </Box>
+            )}
+
+            {pendente ? (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }} role="status">
+                    <Typography sx={{ fontSize: '0.8125rem', lineHeight: '18px', color: surface[400] }}>
+                        Analisando o seu treino… pode fechar, fica guardado aqui.
+                    </Typography>
+                    <Skeleton variant="rounded" height={8} width="92%" sx={{ bgcolor: backgrounds.highest }} />
+                    <Skeleton variant="rounded" height={8} width="64%" sx={{ bgcolor: backgrounds.highest }} />
+                </Box>
+            ) : (
+                <>
+                    <Box
+                        data-testid="ai-highlight"
+                        sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 1,
+                            pt: 1.5,
+                            px: 2,
+                            pb: 0.5,
+                            borderRadius: radius.lg,
+                            bgcolor: aiHighlight.bg,
+                            border: `1px solid ${aiHighlight.border}`,
+                        }}
+                    >
+                        {embedded && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                                <SparkleIcon size={12} />
+                                <SectionLabel color={primary[500]}>Análise do treino</SectionLabel>
+                            </Box>
+                        )}
+
+                        {view.reconhecimento && (
+                            <Typography sx={{ color: surface[50], textWrap: 'pretty' }}>
+                                {view.reconhecimento}
+                            </Typography>
+                        )}
+
+                        {expandido && (
+                            <Box id="workout-analysis-detalhes" sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                {view.comoFoi && (
+                                    <Typography sx={{ fontSize: '0.8125rem', lineHeight: '18px', color: surface[300], textWrap: 'pretty' }}>
+                                        {view.comoFoi}
+                                    </Typography>
+                                )}
+
+                                {view.proximoTreino && (
+                                    <Typography sx={{ fontSize: '0.8125rem', lineHeight: '18px', color: surface[300], textWrap: 'pretty' }}>
+                                        {view.proximoTreino}
+                                    </Typography>
+                                )}
+
+                                {view.esforco && (
+                                    <Typography sx={{ fontSize: '0.8125rem', lineHeight: '18px', color: surface[300], textWrap: 'pretty' }}>
+                                        {view.esforco}
+                                    </Typography>
+                                )}
+                            </Box>
+                        )}
+
+                        {(view.comoFoi || view.proximoTreino || view.esforco) && (
+                            <Button
+                                size="small"
+                                aria-expanded={expandido}
+                                aria-controls="workout-analysis-detalhes"
+                                onClick={() => setExpandido((v) => !v)}
+                                sx={{
+                                    alignSelf: 'flex-start',
+                                    px: 0,
+                                    py: 1.5,
+                                    minWidth: 0,
+                                    fontSize: '0.8125rem',
+                                    fontWeight: 600,
+                                    color: primary[500],
+                                }}
+                            >
+                                {expandido ? 'Ver menos' : 'Ver análise completa'}
+                            </Button>
+                        )}
+                    </Box>
+
+                    <Typography variant="caption" sx={{ color: surface[500], textWrap: 'pretty' }}>
+                        Gerada automaticamente a partir do treino que você registrou. Seu coach vê a mesma análise.
+                    </Typography>
+                </>
+            )}
+        </>
+    );
+
+    if (embedded) {
+        return (
+            <Box data-testid="workout-analysis-card" sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                {corpo}
+            </Box>
+        );
+    }
 
     return (
         <Card
@@ -55,103 +183,7 @@ export function WorkoutAnalysisCard({ view }: WorkoutAnalysisCardProps) {
             sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
         >
             <CardHeader icon={<SparkleIcon />} title="Análise do treino" />
-
-            {!pendente && view.reconhecimento && (
-                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.25 }}>
-                    <TrophyIcon />
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600, color: surface[50], textWrap: 'pretty' }}>
-                        {view.reconhecimento}
-                    </Typography>
-                </Box>
-            )}
-
-            {view.stats.length > 0 && (
-                <Box
-                    sx={{
-                        display: 'grid',
-                        gridTemplateColumns: `repeat(${view.stats.length}, minmax(0, 1fr))`,
-                        gap: 1.5,
-                        py: 1.5,
-                        borderTop: `1px solid ${surface[700]}`,
-                        borderBottom: `1px solid ${surface[700]}`,
-                    }}
-                >
-                    {view.stats.map((stat) => (
-                        <Box key={stat.label} sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
-                            <Typography variant="caption" sx={{ color: surface[500], textTransform: 'uppercase' }}>
-                                {stat.label}
-                            </Typography>
-                            <Typography
-                                variant="h5"
-                                sx={{ fontVariantNumeric: 'tabular-nums', color: stat.valueColor ?? surface[50] }}
-                            >
-                                {stat.value}
-                            </Typography>
-                            {stat.sub && (
-                                <Typography variant="caption" sx={{ color: surface[400] }}>
-                                    {stat.sub}
-                                </Typography>
-                            )}
-                        </Box>
-                    ))}
-                </Box>
-            )}
-
-            {pendente ? (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
-                    <Typography variant="body1" sx={{ fontStyle: 'italic', color: surface[400] }}>
-                        Analisando o seu treino…
-                    </Typography>
-                    <Skeleton variant="rounded" height={10} width="92%" sx={{ bgcolor: surface[700] }} />
-                    <Skeleton variant="rounded" height={10} width="78%" sx={{ bgcolor: surface[700] }} />
-                    <Skeleton variant="rounded" height={10} width="60%" sx={{ bgcolor: surface[700] }} />
-                    <Typography variant="caption" sx={{ color: surface[500], textWrap: 'pretty' }}>
-                        Leva em torno de um minuto. Pode fechar — a análise fica guardada aqui no treino.
-                    </Typography>
-                </Box>
-            ) : (
-                <>
-                    {view.comoFoi && (
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-                            <SectionLabel>Como foi</SectionLabel>
-                            <Typography variant="body1" sx={{ color: surface[300], textWrap: 'pretty' }}>
-                                {view.comoFoi}
-                            </Typography>
-                        </Box>
-                    )}
-
-                    {view.esforco && (
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-                            <SectionLabel>O que o seu esforço diz</SectionLabel>
-                            <Typography variant="body1" sx={{ color: surface[300], textWrap: 'pretty' }}>
-                                {view.esforco}
-                            </Typography>
-                        </Box>
-                    )}
-
-                    {view.proximoTreino && (
-                        <Box
-                            sx={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: 0.75,
-                                p: 1.5,
-                                borderRadius: radius.md,
-                                bgcolor: alpha(primary[500], 0.08),
-                            }}
-                        >
-                            <SectionLabel color={primary[500]}>Para o próximo treino</SectionLabel>
-                            <Typography variant="body1" sx={{ color: surface[50], textWrap: 'pretty' }}>
-                                {view.proximoTreino}
-                            </Typography>
-                        </Box>
-                    )}
-
-                    <Typography variant="caption" sx={{ color: surface[500], textWrap: 'pretty' }}>
-                        Gerada automaticamente a partir do treino que você registrou. Seu coach vê a mesma análise.
-                    </Typography>
-                </>
-            )}
+            {corpo}
         </Card>
     );
 }

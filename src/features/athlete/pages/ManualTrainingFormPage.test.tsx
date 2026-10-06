@@ -6,6 +6,7 @@ import ManualTrainingFormPage from './ManualTrainingFormPage';
 import { useManualTraining } from '../../../hooks/useManualTraining';
 import { useFitUpload } from '../../../hooks/useFitUpload';
 import { useCalibracao } from '../../../hooks/useCalibracao';
+import { useAthleteWorkoutAnalysis } from '../hooks/useAthleteWorkoutAnalysis';
 import type { TreinoRealizadoDto } from '../../../types/TreinoManual';
 
 const navigateMock = vi.fn();
@@ -18,6 +19,7 @@ vi.mock('react-router', async () => {
 vi.mock('../../../hooks/useManualTraining');
 vi.mock('../../../hooks/useFitUpload');
 vi.mock('../../../hooks/useCalibracao');
+vi.mock('../hooks/useAthleteWorkoutAnalysis');
 
 const TREINO_SALVO: TreinoRealizadoDto = {
   id: 't1',
@@ -70,6 +72,9 @@ describe('ManualTrainingFormPage', () => {
     vi.mocked(useCalibracao).mockReturnValue({
       status: null, justExited: false, loading: false, error: null,
       fetchStatus: vi.fn().mockResolvedValue(undefined), dismissJustExited: vi.fn(),
+    });
+    vi.mocked(useAthleteWorkoutAnalysis).mockReturnValue({
+      analysis: null, status: 'idle', error: null, loading: false,
     });
   });
 
@@ -168,6 +173,26 @@ describe('ManualTrainingFormPage', () => {
 
     expect(await screen.findByText('Arquivo .fit inválido ou corrompido')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /registrar treino/i })).toBeInTheDocument();
+  });
+
+  it('ao importar um .fit, aciona a análise pelo id do treino importado e exibe o card de análise', async () => {
+    const upload = vi.fn().mockResolvedValue(TREINO_FIT);
+    mockUseFitUpload({ upload });
+    vi.mocked(useAthleteWorkoutAnalysis).mockImplementation((id) => ({
+      analysis: null,
+      status: id === TREINO_FIT.id ? 'loading' : 'idle',
+      error: null,
+      loading: id === TREINO_FIT.id,
+    }));
+    const user = userEvent.setup();
+    renderPage();
+
+    const input = screen.getByLabelText(/selecionar arquivo \.fit/i).querySelector('input')!;
+    await user.upload(input, fitFile());
+
+    await screen.findByText('Treino importado com sucesso');
+    expect(useAthleteWorkoutAnalysis).toHaveBeenCalledWith(TREINO_FIT.id);
+    expect(screen.getByTestId('workout-analysis-card')).toBeInTheDocument();
   });
 
   it('usa uma mensagem genérica quando o erro não é uma instância de Error', async () => {

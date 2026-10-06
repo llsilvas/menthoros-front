@@ -60,4 +60,37 @@ describe('FitUploadResultCard', () => {
 
     expect(onVoltar).toHaveBeenCalledOnce();
   });
+
+  it('sem analysisView não renderiza o card de análise', () => {
+    render(<FitUploadResultCard treino={TREINO} onImportarOutro={vi.fn()} onVoltar={vi.fn()} />);
+
+    expect(screen.queryByTestId('workout-analysis-card')).toBeNull();
+  });
+
+  it('com analysisView mostra o card da análise (paridade com o registro manual)', () => {
+    render(
+      <FitUploadResultCard
+        treino={TREINO}
+        onImportarOutro={vi.fn()}
+        onVoltar={vi.fn()}
+        analysisView={{ status: 'pending', metrics: [{ key: 'duracao', text: '30 min' }] }}
+      />,
+    );
+
+    expect(screen.getByTestId('workout-analysis-card')).toBeInTheDocument();
+    expect(screen.getByText(/Analisando o seu treino…/)).toBeInTheDocument();
+  });
+
+  it('analysisView null não quebra e omite o card de análise', () => {
+    render(
+      <FitUploadResultCard
+        treino={TREINO}
+        onImportarOutro={vi.fn()}
+        onVoltar={vi.fn()}
+        analysisView={null}
+      />,
+    );
+
+    expect(screen.queryByTestId('workout-analysis-card')).toBeNull();
+  });
 });

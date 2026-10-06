@@ -254,6 +254,15 @@ export const sidebar = {
   divider:        'rgba(255,255,255,0.12)',
 } as const;
 
+// ── AiHighlight — destaque de conteúdo gerado por IA (lime translúcido) ──────
+// Usado pelo `WorkoutAnalysisCard` para distinguir texto da análise do resto
+// do card. Mesmo matiz de `primary[500]` (#BDDE5A), só em alpha baixo — não é
+// um novo hue, é a aplicação "conteúdo de IA" do lime já existente na marca.
+export const aiHighlight = {
+  bg:     'rgba(189,222,90,0.10)',
+  border: 'rgba(189,222,90,0.45)',
+} as const;
+
 // ── Glass — material translúcido / hairline ──────────────────────────────────
 // backgroundActive/borderHover: affordances já em produção (feedback de hover/
 // active), fora da tabela de 5 campos do design.md — mantidas aqui como
@@ -292,6 +301,7 @@ export const premiumTokens = {
   zone,
   sidebar,
   glass,
+  aiHighlight,
 } as const;
 
 export type PremiumTokens = typeof premiumTokens;

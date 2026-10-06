@@ -3,15 +3,19 @@ import { surface, primary } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import { Card } from '../../../shared/components/Card';
 import { buildFitUploadPreview } from '../adapters/fitUploadResultAdapter';
+import type { WorkoutAnalysisView } from '../adapters/buildWorkoutAnalysisView';
+import { WorkoutAnalysisCard } from './WorkoutAnalysisCard';
 import type { TreinoRealizadoDto } from '../../../types/TreinoManual';
 
 export interface FitUploadResultCardProps {
   treino: TreinoRealizadoDto;
   onImportarOutro: () => void;
   onVoltar: () => void;
+  /** Análise do treino (pending/done); mesmo contrato de PostWorkoutFeedbackCard. */
+  analysisView?: WorkoutAnalysisView | null;
 }
 
-export function FitUploadResultCard({ treino, onImportarOutro, onVoltar }: FitUploadResultCardProps) {
+export function FitUploadResultCard({ treino, onImportarOutro, onVoltar, analysisView }: FitUploadResultCardProps) {
   const { duracaoLabel, distanciaLabel, fcLabel, lapsLabel } = buildFitUploadPreview(treino);
 
   return (
@@ -38,6 +42,8 @@ export function FitUploadResultCard({ treino, onImportarOutro, onVoltar }: FitUp
           <Typography sx={{ color: surface[200], fontSize: '0.9rem', fontWeight: 600 }}>{lapsLabel}</Typography>
         )}
       </Box>
+
+      {analysisView && <WorkoutAnalysisCard view={analysisView} />}
 
       <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
         <Button
