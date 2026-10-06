@@ -6,8 +6,6 @@ import { ptBR } from 'date-fns/locale';
 import { TodayHeroCard } from '../components/TodayHeroCard';
 import { TodayFeedbackCard } from '../components/TodayFeedbackCard';
 import { TodayCompletedCard } from '../components/TodayCompletedCard';
-import { WorkoutAnalysisTeaser } from '../components/WorkoutAnalysisTeaser';
-import { TodayWorkoutAnalysisDrawer } from '../components/TodayWorkoutAnalysisDrawer';
 import { useAthleteWorkoutAnalysis } from '../hooks/useAthleteWorkoutAnalysis';
 import { buildWorkoutAnalysisView } from '../adapters/buildWorkoutAnalysisView';
 import { TodaySkippedCard } from '../components/TodaySkippedCard';
@@ -76,11 +74,9 @@ export default function AthleteHomePage() {
   // persistir entre sessões (sessionStorage por semanaFim) é follow-up documentado na proposal.
   const [bannerDispensado, setBannerDispensado] = useState(false);
   const [calibracaoBannerDispensado, setCalibracaoBannerDispensado] = useState(false);
-  const [analysisDrawerOpen, setAnalysisDrawerOpen] = useState(false);
-  // Independe de `feedbackRegistradoEm` (que só marca o "Como foi?" da Home respondido): um treino
-  // sincronizado (Strava/Intervals.icu) ou importado de .fit já pode ter análise pronta no backend
-  // antes de o atleta responder o "Como foi?" — então o teaser aparece em FEITO_SEM_FEEDBACK também.
-  const realizadoHojeId = home?.realizadoHoje?.id ?? null;
+  // Só busca no estado FEITO (feedback já registrado) — é o único lugar que exibe a análise
+  // (dentro do TodayCompletedCard, "Treino feito").
+  const realizadoHojeId = home?.realizadoHoje?.feedbackRegistradoEm ? home.realizadoHoje.id : null;
   const { analysis: workoutAnalysis } = useAthleteWorkoutAnalysis(realizadoHojeId);
   const workoutAnalysisView = useMemo(
     () => (workoutAnalysis ? buildWorkoutAnalysisView(workoutAnalysis) : null),
@@ -253,20 +249,9 @@ export default function AthleteHomePage() {
           realizado={home.realizadoHoje}
           sensacoes={home.realizadoHoje.sensacoes as Sensacao[] | undefined}
           comentario={home.realizadoHoje.feedbackAtleta}
+          analysisView={workoutAnalysisView}
         />
       )}
-
-      {/* Independe do "Como foi?" ter sido respondido (FEITO vs FEITO_SEM_FEEDBACK) — um treino
-          sincronizado ou importado pode ter análise pronta antes desse feedback. */}
-      {home?.realizadoHoje && workoutAnalysisView && (
-        <WorkoutAnalysisTeaser view={workoutAnalysisView} onClick={() => setAnalysisDrawerOpen(true)} />
-      )}
-
-      <TodayWorkoutAnalysisDrawer
-        view={workoutAnalysisView}
-        open={analysisDrawerOpen}
-        onClose={() => setAnalysisDrawerOpen(false)}
-      />
 
       {todayState === 'PULADO' && (
         <TodaySkippedCard

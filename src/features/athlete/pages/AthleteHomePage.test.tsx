@@ -176,21 +176,15 @@ describe('AthleteHomePage', () => {
       expect(screen.queryByRole('button', { name: /registrar treino/i })).toBeNull();
     });
 
-    it('realizado hoje sem feedback mas com análise pronta (treino sincronizado): mostra o teaser mesmo antes do "Como foi?"', () => {
+    it('realizado hoje sem feedback: não aciona a busca de análise (só mostra dentro do "Treino feito")', () => {
       mockHome({ home: {
         hoje: HOJE_ISO,
         realizadoHoje: { id: 'r1', fonteDados: 'INTERVALS_ICU', tipoTreino: 'FACIL', duracaoMin: 40 },
         metricasChave: { ctl: 74, atl: 71, tsb: 3, tss: 62, statusForma: 'FORMA_IDEAL' },
       } });
-      vi.mocked(useAthleteWorkoutAnalysis).mockReturnValue({
-        analysis: { status: 'COMPLETED', comoFoi: 'Saiu como planejado.', executado: {} },
-        status: 'done', error: null, loading: false,
-      });
       renderPage();
 
-      expect(useAthleteWorkoutAnalysis).toHaveBeenCalledWith('r1');
-      expect(screen.getByText(/como foi\?/i)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /ver análise do treino/i })).toBeInTheDocument();
+      expect(useAthleteWorkoutAnalysis).toHaveBeenCalledWith(null);
     });
 
     it('realizado hoje com feedback: resumo do feito com sensações e comentário, sem o formulário nem "Registrar treino"', () => {
@@ -212,7 +206,7 @@ describe('AthleteHomePage', () => {
       expect(screen.queryByRole('button', { name: /registrar treino/i })).toBeNull();
     });
 
-    it('treino feito sem análise pronta: aciona o hook mas não mostra o teaser', () => {
+    it('treino feito sem análise pronta: aciona o hook pelo id do realizado, sem card de análise', () => {
       mockHome({ home: {
         hoje: HOJE_ISO,
         realizadoHoje: { id: 'r1', fonteDados: 'MANUAL', tipoTreino: 'FACIL', duracaoMin: 40, percepcaoEsforco: 6,
@@ -222,10 +216,10 @@ describe('AthleteHomePage', () => {
       renderPage();
 
       expect(useAthleteWorkoutAnalysis).toHaveBeenCalledWith('r1');
-      expect(screen.queryByRole('button', { name: /ver análise do treino/i })).toBeNull();
+      expect(screen.queryByTestId('workout-analysis-card')).toBeNull();
     });
 
-    it('treino feito com análise pronta: mostra o teaser e abre o drawer ao clicar', async () => {
+    it('treino feito com análise pronta: mostra o card de análise dentro do "Treino feito"', () => {
       mockHome({ home: {
         hoje: HOJE_ISO,
         realizadoHoje: { id: 'r1', fonteDados: 'MANUAL', tipoTreino: 'FACIL', duracaoMin: 40, percepcaoEsforco: 6,
@@ -238,12 +232,9 @@ describe('AthleteHomePage', () => {
       });
       renderPage();
 
-      expect(screen.getByText('Saiu como planejado.')).toBeInTheDocument();
-      expect(screen.queryByTestId('workout-analysis-card')).toBeNull();
-
-      await userEvent.click(screen.getByRole('button', { name: /ver análise do treino/i }));
-
+      expect(screen.getByText(/treino feito/i)).toBeInTheDocument();
       expect(screen.getByTestId('workout-analysis-card')).toBeInTheDocument();
+      expect(screen.getByText('Saiu como planejado.')).toBeInTheDocument();
     });
 
     it('planejado de hoje pulado: "Hoje você pulou" no lugar do hero', () => {
