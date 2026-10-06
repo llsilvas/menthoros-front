@@ -13,14 +13,23 @@ export interface WorkoutAnalysisTeaserProps {
 
 /**
  * Entrada compacta para a análise de IA na Home (estilo "Athlete Intelligence" da Strava: ícone de
- * IA + insight de uma linha + seta). Abre `TodayWorkoutAnalysisDrawer` ao ser clicado. Some quando
- * não há nenhum texto para prévia (`empty`/`error` não chegam aqui — ver `AthleteHomePage`).
+ * IA + insight de uma linha + seta). Abre `TodayWorkoutAnalysisDrawer` ao ser clicado.
+ *
+ * `AthleteHomePage` só monta este componente quando já existe um `view` (pending ou done) — o
+ * fallback por `stats`/texto genérico aqui é só para o caso raro de uma análise `done` sem nenhum
+ * texto narrativo (reconhecimento/comoFoi/esforco todos ausentes): o card completo
+ * (`WorkoutAnalysisCard`) ainda mostra algo nesse caso (cabeçalho + stats), então o teaser também
+ * precisa mostrar algo, nunca sumir silenciosamente.
  */
 export function WorkoutAnalysisTeaser({ view, onClick }: WorkoutAnalysisTeaserProps) {
   const pendente = view.status === 'pending';
-  const preview = pendente ? 'Analisando o seu treino…' : view.reconhecimento ?? view.comoFoi ?? view.esforco;
-
-  if (!preview) return null;
+  const narrativa = view.reconhecimento ?? view.comoFoi ?? view.esforco;
+  const resumoStats = view.stats.length > 0
+    ? view.stats.map((s) => `${s.label.toLowerCase()} ${s.value}`).join(' · ')
+    : undefined;
+  const preview = pendente
+    ? 'Analisando o seu treino…'
+    : narrativa ?? resumoStats ?? 'Toque para ver os detalhes.';
 
   return (
     <Box

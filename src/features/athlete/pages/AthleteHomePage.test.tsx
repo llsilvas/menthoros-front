@@ -176,6 +176,23 @@ describe('AthleteHomePage', () => {
       expect(screen.queryByRole('button', { name: /registrar treino/i })).toBeNull();
     });
 
+    it('realizado hoje sem feedback mas com análise pronta (treino sincronizado): mostra o teaser mesmo antes do "Como foi?"', () => {
+      mockHome({ home: {
+        hoje: HOJE_ISO,
+        realizadoHoje: { id: 'r1', fonteDados: 'INTERVALS_ICU', tipoTreino: 'FACIL', duracaoMin: 40 },
+        metricasChave: { ctl: 74, atl: 71, tsb: 3, tss: 62, statusForma: 'FORMA_IDEAL' },
+      } });
+      vi.mocked(useAthleteWorkoutAnalysis).mockReturnValue({
+        analysis: { status: 'COMPLETED', comoFoi: 'Saiu como planejado.', executado: {} },
+        status: 'done', error: null, loading: false,
+      });
+      renderPage();
+
+      expect(useAthleteWorkoutAnalysis).toHaveBeenCalledWith('r1');
+      expect(screen.getByText(/como foi\?/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /ver análise do treino/i })).toBeInTheDocument();
+    });
+
     it('realizado hoje com feedback: resumo do feito com sensações e comentário, sem o formulário nem "Registrar treino"', () => {
       mockHome({ home: {
         hoje: HOJE_ISO,
@@ -195,7 +212,7 @@ describe('AthleteHomePage', () => {
       expect(screen.queryByRole('button', { name: /registrar treino/i })).toBeNull();
     });
 
-    it('treino feito sem análise pronta: não mostra o teaser nem aciona o hook com id nenhum', () => {
+    it('treino feito sem análise pronta: aciona o hook mas não mostra o teaser', () => {
       mockHome({ home: {
         hoje: HOJE_ISO,
         realizadoHoje: { id: 'r1', fonteDados: 'MANUAL', tipoTreino: 'FACIL', duracaoMin: 40, percepcaoEsforco: 6,

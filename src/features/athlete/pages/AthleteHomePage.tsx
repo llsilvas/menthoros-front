@@ -77,8 +77,10 @@ export default function AthleteHomePage() {
   const [bannerDispensado, setBannerDispensado] = useState(false);
   const [calibracaoBannerDispensado, setCalibracaoBannerDispensado] = useState(false);
   const [analysisDrawerOpen, setAnalysisDrawerOpen] = useState(false);
-  // Só busca quando o feedback já foi dado (estado FEITO) — antes disso não há o que analisar ainda.
-  const realizadoHojeId = home?.realizadoHoje?.feedbackRegistradoEm ? home.realizadoHoje.id : null;
+  // Independe de `feedbackRegistradoEm` (que só marca o "Como foi?" da Home respondido): um treino
+  // sincronizado (Strava/Intervals.icu) ou importado de .fit já pode ter análise pronta no backend
+  // antes de o atleta responder o "Como foi?" — então o teaser aparece em FEITO_SEM_FEEDBACK também.
+  const realizadoHojeId = home?.realizadoHoje?.id ?? null;
   const { analysis: workoutAnalysis } = useAthleteWorkoutAnalysis(realizadoHojeId);
   const workoutAnalysisView = useMemo(
     () => (workoutAnalysis ? buildWorkoutAnalysisView(workoutAnalysis) : null),
@@ -254,7 +256,9 @@ export default function AthleteHomePage() {
         />
       )}
 
-      {todayState === 'FEITO' && workoutAnalysisView && (
+      {/* Independe do "Como foi?" ter sido respondido (FEITO vs FEITO_SEM_FEEDBACK) — um treino
+          sincronizado ou importado pode ter análise pronta antes desse feedback. */}
+      {home?.realizadoHoje && workoutAnalysisView && (
         <WorkoutAnalysisTeaser view={workoutAnalysisView} onClick={() => setAnalysisDrawerOpen(true)} />
       )}
 

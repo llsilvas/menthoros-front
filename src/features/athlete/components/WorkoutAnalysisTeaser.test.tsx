@@ -26,11 +26,21 @@ describe('WorkoutAnalysisTeaser', () => {
     expect(screen.getByText('Saiu como planejado.')).toBeInTheDocument();
   });
 
-  it('done sem nenhum texto: não renderiza nada (sem clique morto)', () => {
-    const view: WorkoutAnalysisView = { status: 'done', stats: [] };
-    const { container } = render(<WorkoutAnalysisTeaser view={view} onClick={vi.fn()} />);
+  it('done sem texto narrativo, mas com stats: cai para um resumo das stats', () => {
+    const view: WorkoutAnalysisView = {
+      status: 'done',
+      stats: [{ label: 'Duração', value: '40 min' }, { label: 'Esforço', value: '6/10' }],
+    };
+    render(<WorkoutAnalysisTeaser view={view} onClick={vi.fn()} />);
 
-    expect(container).toBeEmptyDOMElement();
+    expect(screen.getByText('duração 40 min · esforço 6/10')).toBeInTheDocument();
+  });
+
+  it('done sem texto narrativo nem stats: mostra uma chamada genérica, nunca nada', () => {
+    const view: WorkoutAnalysisView = { status: 'done', stats: [] };
+    render(<WorkoutAnalysisTeaser view={view} onClick={vi.fn()} />);
+
+    expect(screen.getByText('Toque para ver os detalhes.')).toBeInTheDocument();
   });
 
   it('dispara onClick ao clicar', async () => {
