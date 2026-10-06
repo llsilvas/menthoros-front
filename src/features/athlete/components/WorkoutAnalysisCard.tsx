@@ -1,6 +1,6 @@
-import { Box, Skeleton, Typography } from '@mui/material';
-import { alpha } from '@mui/material/styles';
-import { primary, surface } from '../../../theme/tokens';
+import { useState } from 'react';
+import { Box, Button, Skeleton, Typography } from '@mui/material';
+import { primary, surface, aiHighlight, font } from '../../../theme/tokens';
 import { radius } from '../../../shared/design-tokens/density';
 import { Card } from '../../../shared/components/Card';
 import { CardHeader } from '../../../shared/components/CardHeader';
@@ -47,6 +47,7 @@ function SectionLabel({ children, color = surface[400] }: { children: string; co
  */
 export function WorkoutAnalysisCard({ view }: WorkoutAnalysisCardProps) {
     const pendente = view.status === 'pending';
+    const [expandido, setExpandido] = useState(false);
 
     return (
         <Card
@@ -56,96 +57,92 @@ export function WorkoutAnalysisCard({ view }: WorkoutAnalysisCardProps) {
         >
             <CardHeader icon={<SparkleIcon />} title="Análise do treino" />
 
-            {!pendente && view.reconhecimento && (
-                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.25 }}>
-                    <TrophyIcon />
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600, color: surface[50], textWrap: 'pretty' }}>
-                        {view.reconhecimento}
+            {view.metrics.length > 0 && (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                    <Typography
+                        variant="h6"
+                        sx={{ fontFamily: font.mono, fontVariantNumeric: 'tabular-nums', color: surface[50] }}
+                    >
+                        {view.metrics.map((item, i) => (
+                            <span key={item.key} style={{ color: item.color }}>
+                                {i > 0 && ' · '}
+                                {item.text}
+                            </span>
+                        ))}
                     </Typography>
-                </Box>
-            )}
-
-            {view.stats.length > 0 && (
-                <Box
-                    sx={{
-                        display: 'grid',
-                        gridTemplateColumns: `repeat(${view.stats.length}, minmax(0, 1fr))`,
-                        gap: 1.5,
-                        py: 1.5,
-                        borderTop: `1px solid ${surface[700]}`,
-                        borderBottom: `1px solid ${surface[700]}`,
-                    }}
-                >
-                    {view.stats.map((stat) => (
-                        <Box key={stat.label} sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
-                            <Typography variant="caption" sx={{ color: surface[500], textTransform: 'uppercase' }}>
-                                {stat.label}
-                            </Typography>
-                            <Typography
-                                variant="h5"
-                                sx={{ fontVariantNumeric: 'tabular-nums', color: stat.valueColor ?? surface[50] }}
-                            >
-                                {stat.value}
-                            </Typography>
-                            {stat.sub && (
-                                <Typography variant="caption" sx={{ color: surface[400] }}>
-                                    {stat.sub}
-                                </Typography>
-                            )}
-                        </Box>
-                    ))}
+                    {view.planLine && (
+                        <Typography
+                            variant="caption"
+                            sx={{ fontFamily: font.mono, color: surface[400] }}
+                        >
+                            {view.planLine}
+                        </Typography>
+                    )}
                 </Box>
             )}
 
             {pendente ? (
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
                     <Typography variant="body1" sx={{ fontStyle: 'italic', color: surface[400] }}>
-                        Analisando o seu treino…
+                        Analisando o seu treino… pode fechar, fica guardado aqui.
                     </Typography>
                     <Skeleton variant="rounded" height={10} width="92%" sx={{ bgcolor: surface[700] }} />
-                    <Skeleton variant="rounded" height={10} width="78%" sx={{ bgcolor: surface[700] }} />
-                    <Skeleton variant="rounded" height={10} width="60%" sx={{ bgcolor: surface[700] }} />
-                    <Typography variant="caption" sx={{ color: surface[500], textWrap: 'pretty' }}>
-                        Leva em torno de um minuto. Pode fechar — a análise fica guardada aqui no treino.
-                    </Typography>
+                    <Skeleton variant="rounded" height={10} width="70%" sx={{ bgcolor: surface[700] }} />
                 </Box>
             ) : (
                 <>
-                    {view.comoFoi && (
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-                            <SectionLabel>Como foi</SectionLabel>
+                    <Box
+                        data-testid="ai-highlight"
+                        sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 1,
+                            p: 1.5,
+                            borderRadius: radius.md,
+                            bgcolor: aiHighlight.bg,
+                            border: `1px solid ${aiHighlight.border}`,
+                        }}
+                    >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                            <TrophyIcon />
+                            <SectionLabel color={primary[500]}>Análise da IA</SectionLabel>
+                        </Box>
+
+                        {view.reconhecimento && (
+                            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: surface[50], textWrap: 'pretty' }}>
+                                {view.reconhecimento}
+                            </Typography>
+                        )}
+
+                        {view.comoFoi && (
                             <Typography variant="body1" sx={{ color: surface[300], textWrap: 'pretty' }}>
                                 {view.comoFoi}
                             </Typography>
-                        </Box>
-                    )}
+                        )}
 
-                    {view.esforco && (
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-                            <SectionLabel>O que o seu esforço diz</SectionLabel>
+                        {view.proximoTreino && (
+                            <Typography variant="body1" sx={{ color: surface[300], textWrap: 'pretty' }}>
+                                {view.proximoTreino}
+                            </Typography>
+                        )}
+
+                        {expandido && view.esforco && (
                             <Typography variant="body1" sx={{ color: surface[300], textWrap: 'pretty' }}>
                                 {view.esforco}
                             </Typography>
-                        </Box>
-                    )}
+                        )}
 
-                    {view.proximoTreino && (
-                        <Box
-                            sx={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: 0.75,
-                                p: 1.5,
-                                borderRadius: radius.md,
-                                bgcolor: alpha(primary[500], 0.08),
-                            }}
-                        >
-                            <SectionLabel color={primary[500]}>Para o próximo treino</SectionLabel>
-                            <Typography variant="body1" sx={{ color: surface[50], textWrap: 'pretty' }}>
-                                {view.proximoTreino}
-                            </Typography>
-                        </Box>
-                    )}
+                        {view.esforco && (
+                            <Button
+                                size="small"
+                                aria-expanded={expandido}
+                                onClick={() => setExpandido((v) => !v)}
+                                sx={{ alignSelf: 'flex-start', px: 0, minHeight: 32, color: primary[500] }}
+                            >
+                                {expandido ? 'Ver menos' : 'Ver análise completa'}
+                            </Button>
+                        )}
+                    </Box>
 
                     <Typography variant="caption" sx={{ color: surface[500], textWrap: 'pretty' }}>
                         Gerada automaticamente a partir do treino que você registrou. Seu coach vê a mesma análise.

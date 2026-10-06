@@ -15,16 +15,73 @@ const completa: AthleteWorkoutAnalysis = {
 };
 
 describe('buildWorkoutAnalysisView', () => {
-    it('done: quatro textos, chip do RPE e três stats com plano', () => {
+    it('done: quatro textos e chip do RPE', () => {
         const view = buildWorkoutAnalysisView(completa);
 
         expect(view.status).toBe('done');
         expect(view.comoFoi).toBe('Saiu como planejado.');
         expect(view.rpeChipLabel).toBe('RPE 7/10 · Difícil');
-        expect(view.stats).toHaveLength(3);
-        expect(view.stats[0]).toMatchObject({ label: 'Duração', value: '58 min', sub: 'plano 61 min' });
-        expect(view.stats[2]).toMatchObject({ label: 'Esforço', value: '7/10', sub: 'esperado 6/10' });
-        expect(view.stats[2].valueColor).toBe(effortColor(7));
+    });
+
+    it('metrics: três itens formatados com unidade, na ordem duração/distância/RPE', () => {
+        const view = buildWorkoutAnalysisView(completa);
+
+        expect(view.metrics.map((m) => m.text)).toEqual(['58 min', '11,2 km', 'RPE 7/10']);
+    });
+
+    it('plan line: aparece quando algum número difere do plano', () => {
+        const view = buildWorkoutAnalysisView(completa);
+
+        expect(view.planLine).toBe('plano 61 min · 11,0 km · RPE esperado 6/10');
+    });
+
+    it('plan line: ausente quando todos os números batem com o plano', () => {
+        const view = buildWorkoutAnalysisView({
+            ...completa,
+            executado: { duracaoMin: 61, distanciaKm: 11, rpe: 6 },
+        });
+
+        expect(view.planLine).toBeUndefined();
+    });
+
+    it('plan line: ausente quando não há planejado', () => {
+        const view = buildWorkoutAnalysisView({ ...completa, planejado: undefined });
+
+        expect(view.planLine).toBeUndefined();
+    });
+
+    it('rpe color: alerta (effortColor) quando RPE informado > esperado', () => {
+        const view = buildWorkoutAnalysisView(completa); // rpe 7 > esperado 6
+
+        const rpeItem = view.metrics.find((m) => m.key === 'rpe');
+        expect(rpeItem?.color).toBe(effortColor(7));
+    });
+
+    it('rpe color: sem alerta quando RPE informado == esperado', () => {
+        const view = buildWorkoutAnalysisView({
+            ...completa,
+            executado: { ...completa.executado, rpe: 6 },
+        });
+
+        const rpeItem = view.metrics.find((m) => m.key === 'rpe');
+        expect(rpeItem?.color).toBeUndefined();
+    });
+
+    it('rpe color: sem alerta quando RPE informado < esperado', () => {
+        const view = buildWorkoutAnalysisView({
+            ...completa,
+            executado: { ...completa.executado, rpe: 4 },
+        });
+
+        const rpeItem = view.metrics.find((m) => m.key === 'rpe');
+        expect(rpeItem?.color).toBeUndefined();
+    });
+
+    it('rpe color: sem alerta quando não há esperado para comparar', () => {
+        const view = buildWorkoutAnalysisView({ ...completa, planejado: undefined });
+
+        const rpeItem = view.metrics.find((m) => m.key === 'rpe');
+        expect(rpeItem?.color).toBeUndefined();
     });
 
     it('pending: sem textos, com os números do executado', () => {
@@ -35,23 +92,16 @@ describe('buildWorkoutAnalysisView', () => {
 
         expect(view.status).toBe('pending');
         expect(view.comoFoi).toBeUndefined();
-        expect(view.stats).toHaveLength(3);
-        expect(view.stats[0].sub).toBeUndefined();
+        expect(view.metrics.map((m) => m.text)).toEqual(['58 min', '11,2 km', 'RPE 7/10']);
     });
 
-    it('sem planejado: stats sem a linha "plano …"', () => {
-        const view = buildWorkoutAnalysisView({ ...completa, planejado: undefined });
-
-        expect(view.stats.every((s) => s.sub === undefined)).toBe(true);
-    });
-
-    it('sem RPE: sem chip e sem stat de esforço', () => {
+    it('sem RPE: sem chip e sem item de RPE nas métricas', () => {
         const view = buildWorkoutAnalysisView({
             status: 'PENDING',
             executado: { duracaoMin: 40 },
         });
 
         expect(view.rpeChipLabel).toBeUndefined();
-        expect(view.stats.map((s) => s.label)).toEqual(['Duração']);
+        expect(view.metrics.map((m) => m.key)).toEqual(['duracao']);
     });
 });

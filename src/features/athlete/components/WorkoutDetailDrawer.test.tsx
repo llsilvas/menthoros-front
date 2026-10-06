@@ -73,7 +73,7 @@ describe('WorkoutDetailDrawer — análise do treino', () => {
         expect(screen.getByText('RPE 7/10 · Difícil')).toBeInTheDocument();
         expect(screen.getByTestId('workout-analysis-card')).toBeInTheDocument();
         expect(screen.getByText('Saiu como planejado.')).toBeInTheDocument();
-        expect(screen.getByText('Para o próximo treino')).toBeInTheDocument();
+        expect(screen.getByText('Capriche no sono hoje.')).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /registrar treino/i })).toBeNull();
     });
 
