@@ -20,7 +20,7 @@ const done: WorkoutAnalysisView = {
 };
 
 describe('WorkoutAnalysisCard', () => {
-    it('done: métricas em uma linha, linha de plano, reconhecimento, comoFoi e proximoTreino visíveis; esforco oculto', () => {
+    it('done, fechado: métricas em uma linha, linha de plano e só o reconhecimento (resumo) visíveis', () => {
         render(<WorkoutAnalysisCard view={done} />);
 
         expect(screen.getByText('Análise do treino')).toBeInTheDocument();
@@ -30,18 +30,17 @@ describe('WorkoutAnalysisCard', () => {
         ).toBeInTheDocument();
         expect(screen.getByText('plano 61 min · 11,0 km · RPE esperado 6/10')).toBeInTheDocument();
         expect(screen.getByText('Você segurou o ritmo nos dois blocos.')).toBeInTheDocument();
-        expect(screen.getByText('Saiu como planejado.')).toBeInTheDocument();
-        expect(screen.getByText('Capriche no sono hoje.')).toBeInTheDocument();
+        expect(screen.queryByText('Saiu como planejado.')).not.toBeInTheDocument();
+        expect(screen.queryByText('Capriche no sono hoje.')).not.toBeInTheDocument();
         expect(screen.queryByText('Pesou um pouco mais que o esperado.')).not.toBeInTheDocument();
         expect(screen.getByText(/Seu coach vê a mesma análise/)).toBeInTheDocument();
     });
 
-    it('done: textos de IA ficam dentro do contêiner ai-highlight', () => {
+    it('done: resumo fica dentro do contêiner ai-highlight', () => {
         render(<WorkoutAnalysisCard view={done} />);
 
         const highlight = screen.getByTestId('ai-highlight');
         expect(highlight).toContainElement(screen.getByText('Você segurou o ritmo nos dois blocos.'));
-        expect(highlight).toContainElement(screen.getByText('Capriche no sono hoje.'));
     });
 
     it('embedded: sem o card/cabeçalho externo (data-testid card-header) — o rótulo "Análise do treino" migra para dentro do ai-highlight', () => {
@@ -60,19 +59,22 @@ describe('WorkoutAnalysisCard', () => {
         expect(screen.getAllByText('Análise do treino')).toHaveLength(1);
     });
 
-    it('done: "Ver análise completa" expande só o esforco, mantendo proximoTreino visível antes e depois', async () => {
+    it('done: "Ver análise completa" revela comoFoi, proximoTreino e esforco (ocultos até o toque)', async () => {
         const user = userEvent.setup();
         render(<WorkoutAnalysisCard view={done} />);
 
         const toggle = screen.getByRole('button', { name: /ver análise completa/i });
         expect(toggle).toHaveAttribute('aria-expanded', 'false');
-        expect(screen.getByText('Capriche no sono hoje.')).toBeInTheDocument();
+        expect(screen.queryByText('Saiu como planejado.')).not.toBeInTheDocument();
+        expect(screen.queryByText('Capriche no sono hoje.')).not.toBeInTheDocument();
+        expect(screen.queryByText('Pesou um pouco mais que o esperado.')).not.toBeInTheDocument();
 
         await user.click(toggle);
 
         expect(toggle).toHaveAttribute('aria-expanded', 'true');
-        expect(screen.getByText('Pesou um pouco mais que o esperado.')).toBeInTheDocument();
+        expect(screen.getByText('Saiu como planejado.')).toBeInTheDocument();
         expect(screen.getByText('Capriche no sono hoje.')).toBeInTheDocument();
+        expect(screen.getByText('Pesou um pouco mais que o esperado.')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /ver menos/i })).toBeInTheDocument();
     });
 
@@ -95,10 +97,12 @@ describe('WorkoutAnalysisCard', () => {
         expect(screen.queryByText(/Seu coach vê a mesma análise/)).not.toBeInTheDocument();
     });
 
-    it('done sem reconhecimento: demais textos presentes', () => {
+    it('done sem reconhecimento: o botão continua oferecendo os demais textos ao expandir', async () => {
+        const user = userEvent.setup();
         render(<WorkoutAnalysisCard view={{ ...done, reconhecimento: undefined }} />);
 
         expect(screen.queryByText(/Você segurou o ritmo/)).not.toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: /ver análise completa/i }));
         expect(screen.getByText('Saiu como planejado.')).toBeInTheDocument();
     });
 });

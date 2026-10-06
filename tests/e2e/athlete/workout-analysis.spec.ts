@@ -95,17 +95,19 @@ test.describe('Atleta — análise do treino no Plano', () => {
     await expect(card).toContainText('58 min · 11,2 km · RPE 7/10')
     await expect(card).toContainText('plano 61 min')
     await expect(card).toContainText('Você segurou o ritmo nos dois blocos de tempo.')
-    await expect(card).toContainText('Saiu como planejado: 58 min contra 61 previstos.')
-    await expect(card).toContainText('Capriche no sono hoje')
     await expect(card).toContainText('Seu coach vê a mesma análise')
 
-    // "O esforço" fica recolhido até o toque — não aparece de cara, e some do coach
-    // pressupõe o mesmo gate de leitura: aqui só confirmamos o comportamento do atleta.
+    // Fechado, só o resumo (reconhecimento) aparece — comoFoi/proximoTreino/esforco ficam
+    // atrás do toque, para o card caber em poucas linhas.
+    await expect(card).not.toContainText('Saiu como planejado: 58 min contra 61 previstos.')
+    await expect(card).not.toContainText('Capriche no sono hoje')
     await expect(card).not.toContainText('pesou um pouco mais que o esperado')
     const toggle = card.getByRole('button', { name: /ver (análise completa|menos)/i })
     await expect(toggle).toHaveAttribute('aria-expanded', 'false')
     await toggle.click()
     await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    await expect(card).toContainText('Saiu como planejado: 58 min contra 61 previstos.')
+    await expect(card).toContainText('Capriche no sono hoje')
     await expect(card).toContainText('pesou um pouco mais que o esperado')
 
     // Nada do vocabulário do coach vaza para o atleta.

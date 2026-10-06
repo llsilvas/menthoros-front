@@ -38,10 +38,12 @@ function SectionLabel({ children, color = surface[400] }: { children: string; co
 
 /**
  * Card "Análise do treino" na visão do atleta (analise-ia-treino-atleta, refinado em
- * refine-athlete-workout-analysis-card conforme o board do founder): linha de métricas em mono →
- * linha de plano (só se divergir) → contêiner `ai-highlight` com reconhecimento/comoFoi/
- * proximoTreino sempre visíveis e esforco atrás de "Ver análise completa". Presentacional: recebe
- * o view model pronto do adapter.
+ * refine-athlete-workout-analysis-card): linha de métricas em mono → linha de plano (só se
+ * divergir) → contêiner `ai-highlight` com só o `reconhecimento` (resumo) visível; comoFoi,
+ * proximoTreino e esforco ficam atrás de "Ver análise completa" para o card fechado caber em
+ * poucas linhas (ajuste pós-review, 2026-10-06 — decisão explícita do founder de recolher também
+ * o proximoTreino, revertendo a decisão anterior de mantê-lo sempre visível). Presentacional:
+ * recebe o view model pronto do adapter.
  */
 export function WorkoutAnalysisCard({ view, embedded = false }: WorkoutAnalysisCardProps) {
     const pendente = view.status === 'pending';
@@ -115,32 +117,33 @@ export function WorkoutAnalysisCard({ view, embedded = false }: WorkoutAnalysisC
                             </Typography>
                         )}
 
-                        {view.comoFoi && (
-                            <Typography sx={{ fontSize: '0.8125rem', lineHeight: '18px', color: surface[300], textWrap: 'pretty' }}>
-                                {view.comoFoi}
-                            </Typography>
+                        {expandido && (
+                            <Box id="workout-analysis-detalhes" sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                {view.comoFoi && (
+                                    <Typography sx={{ fontSize: '0.8125rem', lineHeight: '18px', color: surface[300], textWrap: 'pretty' }}>
+                                        {view.comoFoi}
+                                    </Typography>
+                                )}
+
+                                {view.proximoTreino && (
+                                    <Typography sx={{ fontSize: '0.8125rem', lineHeight: '18px', color: surface[300], textWrap: 'pretty' }}>
+                                        {view.proximoTreino}
+                                    </Typography>
+                                )}
+
+                                {view.esforco && (
+                                    <Typography sx={{ fontSize: '0.8125rem', lineHeight: '18px', color: surface[300], textWrap: 'pretty' }}>
+                                        {view.esforco}
+                                    </Typography>
+                                )}
+                            </Box>
                         )}
 
-                        {view.proximoTreino && (
-                            <Typography sx={{ fontSize: '0.8125rem', lineHeight: '18px', color: surface[300], textWrap: 'pretty' }}>
-                                {view.proximoTreino}
-                            </Typography>
-                        )}
-
-                        {expandido && view.esforco && (
-                            <Typography
-                                id="workout-analysis-esforco"
-                                sx={{ fontSize: '0.8125rem', lineHeight: '18px', color: surface[300], textWrap: 'pretty' }}
-                            >
-                                {view.esforco}
-                            </Typography>
-                        )}
-
-                        {view.esforco && (
+                        {(view.comoFoi || view.proximoTreino || view.esforco) && (
                             <Button
                                 size="small"
                                 aria-expanded={expandido}
-                                aria-controls="workout-analysis-esforco"
+                                aria-controls="workout-analysis-detalhes"
                                 onClick={() => setExpandido((v) => !v)}
                                 sx={{
                                     alignSelf: 'flex-start',

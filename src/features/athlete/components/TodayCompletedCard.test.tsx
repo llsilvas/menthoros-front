@@ -36,11 +36,11 @@ describe('TodayCompletedCard', () => {
     render(
       <TodayCompletedCard
         realizado={REALIZADO}
-        analysisView={{ status: 'done', comoFoi: 'Saiu como planejado.', metrics: [] }}
+        analysisView={{ status: 'done', reconhecimento: 'Bom treino.', comoFoi: 'Saiu como planejado.', metrics: [] }}
       />,
     );
     expect(screen.getByTestId('workout-analysis-card')).toBeInTheDocument();
-    expect(screen.getByText('Saiu como planejado.')).toBeInTheDocument();
+    expect(screen.getByText('Bom treino.')).toBeInTheDocument();
     expect(screen.queryByText(/40 min · RPE 6\/10/)).not.toBeInTheDocument();
   });
 });
