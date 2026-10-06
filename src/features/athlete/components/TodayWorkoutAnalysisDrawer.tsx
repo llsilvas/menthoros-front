@@ -1,28 +1,23 @@
-import { useMemo } from 'react';
 import { Box, Drawer, IconButton, Typography } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
 import { surface } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
-import { useAthleteWorkoutAnalysis } from '../hooks/useAthleteWorkoutAnalysis';
-import { buildWorkoutAnalysisView } from '../adapters/buildWorkoutAnalysisView';
+import type { WorkoutAnalysisView } from '../adapters/buildWorkoutAnalysisView';
 import { WorkoutAnalysisCard } from './WorkoutAnalysisCard';
 
 export interface TodayWorkoutAnalysisDrawerProps {
-  /** Id do `TreinoRealizado` de hoje; `null` mantém o hook em `idle` e o drawer fechado. */
-  realizadoId: string | null;
+  /** Já calculado por quem chama (mesmo hook que alimenta o `WorkoutAnalysisTeaser`) — sem fetch próprio. */
+  view: WorkoutAnalysisView | null;
   open: boolean;
   onClose: () => void;
 }
 
 /**
- * Bottom sheet leve para revisitar a análise de IA a partir do `TodayCompletedCard` (Home).
+ * Bottom sheet leve para revisitar a análise de IA a partir do `WorkoutAnalysisTeaser` (Home).
  * Deliberadamente mais simples que `WorkoutDetailDrawer`: a Home só tem o realizado, sem o
  * planejado associado (etapas/perfil), então aqui só a análise é exibida.
  */
-export function TodayWorkoutAnalysisDrawer({ realizadoId, open, onClose }: TodayWorkoutAnalysisDrawerProps) {
-  const { analysis, status } = useAthleteWorkoutAnalysis(open ? realizadoId : null);
-  const analysisView = useMemo(() => (analysis ? buildWorkoutAnalysisView(analysis) : null), [analysis]);
-
+export function TodayWorkoutAnalysisDrawer({ view, open, onClose }: TodayWorkoutAnalysisDrawerProps) {
   return (
     <Drawer
       anchor="bottom"
@@ -36,19 +31,11 @@ export function TodayWorkoutAnalysisDrawer({ realizadoId, open, onClose }: Today
           <IconButton aria-label="Fechar" onClick={onClose} sx={{ color: surface[400] }}><CloseIcon /></IconButton>
         </Box>
 
-        {analysisView && (status === 'done' || status === 'pending') && (
-          <WorkoutAnalysisCard view={analysisView} />
-        )}
-
-        {status === 'error' && (
+        {view ? (
+          <WorkoutAnalysisCard view={view} />
+        ) : (
           <Typography variant="caption" sx={{ color: surface[500] }}>
             Não foi possível carregar a análise agora. Ela continua guardada neste treino.
-          </Typography>
-        )}
-
-        {status === 'empty' && (
-          <Typography variant="caption" sx={{ color: surface[500] }}>
-            Este treino não tem análise disponível.
           </Typography>
         )}
       </Box>

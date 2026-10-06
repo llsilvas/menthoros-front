@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, Box, Button, CircularProgress, Link, Typography } from '@mui/material';
 import { Link as RouterLink, useNavigate } from 'react-router';
 import { format } from 'date-fns';
@@ -6,7 +6,10 @@ import { ptBR } from 'date-fns/locale';
 import { TodayHeroCard } from '../components/TodayHeroCard';
 import { TodayFeedbackCard } from '../components/TodayFeedbackCard';
 import { TodayCompletedCard } from '../components/TodayCompletedCard';
+import { WorkoutAnalysisTeaser } from '../components/WorkoutAnalysisTeaser';
 import { TodayWorkoutAnalysisDrawer } from '../components/TodayWorkoutAnalysisDrawer';
+import { useAthleteWorkoutAnalysis } from '../hooks/useAthleteWorkoutAnalysis';
+import { buildWorkoutAnalysisView } from '../adapters/buildWorkoutAnalysisView';
 import { TodaySkippedCard } from '../components/TodaySkippedCard';
 import { ReadinessCard } from '../components/ReadinessCard';
 import { QuickCheckInModal } from '../components/QuickCheckInModal';
@@ -74,6 +77,13 @@ export default function AthleteHomePage() {
   const [bannerDispensado, setBannerDispensado] = useState(false);
   const [calibracaoBannerDispensado, setCalibracaoBannerDispensado] = useState(false);
   const [analysisDrawerOpen, setAnalysisDrawerOpen] = useState(false);
+  // Só busca quando o feedback já foi dado (estado FEITO) — antes disso não há o que analisar ainda.
+  const realizadoHojeId = home?.realizadoHoje?.feedbackRegistradoEm ? home.realizadoHoje.id : null;
+  const { analysis: workoutAnalysis } = useAthleteWorkoutAnalysis(realizadoHojeId);
+  const workoutAnalysisView = useMemo(
+    () => (workoutAnalysis ? buildWorkoutAnalysisView(workoutAnalysis) : null),
+    [workoutAnalysis],
+  );
 
   // `useCalibracao().error` entra aqui — a Home anterior não o lia e a falha era silenciosa.
   const erros = useAggregatedFetchErrors([
@@ -241,12 +251,15 @@ export default function AthleteHomePage() {
           realizado={home.realizadoHoje}
           sensacoes={home.realizadoHoje.sensacoes as Sensacao[] | undefined}
           comentario={home.realizadoHoje.feedbackAtleta}
-          onClick={() => setAnalysisDrawerOpen(true)}
         />
       )}
 
+      {todayState === 'FEITO' && workoutAnalysisView && (
+        <WorkoutAnalysisTeaser view={workoutAnalysisView} onClick={() => setAnalysisDrawerOpen(true)} />
+      )}
+
       <TodayWorkoutAnalysisDrawer
-        realizadoId={home?.realizadoHoje?.id ?? null}
+        view={workoutAnalysisView}
         open={analysisDrawerOpen}
         onClose={() => setAnalysisDrawerOpen(false)}
       />

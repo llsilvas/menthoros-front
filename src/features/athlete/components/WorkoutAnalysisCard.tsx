@@ -10,8 +10,8 @@ export interface WorkoutAnalysisCardProps {
     view: WorkoutAnalysisView;
 }
 
-/** Ícone de análise (sparkle) — SVG inline, sem emoji, escala e recolore com o tema. */
-function SparkleIcon({ size = 20 }: { size?: number }) {
+/** Ícone de análise (sparkle) — SVG inline, sem emoji, escala e recolore com o tema. Exportado para o teaser da Home reusar o mesmo símbolo. */
+export function SparkleIcon({ size = 20 }: { size?: number }) {
     return (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={primary[500]}
             strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>

@@ -1,6 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { TodayCompletedCard } from './TodayCompletedCard';
 import type { AthleteRealizadoHoje } from '../../../types/AthleteHome';
 
@@ -21,21 +20,5 @@ describe('TodayCompletedCard', () => {
   it('sem sensações nem comentário: não inventa nada', () => {
     render(<TodayCompletedCard realizado={REALIZADO} sensacoes={[]} />);
     expect(screen.queryByText(/pernas pesadas/i)).toBeNull();
-  });
-
-  it('sem onClick, não é um botão (card estático)', () => {
-    render(<TodayCompletedCard realizado={REALIZADO} />);
-    expect(screen.queryByRole('button')).toBeNull();
-  });
-
-  it('com onClick, vira um botão acessível e dispara ao clicar', async () => {
-    const onClick = vi.fn();
-    const user = userEvent.setup();
-    render(<TodayCompletedCard realizado={REALIZADO} onClick={onClick} />);
-
-    const botao = screen.getByRole('button', { name: /ver análise do treino/i });
-    await user.click(botao);
-
-    expect(onClick).toHaveBeenCalledOnce();
   });
 });
