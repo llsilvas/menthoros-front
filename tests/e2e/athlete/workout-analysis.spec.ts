@@ -92,12 +92,22 @@ test.describe('Atleta — análise do treino no Plano', () => {
 
     const card = dialog.getByTestId('workout-analysis-card')
     await expect(card).toBeVisible()
-    await expect(card).toContainText('Você segurou o ritmo nos dois blocos de tempo.')
-    await expect(card).toContainText('Como foi')
-    await expect(card).toContainText('O que o seu esforço diz')
-    await expect(card).toContainText('Para o próximo treino')
+    await expect(card).toContainText('58 min · 11,2 km · RPE 7/10')
     await expect(card).toContainText('plano 61 min')
+    await expect(card).toContainText('Você segurou o ritmo nos dois blocos de tempo.')
+    await expect(card).toContainText('Saiu como planejado: 58 min contra 61 previstos.')
+    await expect(card).toContainText('Capriche no sono hoje')
     await expect(card).toContainText('Seu coach vê a mesma análise')
+
+    // "O esforço" fica recolhido até o toque — não aparece de cara, e some do coach
+    // pressupõe o mesmo gate de leitura: aqui só confirmamos o comportamento do atleta.
+    await expect(card).not.toContainText('pesou um pouco mais que o esperado')
+    const toggle = card.getByRole('button', { name: /ver (análise completa|menos)/i })
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    await toggle.click()
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    await expect(card).toContainText('pesou um pouco mais que o esperado')
+
     // Nada do vocabulário do coach vaza para o atleta.
     await expect(dialog.getByText(/TSB|CTL|ATL|score/i)).toHaveCount(0)
   })
@@ -110,8 +120,8 @@ test.describe('Atleta — análise do treino no Plano', () => {
     await page.locator('[data-testid="week-agenda-row"]', { hasText: 'Análise pronta' }).getByRole('button').click()
     const card = page.getByRole('dialog').getByTestId('workout-analysis-card')
     await expect(card).toContainText('Analisando o seu treino…')
-    await expect(card).toContainText('58 min')
-    await expect(card).not.toContainText('Como foi')
+    await expect(card).toContainText('58 min · 11,2 km · RPE 7/10')
+    await expect(card.getByTestId('ai-highlight')).toHaveCount(0)
   })
 
   test('sem análise (204): drawer sem card e sem promessa', async ({ page }) => {
@@ -156,7 +166,7 @@ test.describe('Atleta — registro manual termina no card em PENDING', () => {
     const card = page.getByTestId('workout-analysis-card')
     await expect(card).toBeVisible()
     await expect(card).toContainText('Analisando o seu treino…')
-    await expect(card).toContainText('a análise fica guardada aqui no treino')
+    await expect(card).toContainText('pode fechar, fica guardado aqui')
     await expect(page.getByText('Bom treino! Mantenha a consistência.')).toHaveCount(0)
     await expect(page.getByRole('button', { name: /voltar para home/i })).toBeVisible()
   })
