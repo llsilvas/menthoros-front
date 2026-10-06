@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, Box, Button, CircularProgress, Link, Typography } from '@mui/material';
 import { Link as RouterLink, useNavigate } from 'react-router';
 import { format } from 'date-fns';
@@ -6,6 +6,8 @@ import { ptBR } from 'date-fns/locale';
 import { TodayHeroCard } from '../components/TodayHeroCard';
 import { TodayFeedbackCard } from '../components/TodayFeedbackCard';
 import { TodayCompletedCard } from '../components/TodayCompletedCard';
+import { useAthleteWorkoutAnalysis } from '../hooks/useAthleteWorkoutAnalysis';
+import { buildWorkoutAnalysisView } from '../adapters/buildWorkoutAnalysisView';
 import { TodaySkippedCard } from '../components/TodaySkippedCard';
 import { ReadinessCard } from '../components/ReadinessCard';
 import { QuickCheckInModal } from '../components/QuickCheckInModal';
@@ -72,6 +74,14 @@ export default function AthleteHomePage() {
   // persistir entre sessões (sessionStorage por semanaFim) é follow-up documentado na proposal.
   const [bannerDispensado, setBannerDispensado] = useState(false);
   const [calibracaoBannerDispensado, setCalibracaoBannerDispensado] = useState(false);
+  // Só busca no estado FEITO (feedback já registrado) — é o único lugar que exibe a análise
+  // (dentro do TodayCompletedCard, "Treino feito").
+  const realizadoHojeId = home?.realizadoHoje?.feedbackRegistradoEm ? home.realizadoHoje.id : null;
+  const { analysis: workoutAnalysis } = useAthleteWorkoutAnalysis(realizadoHojeId);
+  const workoutAnalysisView = useMemo(
+    () => (workoutAnalysis ? buildWorkoutAnalysisView(workoutAnalysis) : null),
+    [workoutAnalysis],
+  );
 
   // `useCalibracao().error` entra aqui — a Home anterior não o lia e a falha era silenciosa.
   const erros = useAggregatedFetchErrors([
@@ -239,6 +249,7 @@ export default function AthleteHomePage() {
           realizado={home.realizadoHoje}
           sensacoes={home.realizadoHoje.sensacoes as Sensacao[] | undefined}
           comentario={home.realizadoHoje.feedbackAtleta}
+          analysisView={workoutAnalysisView}
         />
       )}
 

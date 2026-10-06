@@ -5,6 +5,7 @@ import { createHashRouter, RouterProvider } from 'react-router';
 import AthleteHomePage from './AthleteHomePage';
 import { useAthleteHome } from '../../../hooks/useAthleteHome';
 import { useAthleteFeedback } from '../hooks/useAthleteFeedback';
+import { useAthleteWorkoutAnalysis } from '../hooks/useAthleteWorkoutAnalysis';
 import { useAthleteReadiness } from '../../../hooks/useAthleteReadiness';
 import { useAthleteProvas } from '../../../hooks/useAthleteProvas';
 import { useCheckinAtual } from '../../../hooks/useCheckinAtual';
@@ -27,6 +28,7 @@ vi.mock('react-router', async (importOriginal) => {
 
 vi.mock('../../../hooks/useAthleteHome');
 vi.mock('../hooks/useAthleteFeedback');
+vi.mock('../hooks/useAthleteWorkoutAnalysis');
 vi.mock('../../../hooks/useAthleteReadiness');
 vi.mock('../../../hooks/useAthleteProvas');
 vi.mock('../../../hooks/useCheckinAtual');
@@ -111,6 +113,9 @@ describe('AthleteHomePage', () => {
       status: null, justExited: false, loading: false, error: null,
       fetchStatus: vi.fn().mockResolvedValue(undefined), dismissJustExited: vi.fn(),
     });
+    vi.mocked(useAthleteWorkoutAnalysis).mockReturnValue({
+      analysis: null, status: 'idle', error: null, loading: false,
+    });
   });
   afterEach(() => vi.useRealTimers());
 
@@ -171,6 +176,17 @@ describe('AthleteHomePage', () => {
       expect(screen.queryByRole('button', { name: /registrar treino/i })).toBeNull();
     });
 
+    it('realizado hoje sem feedback: não aciona a busca de análise (só mostra dentro do "Treino feito")', () => {
+      mockHome({ home: {
+        hoje: HOJE_ISO,
+        realizadoHoje: { id: 'r1', fonteDados: 'INTERVALS_ICU', tipoTreino: 'FACIL', duracaoMin: 40 },
+        metricasChave: { ctl: 74, atl: 71, tsb: 3, tss: 62, statusForma: 'FORMA_IDEAL' },
+      } });
+      renderPage();
+
+      expect(useAthleteWorkoutAnalysis).toHaveBeenCalledWith(null);
+    });
+
     it('realizado hoje com feedback: resumo do feito com sensações e comentário, sem o formulário nem "Registrar treino"', () => {
       mockHome({ home: {
         hoje: HOJE_ISO,
@@ -188,6 +204,37 @@ describe('AthleteHomePage', () => {
       expect(screen.getByText('Difícil no final')).toBeInTheDocument();
       expect(screen.queryByRole('radiogroup', { name: /percepção de esforço/i })).toBeNull();
       expect(screen.queryByRole('button', { name: /registrar treino/i })).toBeNull();
+    });
+
+    it('treino feito sem análise pronta: aciona o hook pelo id do realizado, sem card de análise', () => {
+      mockHome({ home: {
+        hoje: HOJE_ISO,
+        realizadoHoje: { id: 'r1', fonteDados: 'MANUAL', tipoTreino: 'FACIL', duracaoMin: 40, percepcaoEsforco: 6,
+          feedbackRegistradoEm: '2026-08-26T19:00:00' },
+        metricasChave: { ctl: 74, atl: 71, tsb: 3, tss: 62, statusForma: 'FORMA_IDEAL' },
+      } });
+      renderPage();
+
+      expect(useAthleteWorkoutAnalysis).toHaveBeenCalledWith('r1');
+      expect(screen.queryByTestId('workout-analysis-card')).toBeNull();
+    });
+
+    it('treino feito com análise pronta: mostra o card de análise dentro do "Treino feito"', () => {
+      mockHome({ home: {
+        hoje: HOJE_ISO,
+        realizadoHoje: { id: 'r1', fonteDados: 'MANUAL', tipoTreino: 'FACIL', duracaoMin: 40, percepcaoEsforco: 6,
+          feedbackRegistradoEm: '2026-08-26T19:00:00' },
+        metricasChave: { ctl: 74, atl: 71, tsb: 3, tss: 62, statusForma: 'FORMA_IDEAL' },
+      } });
+      vi.mocked(useAthleteWorkoutAnalysis).mockReturnValue({
+        analysis: { status: 'COMPLETED', comoFoi: 'Saiu como planejado.', executado: {} },
+        status: 'done', error: null, loading: false,
+      });
+      renderPage();
+
+      expect(screen.getByText(/treino feito/i)).toBeInTheDocument();
+      expect(screen.getByTestId('workout-analysis-card')).toBeInTheDocument();
+      expect(screen.getByText('Saiu como planejado.')).toBeInTheDocument();
     });
 
     it('planejado de hoje pulado: "Hoje você pulou" no lugar do hero', () => {
