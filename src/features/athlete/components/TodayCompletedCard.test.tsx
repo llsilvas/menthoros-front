@@ -36,7 +36,7 @@ describe('TodayCompletedCard', () => {
     render(
       <TodayCompletedCard
         realizado={REALIZADO}
-        analysisView={{ status: 'done', reconhecimento: 'Bom treino.', comoFoi: 'Saiu como planejado.', metrics: [] }}
+        analysisView={{ status: 'done', reconhecimento: 'Bom treino.', comoFoi: 'Saiu como planejado.', metrics: [], verdict: null }}
       />,
     );
     expect(screen.getByTestId('workout-analysis-card')).toBeInTheDocument();

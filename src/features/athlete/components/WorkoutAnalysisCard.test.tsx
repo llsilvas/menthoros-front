@@ -17,6 +17,7 @@ const done: WorkoutAnalysisView = {
         { key: 'rpe', text: '7/10', color: '#FBBF24' },
     ],
     planLine: 'plano 61 min · 11,0 km · RPE esperado 6/10',
+    verdict: null,
 };
 
 describe('WorkoutAnalysisCard', () => {
@@ -87,7 +88,7 @@ describe('WorkoutAnalysisCard', () => {
     it('pending: frase + skeleton, sem caixa aninhada, com as métricas', () => {
         render(
             <WorkoutAnalysisCard
-                view={{ status: 'pending', metrics: [{ key: 'duracao', text: '58 min' }] }}
+                view={{ status: 'pending', metrics: [{ key: 'duracao', text: '58 min' }], verdict: null }}
             />,
         );
 

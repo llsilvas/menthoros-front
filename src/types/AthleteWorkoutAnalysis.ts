@@ -8,6 +8,16 @@
  */
 export type AthleteAnalysisStatus = 'PENDING' | 'COMPLETED';
 
+/**
+ * Veredito determinístico de aderência ao plano (sem LLM), calculado no backend
+ * (add-athlete-workout-verdict-chip, D2). O front só pinta — nunca rederiva limiar.
+ */
+export type WorkoutPlanVerdict =
+    | 'DENTRO_DO_PLANO'
+    | 'ABAIXO_DO_PLANO'
+    | 'ACIMA_DO_PLANO'
+    | 'ESFORCO_ACIMA_DO_ESPERADO';
+
 export interface AthleteAnalysisExecutado {
     duracaoMin?: number;
     distanciaKm?: number;
@@ -30,4 +40,6 @@ export interface AthleteWorkoutAnalysis {
     executado: AthleteAnalysisExecutado;
     /** Ausente quando o realizado não tem treino planejado vinculado. */
     planejado?: AthleteAnalysisPlanejado;
+    /** Ausente sem planejado vinculado ou sem dimensão comparável. */
+    veredito?: WorkoutPlanVerdict;
 }
