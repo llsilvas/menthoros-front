@@ -38,7 +38,7 @@ export function WorkoutVerdictChip({ verdict }: WorkoutVerdictChipProps) {
                 whiteSpace: 'nowrap',
             }}
         >
-            <Box component="span" sx={{ width: 6, height: 6, borderRadius: radius.full, bgcolor: color }} />
+            <Box component="span" aria-hidden sx={{ width: 6, height: 6, borderRadius: radius.full, bgcolor: color }} />
             <Box component="span">{verdict.label}</Box>
         </Box>
     );
