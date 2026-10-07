@@ -106,4 +106,21 @@ describe('WorkoutAnalysisCard', () => {
         await user.click(screen.getByRole('button', { name: /ver análise completa/i }));
         expect(screen.getByText('Saiu como planejado.')).toBeInTheDocument();
     });
+
+    it('com veredito, mostra o chip no cabeçalho quando não embutido', () => {
+        render(<WorkoutAnalysisCard view={{ ...done, verdict: { label: 'Dentro do plano', tone: 'success' } }} />);
+
+        expect(screen.getByTestId('workout-verdict-chip')).toHaveTextContent('Dentro do plano');
+    });
+
+    it('embutido na Home, não duplica o chip (a Home já mostra na linha de "Treino feito")', () => {
+        render(
+            <WorkoutAnalysisCard
+                view={{ ...done, verdict: { label: 'Dentro do plano', tone: 'success' } }}
+                embedded
+            />,
+        );
+
+        expect(screen.queryByTestId('workout-verdict-chip')).toBeNull();
+    });
 });

@@ -5,6 +5,7 @@ import { radius } from '../../../shared/design-tokens/density';
 import { Card } from '../../../shared/components/Card';
 import { CardHeader } from '../../../shared/components/CardHeader';
 import type { WorkoutAnalysisView } from '../adapters/buildWorkoutAnalysisView';
+import { WorkoutVerdictChip } from './WorkoutVerdictChip';
 
 export interface WorkoutAnalysisCardProps {
     view: WorkoutAnalysisView;
@@ -182,7 +183,11 @@ export function WorkoutAnalysisCard({ view, embedded = false }: WorkoutAnalysisC
             variant="flat"
             sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
         >
-            <CardHeader icon={<SparkleIcon />} title="Análise do treino" />
+            <CardHeader
+                icon={<SparkleIcon />}
+                title="Análise do treino"
+                action={view.verdict ? <WorkoutVerdictChip verdict={view.verdict} /> : undefined}
+            />
             {corpo}
         </Card>
     );
