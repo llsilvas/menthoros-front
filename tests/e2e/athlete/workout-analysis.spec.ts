@@ -26,6 +26,7 @@ const ANALISE_COMPLETA = {
   proximoTreino: 'Capriche no sono hoje e vale comentar com seu coach como você acorda amanhã.',
   executado: { duracaoMin: 58, distanciaKm: 11.2, rpe: 7 },
   planejado: { duracaoMin: 61, distanciaKm: 11.0, rpeEsperado: 6 },
+  veredito: 'DENTRO_DO_PLANO',
 }
 
 /** Semana corrente (segunda→domingo) no fuso do runner, em ISO local. */
@@ -90,6 +91,8 @@ test.describe('Atleta — análise do treino no Plano', () => {
     await expect(dialog.getByText('Concluído')).toBeVisible()
     await expect(dialog.getByText('RPE 7/10 · Difícil')).toBeVisible()
 
+    await expect(dialog.getByTestId('workout-verdict-chip')).toContainText('Dentro do plano')
+
     const card = dialog.getByTestId('workout-analysis-card')
     await expect(card).toBeVisible()
     await expect(card).toContainText('58 min · 11,2 km · RPE 7/10')
@@ -114,16 +117,28 @@ test.describe('Atleta — análise do treino no Plano', () => {
     await expect(dialog.getByText(/TSB|CTL|ATL|score/i)).toHaveCount(0)
   })
 
-  test('análise em andamento: card em "Analisando…" com os números', async ({ page }) => {
+  test('análise em andamento: card em "Analisando…" com os números e o chip de veredito já presente', async ({ page }) => {
     await page.route('**/api/v1/atletas/me/realizados/tr1/analise**', (route) =>
-      route.fulfill(json({ status: 'PENDING', executado: { duracaoMin: 58, distanciaKm: 11.2, rpe: 7 } })))
+      route.fulfill(json({
+        status: 'PENDING',
+        executado: { duracaoMin: 58, distanciaKm: 11.2, rpe: 7 },
+        planejado: { duracaoMin: 61, distanciaKm: 11.0, rpeEsperado: 6 },
+        veredito: 'DENTRO_DO_PLANO',
+      })))
     await page.goto(PLAN_URL)
 
     await page.locator('[data-testid="week-agenda-row"]', { hasText: 'Análise pronta' }).getByRole('button').click()
-    const card = page.getByRole('dialog').getByTestId('workout-analysis-card')
+    const dialog = page.getByRole('dialog')
+    const card = dialog.getByTestId('workout-analysis-card')
     await expect(card).toContainText('Analisando o seu treino…')
     await expect(card).toContainText('58 min · 11,2 km · RPE 7/10')
     await expect(card.getByTestId('ai-highlight')).toHaveCount(0)
+
+    // Critério de aceite 6/7: o veredito é determinístico — já aparece em PENDING, antes do
+    // texto da IA chegar.
+    const chip = dialog.getByTestId('workout-verdict-chip')
+    await expect(chip).toBeVisible()
+    await expect(chip).toContainText('Dentro do plano')
   })
 
   test('sem análise (204): drawer sem card e sem promessa', async ({ page }) => {
