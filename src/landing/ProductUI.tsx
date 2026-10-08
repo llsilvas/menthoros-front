@@ -1,9 +1,14 @@
 import { Box, Typography, useTheme } from "@mui/material";
 import { glass } from "../theme/tokens";
 import { PriorityBadge, CheckIcon, monoFont, type Priority } from "./primitives";
-import { radius } from "../theme/theme.premium";
+import { radius, categorical } from "../theme/theme.premium";
 
-/* CTL = primary · ATL = text.secondary (steel) · TSB = warning (amber) — token roles, no raw hex */
+/**
+ * CTL = categorical.teal · ATL = categorical.slate · TSB = warning (amber) — nunca `primary` aqui:
+ * a "disciplina do lime" do design system reserva o lime para marca/ação/seleção, fora de métrica
+ * e categoria (ver README do design system "Menthoros" — era um defeito real já corrigido em
+ * `theme.premium.ts`; este gráfico tinha ficado pra trás usando `primary.main` pro CTL).
+ */
 export function LoadChart() {
   const t = useTheme();
   const W = 360, H = 140, pad = 8;
@@ -21,8 +26,8 @@ export function LoadChart() {
         <line key={g} x1={pad} x2={W - pad} y1={pad + g * (H - pad * 2)} y2={pad + g * (H - pad * 2)} stroke={t.palette.divider} strokeWidth={1} />
       ))}
       <path d={path(tsb)} fill="none" stroke={t.palette.warning.main} strokeWidth={1.6} strokeDasharray="3 3" opacity={0.85} />
-      <path d={path(atl)} fill="none" stroke={t.palette.text.secondary} strokeWidth={1.6} />
-      <path d={path(ctl)} fill="none" stroke={t.palette.primary.main} strokeWidth={2.4} />
+      <path d={path(atl)} fill="none" stroke={categorical.slate} strokeWidth={1.6} />
+      <path d={path(ctl)} fill="none" stroke={categorical.teal} strokeWidth={2.4} />
     </svg>
   );
 }
@@ -39,7 +44,7 @@ const QUEUE_ROWS: [string, string, string, Priority][] = [
 export function AttentionQueue() {
   const t = useTheme();
   return (
-    <Box sx={{ bgcolor: t.palette.surfaceShift.panel, border: `1px solid ${t.palette.divider}`, borderRadius: radius.outer, p: 2.5, boxShadow: glass.boxShadow }}>
+    <Box sx={{ bgcolor: "background.paper", border: `1px solid ${t.palette.divider}`, borderRadius: radius.outer, p: 2.5 }}>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
         <Typography sx={{ fontFamily: monoFont, fontSize: 12, letterSpacing: ".12em", color: "text.secondary" }}>
           FILA DE ATENÇÃO
@@ -75,8 +80,8 @@ export function AttentionQueue() {
 
       <Box sx={{ mt: 1.75 }}><LoadChart /></Box>
       <Box sx={{ display: "flex", gap: 2, mt: 1, fontFamily: monoFont, fontSize: 10.5 }}>
-        <Box component="span" sx={{ color: "primary.main" }}>● CTL</Box>
-        <Box component="span" sx={{ color: "text.secondary" }}>● ATL</Box>
+        <Box component="span" sx={{ color: categorical.teal }}>● CTL</Box>
+        <Box component="span" sx={{ color: categorical.slate }}>● ATL</Box>
         <Box component="span" sx={{ color: "warning.main" }}>┄ TSB</Box>
       </Box>
     </Box>

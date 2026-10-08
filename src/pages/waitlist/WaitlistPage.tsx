@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Box, Paper, Stack, Typography, ThemeProvider } from '@mui/material';
+import { Box, Paper, Stack, Typography, ThemeProvider, useTheme } from '@mui/material';
 import { AccessRequestForm } from '../../landing/AccessRequestForm';
 import { ValueProposition } from '../../landing/ValueProposition';
 import { founderOffer } from '../../landing/content';
 import { AttentionQueue } from '../../landing/ProductUI';
 import landingTheme from '../../theme/landingTheme';
+import { radius } from '../../theme/theme.premium';
 import type { WaitlistStatus } from '../../hooks/useWaitlist';
-import { gradients, glassAzulSx, surface } from '../../theme/tokens';
+import { gradients, surface } from '../../theme/tokens';
 import { overlayWhite } from '../../theme/overlays';
 
 /**
@@ -14,13 +15,24 @@ import { overlayWhite } from '../../theme/overlays';
  * `AccessRequestForm.tsx` (FE-02) e `ValueProposition.tsx` (FE-01) — fonte única compartilhada
  * com a home, ver `content.ts`. Esta página só monta o layout (painel ao lado do formulário no
  * desktop, abaixo no mobile — `order` abaixo) e o card de oferta fundadora que envolve o form.
+ *
+ * Os dois cards (painel e formulário) usam o MESMO tratamento — fundo plano `surfaceShift.card`,
+ * borda `divider`, `radius.outer` — de propósito: o design system documenta o material de vidro
+ * (blur) como exceção, não padrão, e o card do formulário usava `glassAzulSx` (vidro translúcido)
+ * enquanto o painel era plano, o que os fazia parecer dois sistemas visuais diferentes lado a lado.
  */
-export default function WaitlistPage() {
+function WaitlistContent() {
+  const t = useTheme();
   const [status, setStatus] = useState<WaitlistStatus>('idle');
   const concluido = status === 'success';
 
+  const cardSx = {
+    bgcolor: "background.paper",
+    border: `1px solid ${t.palette.divider}`,
+    borderRadius: radius.outer,
+  };
+
   return (
-    <ThemeProvider theme={landingTheme}>
     <Box
       sx={{
         minHeight: '100vh',
@@ -49,8 +61,7 @@ export default function WaitlistPage() {
               maxWidth: 480,
               mx: { xs: 'auto', md: 0 },
               p: { xs: 3, sm: 4 },
-              borderRadius: 2,
-              ...glassAzulSx,
+              ...cardSx,
             }}
           >
             <AccessRequestForm
@@ -85,6 +96,13 @@ export default function WaitlistPage() {
         </Stack>
       </Stack>
     </Box>
+  );
+}
+
+export default function WaitlistPage() {
+  return (
+    <ThemeProvider theme={landingTheme}>
+      <WaitlistContent />
     </ThemeProvider>
   );
 }
