@@ -17,6 +17,7 @@ const done: WorkoutAnalysisView = {
         { key: 'rpe', text: '7/10', color: '#FBBF24' },
     ],
     planLine: 'plano 61 min · 11,0 km · RPE esperado 6/10',
+    verdict: null,
 };
 
 describe('WorkoutAnalysisCard', () => {
@@ -87,7 +88,7 @@ describe('WorkoutAnalysisCard', () => {
     it('pending: frase + skeleton, sem caixa aninhada, com as métricas', () => {
         render(
             <WorkoutAnalysisCard
-                view={{ status: 'pending', metrics: [{ key: 'duracao', text: '58 min' }] }}
+                view={{ status: 'pending', metrics: [{ key: 'duracao', text: '58 min' }], verdict: null }}
             />,
         );
 
@@ -104,5 +105,22 @@ describe('WorkoutAnalysisCard', () => {
         expect(screen.queryByText(/Você segurou o ritmo/)).not.toBeInTheDocument();
         await user.click(screen.getByRole('button', { name: /ver análise completa/i }));
         expect(screen.getByText('Saiu como planejado.')).toBeInTheDocument();
+    });
+
+    it('com veredito, mostra o chip no cabeçalho quando não embutido', () => {
+        render(<WorkoutAnalysisCard view={{ ...done, verdict: { label: 'Dentro do plano', tone: 'success' } }} />);
+
+        expect(screen.getByTestId('workout-verdict-chip')).toHaveTextContent('Dentro do plano');
+    });
+
+    it('embutido na Home, não duplica o chip (a Home já mostra na linha de "Treino feito")', () => {
+        render(
+            <WorkoutAnalysisCard
+                view={{ ...done, verdict: { label: 'Dentro do plano', tone: 'success' } }}
+                embedded
+            />,
+        );
+
+        expect(screen.queryByTestId('workout-verdict-chip')).toBeNull();
     });
 });

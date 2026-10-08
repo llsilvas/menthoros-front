@@ -73,7 +73,7 @@ describe('FitUploadResultCard', () => {
         treino={TREINO}
         onImportarOutro={vi.fn()}
         onVoltar={vi.fn()}
-        analysisView={{ status: 'pending', metrics: [{ key: 'duracao', text: '30 min' }] }}
+        analysisView={{ status: 'pending', metrics: [{ key: 'duracao', text: '30 min' }], verdict: null }}
       />,
     );
 

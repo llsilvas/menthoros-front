@@ -114,4 +114,36 @@ describe('buildWorkoutAnalysisView', () => {
         expect(view.rpeChipLabel).toBeUndefined();
         expect(view.metrics.map((m) => m.key)).toEqual(['duracao']);
     });
+
+    describe('verdict', () => {
+        it('DENTRO_DO_PLANO: label "Dentro do plano" e tom success', () => {
+            const view = buildWorkoutAnalysisView({ ...completa, veredito: 'DENTRO_DO_PLANO' });
+
+            expect(view.verdict).toEqual({ label: 'Dentro do plano', tone: 'success' });
+        });
+
+        it('ABAIXO_DO_PLANO: label "Abaixo do plano" e tom warning', () => {
+            const view = buildWorkoutAnalysisView({ ...completa, veredito: 'ABAIXO_DO_PLANO' });
+
+            expect(view.verdict).toEqual({ label: 'Abaixo do plano', tone: 'warning' });
+        });
+
+        it('ACIMA_DO_PLANO: label "Acima do plano" e tom warning', () => {
+            const view = buildWorkoutAnalysisView({ ...completa, veredito: 'ACIMA_DO_PLANO' });
+
+            expect(view.verdict).toEqual({ label: 'Acima do plano', tone: 'warning' });
+        });
+
+        it('ESFORCO_ACIMA_DO_ESPERADO: label "Esforço acima do esperado" e tom warning', () => {
+            const view = buildWorkoutAnalysisView({ ...completa, veredito: 'ESFORCO_ACIMA_DO_ESPERADO' });
+
+            expect(view.verdict).toEqual({ label: 'Esforço acima do esperado', tone: 'warning' });
+        });
+
+        it('sem veredito no contrato: verdict é null, não undefined', () => {
+            const view = buildWorkoutAnalysisView({ ...completa, veredito: undefined });
+
+            expect(view.verdict).toBeNull();
+        });
+    });
 });
