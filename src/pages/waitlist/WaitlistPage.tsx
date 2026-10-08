@@ -79,6 +79,7 @@ export default function WaitlistPage() {
   const oferta = `${founderOffer.trialLine} ${founderOffer.afterTrialPre}${founderOffer.afterTrialPrice}${founderOffer.afterTrialPost}`;
 
   return (
+    <ThemeProvider theme={landingTheme}>
     <Box
       sx={{
         minHeight: '100vh',
@@ -247,8 +248,8 @@ export default function WaitlistPage() {
                   aria-hidden="true"
                   sx={{
                     position: 'absolute',
-                    width: 1,
-                    height: 1,
+                    width: '1px',
+                    height: '1px',
                     p: 0,
                     m: '-1px',
                     overflow: 'hidden',
@@ -315,13 +316,12 @@ export default function WaitlistPage() {
                 mx: { xs: 'auto', md: 0 },
               }}
             >
-              <ThemeProvider theme={landingTheme}>
-                <AttentionQueue />
-              </ThemeProvider>
+              <AttentionQueue />
             </Box>
           )}
         </Stack>
       </Stack>
     </Box>
+    </ThemeProvider>
   );
 }
