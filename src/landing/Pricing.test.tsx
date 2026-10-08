@@ -1,10 +1,19 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import { Pricing } from './sections';
+import { FoundersSlotsService } from '../services/FoundersSlotsService';
 
 // landing-oferta-fundadora-clareza, RF-02/RF-03: o cartão "Gratuito — R$ 0/mês" sugeria plano
 // gratuito permanente; o bloco fundador vira o elemento principal, e a comparação de planos deixa
 // de usar opacidade global para "esconder" os planos futuros.
+
+// add-founders-slots-display (FE-04): o badge agora busca GET /api/v1/founders/slots — sem mock,
+// o teste dispararia um fetch real para localhost:8099 (OpenAPI.BASE default). Rejeitada de
+// propósito aqui: o badge sem resposta mostra "Programa fundador" (mesmo texto de loading/erro),
+// então os testes abaixo que não citam o badge nem precisam resolver a promise.
+vi.mock('../services/FoundersSlotsService', () => ({
+  FoundersSlotsService: { obterVagas: vi.fn().mockRejectedValue(new Error('not mocked')) },
+}));
 
 describe('Pricing — oferta fundadora e comparação de planos', () => {
   it('não apresenta o plano Gratuito nem qualquer referência a "R$ 0"', () => {
@@ -16,7 +25,7 @@ describe('Pricing — oferta fundadora e comparação de planos', () => {
   it('renderiza o bloco da oferta fundadora com os 5 elementos, na ordem', () => {
     render(<Pricing />);
     const elementos = [
-      screen.getByText('Programa fundador · 10 vagas'),
+      screen.getByText('Programa fundador'),
       screen.getByText(/60 dias grátis, sem cartão/),
       screen.getByText('R$ 99/mês'),
       screen.getByText(/cadastrar um cartão e contratar o plano/),
@@ -60,5 +69,25 @@ describe('Pricing — oferta fundadora e comparação de planos', () => {
     render(<Pricing />);
     expect(screen.getByText('100+')).toBeInTheDocument();
     expect(screen.queryByText(/atletas ilimitados/i)).not.toBeInTheDocument();
+  });
+
+  describe('badge de vagas (FE-04 — GET /api/v1/founders/slots)', () => {
+    it('vagas abertas: "Restam N de T vagas"', async () => {
+      vi.mocked(FoundersSlotsService.obterVagas).mockResolvedValueOnce({
+        total: 10, taken: 3, remaining: 7, open: true,
+      });
+      render(<Pricing />);
+      await waitFor(() =>
+        expect(screen.getByText('Programa fundador · Restam 7 de 10 vagas')).toBeInTheDocument());
+    });
+
+    it('vagas esgotadas: texto de lista de espera', async () => {
+      vi.mocked(FoundersSlotsService.obterVagas).mockResolvedValueOnce({
+        total: 10, taken: 10, remaining: 0, open: false,
+      });
+      render(<Pricing />);
+      await waitFor(() =>
+        expect(screen.getByText('Lista de espera — próxima turma')).toBeInTheDocument());
+    });
   });
 });

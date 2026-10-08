@@ -10,6 +10,12 @@ vi.mock('../../services/WaitlistService', async (importOriginal) => ({
   WaitlistService: { inscrever: vi.fn() },
 }));
 
+// add-founders-slots-display (FE-04): o cabeçalho do formulário busca GET
+// /api/v1/founders/slots — sem mock, dispararia um fetch real para localhost:8099.
+vi.mock('../../services/FoundersSlotsService', () => ({
+  FoundersSlotsService: { obterVagas: vi.fn().mockRejectedValue(new Error('not mocked')) },
+}));
+
 const inscreverMock = WaitlistService.inscrever as unknown as Mock;
 
 function renderPage() {
@@ -119,6 +125,20 @@ describe('WaitlistPage', () => {
     expect(screen.getAllByText(/R\$ 99\/mês/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Hoje o Menthoros lê dados do/i)).toBeInTheDocument();
     expect(screen.getByText('Garmin')).toBeInTheDocument();
+  });
+
+  it('cabeçalho mostra "Turma fundadora" sem número enquanto o endpoint de vagas não responde', () => {
+    renderPage();
+    expect(screen.getByText('Turma fundadora')).toBeInTheDocument();
+  });
+
+  it('cabeçalho mostra "Restam N de T vagas" quando o endpoint de vagas resolve aberto', async () => {
+    const { FoundersSlotsService } = await import('../../services/FoundersSlotsService');
+    vi.mocked(FoundersSlotsService.obterVagas).mockResolvedValueOnce({
+      total: 10, taken: 3, remaining: 7, open: true,
+    });
+    renderPage();
+    expect(await screen.findByText('Turma fundadora — Restam 7 de 10 vagas')).toBeInTheDocument();
   });
 
   it('o link da Política fica FORA do label e com href de hash — dentro do label viraria toggle', () => {
