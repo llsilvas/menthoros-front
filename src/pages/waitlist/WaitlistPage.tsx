@@ -102,13 +102,13 @@ export default function WaitlistPage() {
               O Menthoros lê os treinos dos seus atletas, mostra quem precisa de atenção e propõe o
               ajuste. Você revisa e decide.
             </Typography>
-            <Stack spacing={0.75} sx={{ textAlign: 'left', mx: 'auto' }}>
+            <Box component="ul" sx={{ textAlign: 'left', mx: 'auto', pl: 2.5, m: 0 }}>
               {VALUE_BULLETS.map((bullet) => (
-                <Typography key={bullet} variant="body2" sx={{ color: overlayWhite[70] }}>
-                  · {bullet}
+                <Typography key={bullet} component="li" variant="body2" sx={{ color: overlayWhite[70] }}>
+                  {bullet}
                 </Typography>
               ))}
-            </Stack>
+            </Box>
             <Typography variant="body2" sx={{ color: surface[0], fontWeight: 600 }}>
               {oferta}
             </Typography>
