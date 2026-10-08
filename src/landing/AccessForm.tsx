@@ -5,6 +5,7 @@ import { CtaButton, monoFont } from "./primitives";
 import { faixaDeAtletas } from "./athleteRange";
 import { validate, type AccessFormErrors } from "./accessFormValidation";
 import { parseUtmParams } from "./parseUtm";
+import { garminNotice } from "./content";
 import { useWaitlist } from "../hooks/useWaitlist";
 import type { PerfilWaitlist, WaitlistInput } from "../types/Waitlist";
 import { radius } from "../theme/theme.premium";
@@ -78,7 +79,9 @@ export function AccessForm() {
 
       {/* Último ponto de honestidade antes do envio: hoje só Garmin está integrado. */}
       <Typography sx={{ fontSize: 12.5, color: "text.secondary", lineHeight: 1.4, mt: 1.5 }}>
-        Hoje o Menthoros lê dados de treino do <Box component="strong" sx={{ color: "text.primary" }}>Garmin</Box>. Outra marca? conta pra gente no acesso.
+        {garminNotice.pre}
+        <Box component="strong" sx={{ color: "text.primary" }}>{garminNotice.brand}</Box>
+        {garminNotice.post}
       </Typography>
 
       {/* Honeypot anti-spam: oculto e fora da ordem de tabulação. */}

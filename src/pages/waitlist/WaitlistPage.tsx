@@ -12,13 +12,23 @@ import {
   Paper,
   Stack,
   TextField,
+  ThemeProvider,
   Typography,
 } from '@mui/material';
 import { useWaitlist } from '../../hooks/useWaitlist';
 import { parseUtmParams } from '../../landing/parseUtm';
+import { founderOffer, garminNotice, hero } from '../../landing/content';
+import { AttentionQueue } from '../../landing/ProductUI';
+import landingTheme from '../../theme/landingTheme';
 import type { FaixaAtletas, PerfilWaitlist } from '../../types/Waitlist';
 import { gradients, glassAzulSx, surface } from '../../theme/tokens';
 import { overlayWhite } from '../../theme/overlays';
+
+const VALUE_BULLETS = [
+  'Fila de atenção: quem precisa de você hoje, e por quê.',
+  'Cada sugestão vem com o motivo, sem caixa-preta.',
+  'Nada chega ao atleta sem o seu aval.',
+];
 
 const FAIXAS: { value: FaixaAtletas; label: string }[] = [
   { value: 'ATE_10', label: 'Até 10 atletas' },
@@ -65,181 +75,249 @@ export default function WaitlistPage() {
     });
   };
 
+  const oferta = `${founderOffer.trialLine} ${founderOffer.afterTrialPre}${founderOffer.afterTrialPrice}${founderOffer.afterTrialPost}`;
+
   return (
     <Box
       sx={{
         minHeight: '100vh',
         display: 'flex',
-        alignItems: 'center',
         justifyContent: 'center',
         p: 2,
+        py: { xs: 3, md: 6 },
         background: gradients.background,
       }}
     >
-      <Paper elevation={0} sx={{ width: '100%', maxWidth: 480, p: { xs: 3, sm: 4 }, borderRadius: 2, ...glassAzulSx }}>
-        {status === 'success' ? (
-          <Stack spacing={2} alignItems="center" textAlign="center">
-            <Typography
-              ref={sucessoRef}
-              tabIndex={-1}
-              variant="h5"
-              sx={{ fontWeight: 700, color: surface[0], outline: 'none' }}
-            >
-              Você está na fila!
+      <Stack spacing={{ xs: 3, md: 4 }} sx={{ width: '100%', maxWidth: 1040 }}>
+        {status !== 'success' && (
+          <Stack spacing={2} sx={{ maxWidth: 760, mx: 'auto', textAlign: 'center' }}>
+            <Typography variant="h4" sx={{ fontWeight: 700, color: surface[0] }}>
+              IA para assessorias de corrida
             </Typography>
-            <Typography variant="body2" sx={{ color: overlayWhite[70] }}>
-              Você entrou na fila da turma fundadora. Entramos em contato em breve.
+            <Typography variant="h6" sx={{ fontWeight: 600, color: surface[0] }}>
+              {hero.titleLine1} {hero.titleLine2Pre}
+              {hero.titleAccent}
             </Typography>
-            <Button component={RouterLink} to="/" variant="text" sx={{ mt: 1 }}>
-              Voltar ao início
-            </Button>
-          </Stack>
-        ) : (
-          <Stack spacing={2.5} component="form" onSubmit={handleSubmit}>
-            <Box>
-              <Typography variant="h5" sx={{ fontWeight: 700, color: surface[0], mb: 0.5 }}>
-                Turma fundadora — 10 vagas
-              </Typography>
-              <Typography variant="body2" sx={{ color: overlayWhite[70] }}>
-                Treinadores testando o Menthoros antes do lançamento. Preencha para reservar a sua.
-              </Typography>
-            </Box>
-
-            {status === 'error' && error && (
-              <Alert severity="error" role="alert">
-                {error}
-              </Alert>
-            )}
-
-            <TextField
-              label="Nome"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              required
-              disabled={submitting}
-              fullWidth
-              inputProps={{ maxLength: 120 }}
-            />
-
-            <TextField
-              label="E-mail"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              disabled={submitting}
-              fullWidth
-              inputProps={{ maxLength: 180 }}
-            />
-
-            <TextField
-              label="Telefone / WhatsApp (opcional)"
-              value={telefone}
-              onChange={(e) => setTelefone(e.target.value)}
-              disabled={submitting}
-              fullWidth
-              inputProps={{ maxLength: 20 }}
-            />
-
-            <TextField
-              select
-              label="Você é"
-              value={perfil}
-              onChange={(e) => setPerfil(e.target.value as PerfilWaitlist)}
-              required
-              disabled={submitting}
-              fullWidth
-            >
-              <MenuItem value="TREINADOR">Treinador(a)</MenuItem>
-              <MenuItem value="ATLETA">Atleta</MenuItem>
-            </TextField>
-
-            {perfil === 'TREINADOR' && (
-              <TextField
-                select
-                label="Quantos atletas você atende?"
-                value={qtdAtletas}
-                onChange={(e) => setQtdAtletas(e.target.value as FaixaAtletas)}
-                disabled={submitting}
-                fullWidth
-              >
-                {FAIXAS.map((f) => (
-                  <MenuItem key={f.value} value={f.value}>
-                    {f.label}
-                  </MenuItem>
-                ))}
-              </TextField>
-            )}
-
-            {/* Honeypot anti-spam: oculto e fora da ordem de tabulação. */}
-            <Box
-              component="input"
-              type="text"
-              name="website"
-              value={website}
-              onChange={(e) => setWebsite((e.target as HTMLInputElement).value)}
-              tabIndex={-1}
-              autoComplete="off"
-              aria-hidden="true"
-              sx={{
-                position: 'absolute',
-                width: 1,
-                height: 1,
-                p: 0,
-                m: '-1px',
-                overflow: 'hidden',
-                clip: 'rect(0 0 0 0)',
-                whiteSpace: 'nowrap',
-                border: 0,
-              }}
-            />
-
-            {/*
-              Link FORA do label, de propósito: o label é um <label> nativo e encaminha QUALQUER
-              clique interno para o checkbox — um link ali dentro vira toggle e nunca navega
-              (mesmo bug já corrigido no AccessForm da landing e no CoachConsentDialog; ver
-              CLAUDE.md do front).
-            */}
-            <Box>
-              <FormControlLabel
-                sx={{ alignItems: 'flex-start' }}
-                control={
-                  <Checkbox
-                    checked={aceiteLgpd}
-                    onChange={(e) => setAceiteLgpd(e.target.checked)}
-                    disabled={submitting}
-                  />
-                }
-                label={
-                  <Typography variant="body2" sx={{ color: overlayWhite[70] }}>
-                    Concordo em receber comunicações do Menthoros sobre o acesso ao beta e com o
-                    uso dos meus dados pessoais.
-                  </Typography>
-                }
-              />
-              <Link
-                component={RouterLink}
-                to="/privacidade"
-                underline="always"
-                variant="body2"
-                sx={{ display: 'inline-block', ml: 4, mt: -0.5 }}
-              >
-                Ler a Política de Privacidade
-              </Link>
-            </Box>
-
-            <Button
-              type="submit"
-              variant="contained"
-              size="large"
-              disabled={submitting || !aceiteLgpd || !perfil}
-              startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : undefined}
-            >
-              {submitting ? 'Enviando…' : 'Reservar minha vaga'}
-            </Button>
+            <Typography variant="body1" sx={{ color: overlayWhite[70] }}>
+              O Menthoros lê os treinos dos seus atletas, mostra quem precisa de atenção e propõe o
+              ajuste. Você revisa e decide.
+            </Typography>
+            <Stack spacing={0.75} sx={{ textAlign: 'left', mx: 'auto' }}>
+              {VALUE_BULLETS.map((bullet) => (
+                <Typography key={bullet} variant="body2" sx={{ color: overlayWhite[70] }}>
+                  · {bullet}
+                </Typography>
+              ))}
+            </Stack>
+            <Typography variant="body2" sx={{ color: surface[0], fontWeight: 600 }}>
+              {oferta}
+            </Typography>
+            <Typography variant="caption" sx={{ color: overlayWhite[60] }}>
+              {garminNotice.pre}
+              <Box component="strong" sx={{ color: surface[0] }}>{garminNotice.brand}</Box>
+              {garminNotice.post}
+            </Typography>
           </Stack>
         )}
-      </Paper>
+
+        <Stack
+          direction={{ xs: 'column', md: 'row' }}
+          spacing={3}
+          alignItems={{ xs: 'stretch', md: 'flex-start' }}
+          justifyContent="center"
+        >
+          <Paper
+            elevation={0}
+            sx={{
+              order: { xs: 1, md: 2 },
+              width: '100%',
+              maxWidth: 480,
+              mx: { xs: 'auto', md: 0 },
+              p: { xs: 3, sm: 4 },
+              borderRadius: 2,
+              ...glassAzulSx,
+            }}
+          >
+            {status === 'success' ? (
+              <Stack spacing={2} alignItems="center" textAlign="center">
+                <Typography
+                  ref={sucessoRef}
+                  tabIndex={-1}
+                  variant="h5"
+                  sx={{ fontWeight: 700, color: surface[0], outline: 'none' }}
+                >
+                  Você está na fila!
+                </Typography>
+                <Typography variant="body2" sx={{ color: overlayWhite[70] }}>
+                  Você entrou na fila da turma fundadora. Entramos em contato em breve.
+                </Typography>
+                <Button component={RouterLink} to="/" variant="text" sx={{ mt: 1 }}>
+                  Voltar ao início
+                </Button>
+              </Stack>
+            ) : (
+              <Stack spacing={2.5} component="form" onSubmit={handleSubmit}>
+                <Box>
+                  <Typography variant="h5" sx={{ fontWeight: 700, color: surface[0], mb: 0.5 }}>
+                    Turma fundadora — 10 vagas
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: overlayWhite[70] }}>
+                    Treinadores testando o Menthoros antes do lançamento. Preencha para reservar a sua.
+                  </Typography>
+                </Box>
+
+                {status === 'error' && error && (
+                  <Alert severity="error" role="alert">
+                    {error}
+                  </Alert>
+                )}
+
+                <TextField
+                  label="Nome"
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                  required
+                  disabled={submitting}
+                  fullWidth
+                  inputProps={{ maxLength: 120 }}
+                />
+
+                <TextField
+                  label="E-mail"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={submitting}
+                  fullWidth
+                  inputProps={{ maxLength: 180 }}
+                />
+
+                <TextField
+                  label="Telefone / WhatsApp (opcional)"
+                  value={telefone}
+                  onChange={(e) => setTelefone(e.target.value)}
+                  disabled={submitting}
+                  fullWidth
+                  inputProps={{ maxLength: 20 }}
+                />
+
+                <TextField
+                  select
+                  label="Você é"
+                  value={perfil}
+                  onChange={(e) => setPerfil(e.target.value as PerfilWaitlist)}
+                  required
+                  disabled={submitting}
+                  fullWidth
+                >
+                  <MenuItem value="TREINADOR">Treinador(a)</MenuItem>
+                  <MenuItem value="ATLETA">Atleta</MenuItem>
+                </TextField>
+
+                {perfil === 'TREINADOR' && (
+                  <TextField
+                    select
+                    label="Quantos atletas você atende?"
+                    value={qtdAtletas}
+                    onChange={(e) => setQtdAtletas(e.target.value as FaixaAtletas)}
+                    disabled={submitting}
+                    fullWidth
+                  >
+                    {FAIXAS.map((f) => (
+                      <MenuItem key={f.value} value={f.value}>
+                        {f.label}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                )}
+
+                {/* Honeypot anti-spam: oculto e fora da ordem de tabulação. */}
+                <Box
+                  component="input"
+                  type="text"
+                  name="website"
+                  value={website}
+                  onChange={(e) => setWebsite((e.target as HTMLInputElement).value)}
+                  tabIndex={-1}
+                  autoComplete="off"
+                  aria-hidden="true"
+                  sx={{
+                    position: 'absolute',
+                    width: 1,
+                    height: 1,
+                    p: 0,
+                    m: '-1px',
+                    overflow: 'hidden',
+                    clip: 'rect(0 0 0 0)',
+                    whiteSpace: 'nowrap',
+                    border: 0,
+                  }}
+                />
+
+                {/*
+                  Link FORA do label, de propósito: o label é um <label> nativo e encaminha QUALQUER
+                  clique interno para o checkbox — um link ali dentro vira toggle e nunca navega
+                  (mesmo bug já corrigido no AccessForm da landing e no CoachConsentDialog; ver
+                  CLAUDE.md do front).
+                */}
+                <Box>
+                  <FormControlLabel
+                    sx={{ alignItems: 'flex-start' }}
+                    control={
+                      <Checkbox
+                        checked={aceiteLgpd}
+                        onChange={(e) => setAceiteLgpd(e.target.checked)}
+                        disabled={submitting}
+                      />
+                    }
+                    label={
+                      <Typography variant="body2" sx={{ color: overlayWhite[70] }}>
+                        Concordo em receber comunicações do Menthoros sobre o acesso ao beta e com o
+                        uso dos meus dados pessoais.
+                      </Typography>
+                    }
+                  />
+                  <Link
+                    component={RouterLink}
+                    to="/privacidade"
+                    underline="always"
+                    variant="body2"
+                    sx={{ display: 'inline-block', ml: 4, mt: -0.5 }}
+                  >
+                    Ler a Política de Privacidade
+                  </Link>
+                </Box>
+
+                <Button
+                  type="submit"
+                  variant="contained"
+                  size="large"
+                  disabled={submitting || !aceiteLgpd || !perfil}
+                  startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : undefined}
+                >
+                  {submitting ? 'Enviando…' : 'Reservar minha vaga'}
+                </Button>
+              </Stack>
+            )}
+          </Paper>
+
+          {status !== 'success' && (
+            <Box
+              sx={{
+                order: { xs: 2, md: 1 },
+                width: '100%',
+                maxWidth: 420,
+                mx: { xs: 'auto', md: 0 },
+              }}
+            >
+              <ThemeProvider theme={landingTheme}>
+                <AttentionQueue />
+              </ThemeProvider>
+            </Box>
+          )}
+        </Stack>
+      </Stack>
     </Box>
   );
 }

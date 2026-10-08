@@ -96,6 +96,16 @@ describe('WaitlistPage', () => {
     expect(screen.getByRole('textbox', { name: 'E-mail' })).toHaveValue('maria@exemplo.com');
   });
 
+  it('mostra a proposta de valor, a oferta e o aviso de Garmin acima do formulário', () => {
+    renderPage();
+
+    expect(screen.getByText(/IA para assessorias de corrida/i)).toBeInTheDocument();
+    expect(screen.getByText(/60 dias grátis, sem cartão/i)).toBeInTheDocument();
+    expect(screen.getByText(/R\$ 99\/mês/i)).toBeInTheDocument();
+    expect(screen.getByText(/Hoje o Menthoros lê dados de treino do/i)).toBeInTheDocument();
+    expect(screen.getByText('Garmin')).toBeInTheDocument();
+  });
+
   it('o link da Política fica FORA do label e com href de hash — dentro do label viraria toggle', () => {
     renderPage();
 

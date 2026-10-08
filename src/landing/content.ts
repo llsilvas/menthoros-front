@@ -28,6 +28,14 @@ export const hero = {
 // RF-02: bloco dedicado à oferta fundadora — substitui a comparação de planos como elemento
 // principal da seção de preços. Texto baseado nas condições já publicadas (não depende de
 // D-01/D-02/D-04 — ver design.md da change landing-oferta-fundadora-clareza).
+// Reaproveitada por AccessForm.tsx (home) e WaitlistPage.tsx (/waitlist) — mesmo ponto de
+// honestidade sobre o requisito de marca, sem duas strings divergindo com o tempo.
+export const garminNotice = {
+  pre: 'Hoje o Menthoros lê dados de treino do ',
+  brand: 'Garmin',
+  post: '. Outra marca? conta pra gente no acesso.',
+};
+
 export const founderOffer = {
   badge: "Programa fundador · 10 vagas",
   trialLine: "Experimente o Menthoros por 60 dias grátis, sem cartão.",
