@@ -1,5 +1,11 @@
 /* Landing copy centralizado — edite a mensagem aqui, sem tocar nos componentes. */
 
+// Fonte única do número de vagas do programa fundador. Ainda é um valor fixo — o contador
+// dinâmico (ligado ao backend) depende de um endpoint que não existe hoje (FE-04/BE-04 da spec
+// de conversão do Instagram, 2026-10-08). Até lá, pelo menos as ~6 ocorrências que existiam como
+// string solta passam a ler daqui, então mudar o número é uma edição só.
+const VAGAS_PROGRAMA_FUNDADOR = 10;
+
 export const nav = {
   links: [
     { label: "Plataforma", id: "how" },
@@ -16,9 +22,9 @@ export const hero = {
   titleLine1: "A IA propõe.",
   titleLine2Pre: "O treinador ",
   titleAccent: "decide.",
-  sub: "Feito para assessorias de endurance: a IA lê o treino de cada atleta e propõe ajustes. Você decide o que muda, sem perder tempo com planilha.",
+  sub: "Feito para assessorias de corrida: a IA lê o treino de cada atleta e propõe ajustes. Você decide o que muda, sem perder tempo com planilha.",
   cta: "Solicitar acesso",
-  scarcity: "10 vagas do programa fundador · 60 dias grátis, sem cartão",
+  scarcity: `${VAGAS_PROGRAMA_FUNDADOR} vagas do programa fundador · 60 dias grátis, sem cartão`,
   // RF-01: indicação curta de continuidade paga, com link para a seção de preços — sem sugerir
   // ativação imediata ao clicar em "Solicitar acesso" (o clique continua indo para o formulário).
   continuityHint: "Depois do teste, planos a partir de R$ 99/mês.",
@@ -28,8 +34,18 @@ export const hero = {
 // RF-02: bloco dedicado à oferta fundadora — substitui a comparação de planos como elemento
 // principal da seção de preços. Texto baseado nas condições já publicadas (não depende de
 // D-01/D-02/D-04 — ver design.md da change landing-oferta-fundadora-clareza).
+// Reaproveitada por AccessRequestForm.tsx (home e /waitlist) e ValueProposition.tsx (/waitlist)
+// — mesmo ponto de honestidade sobre o requisito de marca, sem duas strings divergindo com o tempo.
+// Texto da FE-01 (spec de conversão do Instagram, 2026-10-08) — o mesmo do protótipo aprovado.
+export const garminNotice = {
+  pre: 'Hoje o Menthoros lê dados do ',
+  brand: 'Garmin',
+  post: '. Usa outra marca? Conta pra gente no formulário.',
+};
+
 export const founderOffer = {
-  badge: "Programa fundador · 10 vagas",
+  vagas: VAGAS_PROGRAMA_FUNDADOR,
+  badge: `Programa fundador · ${VAGAS_PROGRAMA_FUNDADOR} vagas`,
   trialLine: "Experimente o Menthoros por 60 dias grátis, sem cartão.",
   // "durante o teste" fica deliberadamente sem número — a capacidade dos 60 dias depende de D-02,
   // não é a mesma coisa que o limite do Basic (que só vale depois).
@@ -108,7 +124,7 @@ export const fit = {
 
 export const trust = {
   founderLabel: "QUEM CONSTRÓI",
-  founderBio: "Leandro, engenheiro e corredor. O Menthoros nasce de quem vive, na prática, a rotina técnica de uma assessoria de endurance.",
+  founderBio: "Leandro, engenheiro e corredor. O Menthoros nasce de quem vive, na prática, a rotina técnica de uma assessoria de corrida.",
   title: "Profundidade técnica\nde verdade.",
   body: "CTL, ATL, TSB, aerobic decoupling, polarização de carga: o Menthoros é construído sobre a ciência do treino, não sobre buzzword. E os dados são seus, cada assessoria isolada, o treinador no controle do que o atleta vê.",
   chips: ["TSS", "CTL/ATL/TSB", "Decoupling", "Dados isolados por assessoria"],
@@ -136,7 +152,7 @@ export const faq = {
   items: [
     { q: "A IA vai substituir o treinador?", a: "Pelo contrário: o Menthoros faz o trabalho pesado de ler os dados e propõe ajustes, mas a decisão é 100% sua. Nada chega ao atleta sem o seu aval. A ideia é devolver seu tempo, não tomar seu lugar." },
     { q: "Preciso que meus atletas tenham um relógio específico?", a: "Nesta primeira turma, sim: o Menthoros lê os dados direto do Garmin. Se os atletas da sua assessoria usam outra marca, me conta na conversa de acesso. A próxima integração é priorizada pela demanda dos parceiros fundadores." },
-    { q: "Quanto custa?", a: "As 10 vagas do programa fundador entram com 60 dias grátis, sem cartão. Depois do teste, você cadastra o cartão e segue no plano Basic: R$ 99/mês, 1 técnico e até 20 atletas. Não cadastrou até lá? Perde o acesso." },
+    { q: "Quanto custa?", a: `As ${VAGAS_PROGRAMA_FUNDADOR} vagas do programa fundador entram com 60 dias grátis, sem cartão. Depois do teste, você cadastra o cartão e segue no plano Basic: R$ 99/mês, 1 técnico e até 20 atletas. Não cadastrou até lá? Perde o acesso.` },
     { q: "Existe um plano gratuito permanente?", a: "Não. O acesso gratuito vale somente durante os 60 dias de teste. Depois desse período, é necessário contratar um plano pago para continuar usando o Menthoros." },
     { q: "Serve para uma assessoria pequena?", a: "Serve, e às vezes encaixa até melhor. Quando você cuida de tudo, o gargalo é tempo. É exatamente onde o Menthoros ajuda, automatizando a análise para você focar na decisão." },
   ],
@@ -146,5 +162,38 @@ export const finalCta = {
   titlePre: "Pronto para ",
   titleAccent: "escalar",
   titlePost: " sua assessoria?",
-  sub: "Você seria uma das 10 assessorias fundadoras a usar o Menthoros em produção real. Seu retorno molda as próximas versões antes de qualquer lançamento aberto.",
+  sub: `Você seria uma das ${VAGAS_PROGRAMA_FUNDADOR} assessorias fundadoras a usar o Menthoros em produção real. Seu retorno molda as próximas versões antes de qualquer lançamento aberto.`,
+};
+
+// FE-01 (spec de conversão do Instagram, 2026-10-08): bloco de proposta de valor exibido acima do
+// formulário em /waitlist. Extraído do JSX que já existia ali (antes hardcoded dentro de
+// WaitlistPage.tsx) para `ValueProposition.tsx` poder ler a copy de um só lugar.
+export const valueProposition = {
+  title: "IA para assessorias de corrida",
+  phrase: "O Menthoros lê os treinos dos seus atletas, mostra quem precisa de atenção e propõe o ajuste. Você revisa e decide.",
+  bullets: [
+    "Fila de atenção: quem precisa de você hoje, e por quê.",
+    "Cada sugestão vem com o motivo, sem caixa-preta.",
+    "Nada chega ao atleta sem o seu aval.",
+  ],
+  // Linha de oferta da FE-01: mesmas condições do `founderOffer` (preço lido de lá), em forma curta.
+  offerPre: "60 dias grátis, sem cartão. Depois, Basic a ",
+  offerPost: " (1 técnico, até 20 atletas).",
+};
+
+// FE-05: a mensagem de sucesso do formulário único (AccessRequestForm.tsx) varia por perfil — um
+// atleta não é quem decide a adoção, então o pedimos para indicar o treinador em vez de prometer
+// contato. A variante por marca de relógio (Garmin x outra) descrita na spec depende do campo
+// "relógio predominante", que ainda não existe no contrato do backend — ver nota na PR.
+export const accessSuccess = {
+  treinador: {
+    title: "Você está na fila!",
+    body: "Você entrou na fila da turma fundadora. Entramos em contato em breve pelo email informado.",
+  },
+  atleta: {
+    title: "Avisa seu treinador?",
+    body: "O Menthoros é para assessorias de corrida — quem decide o acesso é o seu treinador. Compartilhe o link com ele.",
+    shareCta: "Copiar link para compartilhar",
+    shareCopied: "Link copiado!",
+  },
 };

@@ -8,7 +8,7 @@ import { ROUTES } from "../constants/routes";
 import * as C from "./content";
 import { Reveal, Eyebrow, SectionHeading, SectionMark, CtaButton, LimeAura, CheckIcon, ArrowIcon, DashIcon, monoFont, NAV_HEIGHT_PX } from "./primitives";
 import { AttentionQueue, InterpretationCard } from "./ProductUI";
-import { AccessForm } from "./AccessForm";
+import { AccessRequestForm } from "./AccessRequestForm";
 import logo from "../assets/landing/logo.png";
 import { radius } from "../theme/theme.premium";
 
@@ -509,7 +509,7 @@ export function FinalCta() {
           </Typography>
           <Typography sx={{ color: "text.secondary", fontSize: 17, my: 2.5, mx: "auto", maxWidth: "48ch" }}>{C.finalCta.sub}</Typography>
         </Reveal>
-        <Reveal><AccessForm /></Reveal>
+        <Reveal><AccessRequestForm /></Reveal>
       </Container>
     </Section>
   );

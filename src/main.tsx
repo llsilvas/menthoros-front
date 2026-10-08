@@ -7,6 +7,7 @@ import { runtimeConfig } from './config/env'
 import { AuthProvider } from './context/auth/AuthProvider'
 import { getAccessToken, getTenantId } from './context/auth/session'
 import { redirectPathDeepLink } from './config/deepLinkRedirect'
+import { captureAndPersistUtm } from './landing/utmPersistence'
 import { registerSW } from 'virtual:pwa-register'
 
 // Sobrescreve o BASE gerado pelo openapi-typescript-codegen ANTES do React renderizar.
@@ -23,8 +24,13 @@ OpenAPI.HEADERS = async (): Promise<Record<string, string>> => {
 }
 
 // Deep link de PATH (link de bio/marketing, ex.: /waitlist?utm=…) → rota de hash, antes do React.
-// Quando redireciona, o replace() dispara o reload e não montamos o app nesta passada.
+// Quando redireciona, o replace() dispara o reload e não montamos o app nesta passada — a captura
+// de UTM roda na passada seguinte, já com a URL normalizada.
 if (!redirectPathDeepLink()) {
+  // Lê a UTM da carga atual e persiste em sessionStorage (se ainda não capturada nesta sessão),
+  // para sobreviver à navegação entre `/` e `/waitlist` (FE-03 da spec de conversão do Instagram).
+  captureAndPersistUtm()
+
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
       <AuthProvider>

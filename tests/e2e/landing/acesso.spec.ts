@@ -1,7 +1,8 @@
 import { test, expect } from '@playwright/test'
 
 /**
- * E2E do formulário de acesso da landing (`AccessForm.tsx`).
+ * E2E do formulário de acesso da landing (`AccessRequestForm.tsx`, compartilhado com /waitlist
+ * desde a unificação FE-02 da spec de conversão do Instagram, 2026-10-08).
  *
  * Obrigatório pelo `CLAUDE.md`: é o único ponto de captura de consentimento LGPD da landing, e
  * a change `landing-page-mvp-lancamento` trocou a garantia de "botão desabilitado até aceitar" por
@@ -15,7 +16,8 @@ const ROTA_DA_API = '**/api/v1/waitlist'
 
 async function preencherCampos(page: import('@playwright/test').Page) {
   await page.getByLabel('Nome').fill('Maria Treinadora')
-  await page.getByLabel('Email').fill('maria@exemplo.com')
+  await page.getByLabel('E-mail').fill('maria@exemplo.com')
+  await page.getByRole('combobox', { name: 'Você é' }).selectOption('TREINADOR')
   await page.getByLabel('Número de atletas').fill('15')
 }
 
@@ -53,7 +55,7 @@ test.describe('Formulário de acesso (programa fundador)', () => {
     await page.getByRole('checkbox').check()
     await page.locator('button[type=submit]').click()
 
-    await expect(page.getByText(/inscrição recebida/i)).toBeVisible()
+    await expect(page.getByText(/você está na fila/i)).toBeVisible()
     expect(corpoEnviado.nome).toBe('Maria Treinadora')
     expect(corpoEnviado.email).toBe('maria@exemplo.com')
     expect(corpoEnviado.aceiteLgpd).toBe(true)
