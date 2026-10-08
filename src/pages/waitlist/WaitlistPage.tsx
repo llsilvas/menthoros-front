@@ -43,14 +43,18 @@ function WaitlistContent() {
         background: gradients.background,
       }}
     >
-      <Stack spacing={{ xs: 3, md: 4 }} sx={{ width: '100%', maxWidth: 1040, mx: 'auto' }}>
+      <Stack sx={{ width: '100%', maxWidth: 1040, mx: 'auto', gap: { xs: 3, md: 4 } }}>
         {!concluido && <ValueProposition />}
 
+        {/* `gap` em vez do prop `spacing` do Stack: `spacing` aplica margem por ordem de DOM, mas
+            os cards usam `order` (CSS) pra inverter painel/formulário no mobile sem duplicar JSX —
+            margem por ordem de DOM não acompanha `order` visual, e o espaço entre os cards sumia
+            (ambos ficavam colados, a margem ia pro lado errado). `gap` não depende de ordem. */}
         <Stack
           direction={{ xs: 'column', md: 'row' }}
-          spacing={3}
           alignItems={{ xs: 'stretch', md: 'flex-start' }}
           justifyContent="center"
+          sx={{ gap: { xs: 3, md: 5 } }}
         >
           <Paper
             elevation={0}
@@ -60,7 +64,7 @@ function WaitlistContent() {
               flexShrink: 0,
               maxWidth: 480,
               mx: { xs: 'auto', md: 0 },
-              p: { xs: 3, sm: 4 },
+              p: { xs: 2.5, sm: 3 },
               ...cardSx,
             }}
           >

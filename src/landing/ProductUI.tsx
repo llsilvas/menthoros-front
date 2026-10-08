@@ -44,7 +44,7 @@ const QUEUE_ROWS: [string, string, string, Priority][] = [
 export function AttentionQueue() {
   const t = useTheme();
   return (
-    <Box sx={{ bgcolor: "background.paper", border: `1px solid ${t.palette.divider}`, borderRadius: radius.outer, p: 2.5 }}>
+    <Box sx={{ bgcolor: "background.paper", border: `1px solid ${t.palette.divider}`, borderRadius: radius.outer, p: { xs: 2.5, sm: 3 } }}>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
         <Typography sx={{ fontFamily: monoFont, fontSize: 12, letterSpacing: ".12em", color: "text.secondary" }}>
           FILA DE ATENÇÃO
