@@ -20,6 +20,7 @@ import { parseUtmParams } from '../../landing/parseUtm';
 import { founderOffer, garminNotice, hero } from '../../landing/content';
 import { AttentionQueue } from '../../landing/ProductUI';
 import landingTheme from '../../theme/landingTheme';
+import logo from '../../assets/landing/logo.png';
 import type { FaixaAtletas, PerfilWaitlist } from '../../types/Waitlist';
 import { gradients, glassAzulSx, surface } from '../../theme/tokens';
 import { overlayWhite } from '../../theme/overlays';
@@ -88,9 +89,10 @@ export default function WaitlistPage() {
         background: gradients.background,
       }}
     >
-      <Stack spacing={{ xs: 3, md: 4 }} sx={{ width: '100%', maxWidth: 1040 }}>
+      <Stack spacing={{ xs: 3, md: 4 }} sx={{ width: '100%', maxWidth: 1040, mx: 'auto' }}>
         {status !== 'success' && (
-          <Stack spacing={2} sx={{ maxWidth: 760, mx: 'auto', textAlign: 'center' }}>
+          <Stack spacing={2} alignItems="center" sx={{ maxWidth: 640, mx: 'auto', textAlign: 'center' }}>
+            <Box component="img" src={logo} alt="Menthoros" sx={{ height: 40, width: 'auto' }} />
             <Typography variant="h4" sx={{ fontWeight: 700, color: surface[0] }}>
               IA para assessorias de corrida
             </Typography>
@@ -130,7 +132,8 @@ export default function WaitlistPage() {
             elevation={0}
             sx={{
               order: { xs: 1, md: 2 },
-              width: '100%',
+              width: { xs: '100%', md: 480 },
+              flexShrink: 0,
               maxWidth: 480,
               mx: { xs: 'auto', md: 0 },
               p: { xs: 3, sm: 4 },
@@ -306,7 +309,8 @@ export default function WaitlistPage() {
             <Box
               sx={{
                 order: { xs: 2, md: 1 },
-                width: '100%',
+                width: { xs: '100%', md: 420 },
+                flexShrink: 0,
                 maxWidth: 420,
                 mx: { xs: 'auto', md: 0 },
               }}
