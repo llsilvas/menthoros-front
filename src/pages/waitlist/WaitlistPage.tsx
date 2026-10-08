@@ -1,82 +1,23 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Link as RouterLink } from 'react-router';
-import {
-  Alert,
-  Box,
-  Button,
-  Checkbox,
-  CircularProgress,
-  FormControlLabel,
-  Link,
-  MenuItem,
-  Paper,
-  Stack,
-  TextField,
-  ThemeProvider,
-  Typography,
-} from '@mui/material';
-import { useWaitlist } from '../../hooks/useWaitlist';
-import { parseUtmParams } from '../../landing/parseUtm';
-import { founderOffer, garminNotice, hero } from '../../landing/content';
+import { useState } from 'react';
+import { Box, Paper, Stack, Typography, ThemeProvider } from '@mui/material';
+import { AccessRequestForm } from '../../landing/AccessRequestForm';
+import { ValueProposition } from '../../landing/ValueProposition';
+import { founderOffer } from '../../landing/content';
 import { AttentionQueue } from '../../landing/ProductUI';
 import landingTheme from '../../theme/landingTheme';
-import logo from '../../assets/landing/logo.png';
-import type { FaixaAtletas, PerfilWaitlist } from '../../types/Waitlist';
+import type { WaitlistStatus } from '../../hooks/useWaitlist';
 import { gradients, glassAzulSx, surface } from '../../theme/tokens';
 import { overlayWhite } from '../../theme/overlays';
 
-const VALUE_BULLETS = [
-  'Fila de atenção: quem precisa de você hoje, e por quê.',
-  'Cada sugestão vem com o motivo, sem caixa-preta.',
-  'Nada chega ao atleta sem o seu aval.',
-];
-
-const FAIXAS: { value: FaixaAtletas; label: string }[] = [
-  { value: 'ATE_10', label: 'Até 10 atletas' },
-  { value: 'DE_11_A_30', label: 'De 11 a 30 atletas' },
-  { value: 'DE_31_A_100', label: 'De 31 a 100 atletas' },
-  { value: 'MAIS_DE_100', label: 'Mais de 100 atletas' },
-];
-
+/**
+ * Formulário e campos do antigo header de "Turma fundadora" foram extraídos para
+ * `AccessRequestForm.tsx` (FE-02) e `ValueProposition.tsx` (FE-01) — fonte única compartilhada
+ * com a home, ver `content.ts`. Esta página só monta o layout (painel ao lado do formulário no
+ * desktop, abaixo no mobile — `order` abaixo) e o card de oferta fundadora que envolve o form.
+ */
 export default function WaitlistPage() {
-  const { status, error, inscrever } = useWaitlist();
-
-  const [nome, setNome] = useState('');
-  const [email, setEmail] = useState('');
-  const [telefone, setTelefone] = useState('');
-  const [perfil, setPerfil] = useState<PerfilWaitlist | ''>('');
-  const [qtdAtletas, setQtdAtletas] = useState<FaixaAtletas | ''>('');
-  const [aceiteLgpd, setAceiteLgpd] = useState(false);
-  const [website, setWebsite] = useState(''); // honeypot
-
-  const submitting = status === 'submitting';
-  const sucessoRef = useRef<HTMLHeadingElement>(null);
-
-  useEffect(() => {
-    if (status === 'success') {
-      sucessoRef.current?.focus();
-    }
-  }, [status]);
-
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!perfil) {
-      return;
-    }
-    inscrever({
-      nome,
-      email,
-      telefone: telefone || undefined,
-      perfil,
-      qtdAtletas: perfil === 'TREINADOR' && qtdAtletas ? qtdAtletas : undefined,
-      aceiteLgpd,
-      website: website || undefined,
-      // query ANTES do `#` (createHashRouter) — mesma captura do AccessForm da landing
-      ...parseUtmParams(window.location.search),
-    });
-  };
-
-  const oferta = `${founderOffer.trialLine} ${founderOffer.afterTrialPre}${founderOffer.afterTrialPrice}${founderOffer.afterTrialPost}`;
+  const [status, setStatus] = useState<WaitlistStatus>('idle');
+  const concluido = status === 'success';
 
   return (
     <ThemeProvider theme={landingTheme}>
@@ -91,37 +32,7 @@ export default function WaitlistPage() {
       }}
     >
       <Stack spacing={{ xs: 3, md: 4 }} sx={{ width: '100%', maxWidth: 1040, mx: 'auto' }}>
-        {status !== 'success' && (
-          <Stack spacing={2} alignItems="center" sx={{ maxWidth: 640, mx: 'auto', textAlign: 'center' }}>
-            <Box component="img" src={logo} alt="Menthoros" sx={{ height: 40, width: 'auto' }} />
-            <Typography variant="h4" sx={{ fontWeight: 700, color: surface[0] }}>
-              IA para assessorias de corrida
-            </Typography>
-            <Typography variant="h6" sx={{ fontWeight: 600, color: surface[0] }}>
-              {hero.titleLine1} {hero.titleLine2Pre}
-              {hero.titleAccent}
-            </Typography>
-            <Typography variant="body1" sx={{ color: overlayWhite[70] }}>
-              O Menthoros lê os treinos dos seus atletas, mostra quem precisa de atenção e propõe o
-              ajuste. Você revisa e decide.
-            </Typography>
-            <Box component="ul" sx={{ textAlign: 'left', mx: 'auto', pl: 2.5, m: 0 }}>
-              {VALUE_BULLETS.map((bullet) => (
-                <Typography key={bullet} component="li" variant="body2" sx={{ color: overlayWhite[70] }}>
-                  {bullet}
-                </Typography>
-              ))}
-            </Box>
-            <Typography variant="body2" sx={{ color: surface[0], fontWeight: 600 }}>
-              {oferta}
-            </Typography>
-            <Typography variant="caption" sx={{ color: overlayWhite[60] }}>
-              {garminNotice.pre}
-              <Box component="strong" sx={{ color: surface[0] }}>{garminNotice.brand}</Box>
-              {garminNotice.post}
-            </Typography>
-          </Stack>
-        )}
+        {!concluido && <ValueProposition />}
 
         <Stack
           direction={{ xs: 'column', md: 'row' }}
@@ -142,171 +53,23 @@ export default function WaitlistPage() {
               ...glassAzulSx,
             }}
           >
-            {status === 'success' ? (
-              <Stack spacing={2} alignItems="center" textAlign="center">
-                <Typography
-                  ref={sucessoRef}
-                  tabIndex={-1}
-                  variant="h5"
-                  sx={{ fontWeight: 700, color: surface[0], outline: 'none' }}
-                >
-                  Você está na fila!
-                </Typography>
-                <Typography variant="body2" sx={{ color: overlayWhite[70] }}>
-                  Você entrou na fila da turma fundadora. Entramos em contato em breve.
-                </Typography>
-                <Button component={RouterLink} to="/" variant="text" sx={{ mt: 1 }}>
-                  Voltar ao início
-                </Button>
-              </Stack>
-            ) : (
-              <Stack spacing={2.5} component="form" onSubmit={handleSubmit}>
+            <AccessRequestForm
+              onStatusChange={setStatus}
+              showGarminReminder={false}
+              header={
                 <Box>
                   <Typography variant="h5" sx={{ fontWeight: 700, color: surface[0], mb: 0.5 }}>
-                    Turma fundadora — 10 vagas
+                    Turma fundadora — {founderOffer.vagas} vagas
                   </Typography>
                   <Typography variant="body2" sx={{ color: overlayWhite[70] }}>
                     Treinadores testando o Menthoros antes do lançamento. Preencha para reservar a sua.
                   </Typography>
                 </Box>
-
-                {status === 'error' && error && (
-                  <Alert severity="error" role="alert">
-                    {error}
-                  </Alert>
-                )}
-
-                <TextField
-                  label="Nome"
-                  value={nome}
-                  onChange={(e) => setNome(e.target.value)}
-                  required
-                  disabled={submitting}
-                  fullWidth
-                  inputProps={{ maxLength: 120 }}
-                />
-
-                <TextField
-                  label="E-mail"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  disabled={submitting}
-                  fullWidth
-                  inputProps={{ maxLength: 180 }}
-                />
-
-                <TextField
-                  label="Telefone / WhatsApp (opcional)"
-                  value={telefone}
-                  onChange={(e) => setTelefone(e.target.value)}
-                  disabled={submitting}
-                  fullWidth
-                  inputProps={{ maxLength: 20 }}
-                />
-
-                <TextField
-                  select
-                  label="Você é"
-                  value={perfil}
-                  onChange={(e) => setPerfil(e.target.value as PerfilWaitlist)}
-                  required
-                  disabled={submitting}
-                  fullWidth
-                >
-                  <MenuItem value="TREINADOR">Treinador(a)</MenuItem>
-                  <MenuItem value="ATLETA">Atleta</MenuItem>
-                </TextField>
-
-                {perfil === 'TREINADOR' && (
-                  <TextField
-                    select
-                    label="Quantos atletas você atende?"
-                    value={qtdAtletas}
-                    onChange={(e) => setQtdAtletas(e.target.value as FaixaAtletas)}
-                    disabled={submitting}
-                    fullWidth
-                  >
-                    {FAIXAS.map((f) => (
-                      <MenuItem key={f.value} value={f.value}>
-                        {f.label}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                )}
-
-                {/* Honeypot anti-spam: oculto e fora da ordem de tabulação. */}
-                <Box
-                  component="input"
-                  type="text"
-                  name="website"
-                  value={website}
-                  onChange={(e) => setWebsite((e.target as HTMLInputElement).value)}
-                  tabIndex={-1}
-                  autoComplete="off"
-                  aria-hidden="true"
-                  sx={{
-                    position: 'absolute',
-                    width: '1px',
-                    height: '1px',
-                    p: 0,
-                    m: '-1px',
-                    overflow: 'hidden',
-                    clip: 'rect(0 0 0 0)',
-                    whiteSpace: 'nowrap',
-                    border: 0,
-                  }}
-                />
-
-                {/*
-                  Link FORA do label, de propósito: o label é um <label> nativo e encaminha QUALQUER
-                  clique interno para o checkbox — um link ali dentro vira toggle e nunca navega
-                  (mesmo bug já corrigido no AccessForm da landing e no CoachConsentDialog; ver
-                  CLAUDE.md do front).
-                */}
-                <Box>
-                  <FormControlLabel
-                    sx={{ alignItems: 'flex-start' }}
-                    control={
-                      <Checkbox
-                        checked={aceiteLgpd}
-                        onChange={(e) => setAceiteLgpd(e.target.checked)}
-                        disabled={submitting}
-                      />
-                    }
-                    label={
-                      <Typography variant="body2" sx={{ color: overlayWhite[70] }}>
-                        Concordo em receber comunicações do Menthoros sobre o acesso ao beta e com o
-                        uso dos meus dados pessoais.
-                      </Typography>
-                    }
-                  />
-                  <Link
-                    component={RouterLink}
-                    to="/privacidade"
-                    underline="always"
-                    variant="body2"
-                    sx={{ display: 'inline-block', ml: 4, mt: -0.5 }}
-                  >
-                    Ler a Política de Privacidade
-                  </Link>
-                </Box>
-
-                <Button
-                  type="submit"
-                  variant="contained"
-                  size="large"
-                  disabled={submitting || !aceiteLgpd || !perfil}
-                  startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : undefined}
-                >
-                  {submitting ? 'Enviando…' : 'Reservar minha vaga'}
-                </Button>
-              </Stack>
-            )}
+              }
+            />
           </Paper>
 
-          {status !== 'success' && (
+          {!concluido && (
             <Box
               sx={{
                 order: { xs: 2, md: 1 },

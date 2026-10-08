@@ -47,6 +47,11 @@ export function AttentionQueue() {
         </Typography>
         <Typography sx={{ fontFamily: monoFont, fontSize: 11, color: "text.disabled" }}>4 SEMANAS</Typography>
       </Box>
+      {/* FE-06 (spec de conversão do Instagram, 2026-10-08): dado ilustrativo precisa de aviso
+          visível ao usuário — antes só havia o comentário de código acima, não uma UI própria. */}
+      <Typography sx={{ fontFamily: monoFont, fontSize: 10, fontStyle: "italic", color: "text.disabled", mb: 1 }}>
+        Exemplo ilustrativo
+      </Typography>
 
       {QUEUE_ROWS.map(([initials, name, note, p]) => (
         <Box key={name} sx={{ display: "flex", alignItems: "center", gap: 1.5, py: 1.25, borderTop: `1px solid ${t.palette.divider}` }}>
