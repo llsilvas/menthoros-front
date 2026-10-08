@@ -4,7 +4,9 @@
  * Separado da página porque é texto jurídico revisado fora do time de front: manter aqui isola a
  * revisão de conteúdo do componente de renderização, que não muda a cada bump da política.
  *
- * Fonte: "Politica de Privacidade" (versão de 2 de agosto de 2026). Ao alterar o texto, atualize
+ * Fonte: "Politica de Privacidade" (versão de 2 de agosto de 2026), com a descrição da plataforma
+ * ajustada em 8 de outubro de 2026 ("corrida de rua e modalidades de endurance" -> "corrida",
+ * alinhada ao posicionamento "IA para assessorias de corrida"). Ao alterar o texto, atualize
  * também `POLITICA_ATUALIZADA_EM` e siga o procedimento de bump descrito em `PrivacidadePage.tsx`.
  */
 
@@ -18,10 +20,10 @@ export const CONTATO_EMAIL = 'contato@menthoros.com';
  * carimba a versão no registro de consentimento — se as duas divergirem, o sistema grava que o
  * coach aceitou uma versão diferente da que leu aqui.
  */
-export const POLITICA_VERSAO = '2026-08-03';
+export const POLITICA_VERSAO = '2026-10-08';
 
 /** Mesma data de `POLITICA_VERSAO`, por extenso para exibição. */
-export const POLITICA_ATUALIZADA_EM = '3 de agosto de 2026';
+export const POLITICA_ATUALIZADA_EM = '8 de outubro de 2026';
 
 export interface Tabela {
   /** Rótulo acessível da tabela — vira `aria-label`. */
@@ -45,7 +47,7 @@ export interface Secao {
 }
 
 export const POLITICA_INTRODUCAO: string[] = [
-  'Esta Política de Privacidade descreve como a Menthoros coleta, utiliza, armazena, compartilha e protege os dados pessoais dos usuários da plataforma digital Menthoros, destinada à gestão e ao desenvolvimento de treinamentos esportivos para corrida de rua e modalidades de endurance.',
+  'Esta Política de Privacidade descreve como a Menthoros coleta, utiliza, armazena, compartilha e protege os dados pessoais dos usuários da plataforma digital Menthoros, destinada à gestão e ao desenvolvimento de treinamentos esportivos de corrida.',
   'Esta Política aplica-se a todos os usuários da Plataforma — atletas, treinadores, profissionais de educação física e assessorias esportivas — e deve ser lida em conjunto com o Termo de Uso da Plataforma.',
   'Esta Política foi elaborada em conformidade com a Lei nº 13.709/2018 (Lei Geral de Proteção de Dados Pessoais — LGPD), a Lei nº 12.965/2014 (Marco Civil da Internet) e demais normas aplicáveis.',
 ];
