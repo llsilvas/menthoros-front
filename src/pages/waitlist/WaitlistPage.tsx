@@ -19,7 +19,9 @@ import { useWaitlist } from '../../hooks/useWaitlist';
 import { parseUtmParams } from '../../landing/parseUtm';
 import { founderOffer, garminNotice, hero } from '../../landing/content';
 import { AttentionQueue } from '../../landing/ProductUI';
+import { Eyebrow } from '../../landing/primitives';
 import landingTheme from '../../theme/landingTheme';
+import { radius } from '../../theme/theme.premium';
 import logo from '../../assets/landing/logo.png';
 import type { FaixaAtletas, PerfilWaitlist } from '../../types/Waitlist';
 import { gradients, glassAzulSx, surface } from '../../theme/tokens';
@@ -94,12 +96,10 @@ export default function WaitlistPage() {
         {status !== 'success' && (
           <Stack spacing={2} alignItems="center" sx={{ maxWidth: 640, mx: 'auto', textAlign: 'center' }}>
             <Box component="img" src={logo} alt="Menthoros" sx={{ height: 40, width: 'auto' }} />
+            <Eyebrow center>IA para assessorias de corrida</Eyebrow>
             <Typography variant="h4" sx={{ fontWeight: 700, color: surface[0] }}>
-              IA para assessorias de corrida
-            </Typography>
-            <Typography variant="h6" sx={{ fontWeight: 600, color: surface[0] }}>
               {hero.titleLine1} {hero.titleLine2Pre}
-              {hero.titleAccent}
+              <Box component="span" sx={{ color: 'primary.main' }}>{hero.titleAccent}</Box>
             </Typography>
             <Typography variant="body1" sx={{ color: overlayWhite[70] }}>
               O Menthoros lê os treinos dos seus atletas, mostra quem precisa de atenção e propõe o
@@ -112,9 +112,20 @@ export default function WaitlistPage() {
                 </Typography>
               ))}
             </Box>
-            <Typography variant="body2" sx={{ color: surface[0], fontWeight: 600 }}>
-              {oferta}
-            </Typography>
+            <Box
+              sx={{
+                border: '1px solid',
+                borderColor: 'primary.main',
+                borderRadius: radius.outer,
+                bgcolor: 'background.paper',
+                px: 2.5,
+                py: 1.5,
+              }}
+            >
+              <Typography variant="body2" sx={{ color: surface[0], fontWeight: 600 }}>
+                {oferta}
+              </Typography>
+            </Box>
             <Typography variant="caption" sx={{ color: overlayWhite[60] }}>
               {garminNotice.pre}
               <Box component="strong" sx={{ color: surface[0] }}>{garminNotice.brand}</Box>
