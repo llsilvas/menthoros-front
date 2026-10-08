@@ -36,10 +36,11 @@ export const hero = {
 // D-01/D-02/D-04 — ver design.md da change landing-oferta-fundadora-clareza).
 // Reaproveitada por AccessRequestForm.tsx (home e /waitlist) e ValueProposition.tsx (/waitlist)
 // — mesmo ponto de honestidade sobre o requisito de marca, sem duas strings divergindo com o tempo.
+// Texto da FE-01 (spec de conversão do Instagram, 2026-10-08) — o mesmo do protótipo aprovado.
 export const garminNotice = {
-  pre: 'Hoje o Menthoros lê dados de treino do ',
+  pre: 'Hoje o Menthoros lê dados do ',
   brand: 'Garmin',
-  post: '. Outra marca? conta pra gente no acesso.',
+  post: '. Usa outra marca? Conta pra gente no formulário.',
 };
 
 export const founderOffer = {
@@ -175,6 +176,9 @@ export const valueProposition = {
     "Cada sugestão vem com o motivo, sem caixa-preta.",
     "Nada chega ao atleta sem o seu aval.",
   ],
+  // Linha de oferta da FE-01: mesmas condições do `founderOffer` (preço lido de lá), em forma curta.
+  offerPre: "60 dias grátis, sem cartão. Depois, Basic a ",
+  offerPost: " (1 técnico, até 20 atletas).",
 };
 
 // FE-05: a mensagem de sucesso do formulário único (AccessRequestForm.tsx) varia por perfil — um

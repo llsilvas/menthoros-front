@@ -29,9 +29,8 @@ test.describe('Deep link de bio → waitlist', () => {
     await expect(page).toHaveURL(/utm_source=instagram/)
 
     await page.getByRole('textbox', { name: 'Nome' }).fill('Maria Treinadora')
-    await page.getByRole('textbox', { name: 'Email' }).fill('maria@exemplo.com')
-    await page.getByRole('combobox', { name: 'Você é' }).click()
-    await page.getByRole('option', { name: /^treinador/i }).click()
+    await page.getByRole('textbox', { name: 'E-mail' }).fill('maria@exemplo.com')
+    await page.getByRole('combobox', { name: 'Você é' }).selectOption('TREINADOR')
     await page.getByRole('spinbutton', { name: 'Número de atletas' }).fill('15')
     await page.getByRole('checkbox').click()
     await page.getByRole('button', { name: /solicitar acesso/i }).click()
@@ -58,9 +57,8 @@ test.describe('Deep link de bio → waitlist', () => {
     await expect(page).not.toHaveURL(/utm_source/)
 
     await page.getByRole('textbox', { name: 'Nome' }).fill('Maria Treinadora')
-    await page.getByRole('textbox', { name: 'Email' }).fill('maria@exemplo.com')
-    await page.getByRole('combobox', { name: 'Você é' }).click()
-    await page.getByRole('option', { name: /^atleta$/i }).click()
+    await page.getByRole('textbox', { name: 'E-mail' }).fill('maria@exemplo.com')
+    await page.getByRole('combobox', { name: 'Você é' }).selectOption('ATLETA')
     await page.getByRole('checkbox').click()
     await page.getByRole('button', { name: /solicitar acesso/i }).click()
 

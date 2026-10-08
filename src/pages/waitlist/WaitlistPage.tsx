@@ -1,112 +1,93 @@
 import { useState } from 'react';
-import { Box, Paper, Stack, Typography, ThemeProvider, useTheme } from '@mui/material';
+import { Box, Paper, ThemeProvider, Typography } from '@mui/material';
 import { AccessRequestForm } from '../../landing/AccessRequestForm';
 import { ValueProposition } from '../../landing/ValueProposition';
 import { founderOffer } from '../../landing/content';
-import { AttentionQueue } from '../../landing/ProductUI';
+import { QueuePreview } from '../../landing/ProductUI';
 import landingTheme from '../../theme/landingTheme';
-import { radius } from '../../theme/theme.premium';
+import { radius, surface } from '../../theme/theme.premium';
 import type { WaitlistStatus } from '../../hooks/useWaitlist';
-import { gradients, surface } from '../../theme/tokens';
-import { overlayWhite } from '../../theme/overlays';
 
 /**
- * Formulário e campos do antigo header de "Turma fundadora" foram extraídos para
- * `AccessRequestForm.tsx` (FE-02) e `ValueProposition.tsx` (FE-01) — fonte única compartilhada
- * com a home, ver `content.ts`. Esta página só monta o layout (painel ao lado do formulário no
- * desktop, abaixo no mobile — `order` abaixo) e o card de oferta fundadora que envolve o form.
+ * Página de destino do link da bio (FE-01 da spec de conversão do Instagram, 2026-10-08). Layout,
+ * medidas e componentes seguem o protótipo aprovado no canvas de design: proposta de valor no
+ * topo; abaixo, painel e formulário lado a lado dividindo a largura (painel à esquerda), e no
+ * mobile o formulário vem antes do painel para ficar visível sem rolar mais de uma tela.
  *
- * Os dois cards (painel e formulário) usam o MESMO tratamento — fundo plano `surfaceShift.card`,
- * borda `divider`, `radius.outer` — de propósito: o design system documenta o material de vidro
- * (blur) como exceção, não padrão, e o card do formulário usava `glassAzulSx` (vidro translúcido)
- * enquanto o painel era plano, o que os fazia parecer dois sistemas visuais diferentes lado a lado.
+ * O espaço entre os cards é `gap`, não o `spacing` do Stack: os cards usam `order` para inverter
+ * a ordem no mobile, e o `spacing` aplica margem pela ordem do DOM — com `order` a margem caía
+ * no lado errado e os cards ficavam colados.
  */
-function WaitlistContent() {
-  const t = useTheme();
+export default function WaitlistPage() {
   const [status, setStatus] = useState<WaitlistStatus>('idle');
   const concluido = status === 'success';
 
-  const cardSx = {
-    bgcolor: "background.paper",
-    border: `1px solid ${t.palette.divider}`,
-    borderRadius: radius.outer,
-  };
-
-  return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        justifyContent: 'center',
-        p: 2,
-        py: { xs: 3, md: 6 },
-        background: gradients.background,
-      }}
-    >
-      <Stack sx={{ width: '100%', maxWidth: 1040, mx: 'auto', gap: { xs: 3, md: 4 } }}>
-        {!concluido && <ValueProposition />}
-
-        {/* `gap` em vez do prop `spacing` do Stack: `spacing` aplica margem por ordem de DOM, mas
-            os cards usam `order` (CSS) pra inverter painel/formulário no mobile sem duplicar JSX —
-            margem por ordem de DOM não acompanha `order` visual, e o espaço entre os cards sumia
-            (ambos ficavam colados, a margem ia pro lado errado). `gap` não depende de ordem. */}
-        <Stack
-          direction={{ xs: 'column', md: 'row' }}
-          alignItems={{ xs: 'stretch', md: 'flex-start' }}
-          justifyContent="center"
-          sx={{ gap: { xs: 3, md: 5 } }}
-        >
-          <Paper
-            elevation={0}
-            sx={{
-              order: { xs: 1, md: 2 },
-              width: { xs: '100%', md: 480 },
-              flexShrink: 0,
-              maxWidth: 480,
-              mx: { xs: 'auto', md: 0 },
-              p: { xs: 2.5, sm: 3 },
-              ...cardSx,
-            }}
-          >
-            <AccessRequestForm
-              onStatusChange={setStatus}
-              showGarminReminder={false}
-              header={
-                <Box>
-                  <Typography variant="h5" sx={{ fontWeight: 700, color: surface[0], mb: 0.5 }}>
-                    Turma fundadora — {founderOffer.vagas} vagas
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: overlayWhite[70] }}>
-                    Treinadores testando o Menthoros antes do lançamento. Preencha para reservar a sua.
-                  </Typography>
-                </Box>
-              }
-            />
-          </Paper>
-
-          {!concluido && (
-            <Box
-              sx={{
-                order: { xs: 2, md: 1 },
-                width: { xs: '100%', md: 420 },
-                flexShrink: 0,
-                maxWidth: 420,
-                mx: { xs: 'auto', md: 0 },
-              }}
-            >
-              <AttentionQueue />
-            </Box>
-          )}
-        </Stack>
-      </Stack>
-    </Box>
-  );
-}
-
-export default function WaitlistPage() {
   return (
     <ThemeProvider theme={landingTheme}>
-      <WaitlistContent />
+      <Box
+        sx={{
+          minHeight: '100vh',
+          display: 'flex',
+          justifyContent: 'center',
+          bgcolor: 'background.default',
+          px: { xs: 2, sm: 4 },
+          py: { xs: 3, sm: 5 },
+        }}
+      >
+        <Box sx={{ width: '100%', maxWidth: 1040, display: 'flex', flexDirection: 'column', gap: { xs: '18px', sm: '28px' } }}>
+          {!concluido && <ValueProposition />}
+
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: { xs: 'column', md: 'row' },
+              alignItems: { xs: 'stretch', md: 'flex-start' },
+              gap: { xs: '18px', md: '24px' },
+            }}
+          >
+            {!concluido && (
+              <Box sx={{ order: { xs: 2, md: 1 }, flex: { md: '1 1 440px' }, minWidth: 0 }}>
+                <QueuePreview />
+              </Box>
+            )}
+
+            <Paper
+              elevation={0}
+              sx={{
+                order: { xs: 1, md: 2 },
+                flex: { md: '1 1 400px' },
+                minWidth: 0,
+                width: '100%',
+                maxWidth: concluido ? 480 : 'none',
+                mx: concluido ? 'auto' : 0,
+                bgcolor: 'background.paper',
+                border: `1px solid ${surface[700]}`,
+                borderRadius: radius.inner,
+                p: '20px',
+              }}
+            >
+              <AccessRequestForm
+                compact
+                onStatusChange={setStatus}
+                header={
+                  <Box>
+                    <Typography
+                      component="h2"
+                      sx={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 700, color: 'text.primary', mb: '4px' }}
+                    >
+                      Turma fundadora —{' '}
+                      <Box component="span" sx={{ color: 'primary.main' }}>{founderOffer.vagas}</Box> vagas
+                    </Typography>
+                    <Typography sx={{ fontSize: 12.5, lineHeight: 1.5, color: 'text.secondary' }}>
+                      Treinadores testando o Menthoros antes do lançamento. Preencha para reservar a sua.
+                    </Typography>
+                  </Box>
+                }
+              />
+            </Paper>
+          </Box>
+        </Box>
+      </Box>
     </ThemeProvider>
   );
 }

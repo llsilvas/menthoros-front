@@ -16,9 +16,8 @@ const ROTA_DA_API = '**/api/v1/waitlist'
 
 async function preencherCampos(page: import('@playwright/test').Page) {
   await page.getByLabel('Nome').fill('Maria Treinadora')
-  await page.getByLabel('Email').fill('maria@exemplo.com')
-  await page.getByRole('combobox', { name: 'Você é' }).click()
-  await page.getByRole('option', { name: /treinador/i }).click()
+  await page.getByLabel('E-mail').fill('maria@exemplo.com')
+  await page.getByRole('combobox', { name: 'Você é' }).selectOption('TREINADOR')
   await page.getByLabel('Número de atletas').fill('15')
 }
 

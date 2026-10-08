@@ -22,8 +22,8 @@ function renderForm(props: Parameters<typeof AccessRequestForm>[0] = {}) {
 }
 
 async function selecionarPerfil(user: ReturnType<typeof userEvent.setup>, nome: RegExp) {
-  await user.click(screen.getByRole('combobox', { name: 'Você é' }));
-  await user.click(await screen.findByRole('option', { name: nome }));
+  // "Você é" é um <select> nativo (como no protótipo): seleção por opção, não clique em menu.
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Você é' }), screen.getByRole('option', { name: nome }));
 }
 
 describe('AccessRequestForm', () => {
@@ -44,7 +44,7 @@ describe('AccessRequestForm', () => {
     renderForm();
 
     await user.type(screen.getByRole('textbox', { name: 'Nome' }), 'Maria');
-    await user.type(screen.getByRole('textbox', { name: 'Email' }), 'maria@exemplo.com');
+    await user.type(screen.getByRole('textbox', { name: 'E-mail' }), 'maria@exemplo.com');
     await user.click(screen.getByRole('button', { name: /solicitar acesso/i }));
 
     expect(inscreverMock).not.toHaveBeenCalled();
@@ -70,8 +70,8 @@ describe('AccessRequestForm', () => {
     renderForm();
 
     await user.type(screen.getByRole('textbox', { name: 'Nome' }), 'Maria');
-    await user.type(screen.getByRole('textbox', { name: 'Email' }), 'maria@exemplo.com');
-    await user.type(screen.getByRole('textbox', { name: /telefone/i }), '11999999999');
+    await user.type(screen.getByRole('textbox', { name: 'E-mail' }), 'maria@exemplo.com');
+    await user.type(screen.getByRole('textbox', { name: /whatsapp/i }), '11999999999');
     await selecionarPerfil(user, /treinador/i);
     await user.type(screen.getByRole('spinbutton', { name: 'Número de atletas' }), '15');
     await user.click(screen.getByRole('checkbox'));
@@ -94,7 +94,7 @@ describe('AccessRequestForm', () => {
     renderForm();
 
     await user.type(screen.getByRole('textbox', { name: 'Nome' }), 'João');
-    await user.type(screen.getByRole('textbox', { name: 'Email' }), 'joao@exemplo.com');
+    await user.type(screen.getByRole('textbox', { name: 'E-mail' }), 'joao@exemplo.com');
     await selecionarPerfil(user, /^atleta$/i);
     await user.click(screen.getByRole('checkbox'));
     await user.click(screen.getByRole('button', { name: /solicitar acesso/i }));
@@ -116,7 +116,7 @@ describe('AccessRequestForm', () => {
     renderForm();
 
     await user.type(screen.getByRole('textbox', { name: 'Nome' }), 'Maria');
-    await user.type(screen.getByRole('textbox', { name: 'Email' }), 'maria@exemplo.com');
+    await user.type(screen.getByRole('textbox', { name: 'E-mail' }), 'maria@exemplo.com');
     await selecionarPerfil(user, /^atleta$/i);
     await user.click(screen.getByRole('checkbox'));
     await user.click(screen.getByRole('button', { name: /solicitar acesso/i }));
@@ -133,7 +133,7 @@ describe('AccessRequestForm', () => {
     renderForm();
 
     await user.type(screen.getByRole('textbox', { name: 'Nome' }), 'Maria');
-    await user.type(screen.getByRole('textbox', { name: 'Email' }), 'maria@exemplo.com');
+    await user.type(screen.getByRole('textbox', { name: 'E-mail' }), 'maria@exemplo.com');
     await selecionarPerfil(user, /^atleta$/i);
     await user.click(screen.getByRole('checkbox'));
     await user.click(screen.getByRole('button', { name: /solicitar acesso/i }));
@@ -169,7 +169,7 @@ describe('AccessRequestForm', () => {
     renderForm();
 
     await user.type(screen.getByRole('textbox', { name: 'Nome' }), 'João');
-    await user.type(screen.getByRole('textbox', { name: 'Email' }), 'joao@exemplo.com');
+    await user.type(screen.getByRole('textbox', { name: 'E-mail' }), 'joao@exemplo.com');
     await selecionarPerfil(user, /^atleta$/i);
     await user.click(screen.getByRole('checkbox'));
 
@@ -180,14 +180,15 @@ describe('AccessRequestForm', () => {
     expect(screen.getByRole('button', { name: /copiar link/i })).toBeInTheDocument();
   });
 
-  it('esconde o aviso de Garmin perto do envio quando showGarminReminder é false', () => {
-    renderForm({ showGarminReminder: false });
-    expect(screen.queryByText(/hoje o menthoros lê dados de treino do/i)).not.toBeInTheDocument();
+  it('em modo compact (página já mostra oferta e Garmin acima) não repete o aviso nem o rodapé', () => {
+    renderForm({ compact: true });
+    expect(screen.queryByText(/hoje o menthoros lê dados do/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/continuidade mediante contratação/i)).not.toBeInTheDocument();
   });
 
   it('mostra o aviso de Garmin perto do envio por padrão', () => {
     renderForm();
-    expect(screen.getByText(/hoje o menthoros lê dados de treino do/i)).toBeInTheDocument();
+    expect(screen.getByText(/hoje o menthoros lê dados do/i)).toBeInTheDocument();
   });
 
   it('renderiza o honeypot oculto', () => {

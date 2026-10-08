@@ -21,8 +21,8 @@ function renderPage() {
 }
 
 async function selecionarPerfil(user: ReturnType<typeof userEvent.setup>, nome: RegExp) {
-  await user.click(screen.getByRole('combobox', { name: 'Você é' }));
-  await user.click(await screen.findByRole('option', { name: nome }));
+  // "Você é" é um <select> nativo (como no protótipo): seleção por opção, não clique em menu.
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Você é' }), screen.getByRole('option', { name: nome }));
 }
 
 describe('WaitlistPage', () => {
@@ -68,7 +68,7 @@ describe('WaitlistPage', () => {
     renderPage();
 
     await user.type(screen.getByRole('textbox', { name: 'Nome' }), 'Maria');
-    await user.type(screen.getByRole('textbox', { name: 'Email' }), 'maria@exemplo.com');
+    await user.type(screen.getByRole('textbox', { name: 'E-mail' }), 'maria@exemplo.com');
     await selecionarPerfil(user, /treinador/i);
     await user.type(screen.getByRole('spinbutton', { name: 'Número de atletas' }), '15');
     await user.click(screen.getByRole('checkbox'));
@@ -85,7 +85,7 @@ describe('WaitlistPage', () => {
     renderPage();
 
     await user.type(screen.getByRole('textbox', { name: 'Nome' }), 'João');
-    await user.type(screen.getByRole('textbox', { name: 'Email' }), 'joao@exemplo.com');
+    await user.type(screen.getByRole('textbox', { name: 'E-mail' }), 'joao@exemplo.com');
     await selecionarPerfil(user, /^atleta$/i);
     await user.click(screen.getByRole('checkbox'));
     await user.click(screen.getByRole('button', { name: /solicitar acesso/i }));
@@ -100,7 +100,7 @@ describe('WaitlistPage', () => {
     renderPage();
 
     await user.type(screen.getByRole('textbox', { name: 'Nome' }), 'Maria');
-    await user.type(screen.getByRole('textbox', { name: 'Email' }), 'maria@exemplo.com');
+    await user.type(screen.getByRole('textbox', { name: 'E-mail' }), 'maria@exemplo.com');
     await selecionarPerfil(user, /^atleta$/i);
     await user.click(screen.getByRole('checkbox'));
     await user.click(screen.getByRole('button', { name: /solicitar acesso/i }));
@@ -108,18 +108,16 @@ describe('WaitlistPage', () => {
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
     // valores preservados (o formulário não é resetado em erro)
     expect(screen.getByRole('textbox', { name: 'Nome' })).toHaveValue('Maria');
-    expect(screen.getByRole('textbox', { name: 'Email' })).toHaveValue('maria@exemplo.com');
+    expect(screen.getByRole('textbox', { name: 'E-mail' })).toHaveValue('maria@exemplo.com');
   });
 
   it('mostra a proposta de valor, a oferta e o aviso de Garmin acima do formulário', () => {
     renderPage();
 
     expect(screen.getByText(/IA para assessorias de corrida/i)).toBeInTheDocument();
-    // "60 dias grátis, sem cartão" aparece duas vezes (proposta de valor + rodapé do form) — a
-    // frase completa da oferta fundadora é única à ValueProposition.
-    expect(screen.getByText(/Experimente o Menthoros por 60 dias grátis, sem cartão/i)).toBeInTheDocument();
+    expect(screen.getByText(/60 dias grátis, sem cartão\. Depois, Basic a/i)).toBeInTheDocument();
     expect(screen.getAllByText(/R\$ 99\/mês/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Hoje o Menthoros lê dados de treino do/i)).toBeInTheDocument();
+    expect(screen.getByText(/Hoje o Menthoros lê dados do/i)).toBeInTheDocument();
     expect(screen.getByText('Garmin')).toBeInTheDocument();
   });
 

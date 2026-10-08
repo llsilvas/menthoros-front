@@ -1,58 +1,103 @@
-import { Box, Stack, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { founderOffer, garminNotice, hero, valueProposition } from "./content";
-import { CheckIcon } from "./primitives";
-import { overlayWhite } from "../theme/overlays";
-import { surface } from "../theme/tokens";
+import { monoFont } from "./primitives";
 
 /**
  * Bloco de proposta de valor exibido acima do formulário em `/waitlist` (FE-01 da spec de
- * conversão do Instagram, 2026-10-08): título, slogan, frase, bullets, oferta e aviso de Garmin.
- * Extraído do JSX que antes vivia hardcoded dentro de `WaitlistPage.tsx` para a copy ter uma
- * única fonte (`content.ts`) em vez de divergir da home com o tempo.
- *
- * Hierarquia segue o protótipo aprovado (canvas de design), não a da home: "IA para assessorias
- * de corrida" é o título de destaque (não um eyebrow pequeno), "A IA propõe. O treinador decide."
- * é o slogan secundário, inteiro em lime (não só a última palavra) — a home acentua só "decide.",
- * mas aqui o protótipo trata a frase inteira como uma única unidade de marca. Bullets em linha,
- * com ícone de check, não uma lista com marcador. Oferta é texto em destaque, sem card com borda.
+ * conversão do Instagram, 2026-10-08). Medidas e hierarquia seguem o protótipo aprovado no canvas
+ * de design (`OfferHero`): título grande, slogan inteiro em lime, frase, bullets numa linha só,
+ * oferta curta com o preço em mono e aviso de Garmin com ícone.
  */
 export function ValueProposition() {
-  const oferta = `${founderOffer.trialLine} ${founderOffer.afterTrialPre}${founderOffer.afterTrialPrice}${founderOffer.afterTrialPost}`;
-
   return (
-    // `alignSelf: "center"` (não `mx: "auto"`): este Stack é filho de outro Stack com `spacing`,
-    // que aplica espaçamento via margem nos filhos — a margem horizontal automática perdia pra ela
-    // na cascata e o bloco renderizava encostado na borda esquerda do container pai, em vez de
-    // centralizado. `align-self` não é propriedade de margem, não sofre esse conflito.
-    <Stack spacing={1.5} alignItems="center" sx={{ maxWidth: 640, alignSelf: "center", textAlign: "center" }}>
-      <Typography variant="h4" sx={{ fontWeight: 700, color: surface[0] }}>
+    <Box
+      sx={{
+        width: "100%",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        textAlign: "center",
+        gap: 1.5,
+      }}
+    >
+      <Typography
+        component="h1"
+        sx={{
+          m: 0,
+          fontFamily: "'Space Grotesk', sans-serif",
+          fontWeight: 700,
+          fontSize: { xs: 23, sm: 34 },
+          lineHeight: 1.15,
+          color: "text.primary",
+        }}
+      >
         {valueProposition.title}
       </Typography>
-      <Typography sx={{ fontSize: 18, fontWeight: 600, color: "primary.main" }}>
+      <Typography sx={{ m: 0, fontWeight: 600, fontSize: { xs: 14.5, sm: 18 }, lineHeight: 1.3, color: "primary.main" }}>
         {hero.titleLine1} {hero.titleLine2Pre}
         {hero.titleAccent}
       </Typography>
-      <Typography variant="body1" sx={{ color: overlayWhite[70] }}>
+      <Typography sx={{ m: 0, maxWidth: 620, lineHeight: 1.5, fontSize: { xs: 13, sm: 15.5 }, color: "text.secondary" }}>
         {valueProposition.phrase}
       </Typography>
 
-      <Stack direction="row" spacing={3} flexWrap="wrap" justifyContent="center" sx={{ pt: 0.5 }}>
+      <Box
+        component="ul"
+        sx={{
+          listStyle: "none",
+          p: 0,
+          m: 0,
+          mt: "2px",
+          display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
+          flexWrap: "wrap",
+          justifyContent: "center",
+          alignItems: { xs: "flex-start", sm: "stretch" },
+          gap: { xs: "7px", sm: "26px" },
+        }}
+      >
         {valueProposition.bullets.map((bullet) => (
-          <Stack key={bullet} direction="row" spacing={0.75} sx={{ maxWidth: 230, textAlign: "left" }}>
-            <Box sx={{ color: "primary.main" }}><CheckIcon /></Box>
-            <Typography variant="body2" sx={{ color: overlayWhite[70] }}>{bullet}</Typography>
-          </Stack>
+          <Box
+            component="li"
+            key={bullet}
+            sx={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "7px",
+              maxWidth: { xs: "none", sm: 230 },
+              textAlign: "left",
+              fontSize: 13.5,
+              lineHeight: 1.45,
+              color: "text.secondary",
+            }}
+          >
+            <Box component="svg" viewBox="0 0 24 24" aria-hidden sx={{ width: 15, height: 15, flexShrink: 0, mt: "2px", color: "primary.main" }}>
+              <path d="M5 13l4 4L19 7" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
+            </Box>
+            {bullet}
+          </Box>
         ))}
-      </Stack>
+      </Box>
 
-      <Typography sx={{ color: surface[0], fontWeight: 600, fontSize: 15, pt: 0.5 }}>
-        {oferta}
+      <Typography sx={{ m: 0, mt: "4px", fontWeight: 600, fontSize: { xs: 12.5, sm: 15 }, lineHeight: 1.35, color: "text.primary" }}>
+        {valueProposition.offerPre}
+        <Box component="span" sx={{ fontFamily: monoFont, color: "primary.main" }}>{founderOffer.afterTrialPrice}</Box>
+        {valueProposition.offerPost}
       </Typography>
-      <Typography variant="caption" sx={{ color: overlayWhite[60] }}>
-        {garminNotice.pre}
-        <Box component="strong" sx={{ color: surface[0] }}>{garminNotice.brand}</Box>
-        {garminNotice.post}
+
+      <Typography
+        sx={{ m: 0, display: "flex", alignItems: "center", gap: "7px", fontSize: { xs: 11, sm: 12.5 }, lineHeight: 1.35, color: "text.disabled" }}
+      >
+        <Box component="svg" viewBox="0 0 24 24" aria-hidden sx={{ width: 14, height: 14, flexShrink: 0 }}>
+          <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" strokeWidth={1.8} />
+          <path d="M12 8.5v4l3 2" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" />
+        </Box>
+        <span>
+          {garminNotice.pre}
+          <Box component="strong" sx={{ color: "text.secondary" }}>{garminNotice.brand}</Box>
+          {garminNotice.post}
+        </span>
       </Typography>
-    </Stack>
+    </Box>
   );
 }

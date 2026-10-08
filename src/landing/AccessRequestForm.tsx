@@ -1,5 +1,5 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { Box, Button, Checkbox, FormControlLabel, Link, MenuItem, TextField, Typography, useTheme, type Theme } from "@mui/material";
+import { useEffect, useId, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
+import { Box, Button, Checkbox, FormControlLabel, InputBase, Link, NativeSelect, Typography, useTheme } from "@mui/material";
 import { Link as RouterLink } from "react-router";
 import { CtaButton, monoFont } from "./primitives";
 import { faixaDeAtletas } from "./athleteRange";
@@ -8,31 +8,73 @@ import { getUtmForSubmission } from "./utmPersistence";
 import { accessSuccess, founderOffer, garminNotice } from "./content";
 import { useWaitlist, type WaitlistStatus } from "../hooks/useWaitlist";
 import type { PerfilWaitlist, WaitlistInput } from "../types/Waitlist";
-import { radius } from "../theme/theme.premium";
+import { radius, surface, surfaceShift } from "../theme/theme.premium";
 
 export interface AccessRequestFormProps {
   /** Renderizado acima dos campos, só enquanto o status não é "success" (ex.: título do card). */
   header?: ReactNode;
   /**
-   * Mostra o aviso "hoje só lemos Garmin" logo antes do envio — o último ponto de honestidade
-   * antes do clique. Default `true` (caso da home, que não repete o aviso em outro lugar perto do
-   * form). Em `/waitlist` a `ValueProposition` já mostra o mesmo aviso na mesma tela, sem rolagem
-   * entre os dois — repeti-lo aqui também seria a mesma frase duas vezes seguidas; passe `false`.
+   * Formulário dentro de um card que a página já desenha, numa página que já mostra a oferta e o
+   * aviso de Garmin logo acima (`/waitlist`): ocupa a largura do card, sem moldura própria no
+   * sucesso, e sem repetir aviso de Garmin nem rodapé de condições. Sem `compact` (home), o
+   * formulário é autônomo e traz esses dois pontos de honestidade junto do botão.
    */
-  showGarminReminder?: boolean;
+  compact?: boolean;
   /**
    * Observa o status do envio (idle/submitting/success/error) sem tirar do componente a posse do
-   * `useWaitlist()` — usado por `WaitlistPage` para decolar o preview do painel e a proposta de
+   * `useWaitlist()` — usado por `WaitlistPage` para esconder o preview do painel e a proposta de
    * valor quando o formulário conclui, sem duplicar o hook nem levantar o estado inteiro.
    */
   onStatusChange?: (status: WaitlistStatus) => void;
+}
+
+const inputSx = {
+  width: "100%",
+  bgcolor: surfaceShift.panel,
+  border: `1px solid ${surface[700]}`,
+  borderRadius: "6px",
+  color: "text.primary",
+  fontSize: 13.5,
+  transition: "border-color .15s ease",
+  "& .MuiInputBase-input, & .MuiNativeSelect-select": { px: "11px", py: "9px", height: "auto", lineHeight: 1.2 },
+  "& .MuiInputBase-input::placeholder": { color: "text.disabled", opacity: 1 },
+  "&.Mui-focused": { borderColor: "primary.main" },
+  "&.Mui-error": { borderColor: "error.main" },
+} as const;
+
+interface FieldProps {
+  id: string;
+  label: string;
+  required?: boolean;
+  error?: string;
+  children: ReactNode;
+}
+
+function Field({ id, label, required, error, children }: FieldProps) {
+  return (
+    <Box sx={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+      <Box component="label" htmlFor={id} sx={{ fontSize: 12, fontWeight: 500, color: "text.secondary" }}>
+        {label}
+        {/* fora do nome acessível: o campo continua "Nome", não "Nome *" — o obrigatório é informado
+            pela validação e pela mensagem de erro do próprio campo. */}
+        {required && <span aria-hidden="true"> *</span>}
+      </Box>
+      {children}
+      {error && (
+        <Typography id={`${id}-erro`} sx={{ color: "error.main", fontFamily: monoFont, fontSize: 11.5 }}>
+          {error}
+        </Typography>
+      )}
+    </Box>
+  );
 }
 
 /**
  * Formulário único de solicitação de acesso (FE-02 da spec de conversão do Instagram,
  * 2026-10-08) — usado tanto na home (`FinalCta`) quanto em `/waitlist`. Antes eram dois
  * formulários com campos e texto de botão divergentes (`AccessForm.tsx` x o form inline de
- * `WaitlistPage.tsx`); este componente é a fonte única.
+ * `WaitlistPage.tsx`); este componente é a fonte única. Visual segue o artboard "Formulário" do
+ * protótipo aprovado: rótulo acima de campo compacto, seleção nativa.
  *
  * Fora do escopo desta rodada, por dependerem de coordenação com o backend (contrato de
  * `WaitlistInput`/`PerfilWaitlist` não suporta hoje — ver CLAUDE.md "Campo de DTO em português"
@@ -40,9 +82,11 @@ export interface AccessRequestFormProps {
  * TREINADOR/ATLETA existem) e o campo "Relógio predominante dos atletas". Quando o backend
  * adotar os dois, a variante de sucesso "outra marca" de FE-05 também fica possível.
  */
-export function AccessRequestForm({ header, onStatusChange, showGarminReminder = true }: AccessRequestFormProps) {
+export function AccessRequestForm({ header, onStatusChange, compact = false }: AccessRequestFormProps) {
   const t = useTheme();
   const { status, error, inscrever } = useWaitlist();
+  const uid = useId();
+  const ids = { nome: `${uid}-nome`, email: `${uid}-email`, telefone: `${uid}-telefone`, perfil: `${uid}-perfil`, qtd: `${uid}-qtd` };
 
   useEffect(() => {
     onStatusChange?.(status);
@@ -92,10 +136,15 @@ export function AccessRequestForm({ header, onStatusChange, showGarminReminder =
     }
   };
 
+  const describedBy = (id: string, err?: string) => (err ? { "aria-describedby": `${id}-erro` } : {});
+
   if (status === "success") {
     const sucesso = perfilEnviado === "ATLETA" ? accessSuccess.atleta : accessSuccess.treinador;
+    const frame = compact
+      ? { py: 2 }
+      : { bgcolor: "background.paper", border: `1px solid ${t.palette.divider}`, borderRadius: radius.outer, p: 4, maxWidth: 460, mx: "auto" };
     return (
-      <Box sx={{ bgcolor: "background.paper", border: `1px solid ${t.palette.divider}`, borderRadius: radius.outer, p: 4, maxWidth: 460, mx: "auto", textAlign: "center" }}>
+      <Box sx={{ ...frame, textAlign: "center" }}>
         <Box sx={{ fontSize: 30, color: "primary.main" }}>✓</Box>
         <Typography variant="h3" sx={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 20, fontWeight: 600, my: 1 }}>
           {sucesso.title}
@@ -111,49 +160,56 @@ export function AccessRequestForm({ header, onStatusChange, showGarminReminder =
   }
 
   return (
-    <Box sx={{ maxWidth: 460, mx: "auto", textAlign: "left" }}>
+    <Box sx={{ maxWidth: compact ? "none" : 460, mx: "auto", textAlign: "left" }}>
       {header}
-      <Box component="form" onSubmit={handleSubmit} sx={{ mt: header ? 2.5 : 0 }}>
-        <TextField
-          label="Nome" placeholder="Seu nome" value={nome}
-          onChange={(e) => setNome(e.target.value)}
-          error={!!errors.nome} helperText={errors.nome}
-          fullWidth size="medium" inputProps={{ maxLength: 120 }} sx={fieldSx(t)}
-        />
-        <TextField
-          type="email" label="Email" placeholder="Seu melhor email" value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          error={!!errors.email} helperText={errors.email}
-          fullWidth size="medium" inputProps={{ maxLength: 180 }} sx={{ ...fieldSx(t), mt: 1.75 }}
-        />
-        <TextField
-          label="Telefone / WhatsApp (opcional)" placeholder="(11) 99999-9999" value={telefone}
-          onChange={(e) => setTelefone(e.target.value)}
-          fullWidth size="medium" inputProps={{ maxLength: 20 }} sx={{ ...fieldSx(t), mt: 1.75 }}
-        />
-        <TextField
-          select label="Você é" value={perfil}
-          onChange={(e) => setPerfil(e.target.value as PerfilWaitlist)}
-          error={!!errors.perfil} helperText={errors.perfil}
-          fullWidth size="medium" sx={{ ...fieldSx(t), mt: 1.75 }}
-        >
-          <MenuItem value="TREINADOR">Treinador(a)</MenuItem>
-          <MenuItem value="ATLETA">Atleta</MenuItem>
-        </TextField>
+      <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: header ? "14px" : 0, display: "flex", flexDirection: "column", gap: "12px" }}>
+        <Field id={ids.nome} label="Nome" required error={errors.nome}>
+          <InputBase
+            id={ids.nome} value={nome} placeholder="Seu nome completo" error={!!errors.nome}
+            onChange={(e) => setNome(e.target.value)}
+            inputProps={{ maxLength: 120, ...describedBy(ids.nome, errors.nome) }} sx={inputSx}
+          />
+        </Field>
+        <Field id={ids.email} label="E-mail" required error={errors.email}>
+          <InputBase
+            id={ids.email} type="email" value={email} placeholder="voce@exemplo.com" error={!!errors.email}
+            onChange={(e) => setEmail(e.target.value)}
+            inputProps={{ maxLength: 180, ...describedBy(ids.email, errors.email) }} sx={inputSx}
+          />
+        </Field>
+        <Field id={ids.telefone} label="WhatsApp (opcional)">
+          <InputBase
+            id={ids.telefone} type="tel" value={telefone} placeholder="(11) 99999-9999"
+            onChange={(e) => setTelefone(e.target.value)}
+            inputProps={{ maxLength: 20 }} sx={inputSx}
+          />
+        </Field>
+        <Field id={ids.perfil} label="Você é" required error={errors.perfil}>
+          <NativeSelect
+            value={perfil} error={!!errors.perfil}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) => setPerfil(e.target.value as PerfilWaitlist | "")}
+            input={<InputBase sx={inputSx} />}
+            inputProps={{ id: ids.perfil, ...describedBy(ids.perfil, errors.perfil) }}
+          >
+            <option value="" disabled>Selecione uma opção</option>
+            <option value="TREINADOR">Treinador</option>
+            <option value="ATLETA">Atleta</option>
+          </NativeSelect>
+        </Field>
 
         {perfil === "TREINADOR" && (
-          <TextField
-            type="number" label="Número de atletas" placeholder="Quantos atletas você acompanha?" value={qtdAtletasRaw}
-            onChange={(e) => setQtdAtletasRaw(e.target.value)}
-            error={!!errors.qtdAtletas} helperText={errors.qtdAtletas}
-            inputProps={{ min: 1 }} fullWidth size="medium"
-            sx={{ ...fieldSx(t), mt: 1.75 }}
-          />
+          <Field id={ids.qtd} label="Número de atletas" required error={errors.qtdAtletas}>
+            <InputBase
+              id={ids.qtd} type="number" value={qtdAtletasRaw} placeholder="Ex.: 12" error={!!errors.qtdAtletas}
+              onChange={(e) => setQtdAtletasRaw(e.target.value)}
+              inputProps={{ min: 1, ...describedBy(ids.qtd, errors.qtdAtletas) }} sx={inputSx}
+            />
+          </Field>
         )}
 
         {/* Último ponto de honestidade antes do envio: hoje só Garmin está integrado. */}
-        {showGarminReminder && (
-          <Typography sx={{ fontSize: 12.5, color: "text.secondary", lineHeight: 1.4, mt: 1.5 }}>
+        {!compact && (
+          <Typography sx={{ fontSize: 12.5, color: "text.secondary", lineHeight: 1.4 }}>
             {garminNotice.pre}
             <Box component="strong" sx={{ color: "text.primary" }}>{garminNotice.brand}</Box>
             {garminNotice.post}
@@ -171,72 +227,67 @@ export function AccessRequestForm({ header, onStatusChange, showGarminReminder =
         {/* Link fora do <label> de propósito: um <label> encaminha qualquer clique interno para o
             controle associado (o checkbox) — comportamento nativo do browser, não bug de React,
             e `stopPropagation` não resolve (mesmo padrão de CoachConsentDialog.tsx; ver CLAUDE.md
-            do front). A frase do checkbox fica autocontida, sem link embutido; o link vive numa
-            linha própria, sempre alinhado, nunca deslocado por onde o texto quebra. */}
-        <FormControlLabel
-          sx={{ mt: 1.5, alignItems: "flex-start" }}
-          control={
-            <Checkbox
-              checked={aceiteLgpd}
-              onChange={(e) => {
-                setAceiteLgpd(e.target.checked);
-                if (e.target.checked) {
-                  setErrors((prev) => {
-                    if (!prev.aceiteLgpd) return prev;
-                    const next = { ...prev };
-                    delete next.aceiteLgpd;
-                    return next;
-                  });
-                }
-              }}
-              disabled={submitting}
-              size="small"
-            />
-          }
-          label={
-            <Typography sx={{ color: "text.secondary", fontSize: 13 }}>
-              Concordo em receber comunicações do Menthoros sobre o acesso ao beta e com o uso dos meus dados pessoais.
+            do front). O link vive numa linha própria, alinhado ao texto do consentimento. */}
+        <Box sx={{ display: "flex", flexDirection: "column", gap: "4px", mt: "2px" }}>
+          <FormControlLabel
+            sx={{ m: 0, alignItems: "flex-start", gap: "9px" }}
+            control={
+              <Checkbox
+                checked={aceiteLgpd}
+                onChange={(e) => {
+                  setAceiteLgpd(e.target.checked);
+                  if (e.target.checked) {
+                    setErrors((prev) => {
+                      if (!prev.aceiteLgpd) return prev;
+                      const next = { ...prev };
+                      delete next.aceiteLgpd;
+                      return next;
+                    });
+                  }
+                }}
+                disabled={submitting}
+                size="small"
+                sx={{ p: 0, mt: "1px", "& .MuiSvgIcon-root": { fontSize: 18 } }}
+              />
+            }
+            label={
+              <Typography sx={{ color: "text.secondary", fontSize: 11.5, lineHeight: 1.45 }}>
+                Concordo em receber comunicações do Menthoros sobre o acesso ao beta e com o uso dos meus dados pessoais.
+              </Typography>
+            }
+          />
+          <Link component={RouterLink} to="/privacidade" underline="always" sx={{ fontSize: 11.5, ml: "27px", alignSelf: "flex-start" }}>
+            Ler a Política de Privacidade
+          </Link>
+          {errors.aceiteLgpd && (
+            <Typography sx={{ color: "error.main", fontFamily: monoFont, fontSize: 11.5, ml: "27px" }}>
+              {errors.aceiteLgpd}
             </Typography>
-          }
-        />
-        <Link component={RouterLink} to="/privacidade" underline="always" sx={{ fontSize: 13, display: "inline-block", ml: 4.5, mt: -.5 }}>
-          Ler a Política de Privacidade
-        </Link>
-        {errors.aceiteLgpd && (
-          <Typography sx={{ color: "error.main", fontFamily: monoFont, fontSize: 11.5, mt: .5 }}>
-            {errors.aceiteLgpd}
-          </Typography>
-        )}
+          )}
+        </Box>
 
         {status === "error" && (
-          <Typography role="alert" sx={{ color: "error.main", fontFamily: monoFont, fontSize: 12.5, mt: 1.5, textAlign: "center" }}>
+          <Typography role="alert" sx={{ color: "error.main", fontFamily: monoFont, fontSize: 12.5, textAlign: "center" }}>
             {error ?? "Não foi possível enviar agora. Tente novamente."}
           </Typography>
         )}
 
-        <Box sx={{ mt: 2.25 }}>
+        <Box sx={{ mt: "4px" }}>
           <CtaButton type="submit" fullWidth disabled={submitting}>
             {submitting ? "Enviando…" : "Solicitar acesso"}
           </CtaButton>
         </Box>
-        <Typography sx={{ fontFamily: monoFont, color: "text.secondary", fontSize: 11, mt: 1.75, textAlign: "center" }}>
-          Sem compromisso · 60 dias grátis, sem cartão · {founderOffer.vagas} vagas no programa fundador
-        </Typography>
-        <Typography sx={{ fontFamily: monoFont, color: "text.secondary", fontSize: 11, mt: .5, textAlign: "center" }}>
-          Continuidade mediante contratação, ao fim do teste
-        </Typography>
+        {!compact && (
+          <Box>
+            <Typography sx={{ fontFamily: monoFont, color: "text.secondary", fontSize: 11, textAlign: "center" }}>
+              Sem compromisso · 60 dias grátis, sem cartão · {founderOffer.vagas} vagas no programa fundador
+            </Typography>
+            <Typography sx={{ fontFamily: monoFont, color: "text.secondary", fontSize: 11, mt: .5, textAlign: "center" }}>
+              Continuidade mediante contratação, ao fim do teste
+            </Typography>
+          </Box>
+        )}
       </Box>
     </Box>
   );
 }
-
-const fieldSx = (t: Theme) => ({
-  "& .MuiOutlinedInput-root": {
-    bgcolor: "background.default",
-    borderRadius: "10px",
-    "& fieldset": { borderColor: t.palette.divider },
-    "&:hover fieldset": { borderColor: t.palette.divider },
-    "&.Mui-focused fieldset": { borderColor: t.palette.primary.main },
-  },
-  "& .MuiFormHelperText-root": { fontFamily: "'JetBrains Mono', monospace", fontSize: 12 },
-});
