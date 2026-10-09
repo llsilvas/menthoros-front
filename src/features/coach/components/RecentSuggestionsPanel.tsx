@@ -6,6 +6,7 @@ import {
   Chip,
   LinearProgress,
   Stack,
+  TextField,
   Typography,
 } from '@mui/material';
 import { SugestaoService } from '../../../api/services/SugestaoService';
@@ -13,7 +14,6 @@ import type { SugestaoCoachOutputDto } from '../../../types/SugestaoCoach';
 import type { SugestaoRecenteDto } from '../../../types/AtletaPerfilCoach';
 import { categorical, content, semantic, surface } from '../../../theme/tokens';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
-import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { DANGER_BTN_SX, GHOST_BTN_SX, SUCCESS_BTN_SX } from '../../../shared/components/actionButtonSx';
 import { useSugestaoDecisao } from '../hooks/useSugestaoDecisao';
 
@@ -89,6 +89,68 @@ function formatDateTime(dateIso: string): string {
 
 function formatSummaryType(tipo: string): string {
   return TIPO_LABELS[tipo] ?? tipo.replace(/_/g, ' ');
+}
+
+// ── Modal de rejeição (motivo opcional, add-coach-suggestion-decision-audit) ─────────────────
+
+interface RejeitarSugestaoModalProps {
+  open: boolean;
+  loading: boolean;
+  onClose: () => void;
+  onConfirm: (motivo: string | undefined) => void;
+}
+
+function RejeitarSugestaoModal({ open, loading, onClose, onConfirm }: RejeitarSugestaoModalProps) {
+  const [motivo, setMotivo] = useState('');
+
+  const handleConfirmar = () => {
+    const trimmed = motivo.trim();
+    onConfirm(trimmed.length > 0 ? trimmed : undefined);
+    setMotivo('');
+  };
+
+  const handleClose = () => {
+    if (loading) return;
+    setMotivo('');
+    onClose();
+  };
+
+  return (
+    <CoachDialog
+      open={open}
+      onClose={handleClose}
+      maxWidth="sm"
+      disableClose={loading}
+      title="Rejeitar sugestão"
+      actions={
+        <>
+          <Button variant="text" onClick={handleClose} disabled={loading} sx={GHOST_BTN_SX}>
+            Cancelar
+          </Button>
+          <Button variant="contained" onClick={handleConfirmar} disabled={loading} sx={DANGER_BTN_SX}>
+            Confirmar rejeição
+          </Button>
+        </>
+      }
+    >
+      <Typography sx={{ fontSize: '0.8rem', color: surface[400], mb: 1.5 }}>
+        Motivo da rejeição (opcional) — ajuda a saber se a IA errou na redação ou no mérito.
+      </Typography>
+      <TextField
+        autoFocus
+        fullWidth
+        multiline
+        rows={3}
+        label="Motivo"
+        value={motivo}
+        onChange={(e) => setMotivo(e.target.value)}
+        disabled={loading}
+        inputProps={{ maxLength: 500 }}
+        helperText={`${motivo.length}/500`}
+        sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.85rem' } }}
+      />
+    </CoachDialog>
+  );
 }
 
 export function RecentSuggestionsPanel({ sugestoes, onVerTodas, onDecisao }: RecentSuggestionsPanelProps) {
@@ -424,22 +486,40 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas, onDecisao }: Rec
                   </Typography>
                 </Box>
               ) : null}
+
+              {selected.status !== 'PENDING' && selected.reviewedBy ? (
+                <Box>
+                  <Typography sx={{ fontSize: '0.68rem', color: surface[400], textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                    Decidido por
+                  </Typography>
+                  <Typography sx={{ color: surface[50], fontWeight: 700 }}>
+                    {selected.reviewedBy}
+                  </Typography>
+                </Box>
+              ) : null}
+
+              {selected.status === 'REJECTED' && selected.rejectionReason ? (
+                <Box>
+                  <Typography sx={{ fontSize: '0.68rem', color: surface[400], textTransform: 'uppercase', letterSpacing: '0.08em', mb: 0.5 }}>
+                    Motivo da rejeição
+                  </Typography>
+                  <Typography sx={{ color: surface[100], lineHeight: 1.6 }}>
+                    {selected.rejectionReason}
+                  </Typography>
+                </Box>
+              ) : null}
             </Stack>
           ) : null}
       </CoachDialog>
 
-      <ConfirmDialog
+      <RejeitarSugestaoModal
         open={confirmRejeitarAberto}
-        title="Rejeitar sugestão"
-        message="Esta ação não pode ser desfeita pelo dialog — tem certeza que quer rejeitar esta sugestão?"
-        confirmLabel="Confirmar"
-        severity="danger"
         loading={deciding}
         onClose={() => setConfirmRejeitarAberto(false)}
-        onConfirm={() => {
+        onConfirm={(motivo) => {
           if (!selected) return;
           setConfirmRejeitarAberto(false);
-          void decidir(selected.id, 'rejeitar', (detail) => aplicarResultado(selected.id, detail));
+          void decidir(selected.id, 'rejeitar', (detail) => aplicarResultado(selected.id, detail), motivo);
         }}
       />
     </>

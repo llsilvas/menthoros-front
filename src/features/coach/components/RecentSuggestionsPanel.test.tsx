@@ -60,7 +60,7 @@ describe('RecentSuggestionsPanel — ações de decisão', () => {
     expect(onDecisao).toHaveBeenCalled();
   });
 
-  it('CA2: rejeitar pede confirmação (ação destrutiva) e só então reflete o novo status', async () => {
+  it('CA2: rejeitar sem motivo pede confirmação (ação destrutiva) e só então reflete o novo status', async () => {
     vi.mocked(SugestaoService.detalhe).mockResolvedValue(makeDetail());
     vi.mocked(SugestaoService.rejeitar).mockResolvedValue(makeDetail({ status: 'REJECTED' }));
     const onDecisao = vi.fn();
@@ -71,11 +71,25 @@ describe('RecentSuggestionsPanel — ações de decisão', () => {
     await userEvent.click(await screen.findByRole('button', { name: /^rejeitar$/i }));
     expect(SugestaoService.rejeitar).not.toHaveBeenCalled();
 
-    await userEvent.click(await screen.findByRole('button', { name: /confirmar/i }));
+    await userEvent.click(await screen.findByRole('button', { name: /confirmar rejeição/i }));
 
-    await waitFor(() => expect(SugestaoService.rejeitar).toHaveBeenCalledWith('s1'));
+    await waitFor(() => expect(SugestaoService.rejeitar).toHaveBeenCalledWith('s1', undefined));
     expect(await screen.findByText('Rejeitada')).toBeInTheDocument();
     expect(onDecisao).toHaveBeenCalled();
+  });
+
+  it('CA2 (motivo opcional, add-coach-suggestion-decision-audit): digitar motivo e confirmar repassa o texto', async () => {
+    vi.mocked(SugestaoService.detalhe).mockResolvedValue(makeDetail());
+    vi.mocked(SugestaoService.rejeitar).mockResolvedValue(makeDetail({ status: 'REJECTED' }));
+
+    await abrirDialog();
+    await userEvent.click(await screen.findByRole('button', { name: /^rejeitar$/i }));
+    await userEvent.type(await screen.findByLabelText(/motivo/i), 'volume alto demais para a semana');
+    await userEvent.click(await screen.findByRole('button', { name: /confirmar rejeição/i }));
+
+    await waitFor(() =>
+      expect(SugestaoService.rejeitar).toHaveBeenCalledWith('s1', 'volume alto demais para a semana'),
+    );
   });
 
   it('CA2b: cancelar a confirmação de rejeição não chama o serviço', async () => {
@@ -83,10 +97,12 @@ describe('RecentSuggestionsPanel — ações de decisão', () => {
 
     await abrirDialog();
     await userEvent.click(await screen.findByRole('button', { name: /^rejeitar$/i }));
-    await userEvent.click(await screen.findByRole('button', { name: /cancelar/i }));
+    await userEvent.click(await screen.findByRole('button', { name: /^cancelar$/i }));
 
     expect(SugestaoService.rejeitar).not.toHaveBeenCalled();
-    await waitFor(() => expect(screen.queryByRole('button', { name: /confirmar/i })).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: /confirmar rejeição/i })).not.toBeInTheDocument(),
+    );
   });
 
   it('CA3: resposta perdida após commit — reconsulta detalhe em vez de assumir PENDING', async () => {
@@ -160,6 +176,39 @@ describe('RecentSuggestionsPanel — ações de decisão', () => {
 
     resolveAprovar(makeDetail({ status: 'APPROVED' }));
     await waitFor(() => expect(SugestaoService.aprovar).toHaveBeenCalledTimes(1));
+  });
+
+  it('CA5 (add-coach-suggestion-decision-audit): sugestão REJECTED mostra quem decidiu e o motivo', async () => {
+    vi.mocked(SugestaoService.detalhe).mockResolvedValue(
+      makeDetail({ status: 'REJECTED', reviewedBy: 'tecnico-123', rejectionReason: 'volume alto demais' }),
+    );
+
+    await abrirDialog();
+
+    expect(await screen.findByText(/tecnico-123/)).toBeInTheDocument();
+    expect(screen.getByText('volume alto demais')).toBeInTheDocument();
+  });
+
+  it('CA5: sugestão APPROVED mostra quem decidiu, sem seção de motivo', async () => {
+    vi.mocked(SugestaoService.detalhe).mockResolvedValue(
+      makeDetail({ status: 'APPROVED', reviewedBy: 'tecnico-456' }),
+    );
+
+    await abrirDialog();
+
+    expect(await screen.findByText(/tecnico-456/)).toBeInTheDocument();
+    expect(screen.queryByText(/motivo da rejeição/i)).not.toBeInTheDocument();
+  });
+
+  it('CA5: sugestão REJECTED sem motivo mostra quem decidiu, sem seção de motivo', async () => {
+    vi.mocked(SugestaoService.detalhe).mockResolvedValue(
+      makeDetail({ status: 'REJECTED', reviewedBy: 'tecnico-789' }),
+    );
+
+    await abrirDialog();
+
+    expect(await screen.findByText(/tecnico-789/)).toBeInTheDocument();
+    expect(screen.queryByText(/motivo da rejeição/i)).not.toBeInTheDocument();
   });
 });
 
