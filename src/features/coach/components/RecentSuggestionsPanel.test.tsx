@@ -180,7 +180,7 @@ describe('RecentSuggestionsPanel — ações de decisão', () => {
 
   it('CA5 (add-coach-suggestion-decision-audit): sugestão REJECTED mostra quem decidiu e o motivo', async () => {
     vi.mocked(SugestaoService.detalhe).mockResolvedValue(
-      makeDetail({ status: 'REJECTED', reviewedBy: 'tecnico-123', motivoRejeicao: 'volume alto demais' }),
+      makeDetail({ status: 'REJECTED', reviewedBy: 'tecnico-123', rejectionReason: 'volume alto demais' }),
     );
 
     await abrirDialog();
@@ -197,6 +197,17 @@ describe('RecentSuggestionsPanel — ações de decisão', () => {
     await abrirDialog();
 
     expect(await screen.findByText(/tecnico-456/)).toBeInTheDocument();
+    expect(screen.queryByText(/motivo da rejeição/i)).not.toBeInTheDocument();
+  });
+
+  it('CA5: sugestão REJECTED sem motivo mostra quem decidiu, sem seção de motivo', async () => {
+    vi.mocked(SugestaoService.detalhe).mockResolvedValue(
+      makeDetail({ status: 'REJECTED', reviewedBy: 'tecnico-789' }),
+    );
+
+    await abrirDialog();
+
+    expect(await screen.findByText(/tecnico-789/)).toBeInTheDocument();
     expect(screen.queryByText(/motivo da rejeição/i)).not.toBeInTheDocument();
   });
 });

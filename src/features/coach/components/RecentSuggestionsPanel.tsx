@@ -498,13 +498,13 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas, onDecisao }: Rec
                 </Box>
               ) : null}
 
-              {selected.status === 'REJECTED' && selected.motivoRejeicao ? (
+              {selected.status === 'REJECTED' && selected.rejectionReason ? (
                 <Box>
                   <Typography sx={{ fontSize: '0.68rem', color: surface[400], textTransform: 'uppercase', letterSpacing: '0.08em', mb: 0.5 }}>
                     Motivo da rejeição
                   </Typography>
                   <Typography sx={{ color: surface[100], lineHeight: 1.6 }}>
-                    {selected.motivoRejeicao}
+                    {selected.rejectionReason}
                   </Typography>
                 </Box>
               ) : null}

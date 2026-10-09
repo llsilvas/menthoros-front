@@ -26,7 +26,7 @@ export interface SugestaoCoachOutputDto {
     /** Usuario.id de quem decidiu — preenchido após aprovação ou rejeição. */
     reviewedBy?: string;
     /** Motivo da rejeição (opcional); null/ausente se PENDING, APPROVED, ou rejeitada sem motivo. */
-    motivoRejeicao?: string;
+    rejectionReason?: string;
     /** Null = sem expiração; job preenche com createdAt + 7 dias. */
     expiresAt?: string;
 }

@@ -61,19 +61,19 @@ export class SugestaoService {
     }
 
     /**
-     * Rejeita uma sugestão PENDING (PENDING → REJECTED). `motivoRejeicao` é opcional.
+     * Rejeita uma sugestão PENDING (PENDING → REJECTED). `rejectionReason` é opcional.
      * Re-rejeitar já-REJECTED é no-op. APPROVED → REJECTED lança 422.
      * @param id UUID da sugestão
-     * @param motivoRejeicao motivo opcional da rejeição (máx. 500 caracteres)
+     * @param rejectionReason motivo opcional da rejeição (máx. 500 caracteres)
      * @returns sugestão atualizada
      * @throws ApiError
      */
-    public static rejeitar(id: string, motivoRejeicao?: string): CancelablePromise<SugestaoCoachOutputDto> {
+    public static rejeitar(id: string, rejectionReason?: string): CancelablePromise<SugestaoCoachOutputDto> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v1/coach/sugestoes/{id}/rejeitar',
             path: { 'id': id },
-            body: motivoRejeicao ? { motivoRejeicao } : undefined,
+            body: rejectionReason ? { rejectionReason } : undefined,
             mediaType: 'application/json',
             errors: {
                 404: 'Sugestão não encontrada',
