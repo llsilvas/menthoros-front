@@ -1,9 +1,12 @@
 /* Landing copy centralizado — edite a mensagem aqui, sem tocar nos componentes. */
 
-// Fonte única do número de vagas do programa fundador. Ainda é um valor fixo — o contador
-// dinâmico (ligado ao backend) depende de um endpoint que não existe hoje (FE-04/BE-04 da spec
-// de conversão do Instagram, 2026-10-08). Até lá, pelo menos as ~6 ocorrências que existiam como
-// string solta passam a ler daqui, então mudar o número é uma edição só.
+// Valor fixo de fallback. O badge da home (FounderOfferCard) e o cabeçalho do formulário em
+// /waitlist já saíram daqui — leem GET /api/v1/founders/slots ao vivo via `useFoundersSlots` +
+// `foundersSlotsLabel` (add-founders-slots-display, FE-04). Esta constante resta só para as
+// menções em prosa corrida que continuam estáticas de propósito (Non-Goal da FE-04):
+// `hero.scarcity`, `finalCta.sub`, a resposta do FAQ "Quanto custa?" e o rodapé de
+// `AccessRequestForm.tsx` — refazer essas frases para `N de T` dinâmico é follow-up, não escopo
+// desta change.
 const VAGAS_PROGRAMA_FUNDADOR = 10;
 
 export const nav = {
@@ -45,7 +48,6 @@ export const garminNotice = {
 
 export const founderOffer = {
   vagas: VAGAS_PROGRAMA_FUNDADOR,
-  badge: `Programa fundador · ${VAGAS_PROGRAMA_FUNDADOR} vagas`,
   trialLine: "Experimente o Menthoros por 60 dias grátis, sem cartão.",
   // "durante o teste" fica deliberadamente sem número — a capacidade dos 60 dias depende de D-02,
   // não é a mesma coisa que o limite do Basic (que só vale depois).

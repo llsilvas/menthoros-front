@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { Box, Paper, ThemeProvider, Typography } from '@mui/material';
 import { AccessRequestForm } from '../../landing/AccessRequestForm';
 import { ValueProposition } from '../../landing/ValueProposition';
-import { founderOffer } from '../../landing/content';
+import { foundersSlotsLabel } from '../../landing/foundersSlotsCopy';
 import { QueuePreview } from '../../landing/ProductUI';
 import landingTheme from '../../theme/landingTheme';
 import { radius, surface } from '../../theme/theme.premium';
+import { useFoundersSlots } from '../../hooks/useFoundersSlots';
 import type { WaitlistStatus } from '../../hooks/useWaitlist';
 
 /**
@@ -21,6 +22,12 @@ import type { WaitlistStatus } from '../../hooks/useWaitlist';
 export default function WaitlistPage() {
   const [status, setStatus] = useState<WaitlistStatus>('idle');
   const concluido = status === 'success';
+  const slots = useFoundersSlots();
+  const tituloVagas = foundersSlotsLabel(slots, {
+    baseLabel: 'Turma fundadora',
+    openLabel: 'Turma fundadora — Restam {remaining} de {total} vagas',
+    closedLabel: 'Lista de espera — próxima turma',
+  });
 
   return (
     <ThemeProvider theme={landingTheme}>
@@ -75,8 +82,7 @@ export default function WaitlistPage() {
                       component="h2"
                       sx={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 700, color: 'text.primary', mb: '4px' }}
                     >
-                      Turma fundadora —{' '}
-                      <Box component="span" sx={{ color: 'primary.main' }}>{founderOffer.vagas}</Box> vagas
+                      {tituloVagas}
                     </Typography>
                     <Typography sx={{ fontSize: 12.5, lineHeight: 1.5, color: 'text.secondary' }}>
                       Treinadores testando o Menthoros antes do lançamento. Preencha para reservar a sua.
