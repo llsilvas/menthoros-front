@@ -185,12 +185,16 @@ export const valueProposition = {
 
 // FE-05: a mensagem de sucesso do formulário único (AccessRequestForm.tsx) varia por perfil — um
 // atleta não é quem decide a adoção, então o pedimos para indicar o treinador em vez de prometer
-// contato. A variante por marca de relógio (Garmin x outra) descrita na spec depende do campo
-// "relógio predominante", que ainda não existe no contrato do backend — ver nota na PR.
+// contato. A variante `outraMarca` cobre o segmento OTHER_BRAND (treinador/proprietário com
+// relógio diferente de Garmin), derivado pelo backend a partir do campo "relógio predominante".
 export const accessSuccess = {
   treinador: {
     title: "Você está na fila!",
     body: "Você entrou na fila da turma fundadora. Entramos em contato em breve pelo email informado.",
+  },
+  outraMarca: {
+    title: "Você está na fila!",
+    body: "Hoje o Menthoros só lê dados de relógios Garmin. Você entrou na fila da turma fundadora e vamos avisar assim que a sua marca for suportada.",
   },
   atleta: {
     title: "Avisa seu treinador?",
