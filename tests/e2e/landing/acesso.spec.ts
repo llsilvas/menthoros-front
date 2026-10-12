@@ -61,6 +61,27 @@ test.describe('Formulário de acesso (programa fundador)', () => {
     expect(corpoEnviado.aceiteLgpd).toBe(true)
   })
 
+  test('envia proprietário com relógio e mostra a confirmação de outra marca (segment OTHER_BRAND)', async ({ page }) => {
+    let corpoEnviado: Record<string, unknown> = {}
+    await page.route(ROTA_DA_API, async (route) => {
+      corpoEnviado = route.request().postDataJSON() as Record<string, unknown>
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ status: 'CRIADO', mensagem: 'ok', segment: 'OTHER_BRAND' }) })
+    })
+
+    await page.goto(LANDING)
+    await page.getByLabel('Nome').fill('Carla Proprietária')
+    await page.getByLabel('E-mail').fill('carla@exemplo.com')
+    await page.getByRole('combobox', { name: 'Você é' }).selectOption('PROPRIETARIO')
+    await page.getByLabel('Número de atletas').fill('40')
+    await page.getByRole('combobox', { name: 'Relógio predominante dos atletas' }).selectOption('COROS')
+    await page.getByRole('checkbox').check()
+    await page.locator('button[type=submit]').click()
+
+    expect(corpoEnviado.perfil).toBe('PROPRIETARIO')
+    expect(corpoEnviado.watchBrand).toBe('COROS')
+    await expect(page.getByText(/só lê dados de relógios garmin/i)).toBeVisible()
+  })
+
   test('o link da Política de Privacidade navega — não alterna o checkbox', async ({ page }) => {
     let chamou = false
     await page.route(ROTA_DA_API, () => { chamou = true })

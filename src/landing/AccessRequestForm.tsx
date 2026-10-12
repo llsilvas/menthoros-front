@@ -2,12 +2,11 @@ import { useEffect, useId, useState, type ChangeEvent, type FormEvent, type Reac
 import { Box, Button, Checkbox, FormControlLabel, InputBase, Link, NativeSelect, Typography, useTheme } from "@mui/material";
 import { Link as RouterLink } from "react-router";
 import { CtaButton, monoFont } from "./primitives";
-import { faixaDeAtletas } from "./athleteRange";
-import { validate, type AccessFormErrors } from "./accessFormValidation";
+import { buildWaitlistPayload, resolveSuccessContent, validate, type AccessFormErrors } from "./accessFormValidation";
 import { getUtmForSubmission } from "./utmPersistence";
 import { accessSuccess, founderOffer, garminNotice } from "./content";
 import { useWaitlist, type WaitlistStatus } from "../hooks/useWaitlist";
-import type { PerfilWaitlist, WaitlistInput } from "../types/Waitlist";
+import { isTreinadorOuProprietario, type PerfilWaitlist, type WatchBrand } from "../types/Waitlist";
 import { radius, surface, surfaceShift } from "../theme/theme.premium";
 
 export interface AccessRequestFormProps {
@@ -75,18 +74,12 @@ function Field({ id, label, required, error, children }: FieldProps) {
  * formulários com campos e texto de botão divergentes (`AccessForm.tsx` x o form inline de
  * `WaitlistPage.tsx`); este componente é a fonte única. Visual segue o artboard "Formulário" do
  * protótipo aprovado: rótulo acima de campo compacto, seleção nativa.
- *
- * Fora do escopo desta rodada, por dependerem de coordenação com o backend (contrato de
- * `WaitlistInput`/`PerfilWaitlist` não suporta hoje — ver CLAUDE.md "Campo de DTO em português"
- * sobre não mudar contrato só pelo front): o valor "dono de assessoria" de "Você é" (só
- * TREINADOR/ATLETA existem) e o campo "Relógio predominante dos atletas". Quando o backend
- * adotar os dois, a variante de sucesso "outra marca" de FE-05 também fica possível.
  */
 export function AccessRequestForm({ header, onStatusChange, compact = false }: AccessRequestFormProps) {
   const t = useTheme();
-  const { status, error, inscrever } = useWaitlist();
+  const { status, error, segment, inscrever } = useWaitlist();
   const uid = useId();
-  const ids = { nome: `${uid}-nome`, email: `${uid}-email`, telefone: `${uid}-telefone`, perfil: `${uid}-perfil`, qtd: `${uid}-qtd` };
+  const ids = { nome: `${uid}-nome`, email: `${uid}-email`, telefone: `${uid}-telefone`, perfil: `${uid}-perfil`, qtd: `${uid}-qtd`, relogio: `${uid}-relogio` };
 
   useEffect(() => {
     onStatusChange?.(status);
@@ -97,6 +90,7 @@ export function AccessRequestForm({ header, onStatusChange, compact = false }: A
   const [telefone, setTelefone] = useState("");
   const [perfil, setPerfil] = useState<PerfilWaitlist | "">("");
   const [qtdAtletasRaw, setQtdAtletasRaw] = useState("");
+  const [watchBrand, setWatchBrand] = useState<WatchBrand | "">("");
   const [aceiteLgpd, setAceiteLgpd] = useState(false);
   const [website, setWebsite] = useState(""); // honeypot
   const [errors, setErrors] = useState<AccessFormErrors>({});
@@ -111,16 +105,10 @@ export function AccessRequestForm({ header, onStatusChange, compact = false }: A
     setErrors(next);
     if (Object.keys(next).length) return;
 
-    const payload: WaitlistInput = {
-      nome: nome.trim(),
-      email: email.trim(),
-      telefone: telefone.trim() || undefined,
-      perfil: perfil as PerfilWaitlist,
-      qtdAtletas: perfil === "TREINADOR" ? faixaDeAtletas(Number(qtdAtletasRaw)) : undefined,
-      aceiteLgpd,
-      website: website || undefined,
-      ...getUtmForSubmission(),
-    };
+    const payload = buildWaitlistPayload(
+      { nome, email, telefone, perfil, qtdAtletasRaw, watchBrand, aceiteLgpd, website },
+      getUtmForSubmission(),
+    );
     inscrever(payload);
   };
 
@@ -139,7 +127,7 @@ export function AccessRequestForm({ header, onStatusChange, compact = false }: A
   const describedBy = (id: string, err?: string) => (err ? { "aria-describedby": `${id}-erro` } : {});
 
   if (status === "success") {
-    const sucesso = perfilEnviado === "ATLETA" ? accessSuccess.atleta : accessSuccess.treinador;
+    const sucesso = resolveSuccessContent(perfilEnviado as PerfilWaitlist, segment);
     const frame = compact
       ? { py: 2 }
       : { bgcolor: "background.paper", border: `1px solid ${t.palette.divider}`, borderRadius: radius.outer, p: 4, maxWidth: 460, mx: "auto" };
@@ -193,17 +181,36 @@ export function AccessRequestForm({ header, onStatusChange, compact = false }: A
           >
             <option value="" disabled>Selecione uma opção</option>
             <option value="TREINADOR">Treinador</option>
+            <option value="PROPRIETARIO">Dono de assessoria</option>
             <option value="ATLETA">Atleta</option>
           </NativeSelect>
         </Field>
 
-        {perfil === "TREINADOR" && (
+        {isTreinadorOuProprietario(perfil) && (
           <Field id={ids.qtd} label="Número de atletas" required error={errors.qtdAtletas}>
             <InputBase
               id={ids.qtd} type="number" value={qtdAtletasRaw} placeholder="Ex.: 12" error={!!errors.qtdAtletas}
               onChange={(e) => setQtdAtletasRaw(e.target.value)}
               inputProps={{ min: 1, ...describedBy(ids.qtd, errors.qtdAtletas) }} sx={inputSx}
             />
+          </Field>
+        )}
+
+        {isTreinadorOuProprietario(perfil) && (
+          <Field id={ids.relogio} label="Relógio predominante dos atletas">
+            <NativeSelect
+              value={watchBrand}
+              onChange={(e: ChangeEvent<HTMLSelectElement>) => setWatchBrand(e.target.value as WatchBrand | "")}
+              input={<InputBase sx={inputSx} />}
+              inputProps={{ id: ids.relogio }}
+            >
+              <option value="">Não sei</option>
+              <option value="GARMIN">Garmin</option>
+              <option value="COROS">Coros</option>
+              <option value="POLAR">Polar</option>
+              <option value="APPLE">Apple</option>
+              <option value="OTHER">Outra</option>
+            </NativeSelect>
           </Field>
         )}
 
