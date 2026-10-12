@@ -1,22 +1,25 @@
 import { useCallback, useState } from 'react';
 import { WaitlistError, WaitlistService } from '../services/WaitlistService';
-import type { WaitlistInput } from '../types/Waitlist';
+import type { WaitlistInput, WaitlistSegment } from '../types/Waitlist';
 
 export type WaitlistStatus = 'idle' | 'submitting' | 'success' | 'error';
 
 /**
- * Gerencia o envio da inscrição na waitlist, expondo estado e mensagem de erro.
+ * Gerencia o envio da inscrição na waitlist, expondo estado, mensagem de erro e o segmento
+ * derivado pelo backend na resposta (para a tela de sucesso escolher a variante certa).
  * Os valores do formulário permanecem na página em caso de erro (o hook não os toca).
  */
 export function useWaitlist() {
   const [status, setStatus] = useState<WaitlistStatus>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [segment, setSegment] = useState<WaitlistSegment | undefined>(undefined);
 
   const inscrever = useCallback(async (input: WaitlistInput) => {
     setStatus('submitting');
     setError(null);
     try {
-      await WaitlistService.inscrever(input);
+      const result = await WaitlistService.inscrever(input);
+      setSegment(result.segment);
       setStatus('success');
     } catch (e) {
       setStatus('error');
@@ -24,7 +27,7 @@ export function useWaitlist() {
     }
   }, []);
 
-  return { status, error, inscrever };
+  return { status, error, segment, inscrever };
 }
 
 function mensagemErro(e: unknown): string {
