@@ -31,6 +31,11 @@ function GuiaDaMarca({ item }: { item: WatchCompatibility }) {
                 size="small"
                 sx={{ alignSelf: 'flex-start', color: cor, bgcolor: `${cor}1F`, border: `1px solid ${cor}4D` }}
             />
+            {item.posicionamento === 'EM_VALIDACAO' && (
+                <Typography sx={{ color: surface[300], fontSize: '0.85rem' }}>
+                    Estamos validando com atletas; se o treino não chegar, avise seu treinador.
+                </Typography>
+            )}
             <Box component="ol" sx={{ m: 0, pl: 2.5, color: surface[200], fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                 {item.passos.map((passo) => (
                     <li key={passo}>{passo}</li>
@@ -53,6 +58,11 @@ function GuiaDaMarca({ item }: { item: WatchCompatibility }) {
                         </span>
                     ))}
                 </Typography>
+            )}
+            {item.docOficialUrl && (
+                <Link href={item.docOficialUrl} target="_blank" rel="noopener noreferrer" sx={{ fontSize: '0.85rem' }}>
+                    Documentação no intervals.icu
+                </Link>
             )}
             <Typography sx={{ color: surface[500], fontSize: '0.75rem' }}>
                 Informações de {formatarVerificadoEm(item.verificadoEm)}

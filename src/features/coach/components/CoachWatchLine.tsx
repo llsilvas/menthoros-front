@@ -13,7 +13,7 @@ export interface CoachWatchLineProps {
 }
 
 /** Posicionamentos em que o treino não chega direto ao relógio: viram Alert, não texto corrido. */
-const COM_ALERTA = new Set(['COMPATIVEL_VIA_APP']);
+const COM_ALERTA = new Set(['COMPATIVEL_VIA_APP', 'PARCIAL_POR_MODELO', 'SO_TREINO_REALIZADO']);
 
 /**
  * Linha "Relógio" do cabeçalho do atleta para o treinador. A frase é condicional de propósito: a

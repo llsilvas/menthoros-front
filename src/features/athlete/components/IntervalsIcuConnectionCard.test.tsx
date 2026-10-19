@@ -198,7 +198,7 @@ describe('IntervalsIcuConnectionCard', () => {
 
     render(<IntervalsIcuConnectionCard />);
 
-    expect(screen.getByText('Compatível via app parceiro')).toBeInTheDocument();
+    expect(screen.getAllByText('Compatível via app parceiro')[0]).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /conectar com intervals\.icu/i })).toBeEnabled();
   });
 

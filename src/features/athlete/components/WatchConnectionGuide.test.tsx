@@ -7,8 +7,8 @@ describe('WatchConnectionGuide', () => {
   it('Apple: rótulo "Compatível via app parceiro", nomeia os apps e nunca diz "suportado"', () => {
     render(<WatchConnectionGuide marcaAtual="APPLE" conectado={false} />);
 
-    // Escopo na seção da Apple: a entrada do Garmin, no acordeão, legitimamente diz "Suportado".
-    const secaoApple = screen.getByText('Compatível via app parceiro').parentElement!;
+    // A marca do atleta renderiza antes do acordeão, que repete o rótulo (Samsung) e diz "Suportado" (Garmin).
+    const secaoApple = screen.getAllByText('Compatível via app parceiro')[0].parentElement!;
     expect(screen.getByRole('link', { name: 'Intervals.icu Companion' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Watchletic' })).toBeInTheDocument();
     expect(screen.getByText(/não envia treino direto ao Apple Watch/i)).toBeInTheDocument();
@@ -37,14 +37,32 @@ describe('WatchConnectionGuide', () => {
     render(<WatchConnectionGuide conectado={false} />);
 
     expect(screen.getByText(/Informe seu relógio no onboarding/)).toBeInTheDocument();
-    expect(screen.queryByText('Compatível via app parceiro')).not.toBeVisible();
+    screen.getAllByText('Compatível via app parceiro').forEach((chip) => expect(chip).not.toBeVisible());
   });
 
-  it('marca sem entrada na matriz cai em "Ainda não coberto", sem promessa', () => {
+  it('marca não coberta fica em "Ainda não coberto", sem promessa', () => {
+    render(<WatchConnectionGuide marcaAtual="SUUNTO" conectado={false} />);
+
+    expect(screen.getAllByText('Ainda não coberto')[0]).toBeVisible();
+    expect(screen.getAllByText(/procure a marca do seu relógio/)[0]).toBeVisible();
+  });
+
+  it('COROS em validação: avisa que a marca está sendo validada e linka a doc oficial', () => {
+    render(<WatchConnectionGuide marcaAtual="COROS" conectado={false} />);
+
+    expect(screen.getByText('Em validação')).toBeVisible();
+    expect(screen.getByText(/Estamos validando com atletas; se o treino não chegar, avise seu treinador/)).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Documentação no intervals.icu' })).toHaveAttribute(
+      'href',
+      'https://forum.intervals.icu/t/coros-support-added/37006',
+    );
+  });
+
+  it('Polar: "Só treino realizado" e o aviso de que o treino planejado não chega', () => {
     render(<WatchConnectionGuide marcaAtual="POLAR" conectado={false} />);
 
-    expect(screen.getByText('Ainda não coberto')).toBeInTheDocument();
-    expect(screen.getByText(/procure a marca do seu relógio/)).toBeInTheDocument();
+    expect(screen.getByText('Só treino realizado')).toBeVisible();
+    expect(screen.getByText(/treino planejado não chega ao relógio/)).toBeVisible();
   });
 
   it('frase de contexto muda com a conexão', () => {
@@ -59,6 +77,6 @@ describe('WatchConnectionGuide', () => {
     render(<WatchConnectionGuide marcaAtual="APPLE" conectado={false} modoLeitura />);
 
     expect(screen.queryByText(/Antes de conectar/)).not.toBeInTheDocument();
-    expect(screen.getByText('Compatível via app parceiro')).toBeInTheDocument();
+    expect(screen.getAllByText('Compatível via app parceiro')[0]).toBeInTheDocument();
   });
 });
