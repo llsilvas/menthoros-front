@@ -147,6 +147,11 @@ export interface AtletaPerfilCoachDto {
     distanceSummary?: DistanceSummaryDto | null;
     /** Ausente sem treino devido na janela (D6) ou em backend anterior ao campo. */
     aderencia4Semanas?: Aderencia4SemanasDto | null;
+    /**
+     * Relógio informado no onboarding (marca informada, não confirmada). Ausente sem perfil, sem marca,
+     * em backend anterior ao campo ou quando a consulta falha (`avisos` traz "relogio").
+     */
+    relogio?: { marca: string; modelo?: string | null } | null;
 }
 
 /** Treino realizado recente, com feedback do atleta quando registrado (athlete-training-loop, D3). */

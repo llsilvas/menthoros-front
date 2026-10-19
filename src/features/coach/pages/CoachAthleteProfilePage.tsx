@@ -39,6 +39,7 @@ import { useEnviarKudos } from '../../../hooks/useEnviarKudos';
 import { useCoachAthleteRaces } from '../hooks/useCoachAthleteRaces';
 import { AthleteRacesPanel } from '../components/AthleteRacesPanel';
 import { CobrancaAtletaSection } from '../components/CobrancaAtletaSection';
+import { CoachWatchLine } from '../components/CoachWatchLine';
 import { useUserInfo } from '../../../hooks/useUserInfo';
 import { buildCoachRaceList } from '../adapters/coachRaceAdapters';
 import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
@@ -195,6 +196,7 @@ export default function CoachAthleteProfilePage() {
                                 })()}
                             </Box>
                         )}
+                        <CoachWatchLine relogio={profile.relogio} avisos={profile.avisos} />
                     </Box>
                     <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
                         <Button
