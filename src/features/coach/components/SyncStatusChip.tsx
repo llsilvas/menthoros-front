@@ -35,9 +35,9 @@ function resolveVisual(statusSincronizacao?: string, atletaConectado?: boolean):
 
     if (statusSincronizacao && STATUS_SUCESSO.has(statusSincronizacao)) {
         return {
-            label: 'No relógio',
+            label: 'No intervals.icu',
             color: semantic.success[500],
-            tooltip: 'Enviado ao intervals.icu/Garmin',
+            tooltip: 'Enviado ao intervals.icu',
         };
     }
 

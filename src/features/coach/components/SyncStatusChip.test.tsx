@@ -6,8 +6,8 @@ import { SyncStatusChip } from './SyncStatusChip';
 describe('SyncStatusChip', () => {
     describe.each([
         // [statusSincronizacao, atletaConectado, textoEsperado]
-        ['SINCRONIZADO', true, 'No relógio'],
-        ['SINCRONIZADO_PARCIAL', true, 'No relógio'],
+        ['SINCRONIZADO', true, 'No intervals.icu'],
+        ['SINCRONIZADO_PARCIAL', true, 'No intervals.icu'],
         ['ERRO_TEMPORARIO', true, 'Erro no envio'],
         ['ERRO_AUTENTICACAO', true, 'Erro no envio'],
         ['ERRO_VALIDACAO', true, 'Erro no envio'],
@@ -28,16 +28,16 @@ describe('SyncStatusChip', () => {
         });
     });
 
-    it('SINCRONIZADO → tooltip "Enviado ao intervals.icu/Garmin"', async () => {
+    it('SINCRONIZADO → tooltip "Enviado ao intervals.icu"', async () => {
         render(<SyncStatusChip statusSincronizacao="SINCRONIZADO" atletaConectado />);
-        await userEvent.hover(screen.getByText('No relógio'));
-        expect(await screen.findByRole('tooltip')).toHaveTextContent('Enviado ao intervals.icu/Garmin');
+        await userEvent.hover(screen.getByText('No intervals.icu'));
+        expect(await screen.findByRole('tooltip')).toHaveTextContent('Enviado ao intervals.icu');
     });
 
-    it('SINCRONIZADO_PARCIAL → tooltip "Enviado ao intervals.icu/Garmin"', async () => {
+    it('SINCRONIZADO_PARCIAL → tooltip "Enviado ao intervals.icu"', async () => {
         render(<SyncStatusChip statusSincronizacao="SINCRONIZADO_PARCIAL" atletaConectado />);
-        await userEvent.hover(screen.getByText('No relógio'));
-        expect(await screen.findByRole('tooltip')).toHaveTextContent('Enviado ao intervals.icu/Garmin');
+        await userEvent.hover(screen.getByText('No intervals.icu'));
+        expect(await screen.findByRole('tooltip')).toHaveTextContent('Enviado ao intervals.icu');
     });
 
     it.each(['NAO_SINCRONIZADO', 'PENDENTE', 'SINCRONIZANDO', 'AGUARDANDO_RETRY'])(
@@ -63,7 +63,7 @@ describe('SyncStatusChip', () => {
     it('atletaConectado=false vence QUALQUER status (precedência)', () => {
         render(<SyncStatusChip statusSincronizacao="SINCRONIZADO" atletaConectado={false} />);
         expect(screen.getByText('Não conectado')).toBeInTheDocument();
-        expect(screen.queryByText('No relógio')).not.toBeInTheDocument();
+        expect(screen.queryByText('No intervals.icu')).not.toBeInTheDocument();
     });
 
     it('atletaConectado=false com status de erro também vence', () => {

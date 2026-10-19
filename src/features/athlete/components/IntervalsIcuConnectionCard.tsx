@@ -5,6 +5,8 @@ import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useIntervalsIcuConnection } from '../../../hooks/features/useIntervalsIcuConnection';
 import { useIntervalsIcuCallbackResult } from '../../../hooks/features/useIntervalsIcuCallbackResult';
+import { useAthleteWatchBrand } from '../hooks/useAthleteWatchBrand';
+import { WatchConnectionGuide } from './WatchConnectionGuide';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { Card } from '../../../shared/components/Card';
 import { primary, surface, semantic } from '../../../theme/tokens';
@@ -23,6 +25,8 @@ export function IntervalsIcuConnectionCard() {
   const { status, loading, error, connect, disconnect, refresh } = useIntervalsIcuConnection();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const resultadoCallback = useIntervalsIcuCallbackResult();
+  // Falha ao ler a marca não bloqueia a conexão: o guia cai no modo "informe seu relógio".
+  const { marca } = useAthleteWatchBrand();
 
   const conectado = status?.conectado ?? false;
 
@@ -148,6 +152,8 @@ export function IntervalsIcuConnectionCard() {
           </Box>
         </>
       )}
+
+      <WatchConnectionGuide marcaAtual={marca} conectado={conectado} />
     </Card>
   );
 }

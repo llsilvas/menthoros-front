@@ -4,14 +4,17 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { IntervalsIcuConnectionCard } from './IntervalsIcuConnectionCard';
 import * as useIntervalsIcuConnectionHook from '../../../hooks/features/useIntervalsIcuConnection';
 import { useIntervalsIcuCallbackResult } from '../../../hooks/features/useIntervalsIcuCallbackResult';
+import { useAthleteWatchBrand } from '../hooks/useAthleteWatchBrand';
 
 vi.mock('../../../hooks/features/useIntervalsIcuConnection');
 vi.mock('../../../hooks/features/useIntervalsIcuCallbackResult');
+vi.mock('../hooks/useAthleteWatchBrand');
 
 const mockConnect = vi.fn();
 const mockDisconnect = vi.fn();
 const mockRefresh = vi.fn();
 const mockCallbackResult = vi.mocked(useIntervalsIcuCallbackResult);
+const mockWatchBrand = vi.mocked(useAthleteWatchBrand);
 
 function stubHook(overrides: Partial<ReturnType<typeof useIntervalsIcuConnectionHook.useIntervalsIcuConnection>> = {}) {
   vi.mocked(useIntervalsIcuConnectionHook.useIntervalsIcuConnection).mockReturnValue({
@@ -30,6 +33,7 @@ describe('IntervalsIcuConnectionCard', () => {
     vi.clearAllMocks();
     // Sem retorno de callback é o estado normal da tela; os testes do retorno sobrescrevem.
     mockCallbackResult.mockReturnValue(null);
+    mockWatchBrand.mockReturnValue({ marca: undefined, modelo: undefined, loading: false, error: null });
   });
 
   // O fluxo de API key foi removido: conectar agora é um clique que leva ao consentimento no
@@ -61,7 +65,8 @@ describe('IntervalsIcuConnectionCard', () => {
 
     render(<IntervalsIcuConnectionCard />);
 
-    expect(screen.getByRole('button')).toBeDisabled();
+    // Carregando, o botão mostra só o spinner (sem nome acessível); o acordeão do guia tem nome.
+    expect(screen.getByRole('button', { name: '' })).toBeDisabled();
   });
 
   it('exibe a mensagem de erro do hook em um Alert de erro (nunca texto genérico)', () => {
@@ -185,5 +190,24 @@ describe('IntervalsIcuConnectionCard', () => {
     await user.click(screen.getByRole('button', { name: /confirmar/i }));
 
     await waitFor(() => expect(mockDisconnect).toHaveBeenCalledOnce());
+  });
+
+  it('mostra o guia da marca do perfil, ao lado do botão de conectar', () => {
+    mockWatchBrand.mockReturnValue({ marca: 'APPLE', modelo: undefined, loading: false, error: null });
+    stubHook({ status: { conectado: false } });
+
+    render(<IntervalsIcuConnectionCard />);
+
+    expect(screen.getByText('Compatível via app parceiro')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /conectar com intervals\.icu/i })).toBeEnabled();
+  });
+
+  it('sem marca no perfil, o guia pede para informar o relógio e a conexão segue disponível', () => {
+    stubHook({ status: { conectado: false } });
+
+    render(<IntervalsIcuConnectionCard />);
+
+    expect(screen.getByText(/Informe seu relógio no onboarding/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /conectar com intervals\.icu/i })).toBeEnabled();
   });
 });
