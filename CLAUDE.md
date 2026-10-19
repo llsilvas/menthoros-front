@@ -19,7 +19,7 @@ When instructions conflict, follow this order:
 
 - **Language/Build:** TypeScript ~5.8, Vite 7, ESLint 9 (flat config).
 - **UI:** React 19 + MUI 7 (`@mui/material`, `@mui/icons-material`, `@mui/x-data-grid`) with Emotion (`@emotion/react`, `@emotion/styled`). **There is no Tailwind** — never add Tailwind classes or utilities.
-- **Routing:** `react-router-dom` 7, via **`createHashRouter`** (`App.tsx`) — routes live after the `#` (`/#/privacidade`). See **Routing Standards**.
+- **Routing:** `react-router` 7, via **`createHashRouter`** (`App.tsx`) — routes live after the `#` (`/#/privacidade`). See **Routing Standards**.
 - **HTTP:** `axios`, consumed through an **OpenAPI-generated client** in `src/api` (no React Query / SWR).
 - **State:** React Context + custom hooks. **No Redux / Zustand** — do not introduce a global state library without an explicit change scope.
 - **Charts/Dates:** `recharts`, `date-fns`.
