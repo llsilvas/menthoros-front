@@ -326,7 +326,7 @@ describe('RecentSuggestionsPanel — edição e delta', () => {
     await userEvent.type(dialog.getByLabelText('Texto da sugestão'), ' mais');
     await userEvent.click(dialog.getByRole('button', { name: /^salvar$/i }));
 
-    expect(await dialog.findByText(/Não foi possível decidir/i)).toBeInTheDocument();
+    expect(await dialog.findByText(/Não foi possível salvar a edição/i)).toBeInTheDocument();
     expect(dialog.getByLabelText('Texto da sugestão')).toHaveValue('Reduzir volume em 20% mais');
   });
 });

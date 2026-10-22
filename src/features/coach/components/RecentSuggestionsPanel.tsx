@@ -96,7 +96,12 @@ function formatSummaryType(tipo: string): string {
 
 const SUMMARY_MAX_LENGTH = 500;
 
-function DiffText({ tokens, hide }: { tokens: DiffToken[]; hide: DiffToken['type'] }) {
+interface DiffTextProps {
+  tokens: DiffToken[];
+  hide: DiffToken['type'];
+}
+
+function DiffText({ tokens, hide }: DiffTextProps) {
   return (
     <>
       {tokens
@@ -121,7 +126,12 @@ function DiffText({ tokens, hide }: { tokens: DiffToken[]; hide: DiffToken['type
 }
 
 /** Original da IA × texto atual do coach; sem destaque palavra-a-palavra quando o diff passa do teto. */
-function DeltaSugestao({ original, atual }: { original: string; atual: string }) {
+interface DeltaSugestaoProps {
+  original: string;
+  atual: string;
+}
+
+function DeltaSugestao({ original, atual }: DeltaSugestaoProps) {
   const tokens = wordDiff(original, atual);
   return (
     <Stack spacing={1}>
@@ -311,11 +321,12 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas, onDecisao }: Rec
   const salvarEdicao = () => {
     if (!selected) return;
     const lida = selected.versao;
-    void editar(selected.id, draft.trim(), lida, (detail) => {
-      aplicarResultado(selected.id, detail);
-      // versao mudou = salvou, ou outra sessão alterou (o texto atual já foi recarregado); igual = falha, mantém o rascunho.
-      if (detail.versao !== lida) setEditando(false);
-    });
+    void editar(selected.id, draft.trim(), lida, (detail) => aplicarResultado(selected.id, detail)).then(
+      // 'falha' mantém o rascunho aberto; 'conflito' já recarregou o texto atual, então o rascunho perdeu o sentido.
+      (resultado) => {
+        if (resultado !== 'falha') setEditando(false);
+      },
+    );
   };
 
   if (sugestoes.length === 0) {
@@ -566,7 +577,7 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas, onDecisao }: Rec
                       <Button onClick={() => setEditando(false)} disabled={deciding} sx={GHOST_BTN_SX}>
                         Cancelar
                       </Button>
-                      <Button onClick={salvarEdicao} disabled={deciding || draft.trim() === ''} sx={SUCCESS_BTN_SX}>
+                      <Button onClick={salvarEdicao} disabled={deciding || draft.trim() === '' || draft.trim() === selected.summary} sx={SUCCESS_BTN_SX}>
                         Salvar
                       </Button>
                     </Box>

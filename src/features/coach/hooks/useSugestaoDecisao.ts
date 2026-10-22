@@ -19,7 +19,11 @@ const STATUS_LABEL_MINUSCULO: Record<SugestaoStatus, string> = {
  * causa raiz do erro (422 de outra sessão vs. resposta perdida da própria mutação já comitada) —
  * o sinal que importa para o coach é o mesmo nos dois casos: a sugestão não está mais PENDING.
  */
-export function resolverMensagemDecisao(atual: SugestaoCoachOutputDto, versaoLida?: number): {
+export function resolverMensagemDecisao(
+  atual: SugestaoCoachOutputDto,
+  versaoLida?: number,
+  acao?: 'aprovar' | 'rejeitar' | 'editar',
+): {
   mensagem: DecisionMessage;
   deveNotificarPai: boolean;
 } {
@@ -42,7 +46,10 @@ export function resolverMensagemDecisao(atual: SugestaoCoachOutputDto, versaoLid
     };
   }
   return {
-    mensagem: { severity: 'error', text: 'Não foi possível decidir. Tente novamente.' },
+    mensagem: {
+      severity: 'error',
+      text: acao === 'editar' ? 'Não foi possível salvar a edição. Tente novamente.' : 'Não foi possível decidir. Tente novamente.',
+    },
     deveNotificarPai: false,
   };
 }
@@ -52,6 +59,9 @@ export function resolverMensagemDecisao(atual: SugestaoCoachOutputDto, versaoLid
  * sugestão continua PENDING, reconsulta o estado real (a mutação pode ter comitado no servidor
  * mesmo com erro de transporte, ou já ter sido decidida por outra sessão).
  */
+/** Resultado de uma ação: `conflito` = a sugestão mudou em outra sessão (o texto atual já foi entregue a `onResultado`). */
+export type ResultadoAcao = 'ok' | 'conflito' | 'falha';
+
 export function useSugestaoDecisao(onDecisao?: () => void) {
   const [deciding, setDeciding] = useState(false);
   const [decisionMessage, setDecisionMessage] = useState<DecisionMessage | null>(null);
@@ -63,7 +73,7 @@ export function useSugestaoDecisao(onDecisao?: () => void) {
       chamada: () => Promise<SugestaoCoachOutputDto>,
       onResultado: (detalhe: SugestaoCoachOutputDto) => void,
       versaoLida?: number,
-    ) => {
+    ): Promise<ResultadoAcao> => {
       setDeciding(true);
       setDecisionMessage(null);
 
@@ -72,17 +82,20 @@ export function useSugestaoDecisao(onDecisao?: () => void) {
         onResultado(atualizado);
         // Editar não muda o status: a lista do pai não precisa recarregar.
         if (acao !== 'editar') onDecisao?.();
+        return 'ok';
       } catch (err) {
         console.error(`Falha ao ${acao} sugestão ${id}`, err);
         try {
           const atual = await SugestaoService.detalhe(id);
           onResultado(atual);
-          const { mensagem, deveNotificarPai } = resolverMensagemDecisao(atual, versaoLida);
+          const { mensagem, deveNotificarPai } = resolverMensagemDecisao(atual, versaoLida, acao);
           setDecisionMessage(mensagem);
           if (deveNotificarPai) onDecisao?.();
+          return versaoLida !== undefined && atual.versao !== versaoLida ? 'conflito' : 'falha';
         } catch (reconsultaErr) {
           console.error(`Falha ao reconsultar sugestão ${id} após erro em ${acao}`, reconsultaErr);
           setDecisionMessage({ severity: 'error', text: 'Não foi possível confirmar — recarregue.' });
+          return 'falha';
         }
       } finally {
         setDeciding(false);
