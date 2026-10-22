@@ -19,6 +19,8 @@ function makeDetail(overrides: Partial<SugestaoCoachOutputDto> = {}): SugestaoCo
     confidence: 'HIGH',
     summary: 'Reduzir volume em 20%',
     createdAt: '2026-09-20T10:00:00Z',
+    editadoPeloCoach: false,
+    versao: 0,
     ...overrides,
   };
 }
@@ -55,7 +57,7 @@ describe('RecentSuggestionsPanel — ações de decisão', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: /aprovar/i }));
 
-    await waitFor(() => expect(SugestaoService.aprovar).toHaveBeenCalledWith('s1'));
+    await waitFor(() => expect(SugestaoService.aprovar).toHaveBeenCalledWith('s1', 0));
     expect(await screen.findByText('Aprovada')).toBeInTheDocument();
     expect(onDecisao).toHaveBeenCalled();
   });
@@ -73,7 +75,7 @@ describe('RecentSuggestionsPanel — ações de decisão', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: /confirmar rejeição/i }));
 
-    await waitFor(() => expect(SugestaoService.rejeitar).toHaveBeenCalledWith('s1', undefined));
+    await waitFor(() => expect(SugestaoService.rejeitar).toHaveBeenCalledWith('s1', undefined, 0));
     expect(await screen.findByText('Rejeitada')).toBeInTheDocument();
     expect(onDecisao).toHaveBeenCalled();
   });
@@ -88,7 +90,7 @@ describe('RecentSuggestionsPanel — ações de decisão', () => {
     await userEvent.click(await screen.findByRole('button', { name: /confirmar rejeição/i }));
 
     await waitFor(() =>
-      expect(SugestaoService.rejeitar).toHaveBeenCalledWith('s1', 'volume alto demais para a semana'),
+      expect(SugestaoService.rejeitar).toHaveBeenCalledWith('s1', 'volume alto demais para a semana', 0),
     );
   });
 
@@ -240,5 +242,91 @@ describe('RecentSuggestionsPanel — dialog em linguagem do coach', () => {
     expect(dialog.queryByText('MEDIUM')).not.toBeInTheDocument();
     expect(dialog.getByText(/Aderência caiu/)).toBeInTheDocument();
     expect(dialog.queryByText(/CoachAttentionSignalEvaluator/)).not.toBeInTheDocument();
+  });
+});
+
+describe('RecentSuggestionsPanel — edição e delta', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  async function abrir() {
+    render(<RecentSuggestionsPanel sugestoes={SUGESTOES} />);
+    await userEvent.click(await screen.findByRole('button', { name: /^ver$/i }));
+    return within(await screen.findByRole('dialog'));
+  }
+
+  it('CA1: edita o texto, envia a versão lida e mostra original + atual com o delta', async () => {
+    vi.mocked(SugestaoService.detalhe).mockResolvedValue(makeDetail({ versao: 3 }));
+    vi.mocked(SugestaoService.editar).mockResolvedValue(
+      makeDetail({
+        summary: 'Reduzir volume em 20% nas próximas duas semanas',
+        summaryOriginal: 'Reduzir volume em 20%',
+        editadoPeloCoach: true,
+        versao: 4,
+      }),
+    );
+
+    const dialog = await abrir();
+    await userEvent.click(dialog.getByRole('button', { name: /^editar$/i }));
+    const campo = dialog.getByLabelText('Texto da sugestão');
+    await userEvent.clear(campo);
+    await userEvent.type(campo, 'Reduzir volume em 20% nas próximas duas semanas');
+    await userEvent.click(dialog.getByRole('button', { name: /^salvar$/i }));
+
+    await waitFor(() =>
+      expect(SugestaoService.editar).toHaveBeenCalledWith(
+        's1',
+        'Reduzir volume em 20% nas próximas duas semanas',
+        3,
+      ),
+    );
+    expect(await dialog.findByText('Sugestão original da IA')).toBeInTheDocument();
+    expect(dialog.getByText('Editado por você')).toBeInTheDocument();
+    expect(dialog.queryByLabelText('Texto da sugestão')).not.toBeInTheDocument();
+  });
+
+  it('CA4: sugestão nunca editada mostra só o texto atual, sem original nem diff', async () => {
+    vi.mocked(SugestaoService.detalhe).mockResolvedValue(makeDetail());
+    const dialog = await abrir();
+
+    expect(dialog.queryByText('Sugestão original da IA')).not.toBeInTheDocument();
+    expect(dialog.queryByText('Editado por você')).not.toBeInTheDocument();
+  });
+
+  it('botão Editar ausente em sugestão já decidida', async () => {
+    vi.mocked(SugestaoService.detalhe).mockResolvedValue(makeDetail({ status: 'APPROVED' }));
+    const dialog = await abrir();
+
+    expect(dialog.queryByRole('button', { name: /^editar$/i })).not.toBeInTheDocument();
+  });
+
+  it('CA9: 409 ao editar recarrega a versão atual, avisa que mudou e sai da edição', async () => {
+    vi.mocked(SugestaoService.detalhe)
+      .mockResolvedValueOnce(makeDetail({ versao: 0 }))
+      .mockResolvedValue(makeDetail({ summary: 'Texto do outro coach', versao: 1, editadoPeloCoach: true, summaryOriginal: 'Reduzir volume em 20%' }));
+    vi.mocked(SugestaoService.editar).mockRejectedValue(apiError(409));
+
+    const dialog = await abrir();
+    await userEvent.click(dialog.getByRole('button', { name: /^editar$/i }));
+    await userEvent.type(dialog.getByLabelText('Texto da sugestão'), ' mais');
+    await userEvent.click(dialog.getByRole('button', { name: /^salvar$/i }));
+
+    expect(await dialog.findByText(/mudou desde que você abriu/i)).toBeInTheDocument();
+    expect(dialog.queryByLabelText('Texto da sugestão')).not.toBeInTheDocument();
+    expect(dialog.getAllByText(/Texto do outro coach/).length).toBeGreaterThan(0);
+  });
+
+  it('falha sem conflito (versão igual) mantém o rascunho aberto', async () => {
+    vi.mocked(SugestaoService.detalhe).mockResolvedValue(makeDetail({ versao: 0 }));
+    vi.mocked(SugestaoService.editar).mockRejectedValue(apiError(500));
+
+    const dialog = await abrir();
+    await userEvent.click(dialog.getByRole('button', { name: /^editar$/i }));
+    await userEvent.type(dialog.getByLabelText('Texto da sugestão'), ' mais');
+    await userEvent.click(dialog.getByRole('button', { name: /^salvar$/i }));
+
+    expect(await dialog.findByText(/Não foi possível decidir/i)).toBeInTheDocument();
+    expect(dialog.getByLabelText('Texto da sugestão')).toHaveValue('Reduzir volume em 20% mais');
   });
 });

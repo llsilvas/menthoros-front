@@ -174,6 +174,8 @@ describe('CoachInboxPage', () => {
         confidence: 'HIGH',
       },
       createdAt: '2026-06-24T13:30:00Z',
+      editadoPeloCoach: false,
+      versao: 0,
       reviewedAt: undefined,
       expiresAt: '2026-07-01T13:30:00Z',
     });

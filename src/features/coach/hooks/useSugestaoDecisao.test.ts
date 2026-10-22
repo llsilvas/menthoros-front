@@ -16,6 +16,8 @@ function makeDetail(overrides: Partial<SugestaoCoachOutputDto> = {}): SugestaoCo
     confidence: 'HIGH',
     summary: 'Reduzir volume em 20%',
     createdAt: '2026-09-20T10:00:00Z',
+    editadoPeloCoach: false,
+    versao: 0,
     ...overrides,
   };
 }
@@ -61,7 +63,7 @@ describe('useSugestaoDecisao', () => {
       await result.current.decidir('s1', 'rejeitar', vi.fn());
     });
 
-    expect(SugestaoService.rejeitar).toHaveBeenCalledWith('s1', undefined);
+    expect(SugestaoService.rejeitar).toHaveBeenCalledWith('s1', undefined, undefined);
   });
 
   it('rejeitar com motivo: repassa o motivo para SugestaoService.rejeitar', async () => {
@@ -72,7 +74,7 @@ describe('useSugestaoDecisao', () => {
       await result.current.decidir('s1', 'rejeitar', vi.fn(), 'volume alto demais');
     });
 
-    expect(SugestaoService.rejeitar).toHaveBeenCalledWith('s1', 'volume alto demais');
+    expect(SugestaoService.rejeitar).toHaveBeenCalledWith('s1', 'volume alto demais', undefined);
   });
 
   it('falha na mutação, mas reconsulta mostra sugestão já decidida (422 de outra sessão): notifica o pai (bug real corrigido)', async () => {

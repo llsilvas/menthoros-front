@@ -120,6 +120,8 @@ describe('CoachAthleteProfilePage', () => {
                 confidence: 'HIGH',
             },
             createdAt: '2026-06-14T08:00:00Z',
+            editadoPeloCoach: false,
+            versao: 0,
             reviewedAt: undefined,
             expiresAt: '2026-06-21T08:00:00Z',
         });
