@@ -29,4 +29,11 @@ export interface SugestaoCoachOutputDto {
     rejectionReason?: string;
     /** Null = sem expiração; job preenche com createdAt + 7 dias. */
     expiresAt?: string;
+    /** Texto gerado pela IA, fixado na primeira edição do coach; ausente se nunca editada. */
+    summaryOriginal?: string;
+    editadoPeloCoach: boolean;
+    /** Momento da última edição; ausente se nunca editada. */
+    editedAt?: string;
+    /** Enviar como `versaoEsperada` em editar/aprovar/rejeitar — o backend responde 409 se divergiu. */
+    versao: number;
 }

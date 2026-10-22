@@ -16,6 +16,7 @@ import { categorical, content, semantic, surface } from '../../../theme/tokens';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { DANGER_BTN_SX, GHOST_BTN_SX, SUCCESS_BTN_SX } from '../../../shared/components/actionButtonSx';
 import { useSugestaoDecisao } from '../hooks/useSugestaoDecisao';
+import { wordDiff, type DiffToken } from '../adapters/wordDiff';
 
 interface RecentSuggestionsPanelProps {
   sugestoes: SugestaoRecenteDto[];
@@ -93,6 +94,67 @@ function formatSummaryType(tipo: string): string {
 
 // ── Modal de rejeição (motivo opcional, add-coach-suggestion-decision-audit) ─────────────────
 
+const SUMMARY_MAX_LENGTH = 500;
+
+interface DiffTextProps {
+  tokens: DiffToken[];
+  hide: DiffToken['type'];
+}
+
+function DiffText({ tokens, hide }: DiffTextProps) {
+  return (
+    <>
+      {tokens
+        .filter((t) => t.type !== hide)
+        .map((t, i) => (
+          <Box
+            key={i}
+            component="span"
+            sx={
+              t.type === 'removed'
+                ? { color: semantic.danger[300], textDecoration: 'line-through' }
+                : t.type === 'added'
+                  ? { color: semantic.success[500], fontWeight: 700 }
+                  : undefined
+            }
+          >
+            {t.text}{' '}
+          </Box>
+        ))}
+    </>
+  );
+}
+
+/** Original da IA × texto atual do coach; sem destaque palavra-a-palavra quando o diff passa do teto. */
+interface DeltaSugestaoProps {
+  original: string;
+  atual: string;
+}
+
+function DeltaSugestao({ original, atual }: DeltaSugestaoProps) {
+  const tokens = wordDiff(original, atual);
+  return (
+    <Stack spacing={1}>
+      <Box>
+        <Typography sx={{ fontSize: '0.68rem', color: surface[400], textTransform: 'uppercase', letterSpacing: '0.08em', mb: 0.5 }}>
+          Sugestão original da IA
+        </Typography>
+        <Typography sx={{ color: surface[100], lineHeight: 1.6 }}>
+          {tokens ? <DiffText tokens={tokens} hide="added" /> : original}
+        </Typography>
+      </Box>
+      <Box>
+        <Typography sx={{ fontSize: '0.68rem', color: surface[400], textTransform: 'uppercase', letterSpacing: '0.08em', mb: 0.5 }}>
+          Editado por você
+        </Typography>
+        <Typography sx={{ color: surface[50], lineHeight: 1.6 }}>
+          {tokens ? <DiffText tokens={tokens} hide="removed" /> : atual}
+        </Typography>
+      </Box>
+    </Stack>
+  );
+}
+
 interface RejeitarSugestaoModalProps {
   open: boolean;
   loading: boolean;
@@ -159,7 +221,9 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas, onDecisao }: Rec
   const [error, setError] = useState<Error | null>(null);
   const [selected, setSelected] = useState<SugestaoCoachOutputDto | null>(null);
   const [confirmRejeitarAberto, setConfirmRejeitarAberto] = useState(false);
-  const { decidir, deciding, decisionMessage, resetDecisionMessage } = useSugestaoDecisao(onDecisao);
+  const [editando, setEditando] = useState(false);
+  const [draft, setDraft] = useState('');
+  const { decidir, editar, deciding, decisionMessage, resetDecisionMessage } = useSugestaoDecisao(onDecisao);
 
   useEffect(() => {
     let cancelled = false;
@@ -221,6 +285,7 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas, onDecisao }: Rec
   const openSuggestion = async (id: string) => {
     resetDecisionMessage();
     setConfirmRejeitarAberto(false);
+    setEditando(false);
     const existing = detailsById[id];
     if (existing) {
       setSelected(existing);
@@ -239,6 +304,29 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas, onDecisao }: Rec
   const aplicarResultado = (id: string, detail: SugestaoCoachOutputDto) => {
     setDetailsById((current) => ({ ...current, [id]: detail }));
     setSelected(detail);
+  };
+
+  const fecharDialog = () => {
+    setSelected(null);
+    setEditando(false);
+  };
+
+  const iniciarEdicao = () => {
+    if (!selected) return;
+    resetDecisionMessage();
+    setDraft(selected.summary);
+    setEditando(true);
+  };
+
+  const salvarEdicao = () => {
+    if (!selected) return;
+    const lida = selected.versao;
+    void editar(selected.id, draft.trim(), lida, (detail) => aplicarResultado(selected.id, detail)).then(
+      // 'falha' mantém o rascunho aberto; 'conflito' já recarregou o texto atual, então o rascunho perdeu o sentido.
+      (resultado) => {
+        if (resultado !== 'falha') setEditando(false);
+      },
+    );
   };
 
   if (sugestoes.length === 0) {
@@ -392,7 +480,7 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas, onDecisao }: Rec
 
       <CoachDialog
         open={selected !== null}
-        onClose={() => setSelected(null)}
+        onClose={fecharDialog}
         maxWidth="md"
         chip={
           <Typography sx={{ fontSize: '0.72rem', color: surface[400], textTransform: 'uppercase', letterSpacing: '0.08em' }}>
@@ -402,11 +490,14 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas, onDecisao }: Rec
         title={selected?.summary ?? ''}
         actions={
           <>
-            <Button onClick={() => setSelected(null)} sx={GHOST_BTN_SX}>
+            <Button onClick={fecharDialog} sx={GHOST_BTN_SX}>
               Fechar
             </Button>
             {selected && selected.status === 'PENDING' ? (
               <>
+                <Button onClick={iniciarEdicao} disabled={deciding || editando} sx={GHOST_BTN_SX}>
+                  Editar
+                </Button>
                 <Button
                   onClick={() => setConfirmRejeitarAberto(true)}
                   disabled={deciding}
@@ -416,7 +507,7 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas, onDecisao }: Rec
                 </Button>
                 <Button
                   onClick={() => {
-                    void decidir(selected.id, 'aprovar', (detail) => aplicarResultado(selected.id, detail));
+                    void decidir(selected.id, 'aprovar', (detail) => aplicarResultado(selected.id, detail), undefined, selected.versao);
                   }}
                   disabled={deciding}
                   sx={SUCCESS_BTN_SX}
@@ -471,9 +562,33 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas, onDecisao }: Rec
                 <Typography sx={{ fontSize: '0.68rem', color: surface[400], textTransform: 'uppercase', letterSpacing: '0.08em', mb: 0.5 }}>
                   Resumo
                 </Typography>
-                <Typography sx={{ color: surface[50], lineHeight: 1.6 }}>
-                  {selected.summary}
-                </Typography>
+                {editando ? (
+                  <Stack spacing={1}>
+                    <TextField
+                      value={draft}
+                      onChange={(e) => setDraft(e.target.value)}
+                      multiline
+                      minRows={2}
+                      fullWidth
+                      slotProps={{ htmlInput: { maxLength: SUMMARY_MAX_LENGTH, 'aria-label': 'Texto da sugestão' } }}
+                      helperText={`${draft.length}/${SUMMARY_MAX_LENGTH}`}
+                    />
+                    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                      <Button onClick={() => setEditando(false)} disabled={deciding} sx={GHOST_BTN_SX}>
+                        Cancelar
+                      </Button>
+                      <Button onClick={salvarEdicao} disabled={deciding || draft.trim() === '' || draft.trim() === selected.summary} sx={SUCCESS_BTN_SX}>
+                        Salvar
+                      </Button>
+                    </Box>
+                  </Stack>
+                ) : selected.editadoPeloCoach && selected.summaryOriginal ? (
+                  <DeltaSugestao original={selected.summaryOriginal} atual={selected.summary} />
+                ) : (
+                  <Typography sx={{ color: surface[50], lineHeight: 1.6 }}>
+                    {selected.summary}
+                  </Typography>
+                )}
               </Box>
 
               {selected.reasoning ? (
@@ -519,7 +634,7 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas, onDecisao }: Rec
         onConfirm={(motivo) => {
           if (!selected) return;
           setConfirmRejeitarAberto(false);
-          void decidir(selected.id, 'rejeitar', (detail) => aplicarResultado(selected.id, detail), motivo);
+          void decidir(selected.id, 'rejeitar', (detail) => aplicarResultado(selected.id, detail), motivo, selected.versao);
         }}
       />
     </>

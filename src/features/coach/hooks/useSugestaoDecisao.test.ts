@@ -16,6 +16,8 @@ function makeDetail(overrides: Partial<SugestaoCoachOutputDto> = {}): SugestaoCo
     confidence: 'HIGH',
     summary: 'Reduzir volume em 20%',
     createdAt: '2026-09-20T10:00:00Z',
+    editadoPeloCoach: false,
+    versao: 0,
     ...overrides,
   };
 }
@@ -61,7 +63,7 @@ describe('useSugestaoDecisao', () => {
       await result.current.decidir('s1', 'rejeitar', vi.fn());
     });
 
-    expect(SugestaoService.rejeitar).toHaveBeenCalledWith('s1', undefined);
+    expect(SugestaoService.rejeitar).toHaveBeenCalledWith('s1', undefined, undefined);
   });
 
   it('rejeitar com motivo: repassa o motivo para SugestaoService.rejeitar', async () => {
@@ -72,7 +74,7 @@ describe('useSugestaoDecisao', () => {
       await result.current.decidir('s1', 'rejeitar', vi.fn(), 'volume alto demais');
     });
 
-    expect(SugestaoService.rejeitar).toHaveBeenCalledWith('s1', 'volume alto demais');
+    expect(SugestaoService.rejeitar).toHaveBeenCalledWith('s1', 'volume alto demais', undefined);
   });
 
   it('falha na mutação, mas reconsulta mostra sugestão já decidida (422 de outra sessão): notifica o pai (bug real corrigido)', async () => {
@@ -126,7 +128,7 @@ describe('useSugestaoDecisao', () => {
     );
     const { result } = renderHook(() => useSugestaoDecisao());
 
-    let decisionPromise: Promise<void>;
+    let decisionPromise: Promise<unknown>;
     act(() => {
       decisionPromise = result.current.decidir('s1', 'aprovar', vi.fn());
     });
@@ -139,5 +141,52 @@ describe('useSugestaoDecisao', () => {
     });
 
     expect(result.current.deciding).toBe(false);
+  });
+
+  describe('editar', () => {
+    it('sucesso: devolve ok, entrega o resultado e não notifica o pai', async () => {
+      vi.mocked(SugestaoService.editar).mockResolvedValue(makeDetail({ summary: 'novo', versao: 1 }));
+      const onDecisao = vi.fn();
+      const onResultado = vi.fn();
+      const { result } = renderHook(() => useSugestaoDecisao(onDecisao));
+
+      let r: unknown;
+      await act(async () => {
+        r = await result.current.editar('s1', 'novo', 0, onResultado);
+      });
+
+      expect(r).toBe('ok');
+      expect(SugestaoService.editar).toHaveBeenCalledWith('s1', 'novo', 0);
+      expect(onResultado).toHaveBeenCalledWith(expect.objectContaining({ versao: 1 }));
+      expect(onDecisao).not.toHaveBeenCalled();
+    });
+
+    it('409: versão do servidor diferente da lida → conflito e aviso de que mudou', async () => {
+      vi.mocked(SugestaoService.editar).mockRejectedValue(new Error('409'));
+      vi.mocked(SugestaoService.detalhe).mockResolvedValue(makeDetail({ versao: 2 }));
+      const { result } = renderHook(() => useSugestaoDecisao());
+
+      let r: unknown;
+      await act(async () => {
+        r = await result.current.editar('s1', 'novo', 0, vi.fn());
+      });
+
+      expect(r).toBe('conflito');
+      expect(result.current.decisionMessage?.text).toMatch(/mudou desde que você abriu/i);
+    });
+
+    it('falha com a mesma versão: devolve falha e a mensagem fala em salvar, não em decidir', async () => {
+      vi.mocked(SugestaoService.editar).mockRejectedValue(new Error('500'));
+      vi.mocked(SugestaoService.detalhe).mockResolvedValue(makeDetail({ versao: 0 }));
+      const { result } = renderHook(() => useSugestaoDecisao());
+
+      let r: unknown;
+      await act(async () => {
+        r = await result.current.editar('s1', 'novo', 0, vi.fn());
+      });
+
+      expect(r).toBe('falha');
+      expect(result.current.decisionMessage?.text).toMatch(/salvar a edição/i);
+    });
   });
 });
