@@ -120,6 +120,8 @@ describe('CoachAthleteProfilePage', () => {
                 confidence: 'HIGH',
             },
             createdAt: '2026-06-14T08:00:00Z',
+            editadoPeloCoach: false,
+            versao: 0,
             reviewedAt: undefined,
             expiresAt: '2026-06-21T08:00:00Z',
         });
@@ -193,6 +195,26 @@ describe('CoachAthleteProfilePage', () => {
         });
         renderPage();
         expect(screen.getByText('Vence em breve')).toBeInTheDocument();
+    });
+
+    it('exibe a linha do relógio e abre o guia da marca em modo leitura', async () => {
+        mockHook({ profile: { ...STUB_PROFILE, relogio: { marca: 'APPLE', modelo: 'Watch Ultra 2' } } });
+        renderPage();
+
+        expect(screen.getByText(/Relógio: Apple Watch · Watch Ultra 2/)).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: 'O que pedir ao atleta' }));
+        expect(await screen.findByRole('dialog')).toHaveTextContent(/Intervals\.icu Companion/);
+    });
+
+    it('sem relogio no perfil: "Relógio não informado"; com aviso "relogio": "indisponível"', () => {
+        mockHook({ profile: { ...STUB_PROFILE } });
+        const { unmount } = renderPage();
+        expect(screen.getByText('Relógio não informado')).toBeInTheDocument();
+        unmount();
+
+        mockHook({ profile: { ...STUB_PROFILE, avisos: ['relogio'] } });
+        renderPage();
+        expect(screen.getByText('Relógio indisponível')).toBeInTheDocument();
     });
 
     it('exibe seção PMC Chart', () => {

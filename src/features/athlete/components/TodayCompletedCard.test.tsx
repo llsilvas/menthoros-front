@@ -36,11 +36,35 @@ describe('TodayCompletedCard', () => {
     render(
       <TodayCompletedCard
         realizado={REALIZADO}
-        analysisView={{ status: 'done', reconhecimento: 'Bom treino.', comoFoi: 'Saiu como planejado.', metrics: [] }}
+        analysisView={{ status: 'done', reconhecimento: 'Bom treino.', comoFoi: 'Saiu como planejado.', metrics: [], verdict: null }}
       />,
     );
     expect(screen.getByTestId('workout-analysis-card')).toBeInTheDocument();
     expect(screen.getByText('Bom treino.')).toBeInTheDocument();
     expect(screen.queryByText(/40 min · RPE 6\/10/)).not.toBeInTheDocument();
+  });
+
+  it('com veredito, mostra o chip na linha de "Treino feito"', () => {
+    render(
+      <TodayCompletedCard
+        realizado={REALIZADO}
+        analysisView={{
+          status: 'pending',
+          metrics: [],
+          verdict: { label: 'Dentro do plano', tone: 'success' },
+        }}
+      />,
+    );
+    expect(screen.getByTestId('workout-verdict-chip')).toHaveTextContent('Dentro do plano');
+  });
+
+  it('sem veredito, não mostra o chip', () => {
+    render(
+      <TodayCompletedCard
+        realizado={REALIZADO}
+        analysisView={{ status: 'pending', metrics: [], verdict: null }}
+      />,
+    );
+    expect(screen.queryByTestId('workout-verdict-chip')).toBeNull();
   });
 });

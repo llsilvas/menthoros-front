@@ -23,6 +23,17 @@ export interface SugestaoCoachOutputDto {
     createdAt: string;
     /** Preenchido após aprovação ou rejeição. */
     reviewedAt?: string;
+    /** Usuario.id de quem decidiu — preenchido após aprovação ou rejeição. */
+    reviewedBy?: string;
+    /** Motivo da rejeição (opcional); null/ausente se PENDING, APPROVED, ou rejeitada sem motivo. */
+    rejectionReason?: string;
     /** Null = sem expiração; job preenche com createdAt + 7 dias. */
     expiresAt?: string;
+    /** Texto gerado pela IA, fixado na primeira edição do coach; ausente se nunca editada. */
+    summaryOriginal?: string;
+    editadoPeloCoach: boolean;
+    /** Momento da última edição; ausente se nunca editada. */
+    editedAt?: string;
+    /** Enviar como `versaoEsperada` em editar/aprovar/rejeitar — o backend responde 409 se divergiu. */
+    versao: number;
 }

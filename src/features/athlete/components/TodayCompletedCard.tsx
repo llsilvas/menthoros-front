@@ -1,4 +1,4 @@
-import { Typography } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import { surface, primary } from '../../../theme/tokens';
 import { Card } from '../../../shared/components/Card';
 import { SENSACAO_LABELS, type Sensacao } from '../../../types/AthleteFeedback';
@@ -6,6 +6,7 @@ import type { AthleteRealizadoHoje } from '../../../types/AthleteHome';
 import { tipoTreinoLabel } from '../adapters/homeAdapter';
 import type { WorkoutAnalysisView } from '../adapters/buildWorkoutAnalysisView';
 import { WorkoutAnalysisCard } from './WorkoutAnalysisCard';
+import { WorkoutVerdictChip } from './WorkoutVerdictChip';
 
 export interface TodayCompletedCardProps {
   realizado: AthleteRealizadoHoje;
@@ -24,7 +25,10 @@ export function TodayCompletedCard({ realizado, sensacoes = [], comentario, anal
       padding={2.5}
       sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}
     >
-      <Typography variant="overline" sx={{ color: surface[400] }}>Treino feito</Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+        <Typography variant="overline" sx={{ color: surface[400] }}>Treino feito</Typography>
+        {analysisView?.verdict && <WorkoutVerdictChip verdict={analysisView.verdict} />}
+      </Box>
       <Typography variant="h4">{tipoTreinoLabel(realizado.tipoTreino)}</Typography>
       {!analysisView && (
         <Typography variant="body2" sx={{ color: surface[400] }}>

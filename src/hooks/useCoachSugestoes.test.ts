@@ -15,6 +15,8 @@ const STUB: SugestaoCoachOutputDto = {
     confidence: 'HIGH',
     summary: 'Revisar carga: reduzir volume.',
     createdAt: '2026-06-19T12:00:00Z',
+    editadoPeloCoach: false,
+    versao: 0,
 };
 
 describe('useCoachSugestoes', () => {

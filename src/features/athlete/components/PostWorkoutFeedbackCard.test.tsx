@@ -70,7 +70,7 @@ describe('PostWorkoutFeedbackCard', () => {
       <PostWorkoutFeedbackCard
         treino={treino()}
         onVoltar={vi.fn()}
-        analysisView={{ status: 'pending', metrics: [{ key: 'duracao', text: '60 min' }] }}
+        analysisView={{ status: 'pending', metrics: [{ key: 'duracao', text: '60 min' }], verdict: null }}
       />,
     );
 

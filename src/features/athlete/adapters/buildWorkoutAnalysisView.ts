@@ -1,9 +1,21 @@
-import type { AthleteWorkoutAnalysis } from '../../../types/AthleteWorkoutAnalysis';
+import type { AthleteWorkoutAnalysis, WorkoutPlanVerdict } from '../../../types/AthleteWorkoutAnalysis';
 import { rpeLabel } from '../../../types/Rpe';
 import { effortColor } from '../../../shared/theme/workoutColors';
 import { formatKm } from '../../../utils/formatKm';
 
 export type WorkoutAnalysisViewStatus = 'pending' | 'done';
+
+export interface WorkoutVerdictView {
+    label: string;
+    tone: 'success' | 'warning';
+}
+
+const VERDICT_VIEW: Record<WorkoutPlanVerdict, WorkoutVerdictView> = {
+    DENTRO_DO_PLANO: { label: 'Dentro do plano', tone: 'success' },
+    ABAIXO_DO_PLANO: { label: 'Abaixo do plano', tone: 'warning' },
+    ACIMA_DO_PLANO: { label: 'Acima do plano', tone: 'warning' },
+    ESFORCO_ACIMA_DO_ESPERADO: { label: 'Esforço acima do esperado', tone: 'warning' },
+};
 
 export interface WorkoutAnalysisMetricItem {
     key: 'duracao' | 'distancia' | 'rpe';
@@ -25,6 +37,8 @@ export interface WorkoutAnalysisView {
     metrics: WorkoutAnalysisMetricItem[];
     /** "plano 61 min · 11,0 km · RPE esperado 6/10" — só quando algum número difere do plano. */
     planLine?: string;
+    /** Veredito de aderência ao plano para o chip; `null` sem planejado ou dimensão comparável. */
+    verdict: WorkoutVerdictView | null;
 }
 
 /**
@@ -80,5 +94,6 @@ export function buildWorkoutAnalysisView(dto: AthleteWorkoutAnalysis): WorkoutAn
             : undefined,
         metrics,
         planLine: algumDifere && planParts.length > 0 ? `plano ${planParts.join(' · ')}` : undefined,
+        verdict: dto.veredito != null ? VERDICT_VIEW[dto.veredito] : null,
     };
 }

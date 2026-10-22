@@ -152,7 +152,7 @@ function TreinosGrid({
     }
     return (
         // Sem breakpoint `lg` dedicado (herda 4 colunas do `md`) — um `lg: 12/7` anterior
-        // forçava 7 cards/linha (1 por dia da semana) e truncava "CONTÍNUO"/"No relógio".
+        // forçava 7 cards/linha (1 por dia da semana) e truncava "CONTÍNUO"/"No intervals.icu".
         <Grid container spacing={1}>
             {treinos.map((t) => (
                 <Grid key={t.id ?? t.diaSemana} size={{ xs: 6, sm: 4, md: 3 }}>

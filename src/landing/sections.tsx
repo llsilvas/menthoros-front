@@ -8,7 +8,9 @@ import { ROUTES } from "../constants/routes";
 import * as C from "./content";
 import { Reveal, Eyebrow, SectionHeading, SectionMark, CtaButton, LimeAura, CheckIcon, ArrowIcon, DashIcon, monoFont, NAV_HEIGHT_PX } from "./primitives";
 import { AttentionQueue, InterpretationCard } from "./ProductUI";
-import { AccessForm } from "./AccessForm";
+import { AccessRequestForm } from "./AccessRequestForm";
+import { foundersSlotsLabel } from "./foundersSlotsCopy";
+import { useFoundersSlots } from "../hooks/useFoundersSlots";
 import logo from "../assets/landing/logo.png";
 import { radius } from "../theme/theme.premium";
 
@@ -388,10 +390,16 @@ export function Trust() {
 // → aviso de contratação → ação.
 function FounderOfferCard() {
   const t = useTheme();
+  const slots = useFoundersSlots();
+  const badge = foundersSlotsLabel(slots, {
+    baseLabel: "Programa fundador",
+    openLabel: "Programa fundador · Restam {remaining} de {total} vagas",
+    closedLabel: "Lista de espera — próxima turma",
+  });
   return (
     <Box sx={{ bgcolor: "background.paper", border: `1px solid ${t.palette.primary.main}`, borderRadius: radius.outer, p: { xs: 3, md: 4 }, mb: 4, display: "flex", flexDirection: "column", gap: 1.5 }}>
       <Typography sx={{ fontFamily: monoFont, fontSize: 12.5, letterSpacing: ".1em", color: "primary.main", fontWeight: 700 }}>
-        {C.founderOffer.badge}
+        {badge}
       </Typography>
       <Typography sx={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: { xs: 20, md: 24 }, fontWeight: 600 }}>
         {C.founderOffer.trialLine}
@@ -509,7 +517,7 @@ export function FinalCta() {
           </Typography>
           <Typography sx={{ color: "text.secondary", fontSize: 17, my: 2.5, mx: "auto", maxWidth: "48ch" }}>{C.finalCta.sub}</Typography>
         </Reveal>
-        <Reveal><AccessForm /></Reveal>
+        <Reveal><AccessRequestForm /></Reveal>
       </Container>
     </Section>
   );

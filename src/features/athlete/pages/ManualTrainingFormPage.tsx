@@ -43,7 +43,7 @@ export default function ManualTrainingFormPage() {
     // fixa que a change substitui (QA/Codex). Erro cai no fallback da frase fixa, que é honesto.
     const analysisView = useMemo(() => {
         if (analysis) return buildWorkoutAnalysisView(analysis);
-        if (analysisStatus === 'loading') return { status: 'pending' as const, metrics: [] };
+        if (analysisStatus === 'loading') return { status: 'pending' as const, metrics: [], verdict: null };
         return null;
     }, [analysis, analysisStatus]);
     const [toast, setToast] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({

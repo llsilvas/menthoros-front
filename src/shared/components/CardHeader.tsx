@@ -19,6 +19,7 @@ export function CardHeader({ title, subtitle, icon, action, divider = false }: C
         display: 'flex',
         alignItems: 'flex-start',
         justifyContent: 'space-between',
+        flexWrap: 'wrap',
         gap: 1.5,
         ...(divider
           ? { pb: 1.5, mb: 1.5, borderBottom: `1px solid ${content.divider}` }

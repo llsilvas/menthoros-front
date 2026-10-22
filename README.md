@@ -16,7 +16,7 @@ O foco da aplicação é ajudar o coach a:
 - TypeScript ~5.8
 - Vite 7
 - MUI 7 + Emotion
-- react-router-dom 7
+- react-router 7
 - Axios com client gerado a partir do OpenAPI
 - Recharts
 - date-fns

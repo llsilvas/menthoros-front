@@ -6,7 +6,7 @@ import type { nivelExperiencia, diaSemana } from './Atleta';
 import type { TipoProva, DistanciaProva, Prova } from './Prova';
 
 export type CanalIntegracao = 'INTERVALS_ICU' | 'MANUAL';
-export type DispositivoMarca = 'GARMIN' | 'COROS' | 'POLAR' | 'SUUNTO' | 'APPLE' | 'OUTRO';
+export type DispositivoMarca = 'GARMIN' | 'APPLE' | 'AMAZFIT' | 'COROS' | 'SAMSUNG' | 'POLAR' | 'SUUNTO' | 'OUTRO';
 export type ConfidenceTier = 'A' | 'B' | 'C';
 /** Backend guarda como String livre (sem enum) — union aqui reflete as únicas opções que a UI oferece. */
 export type PercepcaoCondicionamento = 'RUIM' | 'REGULAR' | 'BOA' | 'OTIMA';
@@ -20,14 +20,22 @@ export const CANAL_INTEGRACAO_LABELS: Record<CanalIntegracao, string> = {
     MANUAL: 'Manual',
 };
 
+/** A ordem das chaves é a ordem dos chips do onboarding (prioridade do founder, 2026-10-15). */
 export const DISPOSITIVO_MARCA_LABELS: Record<DispositivoMarca, string> = {
     GARMIN: 'Garmin',
+    APPLE: 'Apple Watch',
+    AMAZFIT: 'Amazfit',
     COROS: 'Coros',
+    SAMSUNG: 'Samsung Galaxy Watch',
     POLAR: 'Polar',
     SUUNTO: 'Suunto',
-    APPLE: 'Apple Watch',
     OUTRO: 'Outro',
 };
+
+/** Aceita `string` porque o backend pode devolver marca que este bundle ainda não conhece (front em cache). */
+export function labelDispositivoMarca(valor: string): string {
+    return DISPOSITIVO_MARCA_LABELS[valor as DispositivoMarca] ?? valor;
+}
 
 /** Campos do rascunho de onboarding — todos opcionais (CA8, salvar parcial). */
 export interface OnboardingDraftInput {
