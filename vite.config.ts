@@ -35,7 +35,9 @@ export default defineConfig(({ mode }) => {
         manifest: {
           name: 'Menthoros',
           short_name: 'Menthoros',
-          start_url: '.',
+          // Hash router: a rota vive no fragmento. O ícone abre direto no login (quem já tem sessão
+          // é redirecionado pelo LoginPage ao destino do role) em vez de passar pela landing.
+          start_url: './#/auth/login',
           scope: '.',
           display: 'standalone',
           theme_color: surface[900],
