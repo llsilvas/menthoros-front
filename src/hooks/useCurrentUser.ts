@@ -14,8 +14,12 @@ export interface CurrentCoach {
 export interface CurrentTenant {
     id: string;
     name: string;
-    /** follow-up: derivar de kpis.totalAtletas (add-coach-suggestion-inbox) */
-    athleteCount: number;
+    /**
+     * `null` = desconhecido: o `me` não traz a contagem (follow-up: derivar de kpis.totalAtletas,
+     * add-coach-suggestion-inbox). Era `0` fixo, e a sidebar mostrava "0 atletas" para toda
+     * assessoria — zero é uma afirmação; ausência não pode virar número.
+     */
+    athleteCount: number | null;
     /** Rota da logo da assessoria; `null` quando não há. */
     logoUrl?: string | null;
     /**
@@ -52,7 +56,7 @@ export interface CurrentUserState {
 }
 
 const FALLBACK_COACH: CurrentCoach = { id: '', name: '', email: '' };
-const FALLBACK_TENANT: CurrentTenant = { id: '', name: '', athleteCount: 0 };
+const FALLBACK_TENANT: CurrentTenant = { id: '', name: '', athleteCount: null };
 // granted: null = indefinido. Distinguir de `false` importa: `false` renderiza o modal bloqueante,
 // e assumi-lo antes de `me` responder faria o modal piscar em todo carregamento.
 const FALLBACK_CONSENT: CurrentConsent = { granted: null, policyVersion: '', termsVersion: '' };
@@ -80,7 +84,7 @@ export const useCurrentUser = (): CurrentUserState => {
             setTenant({
                 id: me.assessoria?.id ?? '',
                 name: me.assessoria?.nome ?? '',
-                athleteCount: 0,
+                athleteCount: null,
                 // `temLogo` decide; `logoUrl` é a rota. Sem o primeiro, um `logoUrl` residual faria
                 // a shell pedir uma imagem que o servidor responde com 404.
                 logoUrl: me.assessoria?.temLogo ? me.assessoria.logoUrl ?? null : null,

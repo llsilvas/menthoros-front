@@ -117,12 +117,12 @@ export default function CoachPlanReviewPage() {
 
     const { isSaving: isEditSaving, isDeleting, editarTreino, excluirTreino } = useTreinoPlanejado();
 
-    // Mantém seleção válida ao remover plano da lista ou mudar filtro
+    // Seleciona o primeiro plano ao abrir (como a Inbox faz com o atleta) e mantém a seleção válida
+    // ao remover plano da lista ou mudar filtro. Abrir numa tela vazia pedindo "Selecione um plano"
+    // com um único item na fila era um clique a mais para todo plano revisado.
     useEffect(() => {
-        if (!selectedId) return;
-        if (!pendentes.find((p) => p.id === selectedId)) {
-            setSelectedId(pendentes[0]?.id ?? null);
-        }
+        if (selectedId && pendentes.some((p) => p.id === selectedId)) return;
+        setSelectedId(pendentes[0]?.id ?? null);
     }, [pendentes, selectedId]);
 
     const selected = pendentes.find((p) => p.id === selectedId) ?? null;
