@@ -19,7 +19,7 @@ function acuteLoadMetric(row: CoachAthleteRow): DiagnosisMetric {
   const atl = row.quickStats.acuteLoad;
   if (atl == null) return { ...base, value: '—', detail: 'Sem dado na janela', tone: 'neutral' };
   // Sem tom: não há limiar de ATL por atleta, e o limiar antigo (120) era de km.
-  return { ...base, value: `${decimal(atl, 1)} TSS/dia`, detail: 'Média do TSS diário com peso nos últimos ~7 dias', tone: 'neutral' };
+  return { ...base, value: `${decimal(atl, 1)} TSS/dia`, detail: 'Esforço médio por dia na última semana', tone: 'neutral' };
 }
 
 function monotonyMetric(row: CoachAthleteRow): DiagnosisMetric {
@@ -39,7 +39,7 @@ function strainMetric(row: CoachAthleteRow): DiagnosisMetric {
   const { strain, trainingDays7d } = row.quickStats;
   if (strain == null) return { ...base, value: '—', detail: semBase(trainingDays7d), tone: 'neutral' };
   const zona = getStrainZone(strain);
-  return { ...base, value: decimal(strain, 0), detail: `${zona.label} · TSS da semana × monotonia`, tone: zona.tone };
+  return { ...base, value: decimal(strain, 0), detail: `${zona.label} · esforço × repetição da semana`, tone: zona.tone };
 }
 
 function racePredictionMetric(row: CoachAthleteRow): DiagnosisMetric {

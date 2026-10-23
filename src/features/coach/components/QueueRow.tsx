@@ -106,8 +106,9 @@ export const QueueRow = memo(function QueueRow({ athlete, selected, onClick, att
               '& .MuiChip-label': { px: { xs: 0.7, sm: 0.8, xl: 1 } },
             }}
           />
-          <Typography sx={{ fontSize: { xs: '0.6875rem', sm: '0.6875rem', xl: '0.72rem' }, color: surface[400] }}>
-            {formatPercent(athlete.adherence)}
+          {/* Com nome: um "90%" solto ao lado da barra não diz do que é. */}
+          <Typography sx={{ fontSize: { xs: '0.6875rem', sm: '0.6875rem', xl: '0.72rem' }, color: surface[400] }} noWrap>
+            Aderência {formatPercent(athlete.adherence)}
           </Typography>
         </Box>
       </Box>

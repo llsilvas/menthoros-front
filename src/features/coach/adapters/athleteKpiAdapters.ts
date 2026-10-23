@@ -64,7 +64,11 @@ function formKpi(row: CoachAthleteRow, faixa: FaixaApresentacao | null): Athlete
     label: 'Forma',
     qualifier: 'TSB',
     value: faixa?.label ?? '—',
-    detail: tsb != null ? `TSB ${signed(tsb, 1)}` : 'TSB não disponível',
+    // A linha de apoio traduz a sigla: quem não vem do TrainingPeaks não sabe o sinal do TSB. Só a
+    // metade que se aplica ao valor — as duas juntas não cabem nas 2 linhas do tile.
+    detail: tsb != null
+      ? `TSB ${signed(tsb, 1)} · ${tsb >= 0 ? 'positivo = descansado' : 'negativo = cansado'}`
+      : 'TSB não disponível',
     tone: faixa?.tone ?? 'neutral',
     badge: null,
   };
@@ -88,7 +92,7 @@ function acwrKpi(row: CoachAthleteRow): AthleteKpi {
     };
   }
   const zona = getAcwrZone(acwr);
-  return { ...base, value: decimal(acwr, 2), detail: `${zona.label} · carga aguda ÷ crônica`, tone: zona.tone, badge: null };
+  return { ...base, value: decimal(acwr, 2), detail: `${zona.label} · carga da semana ÷ média de 4 semanas`, tone: zona.tone, badge: null };
 }
 
 /**

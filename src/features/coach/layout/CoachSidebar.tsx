@@ -35,7 +35,8 @@ const { primary, sidebar, overlayBlack } = activeTheme;
 interface TenantInfo {
   id: string;
   name: string;
-  athleteCount: number;
+  /** `null` = desconhecido; a linha de contagem some em vez de mostrar "0 atletas". */
+  athleteCount: number | null;
   /** Rota da logo da assessoria; `null` quando não há. */
   logoUrl?: string | null;
   /** Versão da assessoria — cache-bust da logo, cuja URL é fixa. */
@@ -257,13 +258,15 @@ function TenantSwitcher({
             >
               {currentTenant.name}
             </Typography>
-            <Typography
-              noWrap
-              sx={{ fontSize: '0.6875rem', color: surface[500], lineHeight: 1.2, mt: 0.25 }}
-            >
-              {currentTenant.athleteCount} atleta
-              {currentTenant.athleteCount !== 1 ? 's' : ''}
-            </Typography>
+            {currentTenant.athleteCount != null && (
+              <Typography
+                noWrap
+                sx={{ fontSize: '0.6875rem', color: surface[500], lineHeight: 1.2, mt: 0.25 }}
+              >
+                {currentTenant.athleteCount} atleta
+                {currentTenant.athleteCount !== 1 ? 's' : ''}
+              </Typography>
+            )}
           </Box>
 
           {hasOptions && (
@@ -321,9 +324,11 @@ function TenantSwitcher({
               <Typography sx={{ fontSize: '0.8rem', fontWeight: 600 }}>
                 {t.name}
               </Typography>
-              <Typography sx={{ fontSize: '0.6875rem', color: surface[400] }}>
-                {t.athleteCount} atleta{t.athleteCount !== 1 ? 's' : ''}
-              </Typography>
+              {t.athleteCount != null && (
+                <Typography sx={{ fontSize: '0.6875rem', color: surface[400] }}>
+                  {t.athleteCount} atleta{t.athleteCount !== 1 ? 's' : ''}
+                </Typography>
+              )}
             </Box>
           </MenuItem>
         ))}

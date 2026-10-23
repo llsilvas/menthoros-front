@@ -446,7 +446,7 @@ describe('CoachInboxPage', () => {
 
       renderPage();
 
-      expect(tileDe('Forma').getByText('TSB -13,6')).toBeInTheDocument();
+      expect(tileDe('Forma').getByText(/^TSB -13,6/)).toBeInTheDocument();
     });
 
     it('ACWR após retorno sem base crônica: selo "Baixa confiança" e motivo, sem "Risco"', () => {

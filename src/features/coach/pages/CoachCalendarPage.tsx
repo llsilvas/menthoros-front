@@ -70,6 +70,46 @@ const WORKOUT_LABEL: Record<WorkoutType, string> = {
 
 const DAY_LABELS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 
+/** Tipos que aparecem na legenda, na ordem de leitura; `rest` não vira chip na grade. */
+const LEGEND_TYPES: WorkoutType[] = ['easy_run', 'long_run', 'tempo', 'intervals', 'recovery', 'strength'];
+
+// ── Legenda ───────────────────────────────────────────────────────────────────
+
+/**
+ * A grade é a tela mais visual do coach e era a menos autoexplicativa: cor por tipo, ★, ▲ e o
+ * ponto laranja não tinham explicação em lugar nenhum (o tooltip exige saber que existe). A legenda
+ * fica no cabeçalho, sempre visível, em texto de 11px — o mínimo legível do produto.
+ */
+function CalendarLegend() {
+  const itemSx = { display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.6875rem', color: surface[400], whiteSpace: 'nowrap' } as const;
+  return (
+    <Box
+      component="ul"
+      aria-label="Legenda do calendário"
+      sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.25, listStyle: 'none', m: 0, p: 0, ml: { md: 'auto' } }}
+    >
+      {LEGEND_TYPES.map((type) => (
+        <Box component="li" key={type} sx={itemSx}>
+          <Box component="span" sx={{ width: 10, height: 10, borderRadius: '3px', bgcolor: `${WORKOUT_COLORS[type]}40`, border: `1px solid ${WORKOUT_COLORS[type]}` }} />
+          {WORKOUT_LABEL[type]}
+        </Box>
+      ))}
+      <Box component="li" sx={itemSx}>
+        <StarIcon sx={{ fontSize: 12, color: surface[300] }} />
+        treino-chave
+      </Box>
+      <Box component="li" sx={itemSx}>
+        <WarningIcon sx={{ fontSize: 12, color: semantic.warning[500] }} />
+        alerta
+      </Box>
+      <Box component="li" sx={itemSx}>
+        <Box component="span" sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: semantic.warning[500] }} />
+        sugestão pendente
+      </Box>
+    </Box>
+  );
+}
+
 // ── WorkoutBlock ──────────────────────────────────────────────────────────────
 
 function WorkoutBlock({ workout }: { workout: CoachWorkout }) {
@@ -305,6 +345,8 @@ export default function CoachCalendarPage() {
             Hoje
           </Button>
         )}
+
+        <CalendarLegend />
       </Box>
 
       {/* ── Conteúdo: erro / carregando / grade ── */}

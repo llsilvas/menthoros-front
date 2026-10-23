@@ -81,7 +81,7 @@ describe('buildAthleteKpis', () => {
   });
 
   it('forma usa a faixa do backend e TSB em pt-BR com 1 casa', () => {
-    expect(porChave(atleta()).form).toMatchObject({ value: 'Fatigado', detail: 'TSB -8,6', tone: 'neutral' });
+    expect(porChave(atleta()).form).toMatchObject({ value: 'Fatigado', detail: 'TSB -8,6 · negativo = cansado', tone: 'neutral' });
   });
 
   it('ACWR com baixa confiança: neutro, selo e motivo', () => {
