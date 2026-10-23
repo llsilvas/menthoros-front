@@ -9,6 +9,9 @@ import {
 } from '@mui/icons-material';
 import { primary, surface, semantic, categorical } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
+
+/** Largura da coluna fixa de atleta, por breakpoint — usada na linha e no template da grade. */
+const ATHLETE_COL_WIDTH = { xs: 150, lg: 200 } as const;
 import { CoachAthleteAvatar } from '../components/CoachAthleteAvatar';
 import { PendingSuggestionDot } from '../components/PendingSuggestionDot';
 import { useCoachCalendar } from '../../../hooks/useCoachCalendar';
@@ -144,8 +147,8 @@ function CalendarGridRow({ row, weekDates, todayStr, workoutsByDate }: CalendarG
           position: 'sticky',
           left: 0,
           zIndex: 1,
-          minWidth: 200,
-          width: 200,
+          minWidth: ATHLETE_COL_WIDTH,
+          width: ATHLETE_COL_WIDTH,
         }}
       >
         <CoachAthleteAvatar athlete={{ id: row.atletaId, name: row.nomeAtleta }} size="xs" status="none" />
@@ -154,7 +157,7 @@ function CalendarGridRow({ row, weekDates, todayStr, workoutsByDate }: CalendarG
             fontSize: '0.8rem',
             fontWeight: 500,
             color: surface[50],
-            maxWidth: 140,
+            maxWidth: { xs: 100, lg: 140 },
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -327,8 +330,13 @@ export default function CoachCalendarPage() {
           <Box
             sx={{
               display: 'grid',
-              gridTemplateColumns: '200px repeat(7, minmax(80px, 1fr))',
-              minWidth: 760,
+              // Coluna do atleta mais estreita abaixo de lg: em 1024px com sidebar recolhida sobram
+              // ~960px, e 200px fixos deixavam os 7 dias no mínimo de 80px, com rolagem horizontal.
+              gridTemplateColumns: {
+                xs: `${ATHLETE_COL_WIDTH.xs}px repeat(7, minmax(80px, 1fr))`,
+                lg: `${ATHLETE_COL_WIDTH.lg}px repeat(7, minmax(80px, 1fr))`,
+              },
+              minWidth: { xs: ATHLETE_COL_WIDTH.xs + 7 * 80, lg: ATHLETE_COL_WIDTH.lg + 7 * 80 },
             }}
           >
             {/* Athlete header cell */}

@@ -224,10 +224,10 @@ export default function CoachPlanReviewPage() {
             {/* Coluna 1 — Filtros (80px) */}
             <FilterColumn activeFilter={activeFilter} onFilterChange={setFilter} />
 
-            {/* Coluna 2 — Fila de revisão (296px) */}
+            {/* Coluna 2 — Fila de revisão (296px; 240px abaixo de lg, onde o detalhe é quem precisa da largura) */}
             <Box
                 sx={{
-                    width: 296,
+                    width: { xs: 240, lg: 296 },
                     flexShrink: 0,
                     display: 'flex',
                     flexDirection: 'column',
