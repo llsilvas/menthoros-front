@@ -18,6 +18,7 @@ import { KudosCard } from '../components/KudosCard';
 import { WeekOverviewCard } from '../components/WeekOverviewCard';
 import { WeekClosedBanner } from '../components/WeekClosedBanner';
 import { CalibrationBanner } from '../components/CalibrationBanner';
+import { OnboardingPendingBanner } from '../components/OnboardingPendingBanner';
 import { buildNextWorkout, timeOfDayNow } from '../adapters/homeAdapter';
 import { selectTodayState } from '../adapters/selectTodayState';
 import { useAthleteFeedback } from '../hooks/useAthleteFeedback';
@@ -38,6 +39,7 @@ import { useKudosRecentes } from '../../../hooks/useKudosRecentes';
 import { useManualTraining } from '../../../hooks/useManualTraining';
 import { useRegistrarCheckin } from '../../../hooks/useRegistrarCheckin';
 import { useUserInfo } from '../../../hooks/useUserInfo';
+import { useCurrentUser } from '../../../hooks/useCurrentUser';
 import { surface } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import { FAIXA_APRESENTACAO } from '../../../types/FaixaTsb';
@@ -67,6 +69,10 @@ export default function AthleteHomePage() {
   const { plano, loading: planoLoading, error: planoError, fetchPlano } = useAthletePlan();
   const { enviar: enviarFeedback, enviando: feedbackEnviando, error: feedbackError } = useAthleteFeedback();
   const { status: calibracaoStatus, justExited: calibracaoJustExited, error: calibracaoError, fetchStatus: fetchCalibracao, dismissJustExited } = useCalibracao();
+  // `onboardingConcluido` vem do `/me`. Até aqui a Home não sabia se o onboarding estava pendente —
+  // e não havia caminho nenhum até ele (nem redirecionamento, nem link). Falha do `/me` não é
+  // erro da Home: sem o dado, simplesmente não há banner.
+  const { onboardingConcluido, fetchCurrentUser } = useCurrentUser();
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [inlineAberto, setInlineAberto] = useState(false);
   const [finalizandoCheckIn, setFinalizandoCheckIn] = useState(false);
@@ -112,7 +118,8 @@ export default function AthleteHomePage() {
     fetchKudos();
     fetchPlano();
     fetchCalibracao();
-  }, [fetchHome, fetchReadiness, fetchTreinos, fetchProvas, fetchCheckinAtual, fetchKudos, fetchPlano, fetchCalibracao]);
+    fetchCurrentUser();
+  }, [fetchHome, fetchReadiness, fetchTreinos, fetchProvas, fetchCheckinAtual, fetchKudos, fetchPlano, fetchCalibracao, fetchCurrentUser]);
 
   async function handleCheckInSubmit(data: QuickCheckInData) {
     await registrar(data);
@@ -180,6 +187,8 @@ export default function AthleteHomePage() {
 
   return (
     <Box sx={{ minHeight: '100%', bgcolor: elevation.base, p: 2, pt: 2.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {onboardingConcluido === false && <OnboardingPendingBanner />}
+
       {!calibracaoBannerDispensado && (calibracaoStatus || calibracaoJustExited) && (
         <CalibrationBanner
           status={calibracaoStatus}

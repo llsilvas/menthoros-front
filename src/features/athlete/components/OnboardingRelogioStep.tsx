@@ -1,39 +1,33 @@
 import { Box, TextField } from '@mui/material';
 import type { OnboardingDraftInput, CanalIntegracao, DispositivoMarca } from '../../../types/Onboarding';
 import { CANAL_INTEGRACAO_LABELS, DISPOSITIVO_MARCA_LABELS } from '../../../types/Onboarding';
-import { NIVEL_EXPERIENCIA_LABELS } from '../../../types/Atleta';
-import type { nivelExperiencia } from '../../../types/Atleta';
 import { onboardingInputSx } from './onboardingFormStyles';
 import { OnboardingSectionLabel } from './OnboardingSectionLabel';
 import { OnboardingChipGroup } from './OnboardingChipGroup';
 
-const NIVEIS = Object.keys(NIVEL_EXPERIENCIA_LABELS) as nivelExperiencia[];
 const CANAIS = Object.keys(CANAL_INTEGRACAO_LABELS) as CanalIntegracao[];
 const DISPOSITIVOS = Object.keys(DISPOSITIVO_MARCA_LABELS) as DispositivoMarca[];
 
-export interface OnboardingPerfilStepProps {
+export interface OnboardingRelogioStepProps {
     draft: OnboardingDraftInput;
     onChange: (patch: Partial<OnboardingDraftInput>) => void;
 }
 
 /**
- * Etapa 1 — nível de experiência, dispositivo (marca + modelo opcional) e canal de integração.
+ * Passo 4 — relógio e sincronização. Era o passo 1 ("Perfil"): o onboarding abria com marca de
+ * relógio e "canal de integração" antes de perguntar qualquer coisa sobre o atleta. A marca segue
+ * obrigatória (o backend exige no rascunho, D7); modelo e canal são opcionais, e o canal ganha a
+ * explicação que faltava — "intervals.icu" não diz nada para quem nunca usou.
+ *
  * Strava não é oferecido como opção de canal para atletas novos (ADR-0003, descontinuação
  * anunciada) — só INTERVALS_ICU e MANUAL aparecem.
  */
-export function OnboardingPerfilStep({ draft, onChange }: OnboardingPerfilStepProps) {
+export function OnboardingRelogioStep({ draft, onChange }: OnboardingRelogioStepProps) {
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             <OnboardingChipGroup
-                label="Nível de experiência"
-                options={NIVEIS}
-                labels={NIVEL_EXPERIENCIA_LABELS}
-                selected={draft.nivelExperiencia}
-                onSelect={(v) => onChange({ nivelExperiencia: v })}
-            />
-
-            <OnboardingChipGroup
-                label="Marca do dispositivo/relógio"
+                label="Qual relógio ou app você usa para correr?"
+                hint="Usamos para entender de onde vêm seus treinos. Sem relógio? Escolha 'Outro'."
                 options={DISPOSITIVOS}
                 labels={DISPOSITIVO_MARCA_LABELS}
                 selected={draft.dispositivoMarca}
@@ -41,7 +35,7 @@ export function OnboardingPerfilStep({ draft, onChange }: OnboardingPerfilStepPr
             />
 
             <Box>
-                <OnboardingSectionLabel>Modelo do dispositivo (opcional)</OnboardingSectionLabel>
+                <OnboardingSectionLabel optional>Modelo</OnboardingSectionLabel>
                 <TextField
                     label="Modelo"
                     placeholder="Ex.: Forerunner 265"
@@ -53,7 +47,9 @@ export function OnboardingPerfilStep({ draft, onChange }: OnboardingPerfilStepPr
             </Box>
 
             <OnboardingChipGroup
-                label="Canal de integração de treinos"
+                label="Como seus treinos vão chegar aqui?"
+                optional
+                hint="intervals.icu sincroniza sozinho a partir do relógio; Manual é você registrar cada treino. Dá para conectar depois."
                 options={CANAIS}
                 labels={CANAL_INTEGRACAO_LABELS}
                 selected={draft.canalIntegracao}

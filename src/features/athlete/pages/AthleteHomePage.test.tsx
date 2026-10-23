@@ -15,6 +15,7 @@ import { useRegistrarCheckin } from '../../../hooks/useRegistrarCheckin';
 import { useUserInfo } from '../../../hooks/useUserInfo';
 import { useAthletePlan } from '../../../hooks/useAthletePlan';
 import { useCalibracao } from '../../../hooks/useCalibracao';
+import { useCurrentUser } from '../../../hooks/useCurrentUser';
 import type { PlanoSemanal } from '../../../types/PlanoSemanal';
 import type { CheckinProntidaoOutput } from '../../../types/Checkin';
 
@@ -38,8 +39,21 @@ vi.mock('../../../hooks/useRegistrarCheckin');
 vi.mock('../../../hooks/useUserInfo');
 vi.mock('../../../hooks/useAthletePlan');
 vi.mock('../../../hooks/useCalibracao');
+vi.mock('../../../hooks/useCurrentUser');
 
 const noop = vi.fn();
+
+function mockCurrentUser(onboardingConcluido: boolean | null) {
+  vi.mocked(useCurrentUser).mockReturnValue({
+    coach: { id: 'u1', name: 'Carlos Silva', email: 'c@t.dev' },
+    tenant: { id: 't1', name: 'Assessoria', athleteCount: 0 },
+    consent: { granted: true, policyVersion: '1', termsVersion: '1' },
+    onboardingConcluido,
+    loading: false,
+    error: null,
+    fetchCurrentUser: vi.fn().mockResolvedValue(undefined),
+  });
+}
 const HOJE = new Date(2026, 7, 26, 8, 0, 0); // quarta, 26 de agosto, manhã
 
 const HOJE_ISO = '2026-08-26';
@@ -78,6 +92,7 @@ function renderPage() {
     { path: '/athlete/training/log', element: <div>registro</div> },
     { path: '/athlete/plan', element: <div>plano</div> },
     { path: '/athlete/progress', element: <div>progresso</div> },
+    { path: '/athlete/onboarding', element: <div>onboarding</div> },
   ]);
   return render(<RouterProvider router={router} />);
 }
@@ -88,6 +103,7 @@ describe('AthleteHomePage', () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.setSystemTime(HOJE);
     vi.mocked(useUserInfo).mockReturnValue({ name: 'Carlos Silva' });
+    mockCurrentUser(true);
     mockFeedback();
     vi.mocked(useAthleteReadiness).mockReturnValue({
       readiness: { score: 78, nota: 'Provisório.' }, loading: false, error: null, fetchReadiness: vi.fn().mockResolvedValue(undefined),
@@ -272,6 +288,38 @@ describe('AthleteHomePage', () => {
       await userEvent.click(screen.getByRole('button', { name: /enviar/i }));
 
       expect(feedbackEnviar).toHaveBeenCalledWith('r1', { percepcaoEsforco: 6, sensacoes: [], comentario: undefined });
+    });
+  });
+
+  /**
+   * Entrada do onboarding (improve-athlete-onboarding-usability): até aqui não havia caminho até
+   * ele — nem redirecionamento, nem link. O link é testado com o router real (`createHashRouter`):
+   * `MemoryRouter` renderizaria `href="/athlete/onboarding"` e passaria com o link quebrado.
+   */
+  describe('banner de onboarding pendente', () => {
+    it('com onboarding pendente, convida a completar o perfil com link para o onboarding', () => {
+      mockCurrentUser(false);
+      mockHome();
+      renderPage();
+
+      expect(screen.getByTestId('onboarding-pending-banner')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /completar/i })).toHaveAttribute('href', '#/athlete/onboarding');
+    });
+
+    it('com onboarding concluído, não há banner', () => {
+      mockCurrentUser(true);
+      mockHome();
+      renderPage();
+
+      expect(screen.queryByTestId('onboarding-pending-banner')).not.toBeInTheDocument();
+    });
+
+    it('enquanto o `/me` não respondeu (null), não afirma pendência', () => {
+      mockCurrentUser(null);
+      mockHome();
+      renderPage();
+
+      expect(screen.queryByTestId('onboarding-pending-banner')).not.toBeInTheDocument();
     });
   });
 
