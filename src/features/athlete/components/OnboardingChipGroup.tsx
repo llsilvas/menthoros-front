@@ -11,6 +11,10 @@ export interface OnboardingChipGroupProps<T extends string> {
     onSelect: (value: T) => void;
     /** `true` para seleção múltipla (checkbox) — default `false` (radio, single-select). */
     multi?: boolean;
+    /** Pergunta opcional — rótulo ganha "(opcional)". */
+    optional?: boolean;
+    /** Linha de ajuda sob a pergunta. */
+    hint?: string;
 }
 
 /**
@@ -19,13 +23,13 @@ export interface OnboardingChipGroupProps<T extends string> {
  * estrutural de `role`/`aria-checked`/`.map` repetida em quase todas as etapas do onboarding.
  */
 export function OnboardingChipGroup<T extends string>({
-    label, options, labels, selected, onSelect, multi = false,
+    label, options, labels, selected, onSelect, multi = false, optional = false, hint,
 }: OnboardingChipGroupProps<T>) {
     const isSelected = (opt: T) => (multi ? Array.isArray(selected) && selected.includes(opt) : selected === opt);
 
     return (
         <Box>
-            <OnboardingSectionLabel>{label}</OnboardingSectionLabel>
+            <OnboardingSectionLabel optional={optional} hint={hint}>{label}</OnboardingSectionLabel>
             <Box
                 role={multi ? 'group' : 'radiogroup'}
                 aria-label={label}
