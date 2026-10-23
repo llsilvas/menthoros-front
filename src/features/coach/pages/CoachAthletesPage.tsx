@@ -35,6 +35,7 @@ import {
   DataGrid,
   GridActionsCellItem,
   type GridColDef,
+  type GridColumnVisibilityModel,
   type GridRowSelectionModel,
   type GridCellParams,
   type GridRowParams,
@@ -63,6 +64,8 @@ import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
 import { buildRosterKpiViews, deriveRosterKpis, daysSinceLastActivity, INACTIVITY_THRESHOLD_DAYS } from '../adapters/rosterKpis';
 import type { RosterKpiKey } from '../adapters/rosterKpis';
 import { KpiStrip } from '../components/KpiStrip';
+import { useCompactViewport } from '../hooks/useCompactViewport';
+import { TELA_BAIXA } from '../theme/mediaQueries';
 import { calcularAcwr, getAcwrZone } from '../adapters/coachInboxAdapters';
 import { resolveStatusCobrancaBadge, formatProximoVencimento } from '../adapters/cobrancaAdapters';
 import type { CoachAtletaStatus } from '../../../types/Coach';
@@ -101,6 +104,13 @@ const STATUS_LABEL: Record<CoachAtletaStatus, string> = {
 
 /** TSB a partir do qual a célula é marcada como perigo (sobrecarga). */
 const TSB_DANGER_THRESHOLD = -30;
+
+/** Colunas ocultas por padrão em viewport compacto (< lg). Ver comentário em `columnVisibility`. */
+const COMPACT_HIDDEN_COLUMNS: GridColumnVisibilityModel = {
+  phase: false,
+  weeklyVolume: false,
+  vencimentoPlano: false,
+};
 
 /** Mapeia o tom de uma métrica para a cor concreta do design system. */
 const TRAINING_PHASES: readonly TrainingPhase[] = ['BASE', 'BUILD', 'ESPECIFICO', 'TAPER', 'RECOVERY'];
@@ -321,6 +331,20 @@ export default function CoachAthletesPage() {
     [selection],
   );
 
+  /*
+    Em viewport compacto (< lg) as colunas somavam ~1.050px fixos e a grade rolava na horizontal,
+    escondendo justamente "Última atividade" e as ações. Saem por padrão as colunas que não
+    sustentam uma decisão de triagem (fase, volume semanal, vencimento) — o coach reativa qualquer
+    uma pelo menu de colunas da grade, e a escolha dele vale enquanto a página estiver montada.
+  */
+  const compact = useCompactViewport();
+  const [columnVisibility, setColumnVisibility] = useState<GridColumnVisibilityModel>(
+    () => (compact ? COMPACT_HIDDEN_COLUMNS : {}),
+  );
+  useEffect(() => {
+    setColumnVisibility(compact ? COMPACT_HIDDEN_COLUMNS : {});
+  }, [compact]);
+
   // Column definitions
   const columns: GridColDef<AthleteRow>[] = useMemo(() => [
     {
@@ -522,10 +546,11 @@ export default function CoachAthletesPage() {
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        p: 3,
+        p: { xs: 2, lg: 3 },
         gap: 2,
         bgcolor: elevation.base,
         overflow: 'hidden',
+        [TELA_BAIXA]: { gap: 1.25 },
       }}
     >
       {/* ── Page header ── */}
@@ -551,7 +576,7 @@ export default function CoachAthletesPage() {
                 ({roster.length})
               </Typography>
             </Typography>
-            <Typography variant="body2" sx={{ color: surface[400] }}>
+            <Typography variant="body2" sx={{ color: surface[400], [TELA_BAIXA]: { display: 'none' } }}>
               Visão geral do time com métricas de carga
             </Typography>
           </Box>
@@ -573,7 +598,7 @@ export default function CoachAthletesPage() {
               ),
             }}
             sx={{
-              width: 200,
+              width: { xs: 170, lg: 200 },
               '& .MuiInputBase-input': { fontSize: '0.85rem' },
             }}
           />
@@ -585,7 +610,7 @@ export default function CoachAthletesPage() {
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as CoachAtletaStatus | 'all')}
             SelectProps={{ native: true }}
-            sx={{ width: 150, '& .MuiInputBase-input': { fontSize: '0.85rem' } }}
+            sx={{ width: { xs: 140, lg: 150 }, '& .MuiInputBase-input': { fontSize: '0.85rem' } }}
           >
             {statusOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -702,6 +727,8 @@ export default function CoachAthletesPage() {
             disableRowSelectionOnClick
             rowSelectionModel={selection}
             onRowSelectionModelChange={setSelection}
+            columnVisibilityModel={columnVisibility}
+            onColumnVisibilityModelChange={setColumnVisibility}
             onRowClick={(params, event) => {
                 const target = event.target as HTMLElement;
                 if (target.closest('[data-field="__check__"]') || target.closest('[data-field="actions"]')) return;

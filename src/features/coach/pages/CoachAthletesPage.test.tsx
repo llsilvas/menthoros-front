@@ -8,6 +8,7 @@ import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
 import { useCoachRoster } from '../../../hooks/useCoachRoster';
 import { AtletasService } from '../../../api/services/AtletasService';
 import type { CoachAtletaResumo } from '../../../types/Coach';
+import { simularLarguraDaTela } from '../../../test/matchMedia';
 
 vi.mock('../../../hooks/useCoachRoster');
 vi.mock('../../../api/services/AtletasService');
@@ -24,11 +25,12 @@ vi.mock('react-router', async () => {
 vi.mock('@mui/x-data-grid', () => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   GridActionsCellItem: ({ label, onClick }: any) => <button onClick={onClick}>{label}</button>,
+  // Respeita `columnVisibilityModel` como a grade real: coluna com `false` não renderiza header.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  DataGrid: ({ rows, columns }: any) => (
+  DataGrid: ({ rows, columns, columnVisibilityModel }: any) => (
     <div>
       {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-      {columns.map((c: any) => <span key={c.field}>{c.headerName}</span>)}
+      {columns.filter((c: any) => columnVisibilityModel?.[c.field] !== false).map((c: any) => <span key={c.field}>{c.headerName}</span>)}
       {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
       {rows.map((row: any) => (
         <div key={row.id} data-testid={`row-${row.id}`}>
@@ -274,5 +276,46 @@ describe('CoachAthletesPage — coluna de vencimento do plano', () => {
       expect(alerta).toBeInTheDocument();
       expect(alerta.textContent).toMatch(/edite o atleta/i);
     });
+  });
+});
+
+/**
+ * Viewport compacto (< lg, 1200px): as colunas somavam ~1.050px fixos e a grade rolava na
+ * horizontal, escondendo "Última atividade" e as ações — o que o coach mais precisa na triagem.
+ */
+describe('CoachAthletesPage — colunas em viewport compacto', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(reactRouter.useOutletContext).mockReturnValue({
+      reviewFetchPendentes,
+    } satisfies Partial<CoachLayoutOutletContext> as unknown as CoachLayoutOutletContext);
+    vi.mocked(useCoachRoster).mockReturnValue({
+      roster: ROSTER,
+      loading: false,
+      error: null,
+      fetchRoster: vi.fn().mockResolvedValue(undefined),
+    });
+  });
+
+  it('abaixo de 1200px, oculta fase, volume semanal e vencimento — e mantém o essencial', () => {
+    simularLarguraDaTela(1100);
+    render(<MemoryRouter><CoachAthletesPage /></MemoryRouter>);
+
+    expect(screen.queryByText('Fase')).not.toBeInTheDocument();
+    expect(screen.queryByText('Vol. sem. (km)')).not.toBeInTheDocument();
+    expect(screen.queryByText('Vencimento')).not.toBeInTheDocument();
+
+    for (const header of ['Atleta', 'Status', 'CTL', 'ATL', 'TSB', 'ACWR', 'Última atividade', 'Ações']) {
+      expect(screen.getByText(header)).toBeInTheDocument();
+    }
+  });
+
+  it('em tela larga, todas as colunas aparecem', () => {
+    simularLarguraDaTela(1440);
+    render(<MemoryRouter><CoachAthletesPage /></MemoryRouter>);
+
+    expect(screen.getByText('Fase')).toBeInTheDocument();
+    expect(screen.getByText('Vol. sem. (km)')).toBeInTheDocument();
+    expect(screen.getByText('Vencimento')).toBeInTheDocument();
   });
 });
