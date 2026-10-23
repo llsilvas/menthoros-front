@@ -3,6 +3,7 @@ import type { SxProps, Theme } from '@mui/material';
 import type { ReactNode } from 'react';
 import { backgrounds, content } from '../../../theme/tokens';
 import { KpiCell } from './KpiCell';
+import { TELA_BAIXA } from '../theme/mediaQueries';
 import type { KpiView } from '../types/Kpi';
 
 interface KpiStripProps {
@@ -35,7 +36,13 @@ export function KpiStrip({ items, testIdPrefix, sx }: KpiStripProps) {
           kpi={item}
           testId={`${testIdPrefix}-${item.key}`}
           icon={item.icon}
-          sx={{ backgroundColor: backgrounds.panel, px: { xs: 1.25, lg: 2, xl: 2.5 }, py: { xs: 1.1, lg: 1.5, xl: 1.75 } }}
+          sx={{
+            backgroundColor: backgrounds.panel,
+            px: { xs: 1.25, lg: 2, xl: 2.5 },
+            py: { xs: 1.1, lg: 1.5, xl: 1.75 },
+            // Em altura baixa a faixa cede espaço vertical para a lista e o detalhe.
+            [TELA_BAIXA]: { py: 0.75 },
+          }}
         />
       ))}
     </Box>

@@ -25,6 +25,7 @@ import { content, gradients, semantic, surface } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import { activeTheme } from '../../../theme/activeTheme';
 import { useLogoAssessoria } from '../../../hooks/useLogoAssessoria';
+import { useCompactViewport } from '../hooks/useCompactViewport';
 import menthorosMark from '../../../assets/icons/menthoros_mark.png';
 
 const { primary, sidebar, overlayBlack } = activeTheme;
@@ -84,9 +85,11 @@ const NAV_ITEMS: NavItemDef[] = [
 
 // ── Dimensions ────────────────────────────────────────────────────────────────
 
-const SIDEBAR_EXPANDED = 240;
-const SIDEBAR_COLLAPSED = 64;
+export const SIDEBAR_EXPANDED = 240;
+export const SIDEBAR_COLLAPSED = 64;
 const LS_KEY = 'coach-sidebar-collapsed';
+
+const lerPreferenciaRecolhida = () => localStorage.getItem(LS_KEY) === 'true';
 
 // ── InboxBadge ────────────────────────────────────────────────────────────────
 
@@ -341,15 +344,32 @@ export default function CoachSidebar({
   onNavigate,
   onTenantSwitch,
 }: CoachSidebarProps) {
+  /*
+    Em viewport compacto (< lg, ver `useCompactViewport`) a sidebar nasce recolhida: 240px são 20%
+    de uma tela de 1200px, e o conteúdo é quem precisa do espaço. O recolhimento automático NÃO
+    grava a preferência — ela continua sendo o que o coach escolheu em tela grande. Expandir à mão
+    no compacto vale só para a sessão; ao voltar para uma tela larga, a preferência salva volta.
+  */
+  const compact = useCompactViewport();
   const [collapsed, setCollapsed] = useState<boolean>(
-    () => localStorage.getItem(LS_KEY) === 'true',
+    () => compact || lerPreferenciaRecolhida(),
   );
   const [logoHeaderFalhou, setLogoHeaderFalhou] = useState(false);
   const logoCarregada = useLogoAssessoria(currentTenant.logoUrl, currentTenant.version);
   const logoDoHeader = logoHeaderFalhou ? null : logoCarregada;
 
-  const toggleRef = useRef(collapsed);
-  toggleRef.current = collapsed;
+  useEffect(() => {
+    setCollapsed(compact || lerPreferenciaRecolhida());
+  }, [compact]);
+
+  const toggleRef = useRef({ collapsed, compact });
+  toggleRef.current = { collapsed, compact };
+
+  const alternar = (atual: boolean, emCompacto: boolean) => {
+    const next = !atual;
+    setCollapsed(next);
+    if (!emCompacto) localStorage.setItem(LS_KEY, String(next));
+  };
 
   // Keyboard shortcut: [ toggles collapse
   useEffect(() => {
@@ -357,20 +377,14 @@ export default function CoachSidebar({
       const tag = (e.target as HTMLElement)?.tagName ?? '';
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
       if (e.key === '[') {
-        const next = !toggleRef.current;
-        setCollapsed(next);
-        localStorage.setItem(LS_KEY, String(next));
+        alternar(toggleRef.current.collapsed, toggleRef.current.compact);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const handleToggle = () => {
-    const next = !collapsed;
-    setCollapsed(next);
-    localStorage.setItem(LS_KEY, String(next));
-  };
+  const handleToggle = () => alternar(collapsed, compact);
 
   const sidebarWidth = collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED;
 

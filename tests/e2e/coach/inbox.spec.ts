@@ -283,6 +283,42 @@ test.describe('Coach — lista principal do inbox', () => {
   })
 
   /**
+   * Notebook de resolução menor — 1366×768 nativo, ou Full HD com escala de 125–150% do Windows,
+   * que dá uma largura CSS de 1024–1280px e altura de ~650–720px. É a tela onde o coach de verdade
+   * trabalha, e a que o layout menos considerava: abaixo de 1200px a grade virava coluna única num
+   * container sem rolagem, e o detalhe do atleta ficava cortado; a sidebar seguia em 240px.
+   *
+   * Os tamanhos cobrem a faixa: 1366×768 (o notebook mais comum), 1280×720 e 1024×640. Verificam o
+   * fluxo inteiro se mantendo — não regras de estilo isoladas. A sidebar só recolhe sozinha abaixo
+   * de `lg` (1200px); acima disso a preferência do coach manda.
+   */
+  for (const viewport of [{ width: 1366, height: 768 }, { width: 1280, height: 720 }, { width: 1024, height: 640 }]) {
+    const compacto = viewport.width < 1200
+    test(`em notebook ${viewport.width}x${viewport.height}, lista e detalhe ficam lado a lado${compacto ? ' e a sidebar nasce recolhida' : ''}`, async ({ page }) => {
+      await page.setViewportSize(viewport)
+      await mockarDashboard(page)
+      await page.goto(INBOX_URL)
+
+      // Abaixo de 1200px a sidebar nasce recolhida — o espaço é do conteúdo.
+      await expect(page.getByRole('button', { name: compacto ? /expandir sidebar/i : /recolher sidebar/i })).toBeVisible()
+
+      const linha = page.getByRole('button', { name: /ana fora da pagina/i })
+      await linha.click()
+      const cta = page.getByTestId('inbox-cta-primario')
+      await expect(cta).toBeInViewport()
+
+      // Lado a lado: o detalhe começa à direita da lista, não abaixo dela.
+      const caixaLinha = (await linha.boundingBox())!
+      const caixaCta = (await cta.boundingBox())!
+      expect(caixaCta.x).toBeGreaterThan(caixaLinha.x + caixaLinha.width)
+
+      const estoura = await page.evaluate(() =>
+        document.documentElement.scrollWidth > document.documentElement.clientWidth)
+      expect(estoura).toBe(false)
+    })
+  }
+
+  /**
    * Task 2.7 — o insight estruturado no detalhe. O DTO da fila já trazia motivo, evidência,
    * `rationale` e `sourceRules`; a tela renderizava tudo isso amassado num texto livre.
    */

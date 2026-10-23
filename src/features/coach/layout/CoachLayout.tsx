@@ -52,9 +52,11 @@ export interface CoachLayoutOutletContext {
   reviewRejeitar: (id: string, motivo: string) => Promise<ReviewActionResult>;
 }
 
+// `100dvh`, não `100vh`: em navegador com barra de endereço retrátil, `100vh` mede a tela inteira e
+// o rodapé do shell fica atrás da barra — o problema aparece primeiro na altura baixa do notebook.
 const telaCheia = {
   display: 'flex',
-  height: '100vh',
+  height: '100dvh',
   alignItems: 'center',
   justifyContent: 'center',
   bgcolor: elevation.base,
@@ -215,7 +217,7 @@ export default function CoachLayout() {
       <Box
         sx={{
           display: 'flex',
-          height: '100vh',
+          height: '100dvh',
           bgcolor: elevation.base,
           overflow: 'hidden',
         }}
