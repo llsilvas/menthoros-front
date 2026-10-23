@@ -27,7 +27,8 @@ describe('useCurrentUser', () => {
         expect(result.current.coach.name).toBe('João Silva');
         expect(result.current.tenant.id).toBe('t1');
         expect(result.current.tenant.name).toBe('Corridas Serra');
-        expect(result.current.tenant.athleteCount).toBe(0);
+        // O `me` não traz contagem: fica desconhecida (`null`), nunca "0 atletas".
+        expect(result.current.tenant.athleteCount).toBeNull();
         expect(result.current.error).toBeNull();
         expect(result.current.loading).toBe(false);
     });

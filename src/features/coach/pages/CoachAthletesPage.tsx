@@ -657,7 +657,7 @@ export default function CoachAthletesPage() {
       </Box>
 
       {/* ── View chips ── */}
-      <Stack direction="row" spacing={1} flexWrap="wrap">
+      <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
         {VIEWS.map((view) => (
           <Chip
             key={view.key}
@@ -678,6 +678,20 @@ export default function CoachAthletesPage() {
             }}
           />
         ))}
+        {/*
+          Legenda do ponto laranja, só quando ele está na tela: sem ela, o treinador via um pontinho
+          ao lado do avatar e não sabia se era erro. O `aria-label` do ponto já cobria o leitor de
+          tela; isto cobre quem enxerga.
+        */}
+        {athletes.some((a) => a.hasPendingSuggestion) && (
+          <Typography
+            component="span"
+            sx={{ ml: 'auto !important', display: 'inline-flex', alignItems: 'center', gap: 0.75, fontSize: '0.6875rem', color: surface[400], whiteSpace: 'nowrap' }}
+          >
+            <Box component="span" sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: semantic.warning[500] }} />
+            sugestão pendente para revisar
+          </Typography>
+        )}
       </Stack>
 
       {/* ── KPI row: mesma faixa do Inbox; o ícone identifica a métrica pela cor ── */}
