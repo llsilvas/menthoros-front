@@ -69,21 +69,28 @@ function PlaceholderCard({ children }: { children: string }) {
 // ── Tab panels ────────────────────────────────────────────────────────────────
 
 function TabVisaoGeral({ insights }: { insights: CoachInsights }) {
-  const { kpis, topAtletas } = insights;
+  const { kpis } = insights;
   const volumeTotal = useMemo(
     () => Math.round(insights.tendenciaCargaSemanal.reduce((s, p) => s + p.volumeTotalKm, 0)),
     [insights.tendenciaCargaSemanal],
   );
+  // Ordenado aqui, não confiado ao backend: um "top" em ordem crescente lê como o contrário do
+  // que diz. O backend já manda decrescente hoje; o front garante.
+  const topAtletas = useMemo(
+    () => [...insights.topAtletas].sort((a, b) => b.volumeKm - a.volumeKm),
+    [insights.topAtletas],
+  );
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* KPI grid — só métricas reais do DTO */}
+      {/* KPI grid — só métricas reais do DTO. Cinco cards em cinco colunas: em quatro, o quinto
+          ficava órfão numa segunda linha. */}
       <Box>
         <SectionHeading>Resumo do período</SectionHeading>
         <Box
           sx={{
             display:             'grid',
-            gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+            gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(5, 1fr)' },
             gap:                 2,
           }}
         >
@@ -95,11 +102,12 @@ function TabVisaoGeral({ insights }: { insights: CoachInsights }) {
         </Box>
       </Box>
 
-      {/* Recursos sem fonte ainda — sinalizados, não fabricados (CA6/R2) */}
-      <PlaceholderCard>
-        Adesão ao plano, alertas e validações pendentes chegam com as próximas entregas
-        (revisão semanal, fila de atenção e inbox de sugestões)
-      </PlaceholderCard>
+      {/*
+        O aviso "adesão, alertas e validações chegam com as próximas entregas" saiu: era changelog
+        interno exibido ao treinador, que o lia como "a tela está incompleta". O que não tem fonte
+        de dado simplesmente não aparece (CA6/R2 — sinalizar, não fabricar — continua valendo: nada
+        aqui é inventado).
+      */}
 
       {/* Top atletas por volume (real) */}
       <Box>
@@ -127,6 +135,11 @@ function TabVisaoGeral({ insights }: { insights: CoachInsights }) {
                   borderTop:  idx > 0 ? `1px solid ${content.divider}` : undefined,
                 }}
               >
+                <Typography
+                  sx={{ width: 24, fontSize: '0.8rem', color: surface[500], fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}
+                >
+                  {idx + 1}º
+                </Typography>
                 <CoachAthleteAvatar athlete={{ id: athlete.atletaId, name: athlete.nome }} size="xs" />
                 <Typography sx={{ flex: 1, fontSize: '0.875rem', color: surface[50], fontWeight: 500 }}>
                   {athlete.nome}
@@ -226,31 +239,12 @@ function TabCarga({ insights }: { insights: CoachInsights }) {
   );
 }
 
-function TabPerformance() {
-  return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <PlaceholderCard>Histórico de performance e simulações de prova em breve</PlaceholderCard>
-    </Box>
-  );
-}
-
-function TabSaude() {
-  return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <PlaceholderCard>Integração com HRV e dados de sono em breve</PlaceholderCard>
-    </Box>
-  );
-}
-
-function TabComparativos() {
-  return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <PlaceholderCard>Comparação entre grupos de atletas em breve</PlaceholderCard>
-    </Box>
-  );
-}
-
-const TAB_LABELS = ['Visão geral', 'Carga', 'Performance', 'Saúde', 'Comparativos'];
+/*
+  Só abas com conteúdo. "Performance", "Saúde" e "Comparativos" eram abas clicáveis que abriam um
+  "em breve" — para o treinador, três promessas quebradas na navegação principal. Voltam quando
+  tiverem fonte de dado (performance: simulações de prova; saúde: HRV/sono; comparativos: grupos).
+*/
+const TAB_LABELS = ['Visão geral', 'Carga'];
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
@@ -267,9 +261,6 @@ export default function CoachInsightsPage() {
     switch (activeTab) {
       case 0: return <TabVisaoGeral insights={insights} />;
       case 1: return <TabCarga insights={insights} />;
-      case 2: return <TabPerformance />;
-      case 3: return <TabSaude />;
-      case 4: return <TabComparativos />;
       default: return null;
     }
   }

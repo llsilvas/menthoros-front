@@ -155,7 +155,7 @@ export default function CoachAthleteProfilePage() {
                     onClick={() => navigate('/coach/athletes')}
                     sx={{ color: surface[400], fontSize: '0.8rem' }}
                 >
-                    Roster
+                    Atletas
                 </Button>
             </Box>
 

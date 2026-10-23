@@ -103,8 +103,19 @@ describe('CoachPlanReviewPage', () => {
     it('renderiza nome do atleta e contador na lista', () => {
         mockContext({ reviewPendentes: [STUB] });
         render(<CoachPlanReviewPage />);
-        expect(screen.getByText('Ana Silva')).toBeInTheDocument();
+        // O nome aparece na lista e, com a seleção automática, também no detalhe.
+        expect(screen.getAllByText('Ana Silva').length).toBeGreaterThanOrEqual(1);
         expect(screen.getByText('1 plano')).toBeInTheDocument();
+    });
+
+    // Como a Inbox com o atleta: abrir numa tela "Selecione um plano" com um único item na fila
+    // era um clique a mais em todo plano revisado.
+    it('seleciona o primeiro plano ao abrir, sem clique', () => {
+        mockContext({ reviewPendentes: [STUB] });
+        render(<CoachPlanReviewPage />);
+
+        expect(screen.queryByText(/selecione um plano/i)).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /aprovar/i })).toBeInTheDocument();
     });
 
     it('selecionar plano exibe painel de detalhe com botões de ação', () => {
