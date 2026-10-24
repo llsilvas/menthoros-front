@@ -12,7 +12,9 @@ import { elevation } from '../../../shared/design-tokens';
 import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
 import type { ReviewFilter } from '../../../hooks/useCoachPlanReview';
 import { useTreinoPlanejado } from '../../../hooks/useTreinoPlanejado';
-import type { TreinoPlanejadoPatch, TreinoPlanejadoDto } from '../../../types/PlanoReview';
+import type { PlanoSemanalDto, TreinoPlanejadoPatch, TreinoPlanejadoDto } from '../../../types/PlanoReview';
+import { indiceDoDia, weekDatesFromInicio } from '../../../utils/semana';
+import { rotuloDiaComData } from '../components/tiposTreino';
 
 // ── Coluna de filtros ────────────────────────────────────────────────────────
 
@@ -79,6 +81,15 @@ function FilterColumn({
             })}
         </Box>
     );
+}
+
+/** "Bruno Dias · Ter 20/10" para o cabeçalho do editor — dois treinos abertos em sequência eram idênticos. */
+function contextoDoTreino(plano: PlanoSemanalDto | null, treino: TreinoPlanejadoDto): string | undefined {
+    if (!plano) return undefined;
+    const dia = typeof treino.diaSemana === 'string' ? treino.diaSemana : treino.diaSemana.value;
+    const i = indiceDoDia(dia);
+    const data = i >= 0 ? weekDatesFromInicio(plano.semanaInicio)[i] : undefined;
+    return [plano.atletaNome, rotuloDiaComData(dia, data)].filter(Boolean).join(' · ');
 }
 
 // ── Empty state labels por filtro ────────────────────────────────────────────
@@ -330,6 +341,7 @@ export default function CoachPlanReviewPage() {
                 <TreinoEditDialog
                     open
                     treino={editingTreino}
+                    contexto={contextoDoTreino(selected, editingTreino)}
                     isSaving={isEditSaving}
                     onClose={() => setEditingTreinoId(null)}
                     onSave={handleSalvarEdicao}

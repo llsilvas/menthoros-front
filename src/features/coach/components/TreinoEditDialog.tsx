@@ -10,6 +10,7 @@ import {
     Select,
     TextField,
     Typography,
+    useMediaQuery,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import AddIcon from '@mui/icons-material/Add';
@@ -18,6 +19,9 @@ import RepeatIcon from '@mui/icons-material/Repeat';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { TIPOS_TREINO, TIPOS_ETAPA, TIPO_ETAPA_LABEL, tipoEtapaLabel } from './tiposTreino';
 import { primary, surface } from '../../../theme/tokens';
 import { overlayWhite } from '../../../theme/overlays';
 import { elevation } from '../../../shared/design-tokens';
@@ -45,21 +49,10 @@ function toIso8601(minutos: string): string | undefined {
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 
-const TIPOS_TREINO = [
-    { value: 'FACIL',        label: 'Fácil'        },
-    { value: 'CONTINUO',     label: 'Contínuo'     },
-    { value: 'LONGO',        label: 'Longo'        },
-    { value: 'TEMPO_RUN',    label: 'Tempo Run'    },
-    { value: 'INTERVALADO',  label: 'Intervalado'  },
-    { value: 'FARTLEK',      label: 'Fartlek'      },
-    { value: 'REGENERATIVO', label: 'Regenerativo' },
-    { value: 'TIRO',         label: 'Tiro'         },
-    { value: 'SUBIDA',       label: 'Subida'       },
-    { value: 'PROVA',        label: 'Prova'        },
-];
-
-
 const ACCENT = activeTheme.trainingStage;
+
+/** Altura em que o gráfico de perfil passa a nascer recolhido: em 1024×640 ele tomava 55% do dialog. */
+const TELA_BAIXA_QUERY = '(max-height: 700px)';
 
 // A inferência de zona vivia aqui, numa segunda derivação independente da do
 // detalhe do treino — o mesmo treino podia sair com zonas diferentes em cada
@@ -67,11 +60,17 @@ const ACCENT = activeTheme.trainingStage;
 
 // ── Estado de bloco ───────────────────────────────────────────────────────────
 
+/**
+ * Campos editáveis de uma etapa. Sem RPE: o campo existia em cada bloco mas nunca era lido —
+ * o esforço esperado é do treino, e fica nos campos globais. Ritmo e descrição entram: são o que o
+ * atleta lê na etapa ("4:10/km", "800m forte") e, até aqui, o editor preservava mas não deixava mudar.
+ */
 interface BlocoState {
     distanciaKm: string;
     duracaoMin: string;
     zonaAlvo: string;
-    rpe: string;
+    ritmoAlvo: string;
+    descricao: string;
 }
 
 
@@ -98,13 +97,28 @@ function fieldSx(accent: string) {
 }
 
 
+type CamposEtapa = { duracaoMin: string; distanciaKm: string; fcAlvoEtapa: string; ritmoAlvo?: string; descricaoEtapa?: string };
+
 /** BlocoCard fala em BlocoState; o modelo de itens fala em tipoEtapa/fcAlvoEtapa. */
-function blocoStateDe(e: { duracaoMin: string; distanciaKm: string; fcAlvoEtapa: string }): BlocoState {
-    return { distanciaKm: e.distanciaKm, duracaoMin: e.duracaoMin, zonaAlvo: e.fcAlvoEtapa, rpe: '' };
+function blocoStateDe(e: CamposEtapa): BlocoState {
+    return {
+        distanciaKm: e.distanciaKm,
+        duracaoMin: e.duracaoMin,
+        zonaAlvo: e.fcAlvoEtapa,
+        ritmoAlvo: e.ritmoAlvo ?? '',
+        descricao: e.descricaoEtapa ?? '',
+    };
 }
 
-function camposDe(b: BlocoState): { duracaoMin: string; distanciaKm: string; fcAlvoEtapa: string } {
-    return { duracaoMin: b.duracaoMin, distanciaKm: b.distanciaKm, fcAlvoEtapa: b.zonaAlvo };
+function camposDe(b: BlocoState): CamposEtapa {
+    return {
+        duracaoMin: b.duracaoMin,
+        distanciaKm: b.distanciaKm,
+        fcAlvoEtapa: b.zonaAlvo,
+        // Vazio vira `undefined` para o serializador omitir o campo, como antes da edição.
+        ritmoAlvo: b.ritmoAlvo.trim() || undefined,
+        descricaoEtapa: b.descricao.trim() || undefined,
+    };
 }
 
 function accentDe(tipoEtapa: string): string {
@@ -181,10 +195,7 @@ function parseDuracaoMinutos(iso: string | undefined): string {
     return total > 0 ? String(total) : '';
 }
 
-const TIPOS_ETAPA = ['AQUECIMENTO', 'PRINCIPAL', 'INTERVALADO', 'RECUPERACAO', 'DESAQUECIMENTO'] as const;
-
 interface BlocoCardProps {
-    label: string;
     accent: string;
     bloco: BlocoState;
     onChange: (b: BlocoState) => void;
@@ -196,9 +207,14 @@ interface BlocoCardProps {
     tipoAriaLabel?: string;
 }
 
+/**
+ * Uma etapa. O chip com o nome do tipo saiu: duplicava o select ao lado ("AQUECIMENTO" duas vezes);
+ * a cor da borda já identifica a etapa, e o select tem rótulos humanos.
+ */
 function BlocoCard({
-    label, accent, bloco, onChange, disabled, actions, tipoEtapa, onTipoChange, tipoAriaLabel,
+    accent, bloco, onChange, disabled, actions, tipoEtapa, onTipoChange, tipoAriaLabel,
 }: BlocoCardProps) {
+    const sx = fieldSx(accent);
     return (
         <Box
             sx={{
@@ -212,39 +228,23 @@ function BlocoCard({
             }}
         >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box
-                    sx={{
-                        px: 0.75,
-                        py: 0.2,
-                        borderRadius: '4px',
-                        bgcolor: `${accent}18`,
-                        border: `1px solid ${accent}33`,
-                        fontSize: '0.62rem',
-                        fontWeight: 700,
-                        color: accent,
-                        letterSpacing: '0.08em',
-                        textTransform: 'uppercase',
-                        fontFamily: 'monospace',
-                        userSelect: 'none',
-                    }}
-                >
-                    {label}
-                </Box>
-                {onTipoChange && (
-                    <FormControl size="small" sx={{ minWidth: 150, ...fieldSx(accent) }}>
-                        <InputLabel shrink>Tipo</InputLabel>
+                {onTipoChange ? (
+                    <FormControl size="small" sx={{ minWidth: 170, ...sx }}>
+                        <InputLabel shrink>Tipo da etapa</InputLabel>
                         <Select
                             native
-                            label="Tipo"
+                            label="Tipo da etapa"
                             value={tipoEtapa ?? ''}
                             onChange={e => onTipoChange(e.target.value as string)}
                             disabled={disabled}
                             inputProps={{ 'aria-label': tipoAriaLabel ?? 'Tipo da etapa' }}
                         >
-                            <option value="" disabled />
-                            {TIPOS_ETAPA.map(t => <option key={t} value={t}>{t}</option>)}
+                            <option value="" disabled>Escolha…</option>
+                            {TIPOS_ETAPA.map(t => <option key={t} value={t}>{TIPO_ETAPA_LABEL[t]}</option>)}
                         </Select>
                     </FormControl>
+                ) : (
+                    <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: accent }}>{tipoEtapaLabel(tipoEtapa)}</Typography>
                 )}
                 {actions && <Box sx={{ ml: 'auto' }}>{actions}</Box>}
             </Box>
@@ -259,7 +259,7 @@ function BlocoCard({
                     size="small"
                     fullWidth
                     inputProps={{ min: 0, step: 0.1 }}
-                    sx={fieldSx(accent)}
+                    sx={sx}
                 />
                 <TextField
                     label="Duração (min)"
@@ -270,32 +270,48 @@ function BlocoCard({
                     size="small"
                     fullWidth
                     inputProps={{ min: 1, step: 1 }}
-                    sx={fieldSx(accent)}
+                    sx={sx}
                 />
             </Box>
 
             <Box sx={{ display: 'flex', gap: 1 }}>
                 <TextField
-                    label="Zona alvo"
+                    label="Zona (FC)"
+                    placeholder="Z2 ou 140-150 bpm"
                     value={bloco.zonaAlvo}
                     onChange={e => onChange({ ...bloco, zonaAlvo: e.target.value })}
                     disabled={disabled}
                     size="small"
                     fullWidth
-                    sx={fieldSx(accent)}
+                    slotProps={{ inputLabel: { shrink: true } }}
+                    sx={sx}
                 />
                 <TextField
-                    label="RPE (1–10)"
-                    type="number"
-                    value={bloco.rpe}
-                    onChange={e => onChange({ ...bloco, rpe: e.target.value })}
+                    label="Ritmo"
+                    placeholder="4:10/km"
+                    value={bloco.ritmoAlvo}
+                    onChange={e => onChange({ ...bloco, ritmoAlvo: e.target.value })}
                     disabled={disabled}
                     size="small"
                     fullWidth
-                    inputProps={{ min: 1, max: 10, step: 1 }}
-                    sx={fieldSx(accent)}
+                    slotProps={{ inputLabel: { shrink: true } }}
+                    inputProps={{ maxLength: 40 }}
+                    sx={sx}
                 />
             </Box>
+
+            <TextField
+                label="Descrição para o atleta"
+                placeholder="Ex.: 800m forte, trote entre os tiros"
+                value={bloco.descricao}
+                onChange={e => onChange({ ...bloco, descricao: e.target.value })}
+                disabled={disabled}
+                size="small"
+                fullWidth
+                slotProps={{ inputLabel: { shrink: true } }}
+                inputProps={{ maxLength: 200 }}
+                sx={sx}
+            />
         </Box>
     );
 }
@@ -307,11 +323,13 @@ export interface TreinoEditDialogProps {
     open: boolean;
     treino: TreinoPlanejadoDto;
     isSaving: boolean;
+    /** Contexto no cabeçalho ("Bruno Dias · Ter 20/10"): dois treinos abertos em sequência eram idênticos. */
+    contexto?: string;
     onClose: () => void;
     onSave: (patch: TreinoPlanejadoPatch) => void;
 }
 
-export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: TreinoEditDialogProps) {
+export function TreinoEditDialog({ open, treino, isSaving, contexto, onClose, onSave }: TreinoEditDialogProps) {
     const [tipoTreino, setTipoTreino]         = useState(treino.tipoTreino ?? '');
     const [tss, setTss]                       = useState(treino.tssPlanejado != null ? String(treino.tssPlanejado) : '');
     const [observacao, setObservacao]         = useState(treino.observacao ?? '');
@@ -331,6 +349,11 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
     // Aviso de remoção de aquecimento/desaquecimento, com o patch retido até a confirmação
     const [avisoRemocao, setAvisoRemocao]     = useState<string[] | null>(null);
     const [pendente, setPendente]             = useState<TreinoPlanejadoPatch | null>(null);
+    // Esc, X ou Cancelar com alteração pendente: pedir confirmação em vez de descartar em silêncio.
+    const [confirmarDescarte, setConfirmarDescarte] = useState(false);
+    // O gráfico nasce recolhido em altura baixa; o treinador abre quando quiser.
+    const telaBaixa = useMediaQuery(TELA_BAIXA_QUERY);
+    const [graficoAberto, setGraficoAberto]   = useState(!telaBaixa);
 
     useEffect(() => {
         setItens(itensIniciais(treino));
@@ -340,7 +363,10 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
         setTss(treino.tssPlanejado != null ? String(treino.tssPlanejado) : '');
         setObservacao(treino.observacao ?? '');
         setBlocosMudados(false);
+        setConfirmarDescarte(false);
     }, [treino]);
+
+    useEffect(() => { setGraficoAberto(!telaBaixa); }, [telaBaixa]);
 
 
     /** Um item rende N cópias das suas sub-etapas; uma etapa avulsa rende ela mesma. */
@@ -535,9 +561,21 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
         },
     } as const;
 
+    const temAlteracoes = () => Object.keys(montarPatch()).length > 0;
+
+    // Fechar (Esc, X, Cancelar) com alteração pendente pede confirmação: dez minutos montando uma
+    // série não podem sumir num Esc. Sem alteração, fecha direto.
     const handleClose = () => {
-        if (!isSaving) onClose();
+        if (isSaving) return;
+        if (temAlteracoes()) {
+            setConfirmarDescarte(true);
+            return;
+        }
+        onClose();
     };
+
+    // TSS não é recalculado pelo sistema ao salvar etapas editadas: avisar em vez de fingir.
+    const tssDesatualizado = blocosMudados && tss !== '' && tss === String(treino.tssPlanejado ?? '');
 
     const diaChip = (
         <Box
@@ -554,7 +592,7 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
                 userSelect: 'none',
             }}
         >
-            {diaSemana.slice(0, 3).toUpperCase()}
+            {contexto ?? diaSemana.slice(0, 3).toUpperCase()}
         </Box>
     );
 
@@ -628,6 +666,7 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
             disableClose={isSaving}
             chip={diaChip}
             title="Editar treino"
+            subtitle={treino.justificativaIa?.trim() || undefined}
             headerAction={tipoSelect}
             contentSx={{ px: 2.5, py: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}
             actionsHint={totalHint}
@@ -635,7 +674,7 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
                 <>
                     <Button
                         variant="text"
-                        onClick={onClose}
+                        onClick={handleClose}
                         disabled={isSaving}
                         sx={{ ...GHOST_BTN_SX, fontSize: '0.8rem' }}
                     >
@@ -659,13 +698,51 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
             }
         >
 
+                {confirmarDescarte && (
+                    <Box
+                        role="alert"
+                        aria-label="Confirmar descarte das alterações"
+                        sx={{
+                            border: `1px solid ${alpha(primary[500], 0.4)}`,
+                            borderRadius: '8px',
+                            p: 1.5,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 1,
+                        }}
+                    >
+                        <Box sx={{ fontSize: '0.82rem', color: surface[200] }}>
+                            Há alterações não salvas neste treino. Descartar?
+                        </Box>
+                        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                            <Button size="small" sx={GHOST_BTN_SX} onClick={() => setConfirmarDescarte(false)}>
+                                Continuar editando
+                            </Button>
+                            <Button size="small" sx={PRIMARY_BTN_SX} onClick={onClose}>
+                                Descartar
+                            </Button>
+                        </Box>
+                    </Box>
+                )}
+
                 {/* O bloco destacado segue a linha em edição — ganho direto do
                     modelo de lista: o treinador vê no gráfico o que está mexendo. */}
-                <WorkoutProfile
-                    profile={profile}
-                    activeBlockId={blocoDestacado}
-                    onActiveBlockChange={setBlocoDestacado}
-                />
+                {graficoAberto ? (
+                    <WorkoutProfile
+                        profile={profile}
+                        activeBlockId={blocoDestacado}
+                        onActiveBlockChange={setBlocoDestacado}
+                    />
+                ) : null}
+                <Button
+                    size="small"
+                    onClick={() => setGraficoAberto(v => !v)}
+                    startIcon={graficoAberto ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                    aria-expanded={graficoAberto}
+                    sx={{ ...GHOST_BTN_SX, alignSelf: 'flex-start', mt: -1 }}
+                >
+                    {graficoAberto ? 'Ocultar gráfico' : 'Mostrar gráfico do treino'}
+                </Button>
 
                 {/* ── Lista de etapas: avulsas e blocos repetidos ── */}
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -678,7 +755,6 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
                     {itens.map((item, idx) => item.kind === 'step' ? (
                         <BlocoCard
                             key={item.id}
-                            label={item.tipoEtapa || 'Etapa'}
                             accent={accentDe(item.tipoEtapa)}
                             bloco={blocoStateDe(item)}
                             onChange={b => atualizaStep(idx, b)}
@@ -749,7 +825,6 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
                             {item.steps.map((sub, si) => (
                                 <BlocoCard
                                     key={sub.id}
-                                    label={sub.tipoEtapa || 'Etapa'}
                                     accent={accentDe(sub.tipoEtapa)}
                                     bloco={blocoStateDe(sub)}
                                     onChange={b => atualizaSubStep(idx, si, b)}
@@ -849,9 +924,14 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
                         gap: 1.25,
                     }}
                 >
+                    <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: surface[400], letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                        Treino inteiro
+                    </Typography>
                     <Box sx={{ display: 'flex', gap: 1.25 }}>
                         <TextField
-                            label="Zona alvo"
+                            label="Zona predominante"
+                            // Havia "Zona alvo" por etapa E aqui, com o mesmo nome e semântica diferente.
+                            helperText="Resumo mostrado no card do plano; a zona de cada etapa fica acima"
                             value={zonaAlvo}
                             onChange={e => setZonaAlvo(e.target.value)}
                             disabled={isSaving}
@@ -860,7 +940,7 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
                             sx={footerFieldSx}
                         />
                         <TextField
-                            label="RPE (1–10)"
+                            label="Esforço esperado (RPE 1–10)"
                             type="number"
                             value={rpe}
                             onChange={e => setRpe(e.target.value)}
@@ -881,10 +961,11 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
                         size="small"
                         fullWidth
                         inputProps={{ min: 1, max: 500, step: 1 }}
+                        helperText={tssDesatualizado ? 'As etapas mudaram e o TSS não é recalculado ao salvar — confira ou apague para estimar depois.' : undefined}
                         sx={footerFieldSx}
                     />
                     <TextField
-                        label="Observação"
+                        label="Observação (nota do treinador)"
                         value={observacao}
                         onChange={e => setObservacao(e.target.value)}
                         disabled={isSaving}

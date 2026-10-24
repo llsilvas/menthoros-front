@@ -156,6 +156,68 @@ test.describe('revisão do plano — edição de treino', () => {
     expect(bloco?.subEtapas?.[0].ritmoAlvo, 'o tiro deve manter o ritmo prescrito').toBe('4:00-4:10/km')
   })
 
+  /**
+   * improve-plan-edit-usability: o ritmo por etapa deixou de ser só preservado e passou a ser
+   * editável — é o que o atleta lê no treino. O que só aqui se prova é que o valor digitado no campo
+   * da sub-etapa da série chega ao PATCH dentro do BLOCO, e não solto nem perdido.
+   */
+  test('ritmo editado numa etapa da série sai no PATCH dentro do bloco', async ({ page }) => {
+    await mockarApis(page)
+
+    const patches: unknown[] = []
+    await page.route(PATCH_API, async route => {
+      patches.push(route.request().postDataJSON())
+      await route.fulfill({ json: { ...PLANO.treinosPlanejados[0], editadoPeloCoach: true } })
+    })
+
+    await autenticarComPkce(page, { roles: ['TECNICO'] })
+    await page.goto(REVIEW_URL)
+
+    await page.getByRole('button', { name: /Atleta Teste/i }).click()
+    // O corpo do card também abre a edição — não só o ícone.
+    await page.getByRole('button', { name: /abrir treino de qui/i }).click()
+    await expect(page.getByTestId('repeticoes-display-1')).toHaveText('4×')
+
+    // Primeira etapa da série (o tiro): o campo de ritmo vem com o valor prescrito.
+    const ritmos = page.getByLabel('Ritmo')
+    await expect(ritmos.nth(1)).toHaveValue('4:00-4:10/km')
+    await ritmos.nth(1).fill('4:20/km')
+    await page.getByRole('button', { name: /^salvar$/i }).click()
+
+    await expect.poll(() => patches.length).toBe(1)
+    const patch = patches[0] as { etapas?: Array<{ tipoEtapa: string; subEtapas?: Array<{ tipoEtapa: string; ritmoAlvo?: string }> }> }
+    const bloco = patch.etapas?.find(e => e.tipoEtapa === 'BLOCO')
+    expect(bloco?.subEtapas?.[0]).toMatchObject({ tipoEtapa: 'INTERVALADO', ritmoAlvo: '4:20/km' })
+  })
+
+  test('Esc com alteração pendente pede confirmação em vez de descartar', async ({ page }) => {
+    await mockarApis(page)
+    const patches: unknown[] = []
+    await page.route(PATCH_API, async route => { patches.push(route.request().postDataJSON()); await route.fulfill({ json: PLANO.treinosPlanejados[0] }) })
+
+    await autenticarComPkce(page, { roles: ['TECNICO'] })
+    await page.goto(REVIEW_URL)
+    await page.getByRole('button', { name: /Atleta Teste/i }).click()
+    await page.getByRole('button', { name: 'Editar treino' }).first().click()
+
+    await page.getByLabel(/TSS planejado/i).fill('60')
+    await page.keyboard.press('Escape')
+
+    await expect(page.getByRole('alert', { name: /descarte/i })).toBeVisible()
+    await expect(page.getByRole('dialog')).toBeVisible()
+    await page.getByRole('button', { name: /continuar editando/i }).click()
+    await expect(page.getByRole('alert', { name: /descarte/i })).toHaveCount(0)
+    await expect(page.getByLabel(/TSS planejado/i)).toHaveValue('60')
+
+    // Volta ao campo antes do Esc: o botão "Continuar editando" desmonta e o foco cai no body, e
+    // o Esc só fecha o dialog quando o foco está dentro dele — é o que o treinador faz de verdade.
+    await page.getByLabel(/TSS planejado/i).focus()
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: /^descartar$/i }).click()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    expect(patches).toHaveLength(0)
+  })
+
   test('editar só o TSS não envia etapas — não regrava a estrutura', async ({ page }) => {
     await mockarApis(page)
 
