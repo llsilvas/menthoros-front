@@ -356,6 +356,7 @@ export default function CoachPlanReviewPage() {
                     semanaInicio={selected.semanaInicio}
                     semanaFim={selected.semanaFim}
                     treinosExistentes={selected.treinosPlanejados ?? []}
+                    contexto={selected.atletaNome}
                     dataInicial={addDataInicial}
                     onClose={() => setAddDialogOpen(false)}
                     onSaved={handleTreinoAdicionado}
