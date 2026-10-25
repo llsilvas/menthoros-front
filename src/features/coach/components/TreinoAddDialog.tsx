@@ -12,12 +12,14 @@ import {
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { primary, surface, semantic } from '../../../theme/tokens';
+import { activeTheme } from '../../../theme/activeTheme';
 import { useTreinoPlanejado } from '../../../hooks/useTreinoPlanejado';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { GHOST_BTN_SX, PRIMARY_BTN_SX } from '../../../shared/components/actionButtonSx';
 import type { TreinoPlanejadoDto, TreinoPlanejadoAddPayload } from '../../../types/PlanoReview';
 import { serializarItens, totaisDeItens, type EtapaItem } from './etapas/etapaItem';
 import { EtapasEditor } from './etapas/EtapasEditor';
+import { EYEBROW_SX, fieldSx } from './etapas/etapasStyles';
 import { TIPOS_TREINO } from './tiposTreino';
 import { WorkoutProfile, selectWorkoutProfile, fromEtapaItens } from '../../workout/profile';
 
@@ -68,24 +70,7 @@ export interface TreinoAddDialogProps {
 
 // ── Estilos ───────────────────────────────────────────────────────────────────
 
-const FIELD_SX = {
-    '& .MuiOutlinedInput-root': {
-        fontSize: '0.82rem', color: surface[100], bgcolor: `${surface[0]}06`, borderRadius: '6px',
-        '& fieldset': { borderColor: `${surface[0]}14` },
-        '&:hover fieldset': { borderColor: `${surface[0]}33` },
-        '&.Mui-focused fieldset': { borderColor: `${primary[500]}99` },
-    },
-    '& .MuiInputLabel-root': { fontSize: '0.74rem', color: surface[500] },
-    '& .MuiInputLabel-root.Mui-focused': { color: primary[500] },
-    '& select': { fontSize: '0.82rem', color: surface[100], bgcolor: 'transparent' },
-    '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button': {
-        WebkitAppearance: 'none',
-    },
-} as const;
-
-const SECAO_SX = {
-    fontSize: '0.72rem', fontWeight: 700, color: surface[400], letterSpacing: '0.06em', textTransform: 'uppercase',
-} as const;
+const FIELD_SX = fieldSx(primary[500]);
 
 // ── Dialog ────────────────────────────────────────────────────────────────────
 
@@ -204,8 +189,8 @@ export function TreinoAddDialog({
 
     const resumoRodape = canSave ? (
         temEtapas && (totais.min > 0 || totais.km > 0) ? (
-            <Box data-testid="totais-treino" sx={{ display: 'flex', gap: 2, fontSize: '0.78rem', color: surface[200], fontFamily: 'monospace' }}>
-                <Box component="span" sx={{ color: surface[500], textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total</Box>
+            <Box data-testid="totais-treino" sx={{ display: 'flex', gap: 2, fontSize: '0.78rem', color: surface[200], fontFamily: activeTheme.font.mono }}>
+                <Box component="span" sx={EYEBROW_SX}>Total</Box>
                 {totais.km > 0 && <span>{totais.km} km</span>}
                 {totais.min > 0 && <span>{totais.min} min</span>}
             </Box>
@@ -302,7 +287,7 @@ export function TreinoAddDialog({
 
             {/* ── Etapas (opcional) ───────────────────────────────────── */}
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <Typography sx={SECAO_SX}>Etapas do treino (opcional)</Typography>
+                <Typography sx={EYEBROW_SX}>Etapas do treino (opcional)</Typography>
                 <Typography sx={{ fontSize: '0.78rem', color: surface[400], mt: -0.5 }}>
                     Monte por etapas para ver o gráfico e somar distância e duração sozinho. Sem etapas, informe os totais abaixo.
                 </Typography>
@@ -319,7 +304,7 @@ export function TreinoAddDialog({
 
             {/* ── Treino inteiro ──────────────────────────────────────── */}
             <Box sx={{ pt: 1.5, borderTop: `1px solid ${surface[0]}12`, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
-                <Typography sx={SECAO_SX}>Treino inteiro</Typography>
+                <Typography sx={EYEBROW_SX}>Treino inteiro</Typography>
 
                 {!temEtapas && (
                     <Box sx={{ display: 'flex', gap: 1.25 }}>

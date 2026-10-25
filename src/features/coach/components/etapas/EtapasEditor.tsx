@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
     Box,
     Button,
@@ -8,18 +9,19 @@ import {
     TextField,
     Typography,
 } from '@mui/material';
-import { alpha } from '@mui/material/styles';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import RepeatIcon from '@mui/icons-material/Repeat';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import { primary, surface } from '../../../../theme/tokens';
-import { overlayWhite } from '../../../../theme/overlays';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { backgrounds, content, primary, surface } from '../../../../theme/tokens';
 import { activeTheme } from '../../../../theme/activeTheme';
+import { Card } from '../../../../shared/components/Card';
 import { GHOST_BTN_SX } from '../../../../shared/components/actionButtonSx';
 import { TIPOS_ETAPA, TIPO_ETAPA_LABEL, tipoEtapaLabel } from '../tiposTreino';
+import { EYEBROW_SX, fieldSx } from './etapasStyles';
 import { emptyBlock, emptyStep, emptySubStep, type EtapaItem } from './etapaItem';
 
 /**
@@ -35,6 +37,7 @@ import { emptyBlock, emptyStep, emptySubStep, type EtapaItem } from './etapaItem
  */
 
 const ACCENT = activeTheme.trainingStage;
+const MONO = activeTheme.font.mono;
 
 function accentDe(tipoEtapa: string): string {
     switch (tipoEtapa?.toUpperCase()) {
@@ -44,24 +47,6 @@ function accentDe(tipoEtapa: string): string {
         case 'INTERVALADO':    return ACCENT.esforco;
         default:               return ACCENT.principal;
     }
-}
-
-function fieldSx(accent: string) {
-    return {
-        '& .MuiOutlinedInput-root': {
-            fontSize: '0.82rem',
-            color: surface[100],
-            bgcolor: overlayWhite[4],
-            '& fieldset': { borderColor: overlayWhite[10] },
-            '&:hover fieldset': { borderColor: overlayWhite[22] },
-            '&.Mui-focused fieldset': { borderColor: accent },
-        },
-        '& .MuiInputLabel-root': { fontSize: '0.72rem', color: surface[500] },
-        '& .MuiInputLabel-root.Mui-focused': { color: accent },
-        '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button': {
-            WebkitAppearance: 'none',
-        },
-    } as const;
 }
 
 // ── Estado de uma etapa ───────────────────────────────────────────────────────
@@ -143,30 +128,39 @@ interface BlocoCardProps {
     tipoEtapa?: string;
     onTipoChange?: (tipo: string) => void;
     tipoAriaLabel?: string;
+    /** Etapa dentro de uma série: fundo mais recuado, para não competir com o card da série. */
+    aninhado?: boolean;
 }
 
 /**
- * Uma etapa. O chip com o nome do tipo saiu: duplicava o select ao lado; a cor da borda já
- * identifica a etapa, e o select tem rótulos humanos.
+ * Uma etapa, no mesmo desenho do `TreinoCard` dos Planos: `Card` flat, quadradinho na cor do tipo,
+ * métricas em colunas. Distância, duração e zona ficam à vista; ritmo e descrição — o que o atleta
+ * lê na etapa — ficam em "Mais detalhes", abertos sozinhos quando já têm valor.
  */
 function BlocoCard({
-    accent, bloco, onChange, disabled, actions, tipoEtapa, onTipoChange, tipoAriaLabel,
+    accent, bloco, onChange, disabled, actions, tipoEtapa, onTipoChange, tipoAriaLabel, aninhado,
 }: BlocoCardProps) {
     const sx = fieldSx(accent);
     const semTipo = onTipoChange != null && !tipoEtapa;
+    const temDetalhes = Boolean(bloco.ritmoAlvo || bloco.descricao);
+    const [detalhesAbertos, setDetalhesAbertos] = useState(false);
+    const mostraDetalhes = detalhesAbertos || temDetalhes;
     return (
-        <Box
-            sx={{
-                borderLeft: `3px solid ${accent}`,
-                borderRadius: '0 8px 8px 0',
-                bgcolor: alpha(surface[0], 0.025),
-                p: 1.5,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 1.25,
-            }}
+        <Card
+            variant="flat"
+            sx={{ p: 0, overflow: 'hidden', minWidth: 0, ...(aninhado ? { backgroundColor: backgrounds.panel } : {}) }}
         >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box
+                sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    px: 1.5,
+                    py: 1,
+                    borderBottom: `1px solid ${content.divider}`,
+                }}
+            >
+                <Box aria-hidden sx={{ flex: 'none', width: 10, height: 10, borderRadius: '3px', bgcolor: accent }} />
                 {onTipoChange ? (
                     <FormControl size="small" sx={{ minWidth: 170, ...sx }}>
                         <InputLabel shrink>Tipo da etapa</InputLabel>
@@ -183,82 +177,94 @@ function BlocoCard({
                         </Select>
                     </FormControl>
                 ) : (
-                    <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: accent }}>{tipoEtapaLabel(tipoEtapa)}</Typography>
+                    <Typography sx={{ fontSize: '0.9375rem', fontWeight: 600, color: surface[50] }}>{tipoEtapaLabel(tipoEtapa)}</Typography>
                 )}
                 {semTipo && (
                     // Etapa sem tipo não é persistida (`serializarItens` a descarta): sem este aviso
                     // o treinador preenchia os campos e nada era gravado, em silêncio.
-                    <Typography data-testid="etapa-sem-tipo" sx={{ fontSize: '0.72rem', color: surface[400] }}>
+                    <Typography data-testid="etapa-sem-tipo" sx={{ fontSize: '0.75rem', color: surface[400] }}>
                         Escolha o tipo para a etapa ser salva
                     </Typography>
                 )}
                 {actions && <Box sx={{ ml: 'auto' }}>{actions}</Box>}
             </Box>
 
-            <Box sx={{ display: 'flex', gap: 1 }}>
-                <TextField
-                    label="Distância (km)"
-                    type="number"
-                    value={bloco.distanciaKm}
-                    onChange={e => onChange({ ...bloco, distanciaKm: e.target.value })}
-                    disabled={disabled}
-                    size="small"
-                    fullWidth
-                    inputProps={{ min: 0, step: 0.1 }}
-                    sx={sx}
-                />
-                <TextField
-                    label="Duração (min)"
-                    type="number"
-                    value={bloco.duracaoMin}
-                    onChange={e => onChange({ ...bloco, duracaoMin: e.target.value })}
-                    disabled={disabled}
-                    size="small"
-                    fullWidth
-                    inputProps={{ min: 1, step: 1 }}
-                    sx={sx}
-                />
-            </Box>
+            <Box sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 1 }}>
+                    <TextField
+                        label="Distância (km)"
+                        type="number"
+                        value={bloco.distanciaKm}
+                        onChange={e => onChange({ ...bloco, distanciaKm: e.target.value })}
+                        disabled={disabled}
+                        size="small"
+                        inputProps={{ min: 0, step: 0.1 }}
+                        sx={sx}
+                    />
+                    <TextField
+                        label="Duração (min)"
+                        type="number"
+                        value={bloco.duracaoMin}
+                        onChange={e => onChange({ ...bloco, duracaoMin: e.target.value })}
+                        disabled={disabled}
+                        size="small"
+                        inputProps={{ min: 1, step: 1 }}
+                        sx={sx}
+                    />
+                    <TextField
+                        label="Zona (FC)"
+                        placeholder="Z2"
+                        value={bloco.zonaAlvo}
+                        onChange={e => onChange({ ...bloco, zonaAlvo: e.target.value })}
+                        disabled={disabled}
+                        size="small"
+                        slotProps={{ inputLabel: { shrink: true } }}
+                        sx={sx}
+                    />
+                </Box>
 
-            <Box sx={{ display: 'flex', gap: 1 }}>
-                <TextField
-                    label="Zona (FC)"
-                    placeholder="Z2 ou 140-150 bpm"
-                    value={bloco.zonaAlvo}
-                    onChange={e => onChange({ ...bloco, zonaAlvo: e.target.value })}
-                    disabled={disabled}
-                    size="small"
-                    fullWidth
-                    slotProps={{ inputLabel: { shrink: true } }}
-                    sx={sx}
-                />
-                <TextField
-                    label="Ritmo"
-                    placeholder="4:10/km"
-                    value={bloco.ritmoAlvo}
-                    onChange={e => onChange({ ...bloco, ritmoAlvo: e.target.value })}
-                    disabled={disabled}
-                    size="small"
-                    fullWidth
-                    slotProps={{ inputLabel: { shrink: true } }}
-                    inputProps={{ maxLength: 40 }}
-                    sx={sx}
-                />
-            </Box>
+                {!mostraDetalhes && (
+                    <Button
+                        size="small"
+                        onClick={() => setDetalhesAbertos(true)}
+                        disabled={disabled}
+                        endIcon={<ExpandMoreIcon sx={{ fontSize: 16 }} />}
+                        sx={{ ...GHOST_BTN_SX, alignSelf: 'flex-start', px: 0.5, minHeight: 28, ...EYEBROW_SX }}
+                    >
+                        Mais detalhes
+                    </Button>
+                )}
 
-            <TextField
-                label="Descrição para o atleta"
-                placeholder="Ex.: 800m forte, trote entre os tiros"
-                value={bloco.descricao}
-                onChange={e => onChange({ ...bloco, descricao: e.target.value })}
-                disabled={disabled}
-                size="small"
-                fullWidth
-                slotProps={{ inputLabel: { shrink: true } }}
-                inputProps={{ maxLength: 200 }}
-                sx={sx}
-            />
-        </Box>
+                {mostraDetalhes && (
+                    <>
+                        <TextField
+                            label="Ritmo"
+                            placeholder="4:10/km"
+                            value={bloco.ritmoAlvo}
+                            onChange={e => onChange({ ...bloco, ritmoAlvo: e.target.value })}
+                            disabled={disabled}
+                            size="small"
+                            fullWidth
+                            slotProps={{ inputLabel: { shrink: true } }}
+                            inputProps={{ maxLength: 40 }}
+                            sx={sx}
+                        />
+                        <TextField
+                            label="Descrição para o atleta"
+                            placeholder="Ex.: 800m forte, trote entre os tiros"
+                            value={bloco.descricao}
+                            onChange={e => onChange({ ...bloco, descricao: e.target.value })}
+                            disabled={disabled}
+                            size="small"
+                            fullWidth
+                            slotProps={{ inputLabel: { shrink: true } }}
+                            inputProps={{ maxLength: 200 }}
+                            sx={sx}
+                        />
+                    </>
+                )}
+            </Box>
+        </Card>
     );
 }
 
@@ -350,21 +356,22 @@ export function EtapasEditor({ itens, onChange, disabled = false, vazio }: Etapa
                     }
                 />
             ) : (
-                <Box
+                <Card
                     key={item.id}
-                    sx={{
-                        border: `1px solid ${overlayWhite[7]}`,
-                        borderRadius: '8px',
-                        p: 1,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 0.75,
-                    }}
+                    variant="flat"
+                    sx={{ p: 0, overflow: 'hidden', minWidth: 0 }}
                 >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 0.5 }}>
-                        <Box sx={{ fontSize: '0.72rem', letterSpacing: '0.08em', color: surface[400] }}>
-                            SÉRIE
-                        </Box>
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                            px: 1.5,
+                            py: 0.75,
+                            borderBottom: `1px solid ${content.divider}`,
+                        }}
+                    >
+                        <Typography sx={EYEBROW_SX}>Série</Typography>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 'auto' }}>
                             <IconButton
                                 size="small"
@@ -376,7 +383,17 @@ export function EtapasEditor({ itens, onChange, disabled = false, vazio }: Etapa
                             </IconButton>
                             <Box
                                 data-testid={`repeticoes-display-${idx}`}
-                                sx={{ minWidth: 28, textAlign: 'center', fontWeight: 700, color: primary[400] }}
+                                sx={{
+                                    minWidth: 36,
+                                    textAlign: 'center',
+                                    fontFamily: MONO,
+                                    fontSize: '0.6875rem',
+                                    fontWeight: 700,
+                                    color: primary[400],
+                                    border: `1px solid ${content.cardBorder}`,
+                                    borderRadius: '11px',
+                                    py: 0.25,
+                                }}
                             >
                                 {item.repeticoes}×
                             </Box>
@@ -399,39 +416,42 @@ export function EtapasEditor({ itens, onChange, disabled = false, vazio }: Etapa
                         </Box>
                     </Box>
 
-                    {item.steps.map((sub, si) => (
-                        <BlocoCard
-                            key={sub.id}
-                            accent={accentDe(sub.tipoEtapa)}
-                            bloco={blocoStateDe(sub)}
-                            onChange={b => atualizaSubStep(idx, si, b)}
-                            disabled={disabled}
-                            tipoEtapa={sub.tipoEtapa}
-                            onTipoChange={t => atualizaTipoSubStep(idx, si, t)}
-                            tipoAriaLabel={`Tipo da etapa ${si + 1} da série ${idx + 1}`}
-                            actions={
-                                <IconButton
-                                    size="small"
-                                    aria-label={`Remover etapa ${si + 1} da série ${idx + 1}`}
-                                    disabled={disabled || item.steps.length <= 1}
-                                    onClick={() => removerSubStep(idx, si)}
-                                >
-                                    <RemoveIcon sx={{ fontSize: 16 }} />
-                                </IconButton>
-                            }
-                        />
-                    ))}
+                    <Box sx={{ p: 1.25, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        {item.steps.map((sub, si) => (
+                            <BlocoCard
+                                key={sub.id}
+                                aninhado
+                                accent={accentDe(sub.tipoEtapa)}
+                                bloco={blocoStateDe(sub)}
+                                onChange={b => atualizaSubStep(idx, si, b)}
+                                disabled={disabled}
+                                tipoEtapa={sub.tipoEtapa}
+                                onTipoChange={t => atualizaTipoSubStep(idx, si, t)}
+                                tipoAriaLabel={`Tipo da etapa ${si + 1} da série ${idx + 1}`}
+                                actions={
+                                    <IconButton
+                                        size="small"
+                                        aria-label={`Remover etapa ${si + 1} da série ${idx + 1}`}
+                                        disabled={disabled || item.steps.length <= 1}
+                                        onClick={() => removerSubStep(idx, si)}
+                                    >
+                                        <RemoveIcon sx={{ fontSize: 16 }} />
+                                    </IconButton>
+                                }
+                            />
+                        ))}
 
-                    <Button
-                        size="small"
-                        startIcon={<AddIcon />}
-                        onClick={() => adicionarSubStep(idx)}
-                        disabled={disabled}
-                        sx={{ ...GHOST_BTN_SX, alignSelf: 'flex-start' }}
-                    >
-                        Etapa na série
-                    </Button>
-                </Box>
+                        <Button
+                            size="small"
+                            startIcon={<AddIcon />}
+                            onClick={() => adicionarSubStep(idx)}
+                            disabled={disabled}
+                            sx={{ ...GHOST_BTN_SX, alignSelf: 'flex-start' }}
+                        >
+                            Etapa na série
+                        </Button>
+                    </Box>
+                </Card>
             ))}
 
             <Box sx={{ display: 'flex', gap: 1 }}>

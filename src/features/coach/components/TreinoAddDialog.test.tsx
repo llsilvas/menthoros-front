@@ -296,6 +296,20 @@ describe('TreinoAddDialog', () => {
         expect(screen.queryByPlaceholderText('0.0')).not.toBeInTheDocument();
     });
 
+    it('ritmo e descrição ficam em "Mais detalhes": fechados numa etapa nova, abrem ao clicar', () => {
+        renderDialog({ treinosExistentes: [] });
+
+        fireEvent.click(screen.getByRole('button', { name: /^etapa$/i }));
+        expect(screen.queryByLabelText('Ritmo')).not.toBeInTheDocument();
+        expect(screen.queryByLabelText('Descrição para o atleta')).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: /mais detalhes/i }));
+
+        expect(screen.getByLabelText('Ritmo')).toBeInTheDocument();
+        expect(screen.getByLabelText('Descrição para o atleta')).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /mais detalhes/i })).not.toBeInTheDocument();
+    });
+
     it('etapa ritmo e descrição vão no payload', async () => {
         mockAdicionarTreino.mockResolvedValue({ id: 'n', diaSemana: 'TERCA', tipoTreino: 'CONTINUO', distanciaKm: 0 });
         renderDialog({ treinosExistentes: [] });
@@ -304,6 +318,7 @@ describe('TreinoAddDialog', () => {
         fireEvent.change(screen.getByLabelText(/data do treino/i), { target: { value: '2026-07-03' } });
         fireEvent.click(screen.getByRole('button', { name: /^etapa$/i }));
         fireEvent.change(screen.getByLabelText('Tipo da etapa 1'), { target: { value: 'PRINCIPAL' } });
+        fireEvent.click(screen.getByRole('button', { name: /mais detalhes/i }));
         fireEvent.change(screen.getByLabelText('Ritmo'), { target: { value: '5:30/km' } });
         fireEvent.change(screen.getByLabelText('Descrição para o atleta'), { target: { value: 'Leve, conversando' } });
         fireEvent.click(screen.getByRole('button', { name: /salvar treino/i }));

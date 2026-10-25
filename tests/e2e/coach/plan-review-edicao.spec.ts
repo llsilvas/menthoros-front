@@ -178,10 +178,12 @@ test.describe('revisão do plano — edição de treino', () => {
     await page.getByRole('button', { name: /abrir treino de qui/i }).click()
     await expect(page.getByTestId('repeticoes-display-1')).toHaveText('4×')
 
-    // Primeira etapa da série (o tiro): o campo de ritmo vem com o valor prescrito.
-    const ritmos = page.getByLabel('Ritmo')
-    await expect(ritmos.nth(1)).toHaveValue('4:00-4:10/km')
-    await ritmos.nth(1).fill('4:20/km')
+    // Primeira etapa da série (o tiro): o campo de ritmo vem aberto, com o valor prescrito — "Mais
+    // detalhes" abre sozinho nas etapas que já têm ritmo ou descrição, e é o único aberto aqui.
+    const ritmo = page.getByLabel('Ritmo')
+    await expect(ritmo).toHaveCount(1)
+    await expect(ritmo).toHaveValue('4:00-4:10/km')
+    await ritmo.fill('4:20/km')
     await page.getByRole('button', { name: /^salvar$/i }).click()
 
     await expect.poll(() => patches.length).toBe(1)
