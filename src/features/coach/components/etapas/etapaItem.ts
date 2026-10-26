@@ -209,3 +209,28 @@ export function itensFromEtapas(etapas: EtapaTreinoDto[] | undefined): EtapaItem
 
     return itens;
 }
+
+// ── Totais ────────────────────────────────────────────────────────────────────
+
+/**
+ * Soma de duração e distância do treino INTEIRO: uma série de N repetições conta N vezes as suas
+ * etapas. Fonte única para os dois diálogos — o de adição tinha a própria conta, o de edição outra.
+ * Valores crus (sem arredondar): cada tela escolhe quantas casas mostrar.
+ */
+export function totaisDeItens(itens: EtapaItem[]): { min: number; km: number } {
+    let min = 0;
+    let km = 0;
+    for (const item of itens) {
+        if (item.kind === 'step') {
+            min += parseInt(item.duracaoMin, 10) || 0;
+            km  += parseFloat(item.distanciaKm) || 0;
+            continue;
+        }
+        const reps = Math.max(1, parseInt(item.repeticoes, 10) || 1);
+        for (const s of item.steps) {
+            min += (parseInt(s.duracaoMin, 10) || 0) * reps;
+            km  += (parseFloat(s.distanciaKm) || 0) * reps;
+        }
+    }
+    return { min, km };
+}

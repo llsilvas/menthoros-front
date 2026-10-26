@@ -142,6 +142,7 @@ describe('TreinoEditDialog', () => {
 
     it('ritmo e descrição da etapa são editáveis e saem no patch', () => {
         renderDialog();
+        fireEvent.click(screen.getAllByRole('button', { name: /mais detalhes/i })[0]);
 
         fireEvent.change(screen.getByLabelText('Ritmo'), { target: { value: '5:30/km' } });
         fireEvent.change(screen.getByLabelText('Descrição para o atleta'), { target: { value: 'Corrida leve, conversando' } });
@@ -253,7 +254,7 @@ describe('TreinoEditDialog — série', () => {
     it('hidrata a série como um bloco 4×, entre aquecimento e desaquecimento avulsos', () => {
         renderFartlek();
 
-        expect(screen.getByText('SÉRIE')).toBeInTheDocument();
+        expect(screen.getByText('Série', { selector: 'p' })).toBeInTheDocument();
         expect(screen.getByTestId('repeticoes-display-1')).toHaveTextContent('4×');
         expect(screen.getByLabelText('Tipo da etapa 1')).toHaveValue('AQUECIMENTO');
         expect(screen.getByLabelText('Tipo da etapa 3')).toHaveValue('DESAQUECIMENTO');
