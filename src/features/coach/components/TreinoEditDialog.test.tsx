@@ -120,6 +120,96 @@ describe('TreinoEditDialog', () => {
 
         expect(screen.getByTestId('repeticoes-display-1')).toHaveTextContent('3×');
     });
+
+    // ── improve-plan-edit-usability ──────────────────────────────────────────
+
+    it('não há campo de RPE por etapa — o esforço é do treino inteiro', () => {
+        // O campo existia em cada bloco e nunca era lido: o coach preenchia e nada era salvo.
+        renderDialog();
+
+        expect(screen.getAllByLabelText(/RPE/i)).toHaveLength(1);
+        expect(screen.getByLabelText(/Esforço esperado/i)).toHaveDisplayValue('6');
+    });
+
+    it('o select de tipo da etapa tem rótulos humanos e valores do enum', () => {
+        renderDialog();
+
+        const select = screen.getByLabelText('Tipo da etapa 1');
+        expect(select).toHaveValue('PRINCIPAL');
+        expect(screen.getByRole('option', { name: 'Volta à calma' })).toHaveValue('DESAQUECIMENTO');
+        expect(screen.getByRole('option', { name: 'Tiro / esforço' })).toHaveValue('INTERVALADO');
+    });
+
+    it('ritmo e descrição da etapa são editáveis e saem no patch', () => {
+        renderDialog();
+
+        fireEvent.change(screen.getByLabelText('Ritmo'), { target: { value: '5:30/km' } });
+        fireEvent.change(screen.getByLabelText('Descrição para o atleta'), { target: { value: 'Corrida leve, conversando' } });
+        fireEvent.click(screen.getByRole('button', { name: /salvar/i }));
+
+        const patch: TreinoPlanejadoPatch = onSave.mock.calls[0][0];
+        expect(patch.etapas).toContainEqual(
+            expect.objectContaining({ ritmoAlvo: '5:30/km', descricaoEtapa: 'Corrida leve, conversando' }),
+        );
+    });
+
+    it('fechar com alterações pede confirmação; sem alterações fecha direto', () => {
+        renderDialog();
+
+        fireEvent.click(screen.getByRole('button', { name: /cancelar/i }));
+        expect(onClose).toHaveBeenCalledOnce();
+
+        fireEvent.change(screen.getByDisplayValue('10'), { target: { value: '12' } });
+        fireEvent.click(screen.getByRole('button', { name: /cancelar/i }));
+
+        // Não fechou de novo: pediu confirmação.
+        expect(onClose).toHaveBeenCalledOnce();
+        expect(screen.getByRole('alert', { name: /descarte/i })).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: /continuar editando/i }));
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: /cancelar/i }));
+        fireEvent.click(screen.getByRole('button', { name: /^descartar$/i }));
+        expect(onClose).toHaveBeenCalledTimes(2);
+        expect(onSave).not.toHaveBeenCalled();
+    });
+
+    it('avisa que o TSS não é recalculado quando as etapas mudam e ele ficou como estava', () => {
+        renderDialog();
+
+        expect(screen.queryByText(/TSS não é recalculado/i)).not.toBeInTheDocument();
+        fireEvent.change(screen.getByDisplayValue('60'), { target: { value: '70' } });
+
+        expect(screen.getByText(/TSS não é recalculado/i)).toBeInTheDocument();
+    });
+
+    it('mostra o contexto e a justificativa da IA no cabeçalho', () => {
+        render(
+            <TreinoEditDialog
+                open
+                treino={{ ...TREINO, justificativaIa: 'Recuperação ativa após o longo.' }}
+                contexto="Ana Silva · Seg 07/09"
+                isSaving={false}
+                onClose={onClose}
+                onSave={onSave}
+            />,
+        );
+
+        expect(screen.getByText('Ana Silva · Seg 07/09')).toBeInTheDocument();
+        expect(screen.getByText('Recuperação ativa após o longo.')).toBeInTheDocument();
+    });
+
+    it('o gráfico pode ser recolhido e reaberto', () => {
+        renderDialog();
+
+        expect(screen.getByTestId('workout-profile')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: /ocultar gráfico/i }));
+        expect(screen.queryByTestId('workout-profile')).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: /mostrar gráfico/i }));
+        expect(screen.getByTestId('workout-profile')).toBeInTheDocument();
+    });
 });
 
 // ── Série (blocos repetidos) ──────────────────────────────────────────────────
