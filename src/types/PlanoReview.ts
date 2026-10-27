@@ -1,3 +1,4 @@
+import type { AlvoPrimario } from './AthleteTrainingZones';
 import type { PlanoStatus } from './PlanoSemanal';
 export type { PlanoStatus };
 
@@ -36,6 +37,7 @@ export interface EtapaTreinoDto {
     distanciaKm?: number;
     fcAlvoEtapa?: string;   // meta de FC, e.g. "140-150 bpm"
     ritmoAlvo?: string;     // meta de ritmo, e.g. "5:00-5:15/km"
+    alvoPrimario?: AlvoPrimario;  // eixo que o relógio controla; ausente em etapa legada
     repeticoes?: number;
     blocoId?: string;
     blocoRepeticoes?: number;
@@ -87,6 +89,7 @@ export interface EtapaInputPayload {
     repeticoes?: number;
     blocoRepeticoes?: number;    // somente quando tipoEtapa="BLOCO"
     subEtapas?: EtapaInputPayload[];  // somente quando tipoEtapa="BLOCO"
+    alvoPrimario?: AlvoPrimario;
 }
 
 /** Campos editáveis de um treino planejado durante revisão. Campos undefined são ignorados (patch semântico). */
@@ -128,6 +131,7 @@ export interface PlanoSemanalDto {
     reviewStatus: string | PlanoReviewStatusDto;
     reviewComment?: string;
     atletaNome?: string;
+    atletaId?: string;
     /**
      * Por que um plano aprovado voltou a AGUARDANDO_REVISAO sem o atleta ter mexido no plano —
      * hoje só a prova causa isso (prova-no-plano-semanal, D4). `null`/ausente fora dessa

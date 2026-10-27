@@ -88,6 +88,8 @@ export function midpointOf(zone: ZoneKey, scale: IntensityScale): number {
     case 'Z2': return (z1 + z2) / 2;
     case 'Z3': return (z2 + z3) / 2;
     case 'Z4': return (z3 + z4) / 2;
-    case 'Z5': return (z4 + 1) / 2;
+    // Z6 (sprint) só existe no pace e a escala tem 5 faixas: desenha na altura de Z5.
+    case 'Z5':
+    case 'Z6': return (z4 + 1) / 2;
   }
 }
