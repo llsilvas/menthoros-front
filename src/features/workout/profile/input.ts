@@ -9,8 +9,8 @@
 import type { EtapaTreino } from '../../../types/TreinoPlanejado';
 import type { EtapaTreinoDto } from '../../../types/PlanoReview';
 import type { EtapaItem } from '../../coach/components/etapas/etapaItem';
-import type { AthleteTrainingZonesDto } from '../../../types/AthleteTrainingZones';
-import { zonaDaEtapa } from '../../coach/adapters/zoneSelectorLogic';
+import type { AlvoPrimario, AthleteTrainingZonesDto } from '../../../types/AthleteTrainingZones';
+import { zonaDaEtapa, zonaPorValor } from '../../coach/adapters/zoneSelectorLogic';
 import type { ZoneKey } from './types';
 
 export interface ProfileEtapaInput {
@@ -69,13 +69,17 @@ export function fromEtapaTreino(e: EtapaTreino): ProfileEtapaInput {
 
 /** Treino salvo na revisão — `src/types/PlanoReview.ts`. Único com `blocoId`. */
 export function fromEtapaTreinoDto(e: EtapaTreinoDto, zones: AthleteTrainingZonesDto | null = null): ProfileEtapaInput {
+  const reconhecida = zonaDaEtapa(e.fcAlvoEtapa, e.ritmoAlvo, zones) ?? undefined;
+  const zonaEtapa = reconhecida === 'PERSONALIZADO'
+    ? zonaPorValor(e.fcAlvoEtapa, e.ritmoAlvo, e.alvoPrimario, zones) ?? reconhecida
+    : reconhecida;
   return {
     ordem:           e.ordem,
     tipo:            e.tipoEtapa,
     descricao:       e.descricaoEtapa,
     duracaoMin:      e.duracaoMin,
     distanciaKm:     e.distanciaKm,
-    zonaEtapa:       zonaDaEtapa(e.fcAlvoEtapa, e.ritmoAlvo, zones) ?? undefined,
+    zonaEtapa,
     fcAlvo:          e.fcAlvoEtapa,
     ritmoAlvo:       e.ritmoAlvo,
     repeticoes:      e.repeticoes,
@@ -93,8 +97,14 @@ export function fromEtapaTreinoDto(e: EtapaTreinoDto, zones: AthleteTrainingZone
  */
 export function fromEtapaItens(itens: EtapaItem[], zones: AthleteTrainingZonesDto | null = null): ProfileEtapaInput[] {
   // Etapa que veio do backend e ainda não foi tocada não tem zona gravada: reconhece pelos valores.
-  const zonaDe = (e: { zonaEtapa?: ZoneKey | 'PERSONALIZADO'; fcAlvoEtapa: string; ritmoAlvo?: string }) =>
-    e.zonaEtapa ?? zonaDaEtapa(e.fcAlvoEtapa, e.ritmoAlvo, zones) ?? undefined;
+  const zonaDe = (e: { zonaEtapa?: ZoneKey | 'PERSONALIZADO'; fcAlvoEtapa: string; ritmoAlvo?: string; alvoPrimario?: AlvoPrimario }) => {
+    const reconhecida = e.zonaEtapa ?? zonaDaEtapa(e.fcAlvoEtapa, e.ritmoAlvo, zones) ?? undefined;
+    // Valores personalizados (ou de IA) que caem dentro de uma zona contam para a zona do treino.
+    if (reconhecida === 'PERSONALIZADO') {
+      return zonaPorValor(e.fcAlvoEtapa, e.ritmoAlvo, e.alvoPrimario, zones) ?? reconhecida;
+    }
+    return reconhecida;
+  };
 
   return itens.flatMap((item): ProfileEtapaInput[] => {
     if (item.kind === 'step') {

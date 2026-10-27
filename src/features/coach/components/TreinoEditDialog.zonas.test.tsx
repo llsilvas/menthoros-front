@@ -132,6 +132,25 @@ describe('TreinoEditDialog — zonas do atleta', () => {
         expect(screen.getByText(/30 min em Z5/)).toBeInTheDocument();
     });
 
+    it('etapas da IA com faixa dentro da zona (sem casar exatamente) dão a zona predominante', () => {
+        render(
+            <TreinoEditDialog
+                open
+                treino={{ ...TREINO, zonaAlvo: undefined, etapas: [
+                    { ordem: 1, tipoEtapa: 'AQUECIMENTO', duracaoMin: 10, fcAlvoEtapa: '130-140 bpm' },
+                    { ordem: 2, tipoEtapa: 'PRINCIPAL', duracaoMin: 40, fcAlvoEtapa: '144-148 bpm', ritmoAlvo: '5:20-5:40/km' },
+                ] }}
+                isSaving={false}
+                atletaId="atleta-1"
+                onClose={vi.fn()}
+                onSave={onSave}
+            />,
+        );
+
+        expect(screen.getByTestId('zona-predominante')).toHaveTextContent('Z2');
+        expect(screen.getByText(/40 min em Z2, 10 min em Z1/)).toBeInTheDocument();
+    });
+
     it('sem nenhuma zona escolhida o "—" vem com a instrução do que fazer', () => {
         render(
             <TreinoEditDialog

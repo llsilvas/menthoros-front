@@ -5,6 +5,7 @@ import {
     editarValor,
     escolherEixo,
     zonaDaEtapa,
+    zonaPorValor,
     type IntensidadeEtapa,
 } from './zoneSelectorLogic';
 import type { AthleteTrainingZonesDto } from '../../../types/AthleteTrainingZones';
@@ -218,5 +219,28 @@ describe('avisosDaEtapa', () => {
 
     it('etapa sem nada preenchido não gera aviso', () => {
         expect(ids(VAZIA)).toEqual([]);
+    });
+});
+
+describe('zonaPorValor (zona do treino por onde os valores caem)', () => {
+    it('faixa dentro de Z2, sem casar a faixa inteira, é Z2', () => {
+        expect(zonaPorValor('144-148 bpm', '5:20-5:40/km', 'FC', ZONES)).toBe('Z2');
+    });
+
+    it('só FC ou só pace também classifica', () => {
+        expect(zonaPorValor('170-176 bpm', undefined, undefined, ZONES)).toBe('Z5');
+        expect(zonaPorValor(undefined, '4:35-4:45/km', undefined, ZONES)).toBe('Z5');
+    });
+
+    it('FC e pace em zonas diferentes: vale o eixo do relógio; sem eixo, sem zona', () => {
+        expect(zonaPorValor('145-150 bpm', '4:30-4:45/km', 'FC', ZONES)).toBe('Z2');
+        expect(zonaPorValor('145-150 bpm', '4:30-4:45/km', 'PACE', ZONES)).toBe('Z5');
+        expect(zonaPorValor('145-150 bpm', '4:30-4:45/km', undefined, ZONES)).toBeNull();
+    });
+
+    it('texto livre, valor fora de qualquer zona ou sem zonas carregadas: null', () => {
+        expect(zonaPorValor('trote leve', undefined, undefined, ZONES)).toBeNull();
+        expect(zonaPorValor('190-200 bpm', undefined, undefined, ZONES)).toBeNull();
+        expect(zonaPorValor('144-148 bpm', undefined, undefined, null)).toBeNull();
     });
 });

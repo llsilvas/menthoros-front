@@ -290,6 +290,26 @@ describe('TreinoAddDialog', () => {
         expect(screen.getByRole('button', { name: /zonas do atleta/i })).toBeInTheDocument();
     });
 
+    it('valores digitados à mão dentro de uma zona dão a zona predominante e vão no payload', async () => {
+        stubZonas(ZONES);
+        mockAdicionarTreino.mockResolvedValue({ id: 'n', diaSemana: 'TERCA', tipoTreino: 'CONTINUO', distanciaKm: 0 });
+        renderDialog({ treinosExistentes: [] });
+
+        fireEvent.change(screen.getByLabelText(/tipo de treino/i), { target: { value: 'CONTINUO' } });
+        fireEvent.change(screen.getByLabelText(/data do treino/i), { target: { value: '2026-07-03' } });
+        fireEvent.click(screen.getByRole('button', { name: /^etapa$/i }));
+        fireEvent.change(screen.getByLabelText('Tipo da etapa 1'), { target: { value: 'PRINCIPAL' } });
+        fireEvent.change(screen.getByLabelText('Duração (min)'), { target: { value: '40' } });
+        fireEvent.change(screen.getByLabelText('FC alvo (bpm)'), { target: { value: '144-148 bpm' } });
+
+        expect(screen.getByTestId('zona-predominante')).toHaveTextContent('Z2');
+        fireEvent.click(screen.getByRole('button', { name: /salvar treino/i }));
+        await waitFor(() => {
+            const payload: TreinoPlanejadoAddPayload = mockAdicionarTreino.mock.calls[0][1];
+            expect(payload.zonaAlvo).toBe('Z2');
+        });
+    });
+
     it('RPE vai no payload mesmo com etapas; zona predominante não é digitável nem sai sem zona derivável', async () => {
         mockAdicionarTreino.mockResolvedValue({ id: 'n', diaSemana: 'TERCA', tipoTreino: 'CONTINUO', distanciaKm: 0 });
         renderDialog({ treinosExistentes: [] });

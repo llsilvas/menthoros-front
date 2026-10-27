@@ -177,3 +177,24 @@ export function avisosDaEtapa(i: IntensidadeEtapa, { zones, tipoEtapa, tipoTrein
     }
     return avisos;
 }
+
+/**
+ * Zona de uma etapa para o **perfil do treino** (zona predominante, gráfico), olhando onde os valores
+ * *caem*: faixa de IA ou digitada à mão raramente casa a zona inteira, mas está dentro dela. Isso não
+ * muda o que o seletor mostra (Personalizado) — só deixa a etapa contar para a zona do treino.
+ * FC e pace em zonas diferentes: vale o eixo que o relógio controla; sem eixo definido, a etapa fica sem zona.
+ */
+export function zonaPorValor(
+    fcAlvoEtapa: string | undefined,
+    ritmoAlvo: string | undefined,
+    alvoPrimario: AlvoPrimario | undefined,
+    zones: AthleteTrainingZonesDto | null,
+): ZoneKey | null {
+    if (!zones) return null;
+    const fc = parseCanonicalFc(fcAlvoEtapa) ?? undefined;
+    const pace = parseCanonicalPace(ritmoAlvo) ?? undefined;
+    if (!fc && !pace) return null;
+    const { fc: zf, pace: zp } = zonaDoPonto(fc, pace, zones.zonas);
+    if (zf && zp && zf !== zp) return alvoPrimario === 'PACE' ? zp : alvoPrimario === 'FC' ? zf : null;
+    return zf ?? zp;
+}
