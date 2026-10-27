@@ -1,11 +1,21 @@
+import { useEffect } from 'react';
 import { Box, TextField } from '@mui/material';
 import type { OnboardingDraftInput, CanalIntegracao, DispositivoMarca } from '../../../types/Onboarding';
 import { CANAL_INTEGRACAO_LABELS, DISPOSITIVO_MARCA_LABELS } from '../../../types/Onboarding';
 import { onboardingInputSx } from './onboardingFormStyles';
 import { OnboardingSectionLabel } from './OnboardingSectionLabel';
 import { OnboardingChipGroup } from './OnboardingChipGroup';
+import { runtimeConfig } from '../../../config/env';
 
-const CANAIS = Object.keys(CANAL_INTEGRACAO_LABELS) as CanalIntegracao[];
+const CANAIS_GERAIS: CanalIntegracao[] = ['INTERVALS_ICU', 'MANUAL'];
+
+/**
+ * D9 de garmin-connection: com o canal direto habilitado, relógio Garmin só tem o canal GARMIN e as
+ * demais marcas nunca o veem. É rede de segurança de UX — o backend rejeita a combinação errada.
+ */
+function canaisPara(marca: DispositivoMarca | undefined): CanalIntegracao[] {
+    return runtimeConfig.garminHabilitado && marca === 'GARMIN' ? ['GARMIN'] : CANAIS_GERAIS;
+}
 const DISPOSITIVOS = Object.keys(DISPOSITIVO_MARCA_LABELS) as DispositivoMarca[];
 
 export interface OnboardingRelogioStepProps {
@@ -20,9 +30,37 @@ export interface OnboardingRelogioStepProps {
  * explicação que faltava — "intervals.icu" não diz nada para quem nunca usou.
  *
  * Strava não é oferecido como opção de canal para atletas novos (ADR-0003, descontinuação
- * anunciada) — só INTERVALS_ICU e MANUAL aparecem.
+ * anunciada) — só INTERVALS_ICU e MANUAL aparecem; GARMIN só para relógio Garmin, com o canal direto
+ * habilitado.
  */
 export function OnboardingRelogioStep({ draft, onChange }: OnboardingRelogioStepProps) {
+    const canais = canaisPara(draft.dispositivoMarca);
+    const canalValido = draft.canalIntegracao !== undefined && canais.includes(draft.canalIntegracao);
+
+    // Rascunho retomado com canal que a marca não admite (ex.: Garmin + intervals.icu, salvo antes da
+    // flag) ou sem canal quando só há uma opção válida: corrige aqui, senão o backend devolveria 422
+    // no salvamento. Sem marca ainda, não há o que corrigir.
+    useEffect(() => {
+        if (draft.dispositivoMarca === undefined) return;
+        if (draft.canalIntegracao === undefined) {
+            if (canais.length === 1) onChange({ canalIntegracao: canais[0] });
+            return;
+        }
+        if (canalValido) return;
+        onChange({ canalIntegracao: canais.length === 1 ? canais[0] : undefined });
+    }, [draft.dispositivoMarca, draft.canalIntegracao, canalValido, canais, onChange]);
+
+    const selecionarMarca = (marca: DispositivoMarca) => {
+        const novosCanais = canaisPara(marca);
+        const patch: Partial<OnboardingDraftInput> = { dispositivoMarca: marca };
+        if (novosCanais.length === 1 && draft.canalIntegracao !== novosCanais[0]) {
+            patch.canalIntegracao = novosCanais[0];
+        } else if (draft.canalIntegracao !== undefined && !novosCanais.includes(draft.canalIntegracao)) {
+            patch.canalIntegracao = undefined;
+        }
+        onChange(patch);
+    };
+
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             <OnboardingChipGroup
@@ -31,7 +69,7 @@ export function OnboardingRelogioStep({ draft, onChange }: OnboardingRelogioStep
                 options={DISPOSITIVOS}
                 labels={DISPOSITIVO_MARCA_LABELS}
                 selected={draft.dispositivoMarca}
-                onSelect={(v) => onChange({ dispositivoMarca: v })}
+                onSelect={selecionarMarca}
             />
 
             <Box>
@@ -49,10 +87,14 @@ export function OnboardingRelogioStep({ draft, onChange }: OnboardingRelogioStep
             <OnboardingChipGroup
                 label="Como seus treinos vão chegar aqui?"
                 optional
-                hint="intervals.icu sincroniza sozinho a partir do relógio; Manual é você registrar cada treino. Dá para conectar depois."
-                options={CANAIS}
+                hint={
+                    canais[0] === 'GARMIN'
+                        ? 'Conectamos direto à sua conta Garmin: os treinos vão ao relógio e voltam sozinhos. Dá para conectar depois.'
+                        : 'intervals.icu sincroniza sozinho a partir do relógio; Manual é você registrar cada treino. Dá para conectar depois.'
+                }
+                options={canais}
                 labels={CANAL_INTEGRACAO_LABELS}
-                selected={draft.canalIntegracao}
+                selected={canalValido ? draft.canalIntegracao : undefined}
                 onSelect={(v) => onChange({ canalIntegracao: v })}
             />
         </Box>

@@ -5,7 +5,7 @@
 import type { nivelExperiencia, diaSemana } from './Atleta';
 import type { TipoProva, DistanciaProva, Prova } from './Prova';
 
-export type CanalIntegracao = 'INTERVALS_ICU' | 'MANUAL';
+export type CanalIntegracao = 'INTERVALS_ICU' | 'MANUAL' | 'GARMIN';
 export type DispositivoMarca = 'GARMIN' | 'APPLE' | 'AMAZFIT' | 'COROS' | 'SAMSUNG' | 'POLAR' | 'SUUNTO' | 'OUTRO';
 export type ConfidenceTier = 'A' | 'B' | 'C';
 /** Backend guarda como String livre (sem enum) — union aqui reflete as únicas opções que a UI oferece. */
@@ -18,6 +18,7 @@ export const PERCEPCAO_CONDICIONAMENTO_LABELS: Record<PercepcaoCondicionamento, 
 export const CANAL_INTEGRACAO_LABELS: Record<CanalIntegracao, string> = {
     INTERVALS_ICU: 'intervals.icu',
     MANUAL: 'Manual',
+    GARMIN: 'Garmin Connect',
 };
 
 /** A ordem das chaves é a ordem dos chips do onboarding (prioridade do founder, 2026-10-15). */

@@ -4,8 +4,8 @@ import { DISPOSITIVO_MARCA_LABELS, type DispositivoMarca } from '../../../types/
 import { semantic, surface } from '../../../theme/tokens';
 import {
     ROTULO_POSICIONAMENTO,
-    WATCH_COMPATIBILITY,
     compatibilidadeDe,
+    matrizCompatibilidade,
     type WatchCompatibility,
 } from '../watchCompatibility';
 
@@ -73,7 +73,7 @@ function GuiaDaMarca({ item }: { item: WatchCompatibility }) {
 
 export function WatchConnectionGuide({ marcaAtual, conectado, modoLeitura = false }: WatchConnectionGuideProps) {
     const atual = marcaAtual ? compatibilidadeDe(marcaAtual) : undefined;
-    const outras = WATCH_COMPATIBILITY.filter((c) => c.marca !== marcaAtual);
+    const outras = matrizCompatibilidade().filter((c) => c.marca !== marcaAtual);
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
