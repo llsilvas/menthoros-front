@@ -1,4 +1,5 @@
 import type { DispositivoMarca } from '../../types/Onboarding';
+import { runtimeConfig } from '../../config/env';
 
 export type ModoPush =
     | 'NATIVO'
@@ -54,26 +55,56 @@ export const ROTULO_POSICIONAMENTO: Record<Posicionamento, string> = {
 const INTERVALS_ICU = 'https://www.intervals.icu/';
 
 /**
+ * Garmin pelo intervals.icu (a entrada de antes do canal direto). Continua sendo a exposta enquanto
+ * `garminHabilitado` está desligada, para a UI não mudar um byte com a flag off (CA11).
+ */
+const GARMIN_VIA_INTERVALS: WatchCompatibility = {
+    marca: 'GARMIN',
+    posicionamento: 'SUPORTADO',
+    push: 'NATIVO',
+    ingestao: 'NATIVO',
+    passos: [
+        'No intervals.icu, abra Settings → Connections e conecte o Garmin.',
+        'Marque a opção "Upload planned workouts".',
+        'Volte ao Menthoros e conecte sua conta do intervals.icu.',
+    ],
+    resumoParaCoach:
+        'Treinos aprovados vão ao intervals.icu e chegam ao relógio se o atleta ligou a conexão Garmin e o upload de treinos planejados (não verificado automaticamente).',
+    verificadoEm: '2026-10',
+    fontes: ['Gate de validação ponta a ponta de 2026-07-14', INTERVALS_ICU],
+};
+
+/**
+ * Garmin pelo canal direto (ADR-0013): conexão na conta Garmin do atleta, sem o intervals.icu.
+ * Fica "Em validação": o gate de 2026-07-14 foi feito via intervals.icu e não vale para este canal.
+ */
+const GARMIN_DIRETO: WatchCompatibility = {
+    marca: 'GARMIN',
+    posicionamento: 'EM_VALIDACAO',
+    push: 'NATIVO',
+    ingestao: 'NATIVO',
+    passos: [
+        'No Menthoros, toque em "Conectar Garmin" e entre na sua conta Garmin.',
+        'Autorize o Menthoros a enviar treinos ao seu relógio e a ler as suas atividades.',
+        'Mantenha o relógio sincronizado com o app Garmin Connect para receber os treinos planejados.',
+    ],
+    avisos: [
+        'Se você não autorizar o envio de treinos, o treino planejado não chega ao relógio.',
+    ],
+    resumoParaCoach:
+        'O atleta conecta a conta Garmin direto ao Menthoros; o treino só chega ao relógio se ele autorizou o envio de treinos e sincronizou o relógio (não verificado automaticamente).',
+    criterioPromocao: 'Gate com atleta real pelo canal direto (o gate anterior foi feito por outro caminho e não vale aqui).',
+    verificadoEm: '2026-10',
+    fontes: ['ADR-0013', 'Garmin Connect Developer Program'],
+};
+
+/**
  * Matriz de compatibilidade por marca — conteúdo estático, ordenado pela prioridade do founder
  * (a ordem é conteúdo, por isso array e não Record). Uma entrada por `DispositivoMarca`; marca que
  * o backend devolva e este bundle não conheça cai no fallback `NAO_COBERTO`.
  */
-export const WATCH_COMPATIBILITY: readonly WatchCompatibility[] = [
-    {
-        marca: 'GARMIN',
-        posicionamento: 'SUPORTADO',
-        push: 'NATIVO',
-        ingestao: 'NATIVO',
-        passos: [
-            'No intervals.icu, abra Settings → Connections e conecte o Garmin.',
-            'Marque a opção "Upload planned workouts".',
-            'Volte ao Menthoros e conecte sua conta do intervals.icu.',
-        ],
-        resumoParaCoach:
-            'Treinos aprovados vão ao intervals.icu e chegam ao relógio se o atleta ligou a conexão Garmin e o upload de treinos planejados (não verificado automaticamente).',
-        verificadoEm: '2026-10',
-        fontes: ['Gate de validação ponta a ponta de 2026-07-14', INTERVALS_ICU],
-    },
+const MARCAS: readonly WatchCompatibility[] = [
+    GARMIN_VIA_INTERVALS,
     {
         marca: 'APPLE',
         posicionamento: 'COMPATIVEL_VIA_APP',
@@ -239,6 +270,17 @@ function naoCoberto(marca: DispositivoMarca): WatchCompatibility {
     };
 }
 
-export function compatibilidadeDe(marca: DispositivoMarca): WatchCompatibility {
-    return WATCH_COMPATIBILITY.find((c) => c.marca === marca) ?? naoCoberto(marca);
+/**
+ * A matriz que a UI mostra: com o canal Garmin direto habilitado, a entrada GARMIN é a do canal
+ * direto; sem ele, é a via intervals.icu de sempre. O resto da matriz é igual nos dois casos.
+ */
+export function matrizCompatibilidade(garminHabilitado: boolean = runtimeConfig.garminHabilitado): readonly WatchCompatibility[] {
+    return garminHabilitado ? MARCAS.map((c) => (c.marca === 'GARMIN' ? GARMIN_DIRETO : c)) : MARCAS;
+}
+
+export function compatibilidadeDe(
+    marca: DispositivoMarca,
+    garminHabilitado: boolean = runtimeConfig.garminHabilitado,
+): WatchCompatibility {
+    return matrizCompatibilidade(garminHabilitado).find((c) => c.marca === marca) ?? naoCoberto(marca);
 }

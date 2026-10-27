@@ -196,7 +196,7 @@ export default function CoachAthleteProfilePage() {
                                 })()}
                             </Box>
                         )}
-                        <CoachWatchLine relogio={profile.relogio} avisos={profile.avisos} />
+                        <CoachWatchLine relogio={profile.relogio} avisos={profile.avisos} conexaoCanal={profile.conexaoCanal} />
                     </Box>
                     <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
                         <Button

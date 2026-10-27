@@ -10,6 +10,24 @@ export interface CoachWatchLineProps {
     relogio?: AtletaPerfilCoachDto['relogio'];
     /** `avisos` do perfil: "relogio" quer dizer que a consulta falhou, o que não é "não informado". */
     avisos?: string[] | null;
+    /** Canal de conexão mais recente do perfil agregado (garmin-connection, D7); ausente = nunca conectou. */
+    conexaoCanal?: AtletaPerfilCoachDto['conexaoCanal'];
+}
+
+const NOME_CANAL: Record<string, string> = {
+    GARMIN: 'Garmin (canal direto)',
+    INTERVALS_ICU: 'intervals.icu',
+};
+
+/** Estado da conexão para o treinador: distingue "revogada" (com motivo) de "nunca conectou". */
+function descreverCanal(conexao: AtletaPerfilCoachDto['conexaoCanal']): string {
+    if (!conexao) return 'Canal: sem canal conectado';
+    const nome = NOME_CANAL[conexao.plataforma.value] ?? conexao.plataforma.label;
+    if (!conexao.ativo) {
+        return `Canal: ${nome} · conexão revogada${conexao.lastSyncError ? ` (${conexao.lastSyncError})` : ''}`;
+    }
+    const sim = (v: boolean) => (v ? 'sim' : 'não');
+    return `Canal: ${nome} · conexão ativa · envio de treinos: ${sim(conexao.workoutImport)} · leitura de atividades: ${sim(conexao.activityExport)}`;
 }
 
 /** Posicionamentos em que o treino não chega direto ao relógio: viram Alert, não texto corrido. */
@@ -19,7 +37,7 @@ const COM_ALERTA = new Set(['COMPATIVEL_VIA_APP', 'PARCIAL_POR_MODELO', 'SO_TREI
  * Linha "Relógio" do cabeçalho do atleta para o treinador. A frase é condicional de propósito: a
  * marca é a do onboarding, não confirmada, e o sistema não sabe se o atleta ligou o upload.
  */
-export function CoachWatchLine({ relogio, avisos }: CoachWatchLineProps) {
+export function CoachWatchLine({ relogio, avisos, conexaoCanal }: CoachWatchLineProps) {
     const [guiaAberto, setGuiaAberto] = useState(false);
 
     if (!relogio) {
@@ -52,6 +70,10 @@ export function CoachWatchLine({ relogio, avisos }: CoachWatchLineProps) {
                     O que pedir ao atleta
                 </Button>
             </Box>
+
+            <Typography variant="caption" sx={{ color: surface[300] }}>
+                {descreverCanal(conexaoCanal)}
+            </Typography>
 
             {COM_ALERTA.has(compat.posicionamento) ? (
                 <Alert severity="info" sx={{ fontSize: '0.8rem', py: 0 }}>

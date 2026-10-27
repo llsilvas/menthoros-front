@@ -40,3 +40,34 @@ describe('runtimeConfig.keycloakUrl', () => {
     expect(cfg.keycloakUrl).toBe('http://localhost:8080');
   });
 });
+
+describe('runtimeConfig.garminHabilitado', () => {
+  afterEach(() => {
+    delete window.__RUNTIME_CONFIG__;
+    vi.unstubAllEnvs();
+  });
+
+  it('desligada quando a var está ausente', async () => {
+    vi.stubEnv('VITE_GARMIN_HABILITADO', '');
+    const cfg = await loadRuntimeConfig(undefined);
+    expect(cfg.garminHabilitado).toBe(false);
+  });
+
+  it('desligada com o placeholder não substituído ou string vazia', async () => {
+    vi.stubEnv('VITE_GARMIN_HABILITADO', '');
+    expect((await loadRuntimeConfig({ garminHabilitado: '__RUNTIME_GARMIN_HABILITADO_PLACEHOLDER__' })).garminHabilitado).toBe(false);
+    expect((await loadRuntimeConfig({ garminHabilitado: '' })).garminHabilitado).toBe(false);
+  });
+
+  it('ligada com "true" no build', async () => {
+    vi.stubEnv('VITE_GARMIN_HABILITADO', 'true');
+    const cfg = await loadRuntimeConfig(undefined);
+    expect(cfg.garminHabilitado).toBe(true);
+  });
+
+  it('ligada com "true" injetado em runtime', async () => {
+    vi.stubEnv('VITE_GARMIN_HABILITADO', '');
+    const cfg = await loadRuntimeConfig({ garminHabilitado: 'true' });
+    expect(cfg.garminHabilitado).toBe(true);
+  });
+});

@@ -52,4 +52,51 @@ describe('CoachWatchLine', () => {
     expect(screen.getByText(/Relógio: HUAWEI/)).toBeInTheDocument();
     expect(screen.getByText('Ainda não coberto')).toBeInTheDocument();
   });
+
+  describe('canal de conexão (conexaoCanal)', () => {
+    const garmin = (extra: Record<string, unknown> = {}) => ({
+      plataforma: { value: 'GARMIN', label: 'Garmin Connect' },
+      ativo: true,
+      workoutImport: true,
+      activityExport: true,
+      ...extra,
+    });
+
+    it('Garmin ativo: canal direto, conexão ativa e as permissões concedidas', () => {
+      render(<CoachWatchLine relogio={{ marca: 'GARMIN' }} conexaoCanal={garmin({ activityExport: false })} />);
+
+      const linha = screen.getByText(/^Canal:/);
+      expect(linha).toHaveTextContent('Garmin (canal direto)');
+      expect(linha).toHaveTextContent('conexão ativa');
+      expect(linha).toHaveTextContent('envio de treinos: sim');
+      expect(linha).toHaveTextContent('leitura de atividades: não');
+    });
+
+    it('revogada: mostra "conexão revogada" com o motivo, e não "sem canal conectado"', () => {
+      render(
+        <CoachWatchLine relogio={{ marca: 'GARMIN' }} conexaoCanal={garmin({ ativo: false, lastSyncError: 'Atleta removeu o acesso no Garmin' })} />,
+      );
+
+      const linha = screen.getByText(/^Canal:/);
+      expect(linha).toHaveTextContent('conexão revogada (Atleta removeu o acesso no Garmin)');
+      expect(linha).not.toHaveTextContent('sem canal conectado');
+    });
+
+    it('sem conexão: "sem canal conectado"', () => {
+      render(<CoachWatchLine relogio={{ marca: 'COROS' }} conexaoCanal={null} />);
+
+      expect(screen.getByText(/^Canal:/)).toHaveTextContent('sem canal conectado');
+    });
+
+    it('intervals.icu ativo aparece pelo nome do canal', () => {
+      render(
+        <CoachWatchLine
+          relogio={{ marca: 'COROS' }}
+          conexaoCanal={{ plataforma: { value: 'INTERVALS_ICU', label: 'intervals.icu' }, ativo: true, workoutImport: true, activityExport: true }}
+        />,
+      );
+
+      expect(screen.getByText(/^Canal:/)).toHaveTextContent('intervals.icu · conexão ativa');
+    });
+  });
 });
