@@ -98,7 +98,7 @@ function Corpo({ zones, hoje }: { zones: AthleteTrainingZonesDto; hoje: Date }) 
   return (
     <Box>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center', mb: 1.25 }}>
-        {ancoras.paceLimiarMinKm !== undefined && (
+        {ancoras.paceLimiarMinKm != null && (
           <Typography sx={{ fontSize: '0.75rem', color: text.secondary }}>
             Limiar de pace {formatPace(Math.round(ancoras.paceLimiarMinKm * 60))}/km
             {ancoras.dataUltimoTestePace ? ` (teste de ${formatarData(ancoras.dataUltimoTestePace)})` : ''}

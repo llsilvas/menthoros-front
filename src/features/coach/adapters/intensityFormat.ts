@@ -74,10 +74,10 @@ export function matchZone(
 ): ZoneKey | null {
     if (!fc && !pace) return null;
     const zona = zonas.find((z) => {
-        const fcOk = !fc || (z.fc !== undefined && perto(fc.min, z.fc.min, TOLERANCIA_FC_BPM) && perto(fc.max, z.fc.max, TOLERANCIA_FC_BPM));
+        const fcOk = !fc || (z.fc != null && perto(fc.min, z.fc.min, TOLERANCIA_FC_BPM) && perto(fc.max, z.fc.max, TOLERANCIA_FC_BPM));
         const paceOk =
             !pace ||
-            (z.pace !== undefined &&
+            (z.pace != null &&
                 perto(pace.minSegKm, z.pace.minSegKm, TOLERANCIA_PACE_SEG) &&
                 perto(pace.maxSegKm, z.pace.maxSegKm, TOLERANCIA_PACE_SEG));
         return fcOk && paceOk;
