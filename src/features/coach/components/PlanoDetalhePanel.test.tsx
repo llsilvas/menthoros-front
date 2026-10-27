@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { PlanoDetalhePanel } from './PlanoDetalhePanel';
 import type { PlanoSemanalDto } from '../../../types/PlanoReview';
@@ -92,6 +93,65 @@ describe('PlanoDetalhePanel — treino PROVA com o mesmo destaque da agenda', ()
         const soComuns: PlanoSemanalDto = { ...BASE, treinosPlanejados: [BASE.treinosPlanejados![0]] };
         renderPanel(soComuns);
         expect(screen.queryByTestId('icone-prova')).toBeNull();
-        expect(screen.getByText('FACIL')).toBeInTheDocument();
+        // Rótulo humano, não o enum ("FACIL").
+        expect(screen.getByText('Fácil')).toBeInTheDocument();
+    });
+});
+
+// ── improve-plan-edit-usability ───────────────────────────────────────────────
+
+describe('PlanoDetalhePanel — card do treino legível e acionável', () => {
+    const comJustificativa: PlanoSemanalDto = {
+        ...BASE,
+        treinosPlanejados: [
+            {
+                id: 't1', diaSemana: 'TERCA', tipoTreino: 'INTERVALADO', distanciaKm: 10,
+                duracaoMin: 'PT55M', zonaAlvo: 'Z4', percepcaoEsforcoEsperada: 8,
+                justificativaIa: 'Estímulo de limiar antes da semana de prova.',
+                editadoPeloCoach: true,
+            },
+        ],
+    };
+
+    it('mostra a justificativa da IA no card — é o que o treinador precisa para decidir', () => {
+        renderPanel(comJustificativa);
+
+        expect(screen.getByTestId('treino-justificativa')).toHaveTextContent('Estímulo de limiar antes da semana de prova.');
+    });
+
+    it('dia vem com a data da semana do plano ("Ter 08/09")', () => {
+        renderPanel(comJustificativa);
+
+        expect(screen.getByText('Ter 08/09')).toBeInTheDocument();
+    });
+
+    it('o corpo do card abre a edição quando o plano aguarda revisão', async () => {
+        const onEditarTreino = vi.fn();
+        render(
+            <PlanoDetalhePanel plano={comJustificativa} isActing={false} onAprovar={vi.fn()} onRejeitar={vi.fn()} onEditarTreino={onEditarTreino} />,
+        );
+
+        await userEvent.click(screen.getByRole('button', { name: /abrir treino de ter 08\/09/i }));
+
+        expect(onEditarTreino).toHaveBeenCalledWith('t1');
+    });
+
+    it('plano aprovado: corpo do card não é botão', () => {
+        render(
+            <PlanoDetalhePanel plano={{ ...comJustificativa, reviewStatus: 'APROVADO' }} isActing={false} onAprovar={vi.fn()} onRejeitar={vi.fn()} onEditarTreino={vi.fn()} />,
+        );
+
+        expect(screen.queryByRole('button', { name: /abrir treino/i })).not.toBeInTheDocument();
+    });
+
+    it('legenda dos marcadores aparece só quando algum card os mostra', () => {
+        renderPanel(comJustificativa);
+        expect(screen.getByTestId('legenda-marcadores')).toHaveTextContent('editado por você');
+        expect(screen.getByTestId('legenda-marcadores')).not.toHaveTextContent('adicionado por você');
+    });
+
+    it('sem marcadores, sem legenda', () => {
+        renderPanel(BASE);
+        expect(screen.queryByTestId('legenda-marcadores')).not.toBeInTheDocument();
     });
 });
