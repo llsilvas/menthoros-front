@@ -19,6 +19,7 @@ import { GHOST_BTN_SX, PRIMARY_BTN_SX } from '../../../shared/components/actionB
 import type { TreinoPlanejadoDto, TreinoPlanejadoAddPayload } from '../../../types/PlanoReview';
 import { serializarItens, totaisDeItens, type EtapaItem } from './etapas/etapaItem';
 import { EtapasEditor } from './etapas/EtapasEditor';
+import { detalheDaZonaPredominante, minutosNaZonaAlvo } from '../adapters/zonaPredominante';
 import { useAthleteTrainingZones } from '../../../hooks/useAthleteTrainingZones';
 import { AthleteZonesTable } from './AthleteZonesTable';
 import { EYEBROW_SX, fieldSx } from './etapas/etapasStyles';
@@ -197,6 +198,9 @@ export function TreinoAddDialog({
                 <Box component="span" sx={EYEBROW_SX}>Total</Box>
                 {totais.km > 0 && <span>{totais.km} km</span>}
                 {totais.min > 0 && <span>{totais.min} min</span>}
+                {minutosNaZonaAlvo(profile.metrics) !== null && (
+                    <span data-testid="total-na-zona-alvo">{minutosNaZonaAlvo(profile.metrics)} min {profile.metrics.targetZone}</span>
+                )}
             </Box>
         ) : null
     ) : (
@@ -337,7 +341,9 @@ export function TreinoAddDialog({
                             {profile.metrics.targetZone ?? '—'}
                         </Typography>
                         <Typography sx={{ fontSize: '0.6875rem', color: surface[400] }}>
-                            Derivada das etapas — resumo mostrado no card do plano
+                            Derivada das etapas
+                            {detalheDaZonaPredominante(profile.metrics) ? ` (${detalheDaZonaPredominante(profile.metrics)})` : ''}
+                            {' '}— resumo mostrado no card do plano
                         </Typography>
                     </Box>
                     <TextField label="Esforço esperado (RPE 1–10)" type="number" value={rpe}

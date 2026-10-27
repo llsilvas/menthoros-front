@@ -71,8 +71,8 @@ describe('ZoneSelector', () => {
         await userEvent.click(screen.getByRole('radio', { name: 'Z5' }));
 
         expect(screen.getByRole('radio', { name: 'Z5' })).toHaveAttribute('aria-checked', 'true');
-        expect(screen.getByRole('textbox', { name: /ritmo/i })).toHaveValue('4:30-4:45/km');
-        expect(screen.getByRole('textbox', { name: /^FC/ })).toHaveValue('168-178 bpm');
+        expect(screen.getByTestId('pilula-pace')).toHaveTextContent('4:30–4:45 /km');
+        expect(screen.getByTestId('pilula-fc')).toHaveTextContent('168–178 bpm');
         expect(u.get().alvoPrimario).toBe('PACE');
     });
 
@@ -108,26 +108,47 @@ describe('ZoneSelector', () => {
         expect(u.get()).toMatchObject({ zona: 'Z3', alvoPrimario: 'PACE' });
     });
 
-    it('editar o ritmo à mão vira Personalizado e mantém a FC', async () => {
+    it('zona escolhida mostra os valores como pills; ajustar exige Personalizado, que mantém os valores', async () => {
         const u = ultimo();
         render(<Harness onValor={u.set} />);
         await userEvent.click(screen.getByRole('radio', { name: 'Z2' }));
+        expect(screen.queryByRole('textbox', { name: /pace alvo/i })).not.toBeInTheDocument();
 
-        await userEvent.type(screen.getByRole('textbox', { name: /ritmo/i }), '0');
+        await userEvent.click(screen.getByRole('radio', { name: /personalizado/i }));
+
+        expect(screen.getByRole('textbox', { name: /pace alvo/i })).toHaveValue('5:15-5:45/km');
+        expect(screen.getByRole('textbox', { name: /fc alvo \(bpm\)/i })).toHaveValue('143-150 bpm');
+        expect(u.get().zona).toBe('PERSONALIZADO');
+    });
+
+    it('editar o pace à mão mantém a zona Personalizada e a FC', async () => {
+        const u = ultimo();
+        render(<Harness inicial={{ zona: 'PERSONALIZADO', fcAlvoEtapa: '143-150 bpm', ritmoAlvo: '5:15-5:45/km', alvoPrimario: 'FC' }} onValor={u.set} />);
+
+        await userEvent.type(screen.getByRole('textbox', { name: /pace alvo/i }), '0');
 
         expect(u.get().zona).toBe('PERSONALIZADO');
         expect(u.get().fcAlvoEtapa).toBe('143-150 bpm');
-        expect(screen.getByRole('radio', { name: /personalizado/i })).toHaveAttribute('aria-checked', 'true');
     });
 
-    it('toggle só habilita o eixo com valor; com um eixo só, explica', () => {
+    it('ao sair do campo, completa a unidade que o parser do backend exige', async () => {
+        const u = ultimo();
+        render(<Harness inicial={{ zona: 'PERSONALIZADO', fcAlvoEtapa: '', ritmoAlvo: '', alvoPrimario: 'NENHUM' }} onValor={u.set} />);
+
+        await userEvent.type(screen.getByRole('textbox', { name: /fc alvo/i }), '143-150');
+        await userEvent.tab();
+
+        expect(u.get().fcAlvoEtapa).toBe('143-150 bpm');
+    });
+
+    it('com um eixo só, diz qual é o único em vez de mostrar o toggle', () => {
         render(<Harness inicial={{ zona: 'PERSONALIZADO', fcAlvoEtapa: '', ritmoAlvo: '5:00-5:15/km', alvoPrimario: 'PACE' }} />);
 
-        expect(screen.getByRole('radio', { name: 'FC' })).toBeDisabled();
-        expect(screen.getByRole('radio', { name: 'Pace' })).toBeEnabled();
+        expect(screen.getByTestId('eixo-unico')).toHaveTextContent('Pace · único eixo');
+        expect(screen.queryByRole('radio', { name: 'FC' })).not.toBeInTheDocument();
     });
 
-    it('Z6 sem pace de limiar não preenche nada e explica', async () => {
+    it('sem pace de limiar o Z6 fica desabilitado e a zona escolhida grava só a FC', async () => {
         const semPace: AthleteTrainingZonesDto = {
             ...ZONES,
             disponibilidade: { pace: false, fc: true, motivoPace: 'SEM_PACE_LIMIAR' },
@@ -136,24 +157,61 @@ describe('ZoneSelector', () => {
         const u = ultimo();
         render(<Harness zones={semPace} onValor={u.set} />);
 
+        expect(screen.getByRole('radio', { name: 'Z6' })).toBeDisabled();
+        await userEvent.click(screen.getByRole('radio', { name: 'Z2' }));
+
+        expect(u.get()).toMatchObject({ ritmoAlvo: '', fcAlvoEtapa: '143-150 bpm', alvoPrimario: 'FC' });
+        expect(screen.getByTestId('pilula-pace')).toHaveTextContent('pace indisponível');
+        expect(screen.getByTestId('eixo-unico')).toHaveTextContent('FC · único eixo');
+        expect(screen.getByText(/sem pace de limiar: a zona grava só a fc/i)).toBeInTheDocument();
+    });
+
+    it('Z6 mostra "sem FC", Pace como único eixo e explica por quê', async () => {
+        render(<Harness />);
+
         await userEvent.click(screen.getByRole('radio', { name: 'Z6' }));
 
-        expect(u.get()).toMatchObject({ ritmoAlvo: '', fcAlvoEtapa: '', alvoPrimario: 'NENHUM' });
-        expect(screen.getByText(/z6 precisa do pace de limiar/i)).toBeInTheDocument();
+        expect(screen.getByTestId('pilula-fc')).toHaveTextContent('sem FC');
+        expect(screen.getByTestId('eixo-unico')).toHaveTextContent('Pace · único eixo');
+        expect(screen.getByText(/z6 não tem alvo de fc: a fc não estabiliza/i)).toBeInTheDocument();
+    });
+
+    it('dica do eixo: pré-preenchido, depois "sua escolha" quando o treinador troca', async () => {
+        render(<Harness />);
+        await userEvent.click(screen.getByRole('radio', { name: 'Z2' }));
+        expect(screen.getByText(/pré-preenchido · troque o eixo se preferir/i)).toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('radio', { name: 'Pace' }));
+
+        expect(screen.getByText(/sua escolha · mantida ao trocar de zona/i)).toBeInTheDocument();
+    });
+
+    it('etapa de tiro pré-seleciona pace e a dica explica a FC lenta', async () => {
+        render(<Harness tipoEtapa="INTERVALADO" />);
+
+        await userEvent.click(screen.getByRole('radio', { name: 'Z5' }));
+
+        expect(screen.getByText(/a fc leva ~2 min para estabilizar/i)).toBeInTheDocument();
+    });
+
+    it('sem objetivo é uma escolha explícita, dita com as palavras do Garmin', () => {
+        render(<Harness inicial={{ zona: null, fcAlvoEtapa: '', ritmoAlvo: '', alvoPrimario: 'NENHUM' }} />);
+
+        expect(screen.getByText(/etapa livre, sem meta de intensidade/i)).toBeInTheDocument();
     });
 
     it('sem zonas carregadas mostra só os campos de valor, sem seletor de zona', () => {
         render(<Harness zones={null} />);
 
         expect(screen.queryByRole('radiogroup', { name: /zona da etapa/i })).not.toBeInTheDocument();
-        expect(screen.getByRole('textbox', { name: /ritmo/i })).toBeInTheDocument();
-        expect(screen.getByRole('textbox', { name: /^FC/ })).toBeInTheDocument();
+        expect(screen.getByRole('textbox', { name: /pace alvo/i })).toBeInTheDocument();
+        expect(screen.getByRole('textbox', { name: /^FC alvo/ })).toBeInTheDocument();
     });
 
     it('texto legado aparece como Personalizado, com aviso, e não é apagado', () => {
         render(<Harness inicial={{ zona: 'PERSONALIZADO', fcAlvoEtapa: 'trote leve', ritmoAlvo: '' }} />);
 
-        expect(screen.getByRole('textbox', { name: /^FC/ })).toHaveValue('trote leve');
+        expect(screen.getByRole('textbox', { name: /^FC alvo/ })).toHaveValue('trote leve');
         expect(screen.getByText(/trote leve.*não vira alvo no relógio/i).closest('[role="alert"]')).not.toBeNull();
     });
 
@@ -162,7 +220,7 @@ describe('ZoneSelector', () => {
 
         const alerta = screen.getByText(/passa da máxima/i).closest('[role="alert"]') as HTMLElement;
         expect(alerta).not.toBeNull();
-        expect(screen.getByRole('textbox', { name: /^FC/ }).getAttribute('aria-describedby')).toContain(alerta.id);
+        expect(screen.getByRole('textbox', { name: /^FC alvo/ }).getAttribute('aria-describedby')).toContain(alerta.id);
     });
 
     it('os alvos de toque têm ao menos 40 px (zona) e 44 px (toggle)', () => {

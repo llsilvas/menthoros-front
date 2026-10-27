@@ -12,6 +12,7 @@ import {
     escolherEixo,
     type IntensidadeEtapa,
 } from '../../adapters/zoneSelectorLogic';
+import { formatPace, formatPaceRange, normalizarFc, normalizarPace, parseCanonicalFc, parseCanonicalPace } from '../../adapters/intensityFormat';
 import { fieldSx } from './etapasStyles';
 
 const ZONAS: ZoneKey[] = ['Z1', 'Z2', 'Z3', 'Z4', 'Z5', 'Z6'];
@@ -41,11 +42,36 @@ const radioBase = {
     '&:focus-visible': { outline: `2px solid ${text.primary}`, outlineOffset: 2 },
 } as const;
 
+const PILL_SX = {
+    fontFamily: MONO,
+    fontSize: '0.8125rem',
+    color: text.primary,
+    px: 1,
+    py: 0.5,
+    borderRadius: '6px',
+    border: `1px solid ${content.cardBorder}`,
+} as const;
+
+/** "5:15-5:45/km" → "5:15–5:45 /km" (leitura); texto que não é do formato canônico aparece como está. */
+function pilulaDePace(texto: string): string {
+    const faixa = parseCanonicalPace(texto);
+    if (!faixa) return texto.trim();
+    const valor = faixa.minSegKm === faixa.maxSegKm ? formatPace(faixa.minSegKm) : formatPaceRange(faixa.minSegKm, faixa.maxSegKm);
+    return `${valor} /km`;
+}
+
+function pilulaDeFc(texto: string): string {
+    const faixa = parseCanonicalFc(texto);
+    return faixa ? `${faixa.min}–${faixa.max} bpm` : texto.trim();
+}
+
 /**
  * Seletor de zona da etapa + eixo que o relógio controla. Controlado: a lógica vive em
  * `zoneSelectorLogic` (funções puras); aqui só se desenha e se encaminha o clique.
  *
- * Lime só no segmento selecionado do toggle `Relógio:` — em leitura nunca (design D9 V3).
+ * Com uma zona escolhida os valores aparecem como pills (leitura); para ajustá-los o treinador vai
+ * a "Personalizado", onde ficam os campos editáveis. Lime só no segmento selecionado do toggle
+ * `Relógio:` — em leitura nunca (design D9 V3).
  */
 export function ZoneSelector({ value, zones, tipoEtapa, tipoTreino, disabled, idBase, onChange }: ZoneSelectorProps) {
     // Um eixo que veio gravado (ou que o treinador já trocou) não é sobrescrito pelo default da regra.
@@ -56,7 +82,16 @@ export function ZoneSelector({ value, zones, tipoEtapa, tipoTreino, disabled, id
     const avisoIds = avisos.map((a) => `${idBase}-aviso-${a.id}`).join(' ') || undefined;
     const temPace = value.ritmoAlvo.trim() !== '';
     const temFc = value.fcAlvoEtapa.trim() !== '';
-    const z6SemPace = value.zona === 'Z6' && !temPace;
+    const zonaEscolhida = zones && value.zona && value.zona !== 'PERSONALIZADO' ? value.zona : null;
+    const semPaceLimiar = zones ? !zones.disponibilidade.pace : false;
+
+    const dica = (() => {
+        if (!zonaEscolhida || !temPace || !temFc) return null;
+        if (eixoTocado) return 'Sua escolha · mantida ao trocar de zona';
+        return value.alvoPrimario === 'PACE'
+            ? 'Pré-preenchido com pace: a FC leva ~2 min para estabilizar. Troque se preferir.'
+            : 'Pré-preenchido · troque o eixo se preferir';
+    })();
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
@@ -68,13 +103,15 @@ export function ZoneSelector({ value, zones, tipoEtapa, tipoTreino, disabled, id
                 >
                     {ZONAS.map((z) => {
                         const ativa = value.zona === z;
+                        // Z6 só existe em pace: sem pace de limiar não há o que preencher.
+                        const indisponivel = z === 'Z6' && semPaceLimiar;
                         return (
                             <ButtonBase
                                 key={z}
                                 role="radio"
                                 aria-checked={ativa}
                                 aria-label={z}
-                                disabled={disabled}
+                                disabled={disabled || indisponivel}
                                 onClick={() => onChange(aplicarZona(value, z, zones, tipoEtapa, eixoTocado))}
                                 sx={{
                                     ...radioBase,
@@ -110,68 +147,83 @@ export function ZoneSelector({ value, zones, tipoEtapa, tipoTreino, disabled, id
                 </Box>
             )}
 
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 1 }}>
-                <TextField
-                    label="Ritmo"
-                    placeholder="5:15-5:45/km"
-                    value={value.ritmoAlvo}
-                    onChange={(e) => onChange(editarValor(value, 'ritmoAlvo', e.target.value, tipoEtapa))}
-                    disabled={disabled}
-                    size="small"
-                    slotProps={{ inputLabel: { shrink: true } }}
-                    inputProps={{ maxLength: 40, 'aria-describedby': avisoIds }}
-                    sx={sx}
-                />
-                <TextField
-                    label="FC"
-                    placeholder="143-150 bpm"
-                    value={value.fcAlvoEtapa}
-                    onChange={(e) => onChange(editarValor(value, 'fcAlvoEtapa', e.target.value, tipoEtapa))}
-                    disabled={disabled}
-                    size="small"
-                    slotProps={{ inputLabel: { shrink: true } }}
-                    inputProps={{ maxLength: 50, 'aria-describedby': avisoIds }}
-                    sx={sx}
-                />
-            </Box>
-
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography sx={{ fontSize: '0.75rem', color: text.secondary }}>Relógio:</Typography>
-                <Box role="radiogroup" aria-label="Eixo que o relógio controla" sx={{ display: 'flex', gap: 0.5 }}>
-                    {([['PACE', 'Pace', temPace], ['FC', 'FC', temFc]] as const).map(([eixo, rotulo, tem]) => {
-                        const ativo = value.alvoPrimario === eixo;
-                        return (
-                            <ButtonBase
-                                key={eixo}
-                                role="radio"
-                                aria-checked={ativo}
-                                aria-label={rotulo}
-                                disabled={disabled || !tem}
-                                onClick={() => {
-                                    setEixoTocado(true);
-                                    onChange(escolherEixo(value, eixo));
-                                }}
-                                sx={{
-                                    ...radioBase,
-                                    minHeight: 44,
-                                    minWidth: 64,
-                                    fontFamily: 'inherit',
-                                    ...(ativo ? { bgcolor: primary[500], borderColor: primary[500], color: activeTheme.primary.contrastText } : {}),
-                                }}
-                            >
-                                {rotulo}
-                            </ButtonBase>
-                        );
-                    })}
+            {zonaEscolhida ? (
+                <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+                    <Box component="span" data-testid="pilula-pace" sx={{ ...PILL_SX, ...(temPace ? {} : { color: text.secondary }) }}>
+                        {temPace ? pilulaDePace(value.ritmoAlvo) : 'pace indisponível'}
+                    </Box>
+                    <Box component="span" data-testid="pilula-fc" sx={{ ...PILL_SX, ...(temFc ? {} : { color: text.secondary }) }}>
+                        {temFc ? pilulaDeFc(value.fcAlvoEtapa) : zonaEscolhida === 'Z6' ? 'sem FC' : 'FC não preenchida'}
+                    </Box>
+                    <EixoDoRelogio
+                        value={value}
+                        temPace={temPace}
+                        temFc={temFc}
+                        disabled={disabled}
+                        onEscolher={(eixo) => {
+                            setEixoTocado(true);
+                            onChange(escolherEixo(value, eixo));
+                        }}
+                    />
                 </Box>
-                {value.alvoPrimario === 'NENHUM' && (
-                    <Typography sx={{ fontSize: '0.75rem', color: text.secondary }}>Sem meta no relógio</Typography>
-                )}
-            </Box>
+            ) : (
+                <>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 1 }}>
+                        <TextField
+                            label="Pace alvo"
+                            placeholder="—"
+                            value={value.ritmoAlvo}
+                            onChange={(e) => onChange(editarValor(value, 'ritmoAlvo', e.target.value, tipoEtapa))}
+                            onBlur={() => {
+                                const normalizado = normalizarPace(value.ritmoAlvo);
+                                if (normalizado !== value.ritmoAlvo) onChange(editarValor(value, 'ritmoAlvo', normalizado, tipoEtapa));
+                            }}
+                            disabled={disabled}
+                            size="small"
+                            slotProps={{ inputLabel: { shrink: true } }}
+                            inputProps={{ maxLength: 40, 'aria-describedby': avisoIds }}
+                            sx={sx}
+                        />
+                        <TextField
+                            label="FC alvo (bpm)"
+                            placeholder="—"
+                            value={value.fcAlvoEtapa}
+                            onChange={(e) => onChange(editarValor(value, 'fcAlvoEtapa', e.target.value, tipoEtapa))}
+                            onBlur={() => {
+                                const normalizado = normalizarFc(value.fcAlvoEtapa);
+                                if (normalizado !== value.fcAlvoEtapa) onChange(editarValor(value, 'fcAlvoEtapa', normalizado, tipoEtapa));
+                            }}
+                            disabled={disabled}
+                            size="small"
+                            slotProps={{ inputLabel: { shrink: true } }}
+                            inputProps={{ maxLength: 50, 'aria-describedby': avisoIds }}
+                            sx={sx}
+                        />
+                    </Box>
+                    <EixoDoRelogio
+                        value={value}
+                        temPace={temPace}
+                        temFc={temFc}
+                        disabled={disabled}
+                        onEscolher={(eixo) => {
+                            setEixoTocado(true);
+                            onChange(escolherEixo(value, eixo));
+                        }}
+                    />
+                </>
+            )}
 
-            {z6SemPace && (
-                <Typography sx={{ fontSize: '0.75rem', color: text.primary }}>
-                    Z6 precisa do pace de limiar do atleta.
+            {dica && <Typography sx={{ fontSize: '0.75rem', color: text.secondary }}>{dica}</Typography>}
+
+            {zonaEscolhida === 'Z6' && (
+                <Typography sx={{ fontSize: '0.75rem', color: text.secondary }}>
+                    Z6 não tem alvo de FC: a FC não estabiliza em esforço curto.
+                </Typography>
+            )}
+
+            {!temPace && !temFc && !zonaEscolhida && value.alvoPrimario === 'NENHUM' && (
+                <Typography sx={{ fontSize: '0.75rem', color: text.secondary }}>
+                    Etapa livre, sem meta de intensidade — igual ao "Sem objetivo" do Garmin.
                 </Typography>
             )}
 
@@ -186,6 +238,55 @@ export function ZoneSelector({ value, zones, tipoEtapa, tipoTreino, disabled, id
                     <Typography sx={{ fontSize: '0.75rem', color: text.primary }}>{a.texto}</Typography>
                 </Box>
             ))}
+        </Box>
+    );
+}
+
+interface EixoDoRelogioProps {
+    value: IntensidadeEtapa;
+    temPace: boolean;
+    temFc: boolean;
+    disabled?: boolean;
+    onEscolher: (eixo: 'PACE' | 'FC') => void;
+}
+
+/** Toggle `Relógio: Pace | FC` quando os dois eixos têm valor; com um só, diz qual é o único. */
+function EixoDoRelogio({ value, temPace, temFc, disabled, onEscolher }: EixoDoRelogioProps) {
+    if (!temPace && !temFc) return null;
+    if (temPace !== temFc) {
+        return (
+            <Typography data-testid="eixo-unico" sx={{ fontSize: '0.75rem', color: text.secondary }}>
+                {temPace ? 'Pace' : 'FC'} · único eixo
+            </Typography>
+        );
+    }
+    return (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography sx={{ fontSize: '0.75rem', color: text.secondary }}>Relógio:</Typography>
+            <Box role="radiogroup" aria-label="Eixo que o relógio controla" sx={{ display: 'flex', gap: 0.5 }}>
+                {([['PACE', 'Pace'], ['FC', 'FC']] as const).map(([eixo, rotulo]) => {
+                    const ativo = value.alvoPrimario === eixo;
+                    return (
+                        <ButtonBase
+                            key={eixo}
+                            role="radio"
+                            aria-checked={ativo}
+                            aria-label={rotulo}
+                            disabled={disabled}
+                            onClick={() => onEscolher(eixo)}
+                            sx={{
+                                ...radioBase,
+                                minHeight: 44,
+                                minWidth: 64,
+                                fontFamily: 'inherit',
+                                ...(ativo ? { bgcolor: primary[500], borderColor: primary[500], color: activeTheme.primary.contrastText } : {}),
+                            }}
+                        >
+                            {rotulo}
+                        </ButtonBase>
+                    );
+                })}
+            </Box>
         </Box>
     );
 }

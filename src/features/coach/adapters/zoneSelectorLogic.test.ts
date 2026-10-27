@@ -174,8 +174,17 @@ describe('avisosDaEtapa', () => {
         expect(ids({ zona: 'PERSONALIZADO', fcAlvoEtapa: '85-89%', ritmoAlvo: '' })).not.toContain('texto-legado');
     });
 
-    it('pace em Z5 e FC em Z2 avisam divergência', () => {
-        expect(ids({ zona: 'PERSONALIZADO', fcAlvoEtapa: '143-150 bpm', ritmoAlvo: '4:30-4:45/km' })).toContain('zonas-divergentes');
+    it('pace em Z5 e FC em Z2 avisam a divergência, dizendo as duas zonas', () => {
+        const aviso = avisosDaEtapa(
+            { zona: 'PERSONALIZADO', fcAlvoEtapa: '145-152 bpm', ritmoAlvo: '4:30-4:45/km' },
+            { zones: ZONES, tipoEtapa: 'PRINCIPAL' },
+        ).find((a) => a.id === 'zonas-divergentes');
+
+        expect(aviso?.texto).toContain('Pace é Z5 e FC é Z2');
+    });
+
+    it('valores digitados à mão que não casam a faixa inteira mas caem em zonas diferentes também avisam', () => {
+        expect(ids({ zona: 'PERSONALIZADO', fcAlvoEtapa: '145-152 bpm', ritmoAlvo: '4:40-4:50/km' })).toContain('zonas-divergentes');
     });
 
     it('pace e FC da mesma zona não avisam divergência', () => {

@@ -350,7 +350,7 @@ describe('TreinoAddDialog', () => {
         renderDialog({ treinosExistentes: [] });
 
         fireEvent.click(screen.getByRole('button', { name: /^etapa$/i }));
-        expect(screen.getByLabelText('Ritmo')).toBeInTheDocument();
+        expect(screen.getByLabelText('Pace alvo')).toBeInTheDocument();
         expect(screen.queryByLabelText('Descrição para o atleta')).not.toBeInTheDocument();
 
         fireEvent.click(screen.getByRole('button', { name: /mais detalhes/i }));
@@ -367,7 +367,7 @@ describe('TreinoAddDialog', () => {
         fireEvent.change(screen.getByLabelText(/data do treino/i), { target: { value: '2026-07-03' } });
         fireEvent.click(screen.getByRole('button', { name: /^etapa$/i }));
         fireEvent.change(screen.getByLabelText('Tipo da etapa 1'), { target: { value: 'PRINCIPAL' } });
-        fireEvent.change(screen.getByLabelText('Ritmo'), { target: { value: '5:30/km' } });
+        fireEvent.change(screen.getByLabelText('Pace alvo'), { target: { value: '5:30/km' } });
         fireEvent.click(screen.getByRole('button', { name: /mais detalhes/i }));
         fireEvent.change(screen.getByLabelText('Descrição para o atleta'), { target: { value: 'Leve, conversando' } });
         fireEvent.click(screen.getByRole('button', { name: /salvar treino/i }));

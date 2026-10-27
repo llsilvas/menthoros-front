@@ -9,6 +9,7 @@ import {
     parseCanonicalPace,
     toCanonicalFc,
     toCanonicalPace,
+    zonaDoPonto,
 } from './intensityFormat';
 
 export type ZonaSelecionada = ZoneKey | 'PERSONALIZADO' | null;
@@ -133,16 +134,18 @@ export function avisosDaEtapa(i: IntensidadeEtapa, { zones, tipoEtapa, tipoTrein
     if (naoLidos.length) {
         avisos.push({
             id: 'texto-legado',
-            texto: `"${naoLidos.join('" e "')}" não vira alvo no relógio. Escolha uma zona ou use o formato 143-150 bpm / 5:15-5:45/km.`,
+            texto: `"${naoLidos.join('" e "')}": texto preservado, mas não vira alvo no relógio. Escolher uma zona converte; salvar sem mexer mantém como está.`,
         });
     }
     if (!zones) return avisos;
 
     if (fc && pace) {
-        const zf = matchZone(fc, undefined, zones.zonas);
-        const zp = matchZone(undefined, pace, zones.zonas);
+        const { fc: zf, pace: zp } = zonaDoPonto(fc, pace, zones.zonas);
         if (zf && zp && zf !== zp) {
-            avisos.push({ id: 'zonas-divergentes', texto: `O pace está em ${zp} e a FC em ${zf}. Confira qual vale para esta etapa.` });
+            avisos.push({
+                id: 'zonas-divergentes',
+                texto: `Pace é ${zp} e FC é ${zf} para este atleta. O relógio segue só o eixo escolhido: confira qual vale. Salvar continua permitido.`,
+            });
         }
     }
 
@@ -167,7 +170,7 @@ export function avisosDaEtapa(i: IntensidadeEtapa, { zones, tipoEtapa, tipoTrein
 
     const zonaEscolhida = i.zona !== null && i.zona !== 'PERSONALIZADO';
     if (zonaEscolhida && !zones.disponibilidade.pace) {
-        avisos.push({ id: 'sem-pace-limiar', texto: 'O atleta não tem pace de limiar: só a FC foi preenchida.' });
+        avisos.push({ id: 'sem-pace-limiar', texto: 'Sem pace de limiar: a zona grava só a FC. Cadastre o limiar para prescrever por ritmo.' });
     }
     if (zonaEscolhida && zones.ancoras.fcLimiarEstimada && !fcTexto) {
         avisos.push({ id: 'fc-limiar-estimada', texto: 'O limiar de FC é estimado: informe a FC à mão ou cadastre o limiar.' });

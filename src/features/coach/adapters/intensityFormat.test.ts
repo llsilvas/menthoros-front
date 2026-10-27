@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
     formatPaceRange,
+    normalizarFc,
+    normalizarPace,
+    zonaDoPonto,
     matchZone,
     parseCanonicalFc,
     parseCanonicalPace,
@@ -90,5 +93,33 @@ describe('matchZone', () => {
 
     it('FC informada numa zona sem FC (Z6) não casa', () => {
         expect(matchZone({ min: 168, max: 178 }, { minSegKm: 246, maxSegKm: 270 }, ZONAS)).toBeNull();
+    });
+});
+
+describe('normalização do que o treinador digita', () => {
+    it('acrescenta a unidade que o parser do backend exige', () => {
+        expect(normalizarFc('143-150')).toBe('143-150 bpm');
+        expect(normalizarPace('5:10-5:20')).toBe('5:10-5:20/km');
+        expect(normalizarPace('5:10')).toBe('5:10/km');
+    });
+
+    it('não mexe no que já está completo nem no texto livre', () => {
+        expect(normalizarFc('143-150 bpm')).toBe('143-150 bpm');
+        expect(normalizarFc('trote leve')).toBe('trote leve');
+        expect(normalizarPace('5:10-5:20/km')).toBe('5:10-5:20/km');
+        expect(normalizarPace('rápido')).toBe('rápido');
+    });
+});
+
+describe('zonaDoPonto', () => {
+    it('diz em que zona cai cada valor, mesmo digitado à mão', () => {
+        // pace 4:40-4:50 (280-290, meio 285 → borda Z4/Z5) e FC 145-152 (meio 148,5 → Z2)
+        const r = zonaDoPonto({ min: 145, max: 152 }, { minSegKm: 275, maxSegKm: 283 }, ZONAS);
+
+        expect(r).toEqual({ fc: 'Z2', pace: 'Z5' });
+    });
+
+    it('valor fora de qualquer zona devolve null', () => {
+        expect(zonaDoPonto({ min: 190, max: 200 }, { minSegKm: 100, maxSegKm: 110 }, ZONAS)).toEqual({ fc: null, pace: null });
     });
 });

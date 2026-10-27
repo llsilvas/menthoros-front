@@ -101,12 +101,23 @@ describe('TreinoEditDialog — zonas do atleta', () => {
         expect(patch.zonaAlvo).toBe('Z5');
     });
 
+    it('zona predominante detalha os minutos por zona e o total mostra os minutos na zona alvo', () => {
+        abrir();
+        fireEvent.click(screen.getByRole('button', { name: /editar intensidade — tipo da etapa 2/i }));
+
+        fireEvent.click(screen.getByRole('radio', { name: 'Z5' }));
+
+        expect(screen.getByTestId('zona-predominante')).toHaveTextContent('Z5');
+        expect(screen.getByText(/30 min em Z5, 15 min em Z1/)).toBeInTheDocument();
+        expect(screen.getByTestId('total-na-zona-alvo')).toHaveTextContent('30 min Z5');
+    });
+
     it('sem zonas carregadas o editor segue funcionando só com os campos de valor', () => {
         vi.mocked(useAthleteTrainingZones).mockReturnValue({ zones: null, loading: false, error: new Error('x'), fetchZones: vi.fn() });
         abrir();
 
         expect(screen.queryByRole('radiogroup', { name: /zona da etapa/i })).not.toBeInTheDocument();
         expect(within(screen.getByTestId('zona-predominante').parentElement!).getByText(/derivada das etapas/i)).toBeInTheDocument();
-        expect(screen.getByRole('textbox', { name: /ritmo/i })).toBeInTheDocument();
+        expect(screen.getByRole('textbox', { name: /pace alvo/i })).toBeInTheDocument();
     });
 });

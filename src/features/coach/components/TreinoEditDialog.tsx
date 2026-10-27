@@ -27,6 +27,7 @@ import {
     type EtapaItem,
 } from './etapas/etapaItem';
 import { EtapasEditor } from './etapas/EtapasEditor';
+import { detalheDaZonaPredominante, minutosNaZonaAlvo } from '../adapters/zonaPredominante';
 import { useAthleteTrainingZones } from '../../../hooks/useAthleteTrainingZones';
 import { AthleteZonesTable } from './AthleteZonesTable';
 import { WorkoutProfile, selectWorkoutProfile, fromEtapaItens } from '../../workout/profile';
@@ -367,6 +368,11 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
                     {totalMin} min
                 </Typography>
             )}
+            {minutosNaZonaAlvo(profile.metrics) !== null && (
+                <Typography data-testid="total-na-zona-alvo" sx={{ fontSize: '0.68rem', color: surface[200], fontFamily: 'monospace' }}>
+                    {minutosNaZonaAlvo(profile.metrics)} min {profile.metrics.targetZone}
+                </Typography>
+            )}
         </Box>
     ) : null;
 
@@ -519,7 +525,9 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
                                 {profile.metrics.targetZone ?? treino.zonaAlvo ?? '—'}
                             </Typography>
                             <Typography sx={{ fontSize: '0.6875rem', color: surface[400] }}>
-                                Derivada das etapas — resumo mostrado no card do plano
+                                Derivada das etapas
+                                {detalheDaZonaPredominante(profile.metrics) ? ` (${detalheDaZonaPredominante(profile.metrics)})` : ''}
+                                {' '}— resumo mostrado no card do plano
                             </Typography>
                         </Box>
                         <TextField

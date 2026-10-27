@@ -144,7 +144,7 @@ describe('TreinoEditDialog', () => {
         renderDialog();
         fireEvent.click(screen.getAllByRole('button', { name: /mais detalhes/i })[0]);
 
-        fireEvent.change(screen.getByLabelText('Ritmo'), { target: { value: '5:30/km' } });
+        fireEvent.change(screen.getByLabelText('Pace alvo'), { target: { value: '5:30/km' } });
         fireEvent.change(screen.getByLabelText('Descrição para o atleta'), { target: { value: 'Corrida leve, conversando' } });
         fireEvent.click(screen.getByRole('button', { name: /salvar/i }));
 

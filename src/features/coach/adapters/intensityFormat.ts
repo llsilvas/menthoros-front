@@ -84,3 +84,34 @@ export function matchZone(
     });
     return zona ? (`Z${zona.numero}` as ZoneKey) : null;
 }
+
+/** "5:10-5:20" → "5:10-5:20/km": o seletor grava o formato canônico mesmo que o treinador omita a unidade. */
+export function normalizarPace(texto: string): string {
+    const t = texto.trim();
+    return /^\d{1,2}:[0-5]\d(-\d{1,2}:[0-5]\d)?$/.test(t) ? `${t}/km` : texto;
+}
+
+/** "143-150" → "143-150 bpm". */
+export function normalizarFc(texto: string): string {
+    const t = texto.trim();
+    return /^\d{2,3}-\d{2,3}$/.test(t) ? `${t} bpm` : texto;
+}
+
+/**
+ * Zona em que um valor **cai** (pelo ponto médio), ao contrário de `matchZone`, que exige a faixa
+ * inteira. É o que diz ao treinador "o pace é Z5 e a FC é Z2" mesmo com valores digitados à mão.
+ */
+export function zonaDoPonto(
+    fc: FcRange | undefined,
+    pace: PaceRange | undefined,
+    zonas: AthleteTrainingZoneDto[],
+): { fc: ZoneKey | null; pace: ZoneKey | null } {
+    const meioFc = fc ? (fc.min + fc.max) / 2 : null;
+    const meioPace = pace ? (pace.minSegKm + pace.maxSegKm) / 2 : null;
+    const zf = meioFc === null ? undefined : zonas.find((z) => z.fc != null && meioFc >= z.fc.min && meioFc <= z.fc.max);
+    const zp = meioPace === null ? undefined : zonas.find((z) => z.pace != null && meioPace >= z.pace.minSegKm && meioPace <= z.pace.maxSegKm);
+    return {
+        fc: zf ? (`Z${zf.numero}` as ZoneKey) : null,
+        pace: zp ? (`Z${zp.numero}` as ZoneKey) : null,
+    };
+}
