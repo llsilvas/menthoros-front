@@ -115,3 +115,16 @@ export function zonaDoPonto(
         pace: zp ? (`Z${zp.numero}` as ZoneKey) : null,
     };
 }
+
+/** Pace para leitura: "5:15–5:45" (faixa) ou "5:15" (ponto); texto fora do formato canônico aparece como está. */
+export function paceLegivel(texto: string): string {
+    const faixa = parseCanonicalPace(texto);
+    if (!faixa) return texto.trim();
+    return faixa.minSegKm === faixa.maxSegKm ? formatPace(faixa.minSegKm) : formatPaceRange(faixa.minSegKm, faixa.maxSegKm);
+}
+
+/** FC para leitura: "143–150 bpm"; texto fora do formato canônico aparece como está. */
+export function fcLegivel(texto: string): string {
+    const faixa = parseCanonicalFc(texto);
+    return faixa ? `${faixa.min}–${faixa.max} bpm` : texto.trim();
+}

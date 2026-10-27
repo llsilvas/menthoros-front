@@ -20,7 +20,17 @@ export interface IntensidadeEtapa {
     fcAlvoEtapa: string;
     ritmoAlvo: string;
     alvoPrimario?: AlvoPrimario;
+    /**
+     * O treinador escolheu o eixo (clicou no toggle). Fica na etapa, não no componente: o seletor
+     * só monta na etapa em foco, e recolher/reabrir não pode devolver o eixo à regra de pré-preenchimento.
+     * Ausente em etapa que veio do backend com eixo gravado = escolha anterior, tratada como tocada.
+     */
+    eixoTocado?: boolean;
 }
+
+/** Eixo escolhido pelo treinador (ou gravado antes) — a regra de pré-preenchimento não o sobrescreve. */
+export const eixoFoiEscolhido = (i: Pick<IntensidadeEtapa, 'alvoPrimario' | 'eixoTocado'>): boolean =>
+    i.eixoTocado ?? Boolean(i.alvoPrimario);
 
 export interface AvisoEtapa {
     id:
@@ -48,7 +58,7 @@ function eixoPara(preferido: 'PACE' | 'FC', i: Pick<IntensidadeEtapa, 'fcAlvoEta
 
 /**
  * Escolher Zn preenche pace e FC do atleta com a faixa **base** (nenhum ajuste de fadiga é somado) e
- * aplica o default do eixo — a menos que o treinador já tenha mexido nele (`eixoTocado`).
+ * aplica o default do eixo — a menos que o treinador já tenha mexido nele (`eixoFoiEscolhido`).
  * FC de limiar estimado nunca é copiada: um bpm literal furaria a regra "sem limiar medido, sem meta".
  */
 export function aplicarZona(
@@ -56,8 +66,8 @@ export function aplicarZona(
     zona: ZoneKey,
     zones: AthleteTrainingZonesDto,
     tipoEtapa: string,
-    eixoTocado: boolean,
 ): IntensidadeEtapa {
+    const eixoTocado = eixoFoiEscolhido(atual);
     const dados = zones.zonas.find((z) => `Z${z.numero}` === zona);
     const ritmoAlvo = zones.disponibilidade.pace && dados?.pace
         ? toCanonicalPace(dados.pace.minSegKm, dados.pace.maxSegKm)
@@ -72,7 +82,7 @@ export function aplicarZona(
         : null;
     const preferido = mantem ?? defaultAlvoPrimario(tipoEtapa, zona);
 
-    return { zona, ...valores, alvoPrimario: eixoPara(preferido, valores) };
+    return { zona, ...valores, alvoPrimario: eixoPara(preferido, valores), eixoTocado };
 }
 
 /**
@@ -95,7 +105,7 @@ export function editarValor(
 }
 
 export function escolherEixo(atual: IntensidadeEtapa, eixo: Exclude<AlvoPrimario, 'NENHUM'>): IntensidadeEtapa {
-    return { ...atual, alvoPrimario: eixo };
+    return { ...atual, alvoPrimario: eixo, eixoTocado: true };
 }
 
 /** Zona de uma etapa carregada do backend: reconhece pelos valores; o que não casa é personalizado. */

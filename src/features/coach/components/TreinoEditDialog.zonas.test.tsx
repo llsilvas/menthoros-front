@@ -79,6 +79,22 @@ describe('TreinoEditDialog — zonas do atleta', () => {
         expect(screen.getByRole('button', { name: /editar intensidade — tipo da etapa 1/i })).toBeInTheDocument();
     });
 
+    it('o eixo escolhido sobrevive a recolher e reabrir a etapa: trocar de zona não volta ao default', () => {
+        abrir();
+        fireEvent.click(screen.getByRole('button', { name: /editar intensidade — tipo da etapa 2/i }));
+        fireEvent.click(screen.getByRole('radio', { name: 'Z2' }));
+        fireEvent.click(screen.getByRole('radio', { name: 'Pace' }));
+
+        // foco vai para outra etapa (a 2 recolhe e o seletor desmonta) e volta
+        fireEvent.click(screen.getByRole('button', { name: /editar intensidade — tipo da etapa 1/i }));
+        fireEvent.click(screen.getByRole('button', { name: /editar intensidade — tipo da etapa 2/i }));
+        fireEvent.click(screen.getByRole('radio', { name: 'Z5' }));
+
+        expect(screen.getByRole('radio', { name: 'Pace' })).toHaveAttribute('aria-checked', 'true');
+        fireEvent.click(screen.getByRole('radio', { name: 'Z1' }));
+        expect(screen.getByRole('radio', { name: 'Pace' })).toHaveAttribute('aria-checked', 'true');
+    });
+
     it('zona predominante é exibida, derivada das etapas, e não é um campo editável', () => {
         abrir();
 

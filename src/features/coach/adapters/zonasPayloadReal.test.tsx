@@ -49,7 +49,7 @@ describe('zonas com campos null (payload real do backend)', () => {
     });
 
     it('seletor e avisos toleram as zonas null', () => {
-        expect(() => aplicarZona({ zona: null, fcAlvoEtapa: '', ritmoAlvo: '' }, 'Z6', PAYLOAD, 'PRINCIPAL', false)).not.toThrow();
+        expect(() => aplicarZona({ zona: null, fcAlvoEtapa: '', ritmoAlvo: '' }, 'Z6', PAYLOAD, 'PRINCIPAL')).not.toThrow();
         expect(() => avisosDaEtapa({ zona: 'Z2', fcAlvoEtapa: '130-136 bpm', ritmoAlvo: '' }, { zones: PAYLOAD, tipoEtapa: 'PRINCIPAL' })).not.toThrow();
         expect(zonaDaEtapa('130-136 bpm', undefined, PAYLOAD)).toBe('Z2');
     });

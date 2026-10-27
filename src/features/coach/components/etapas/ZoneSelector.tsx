@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Box, ButtonBase, TextField, Typography } from '@mui/material';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { activeTheme } from '../../../../theme/activeTheme';
@@ -9,10 +8,11 @@ import {
     aplicarZona,
     avisosDaEtapa,
     editarValor,
+    eixoFoiEscolhido,
     escolherEixo,
     type IntensidadeEtapa,
 } from '../../adapters/zoneSelectorLogic';
-import { formatPace, formatPaceRange, normalizarFc, normalizarPace, parseCanonicalFc, parseCanonicalPace } from '../../adapters/intensityFormat';
+import { fcLegivel, normalizarFc, normalizarPace, paceLegivel } from '../../adapters/intensityFormat';
 import { fieldSx } from './etapasStyles';
 
 const ZONAS: ZoneKey[] = ['Z1', 'Z2', 'Z3', 'Z4', 'Z5', 'Z6'];
@@ -52,19 +52,6 @@ const PILL_SX = {
     border: `1px solid ${content.cardBorder}`,
 } as const;
 
-/** "5:15-5:45/km" → "5:15–5:45 /km" (leitura); texto que não é do formato canônico aparece como está. */
-function pilulaDePace(texto: string): string {
-    const faixa = parseCanonicalPace(texto);
-    if (!faixa) return texto.trim();
-    const valor = faixa.minSegKm === faixa.maxSegKm ? formatPace(faixa.minSegKm) : formatPaceRange(faixa.minSegKm, faixa.maxSegKm);
-    return `${valor} /km`;
-}
-
-function pilulaDeFc(texto: string): string {
-    const faixa = parseCanonicalFc(texto);
-    return faixa ? `${faixa.min}–${faixa.max} bpm` : texto.trim();
-}
-
 /**
  * Seletor de zona da etapa + eixo que o relógio controla. Controlado: a lógica vive em
  * `zoneSelectorLogic` (funções puras); aqui só se desenha e se encaminha o clique.
@@ -75,8 +62,9 @@ function pilulaDeFc(texto: string): string {
  */
 export function ZoneSelector({ value, zones, tipoEtapa, tipoTreino, disabled, idBase, onChange }: ZoneSelectorProps) {
     // Um eixo que veio gravado (ou que o treinador já trocou) não é sobrescrito pelo default da regra.
-    const [eixoTocado, setEixoTocado] = useState(Boolean(value.alvoPrimario));
-    const sx = fieldSx(primary[500]);
+    const eixoTocado = eixoFoiEscolhido(value);
+    const sx = fieldSx(text.secondary);
+    const escolher = (eixo: 'PACE' | 'FC') => onChange(escolherEixo(value, eixo));
 
     const avisos = avisosDaEtapa(value, { zones, tipoEtapa, tipoTreino });
     const avisoIds = avisos.map((a) => `${idBase}-aviso-${a.id}`).join(' ') || undefined;
@@ -112,7 +100,7 @@ export function ZoneSelector({ value, zones, tipoEtapa, tipoTreino, disabled, id
                                 aria-checked={ativa}
                                 aria-label={z}
                                 disabled={disabled || indisponivel}
-                                onClick={() => onChange(aplicarZona(value, z, zones, tipoEtapa, eixoTocado))}
+                                onClick={() => onChange(aplicarZona(value, z, zones, tipoEtapa))}
                                 sx={{
                                     ...radioBase,
                                     minHeight: 40,
@@ -147,23 +135,26 @@ export function ZoneSelector({ value, zones, tipoEtapa, tipoTreino, disabled, id
                 </Box>
             )}
 
+            {semPaceLimiar && !zonaEscolhida && (
+                <Typography sx={{ fontSize: '0.75rem', color: text.secondary }}>
+                    Z6 precisa do pace de limiar do atleta.
+                </Typography>
+            )}
+
             {zonaEscolhida ? (
                 <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
                     <Box component="span" data-testid="pilula-pace" sx={{ ...PILL_SX, ...(temPace ? {} : { color: text.secondary }) }}>
-                        {temPace ? pilulaDePace(value.ritmoAlvo) : 'pace indisponível'}
+                        {temPace ? `${paceLegivel(value.ritmoAlvo)} /km` : 'pace indisponível'}
                     </Box>
                     <Box component="span" data-testid="pilula-fc" sx={{ ...PILL_SX, ...(temFc ? {} : { color: text.secondary }) }}>
-                        {temFc ? pilulaDeFc(value.fcAlvoEtapa) : zonaEscolhida === 'Z6' ? 'sem FC' : 'FC não preenchida'}
+                        {temFc ? fcLegivel(value.fcAlvoEtapa) : zonaEscolhida === 'Z6' ? 'sem FC' : 'FC não preenchida'}
                     </Box>
                     <EixoDoRelogio
                         value={value}
                         temPace={temPace}
                         temFc={temFc}
                         disabled={disabled}
-                        onEscolher={(eixo) => {
-                            setEixoTocado(true);
-                            onChange(escolherEixo(value, eixo));
-                        }}
+                        onEscolher={escolher}
                     />
                 </Box>
             ) : (
@@ -205,10 +196,7 @@ export function ZoneSelector({ value, zones, tipoEtapa, tipoTreino, disabled, id
                         temPace={temPace}
                         temFc={temFc}
                         disabled={disabled}
-                        onEscolher={(eixo) => {
-                            setEixoTocado(true);
-                            onChange(escolherEixo(value, eixo));
-                        }}
+                        onEscolher={escolher}
                     />
                 </>
             )}

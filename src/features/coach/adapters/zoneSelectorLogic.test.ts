@@ -3,6 +3,7 @@ import {
     aplicarZona,
     avisosDaEtapa,
     editarValor,
+    eixoFoiEscolhido,
     escolherEixo,
     zonaDaEtapa,
     zonaPorValor,
@@ -38,69 +39,69 @@ const fcEstimada: AthleteTrainingZonesDto = { ...ZONES, ancoras: { ...ZONES.anco
 
 describe('aplicarZona', () => {
     it('Z2 preenche pace e FC do atleta em formato canônico; PRINCIPAL pré-seleciona FC', () => {
-        const r = aplicarZona(VAZIA, 'Z2', ZONES, 'PRINCIPAL', false);
+        const r = aplicarZona(VAZIA, 'Z2', ZONES, 'PRINCIPAL');
 
-        expect(r).toEqual({ zona: 'Z2', ritmoAlvo: '5:15-5:45/km', fcAlvoEtapa: '143-150 bpm', alvoPrimario: 'FC' });
+        expect(r).toMatchObject({ zona: 'Z2', ritmoAlvo: '5:15-5:45/km', fcAlvoEtapa: '143-150 bpm', alvoPrimario: 'FC' });
     });
 
     it('Z5 preenche os valores de Z5 e pré-seleciona PACE', () => {
-        const r = aplicarZona(VAZIA, 'Z5', ZONES, 'PRINCIPAL', false);
+        const r = aplicarZona(VAZIA, 'Z5', ZONES, 'PRINCIPAL');
 
         expect(r).toMatchObject({ ritmoAlvo: '4:30-4:45/km', fcAlvoEtapa: '168-178 bpm', alvoPrimario: 'PACE' });
     });
 
     it('INTERVALADO pré-seleciona PACE mesmo em Z2', () => {
-        expect(aplicarZona(VAZIA, 'Z2', ZONES, 'INTERVALADO', false).alvoPrimario).toBe('PACE');
+        expect(aplicarZona(VAZIA, 'Z2', ZONES, 'INTERVALADO').alvoPrimario).toBe('PACE');
     });
 
     it('eixo já tocado pelo treinador não volta ao default ao trocar a zona', () => {
-        const comPace = { ...aplicarZona(VAZIA, 'Z2', ZONES, 'PRINCIPAL', false), alvoPrimario: 'PACE' as const };
+        const comPace = escolherEixo(aplicarZona(VAZIA, 'Z2', ZONES, 'PRINCIPAL'), 'PACE');
 
-        const r = aplicarZona(comPace, 'Z3', ZONES, 'PRINCIPAL', true);
+        const r = aplicarZona(comPace, 'Z3', ZONES, 'PRINCIPAL');
 
         expect(r.alvoPrimario).toBe('PACE');
         expect(r.zona).toBe('Z3');
     });
 
     it('Z6 preenche só o pace e força PACE (não tem FC)', () => {
-        const r = aplicarZona(VAZIA, 'Z6', ZONES, 'PRINCIPAL', false);
+        const r = aplicarZona(VAZIA, 'Z6', ZONES, 'PRINCIPAL');
 
-        expect(r).toEqual({ zona: 'Z6', ritmoAlvo: '4:06-4:30/km', fcAlvoEtapa: '', alvoPrimario: 'PACE' });
+        expect(r).toMatchObject({ zona: 'Z6', ritmoAlvo: '4:06-4:30/km', fcAlvoEtapa: '', alvoPrimario: 'PACE' });
     });
 
     it('Z6 mesmo com eixo FC tocado cai para PACE: o eixo escolhido não tem valor', () => {
-        const comFc = { ...VAZIA, alvoPrimario: 'FC' as const };
+        const comFc = escolherEixo(VAZIA, 'FC');
 
-        expect(aplicarZona(comFc, 'Z6', ZONES, 'PRINCIPAL', true).alvoPrimario).toBe('PACE');
+        expect(aplicarZona(comFc, 'Z6', ZONES, 'PRINCIPAL').alvoPrimario).toBe('PACE');
     });
 
     it('atleta sem pace de limiar: só a FC é preenchida e o eixo vai para FC', () => {
-        const r = aplicarZona(VAZIA, 'Z5', semPace, 'INTERVALADO', false);
+        const r = aplicarZona(VAZIA, 'Z5', semPace, 'INTERVALADO');
 
-        expect(r).toEqual({ zona: 'Z5', ritmoAlvo: '', fcAlvoEtapa: '168-178 bpm', alvoPrimario: 'FC' });
+        expect(r).toMatchObject({ zona: 'Z5', ritmoAlvo: '', fcAlvoEtapa: '168-178 bpm', alvoPrimario: 'FC' });
     });
 
     it('Z6 sem pace de limiar: nada preenchido e eixo NENHUM', () => {
-        const r = aplicarZona(VAZIA, 'Z6', semPace, 'INTERVALADO', false);
+        const r = aplicarZona(VAZIA, 'Z6', semPace, 'INTERVALADO');
 
-        expect(r).toEqual({ zona: 'Z6', ritmoAlvo: '', fcAlvoEtapa: '', alvoPrimario: 'NENHUM' });
+        expect(r).toMatchObject({ zona: 'Z6', ritmoAlvo: '', fcAlvoEtapa: '', alvoPrimario: 'NENHUM' });
     });
 
     it('FC de limiar estimada não é copiada: só o pace, eixo PACE', () => {
-        const r = aplicarZona(VAZIA, 'Z2', fcEstimada, 'PRINCIPAL', false);
+        const r = aplicarZona(VAZIA, 'Z2', fcEstimada, 'PRINCIPAL');
 
-        expect(r).toEqual({ zona: 'Z2', ritmoAlvo: '5:15-5:45/km', fcAlvoEtapa: '', alvoPrimario: 'PACE' });
+        expect(r).toMatchObject({ zona: 'Z2', ritmoAlvo: '5:15-5:45/km', fcAlvoEtapa: '', alvoPrimario: 'PACE' });
     });
 
     it('a faixa gravada é a base: nenhum ajuste de fadiga é somado', () => {
         const comFadiga = { ...ZONES, ajusteFadiga: { segundosPorKm: 12, tsbProntidao: -20 } };
 
-        expect(aplicarZona(VAZIA, 'Z2', comFadiga, 'PRINCIPAL', false).ritmoAlvo).toBe('5:15-5:45/km');
+        expect(aplicarZona(VAZIA, 'Z2', comFadiga, 'PRINCIPAL').ritmoAlvo).toBe('5:15-5:45/km');
     });
 });
 
 describe('editarValor', () => {
-    const z2 = aplicarZona(VAZIA, 'Z2', ZONES, 'PRINCIPAL', false);
+    const z2 = aplicarZona(VAZIA, 'Z2', ZONES, 'PRINCIPAL');
 
     it('editar à mão vira PERSONALIZADO sem apagar o outro campo', () => {
         const r = editarValor(z2, 'ritmoAlvo', '5:20-5:40/km', 'PRINCIPAL');
@@ -134,11 +135,35 @@ describe('editarValor', () => {
     });
 });
 
+describe('eixo escolhido persiste na etapa (D5)', () => {
+    it('o default aplicado pela regra não conta como escolha: trocar de zona reaplica a regra', () => {
+        const z2 = aplicarZona(VAZIA, 'Z2', ZONES, 'PRINCIPAL');
+
+        expect(z2.eixoTocado).toBe(false);
+        expect(aplicarZona(z2, 'Z6', ZONES, 'PRINCIPAL').alvoPrimario).toBe('PACE');
+        expect(aplicarZona(z2, 'Z5', ZONES, 'PRINCIPAL').alvoPrimario).toBe('PACE');
+    });
+
+    it('a escolha do treinador sobrevive a recolher e reabrir a etapa (o estado vive na etapa, não no componente)', () => {
+        const escolhido = escolherEixo(aplicarZona(VAZIA, 'Z2', ZONES, 'PRINCIPAL'), 'PACE');
+        const reaberto = { ...escolhido }; // o componente remonta; só a etapa persiste
+
+        expect(aplicarZona(reaberto, 'Z3', ZONES, 'PRINCIPAL').alvoPrimario).toBe('PACE');
+    });
+
+    it('eixo gravado no backend (sem flag) é tratado como escolha anterior do treinador', () => {
+        const gravado: IntensidadeEtapa = { zona: 'PERSONALIZADO', fcAlvoEtapa: '', ritmoAlvo: '', alvoPrimario: 'FC' };
+
+        expect(eixoFoiEscolhido(gravado)).toBe(true);
+        expect(eixoFoiEscolhido({ ...VAZIA })).toBe(false);
+    });
+});
+
 describe('escolherEixo', () => {
     it('troca o eixo sem mexer em zona nem valores', () => {
-        const z2 = aplicarZona(VAZIA, 'Z2', ZONES, 'PRINCIPAL', false);
+        const z2 = aplicarZona(VAZIA, 'Z2', ZONES, 'PRINCIPAL');
 
-        expect(escolherEixo(z2, 'PACE')).toEqual({ ...z2, alvoPrimario: 'PACE' });
+        expect(escolherEixo(z2, 'PACE')).toEqual({ ...z2, alvoPrimario: 'PACE', eixoTocado: true });
     });
 });
 

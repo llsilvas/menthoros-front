@@ -75,6 +75,7 @@ type CamposEtapa = {
     descricaoEtapa?: string;
     alvoPrimario?: AlvoPrimario;
     zonaEtapa?: ZoneKey | 'PERSONALIZADO';
+    eixoTocado?: boolean;
 };
 
 function blocoStateDe(e: CamposEtapa, zones: AthleteTrainingZonesDto | null): BlocoState {
@@ -87,6 +88,7 @@ function blocoStateDe(e: CamposEtapa, zones: AthleteTrainingZonesDto | null): Bl
             fcAlvoEtapa: e.fcAlvoEtapa,
             ritmoAlvo: e.ritmoAlvo ?? '',
             alvoPrimario: e.alvoPrimario,
+            eixoTocado: e.eixoTocado,
         },
         descricao: e.descricaoEtapa ?? '',
     };
@@ -102,6 +104,7 @@ function camposDe(b: BlocoState): CamposEtapa {
         descricaoEtapa: b.descricao.trim() || undefined,
         alvoPrimario: b.intensidade.alvoPrimario,
         zonaEtapa: b.intensidade.zona ?? undefined,
+        eixoTocado: b.intensidade.eixoTocado,
     };
 }
 

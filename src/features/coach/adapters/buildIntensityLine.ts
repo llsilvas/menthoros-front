@@ -1,7 +1,7 @@
 import type { AlvoPrimario, AthleteTrainingZonesDto } from '../../../types/AthleteTrainingZones';
 import type { EtapaTreinoDto } from '../../../types/PlanoReview';
 import type { ZoneKey } from '../../workout/profile/types';
-import { formatPace, formatPaceRange, matchZone, parseCanonicalFc, parseCanonicalPace } from './intensityFormat';
+import { fcLegivel, matchZone, paceLegivel, parseCanonicalFc, parseCanonicalPace } from './intensityFormat';
 
 /** Linha de meta de uma etapa para os cards: ordem fixa pace → FC, o eixo primário só se distingue por peso. */
 export interface IntensityLine {
@@ -17,17 +17,6 @@ export interface IntensityLine {
 }
 
 const TIPOS_SEM_ESFORCO = new Set(['AQUECIMENTO', 'RECUPERACAO', 'DESAQUECIMENTO']);
-
-function textoDePace(texto: string): string {
-    const faixa = parseCanonicalPace(texto);
-    if (!faixa) return texto.trim();
-    return faixa.minSegKm === faixa.maxSegKm ? formatPace(faixa.minSegKm) : formatPaceRange(faixa.minSegKm, faixa.maxSegKm);
-}
-
-function textoDeFc(texto: string): string {
-    const faixa = parseCanonicalFc(texto);
-    return faixa ? `${faixa.min}–${faixa.max} bpm` : texto.trim();
-}
 
 export function buildIntensityLineFromEtapa(
     etapa: EtapaTreinoDto,
@@ -49,8 +38,8 @@ export function buildIntensityLineFromEtapa(
 
     return {
         zona,
-        pace: paceTexto ? textoDePace(paceTexto) : undefined,
-        fc: fcTexto ? textoDeFc(fcTexto) : undefined,
+        pace: paceTexto ? paceLegivel(paceTexto) : undefined,
+        fc: fcTexto ? fcLegivel(fcTexto) : undefined,
         primario,
         paceIndisponivel: Boolean(zones && !zones.disponibilidade.pace && !paceTexto),
     };

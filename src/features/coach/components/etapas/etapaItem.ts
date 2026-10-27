@@ -44,6 +44,8 @@ export interface StepRow {
      * quando o treinador editou os valores à mão ou o texto não casa nenhuma zona do atleta.
      */
     zonaEtapa?: ZoneKey | 'PERSONALIZADO';
+    /** View-model: o treinador escolheu o eixo do relógio nesta sessão. Não vai ao contrato. */
+    eixoTocado?: boolean;
 }
 
 export interface SubStep {
@@ -58,6 +60,8 @@ export interface SubStep {
     descricaoEtapa?: string;
     alvoPrimario?: AlvoPrimario;
     zonaEtapa?: ZoneKey | 'PERSONALIZADO';
+    /** View-model: o treinador escolheu o eixo do relógio nesta sessão. Não vai ao contrato. */
+    eixoTocado?: boolean;
 }
 
 export interface BlockRow {
