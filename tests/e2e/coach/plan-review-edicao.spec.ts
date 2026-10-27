@@ -158,7 +158,8 @@ test.describe('revisão do plano — edição de treino', () => {
 
   /**
    * improve-plan-edit-usability: o ritmo por etapa deixou de ser só preservado e passou a ser
-   * editável — é o que o atleta lê no treino. O que só aqui se prova é que o valor digitado no campo
+   * editável — é o que o atleta lê no treino. (coach-zonas-pace-fc-prescricao: o campo agora é "Pace
+   * alvo", dentro do seletor de intensidade da etapa em foco.) O que só aqui se prova é que o valor digitado no campo
    * da sub-etapa da série chega ao PATCH dentro do BLOCO, e não solto nem perdido.
    */
   test('ritmo editado numa etapa da série sai no PATCH dentro do bloco', async ({ page }) => {
@@ -178,9 +179,10 @@ test.describe('revisão do plano — edição de treino', () => {
     await page.getByRole('button', { name: /abrir treino de qui/i }).click()
     await expect(page.getByTestId('repeticoes-display-1')).toHaveText('4×')
 
-    // Primeira etapa da série (o tiro): o campo de ritmo vem aberto, com o valor prescrito — "Mais
-    // detalhes" abre sozinho nas etapas que já têm ritmo ou descrição, e é o único aberto aqui.
-    const ritmo = page.getByLabel('Ritmo')
+    // Só a etapa em foco mostra o seletor de intensidade; as demais são uma linha-resumo. O tiro é a
+    // primeira etapa da série: abre pela linha-resumo e mostra o ritmo prescrito no campo "Pace alvo".
+    await page.getByRole('button', { name: /editar intensidade — tipo da etapa 1 da série 2/i }).click()
+    const ritmo = page.getByLabel('Pace alvo')
     await expect(ritmo).toHaveCount(1)
     await expect(ritmo).toHaveValue('4:00-4:10/km')
     await ritmo.fill('4:20/km')
