@@ -38,11 +38,17 @@ export function OnboardingRelogioStep({ draft, onChange }: OnboardingRelogioStep
     const canalValido = draft.canalIntegracao !== undefined && canais.includes(draft.canalIntegracao);
 
     // Rascunho retomado com canal que a marca não admite (ex.: Garmin + intervals.icu, salvo antes da
-    // flag): corrige aqui, senão o backend devolveria 422 no salvamento.
+    // flag) ou sem canal quando só há uma opção válida: corrige aqui, senão o backend devolveria 422
+    // no salvamento. Sem marca ainda, não há o que corrigir.
     useEffect(() => {
-        if (draft.canalIntegracao === undefined || canalValido) return;
+        if (draft.dispositivoMarca === undefined) return;
+        if (draft.canalIntegracao === undefined) {
+            if (canais.length === 1) onChange({ canalIntegracao: canais[0] });
+            return;
+        }
+        if (canalValido) return;
         onChange({ canalIntegracao: canais.length === 1 ? canais[0] : undefined });
-    }, [draft.canalIntegracao, canalValido, canais, onChange]);
+    }, [draft.dispositivoMarca, draft.canalIntegracao, canalValido, canais, onChange]);
 
     const selecionarMarca = (marca: DispositivoMarca) => {
         const novosCanais = canaisPara(marca);

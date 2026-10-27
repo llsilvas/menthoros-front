@@ -20,6 +20,8 @@ export interface ConnectionStatus {
 
 interface Adapter {
   nome: string;
+  /** Domínio do provedor (ele mesmo ou subdomínio): a URL de consentimento vem do backend, mas só se navega para o esperado. */
+  dominio: string;
   getStatus: () => Promise<ConnectionStatus | null>;
   getAuthorizationUrl: () => Promise<{ authorizationUrl: string }>;
   disconnect: () => Promise<void>;
@@ -28,12 +30,14 @@ interface Adapter {
 const ADAPTERS: Record<ConnectionPlataforma, Adapter> = {
   INTERVALS_ICU: {
     nome: 'intervals.icu',
+    dominio: 'intervals.icu',
     getStatus: () => IntervalsIcuService.getStatus(),
     getAuthorizationUrl: () => IntervalsIcuService.getAuthorizationUrl(),
     disconnect: () => IntervalsIcuService.disconnect(),
   },
   GARMIN: {
     nome: 'Garmin',
+    dominio: 'garmin.com',
     getStatus: async () => {
       const s = await GarminConnectionService.getStatus();
       if (!s) return null;
@@ -52,6 +56,15 @@ const ADAPTERS: Record<ConnectionPlataforma, Adapter> = {
 };
 
 const DESCONECTADO: ConnectionStatus = { conectado: false };
+
+function urlDeConsentimentoValida(url: string, dominio: string): boolean {
+  try {
+    const { protocol, hostname } = new URL(url);
+    return protocol === 'https:' && (hostname === dominio || hostname.endsWith(`.${dominio}`));
+  } catch {
+    return false;
+  }
+}
 
 function extrairMensagemErro(err: unknown, fallback: string): string {
   if (err instanceof ApiError && typeof err.body?.message === 'string') {
@@ -93,6 +106,11 @@ export const useConnection = (plataforma: ConnectionPlataforma) => {
     setError(null);
     try {
       const { authorizationUrl } = await adapter.getAuthorizationUrl();
+      if (!urlDeConsentimentoValida(authorizationUrl, adapter.dominio)) {
+        setError(`Não foi possível iniciar a conexão com ${adapter.nome}. Tente novamente em instantes.`);
+        setLoading(false);
+        return;
+      }
       window.location.assign(authorizationUrl);
     } catch (err) {
       setError(extrairMensagemErro(err, `Erro ao iniciar a conexão com ${adapter.nome}`));

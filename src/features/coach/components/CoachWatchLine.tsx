@@ -14,6 +14,9 @@ export interface CoachWatchLineProps {
     conexaoCanal?: AtletaPerfilCoachDto['conexaoCanal'];
 }
 
+/** O motivo vem do backend/provedor: limita o que chega à tela. */
+const MAX_MOTIVO = 200;
+
 const NOME_CANAL: Record<string, string> = {
     GARMIN: 'Garmin (canal direto)',
     INTERVALS_ICU: 'intervals.icu',
@@ -22,9 +25,9 @@ const NOME_CANAL: Record<string, string> = {
 /** Estado da conexão para o treinador: distingue "revogada" (com motivo) de "nunca conectou". */
 function descreverCanal(conexao: AtletaPerfilCoachDto['conexaoCanal']): string {
     if (!conexao) return 'Canal: sem canal conectado';
-    const nome = NOME_CANAL[conexao.plataforma.value] ?? conexao.plataforma.label;
+    const nome = NOME_CANAL[conexao.plataforma?.value] ?? conexao.plataforma?.label ?? 'canal desconhecido';
     if (!conexao.ativo) {
-        return `Canal: ${nome} · conexão revogada${conexao.lastSyncError ? ` (${conexao.lastSyncError})` : ''}`;
+        return `Canal: ${nome} · conexão revogada${conexao.lastSyncError ? ` (${conexao.lastSyncError.slice(0, MAX_MOTIVO)})` : ''}`;
     }
     const sim = (v: boolean) => (v ? 'sim' : 'não');
     return `Canal: ${nome} · conexão ativa · envio de treinos: ${sim(conexao.workoutImport)} · leitura de atividades: ${sim(conexao.activityExport)}`;
@@ -51,7 +54,9 @@ export function CoachWatchLine({ relogio, avisos, conexaoCanal }: CoachWatchLine
 
     const marca = relogio.marca as DispositivoMarca;
     const nomeMarca = DISPOSITIVO_MARCA_LABELS[marca] ?? relogio.marca;
-    const compat = compatibilidadeDe(marca);
+    // O texto do guia segue o canal real do atleta; sem conexão, o canal que o sistema oferece (a flag).
+    const garminDireto = conexaoCanal ? conexaoCanal.plataforma?.value === 'GARMIN' : undefined;
+    const compat = compatibilidadeDe(marca, garminDireto);
     const cor = compat.posicionamento === 'SUPORTADO' ? semantic.success[500] : semantic.info[500];
 
     return (

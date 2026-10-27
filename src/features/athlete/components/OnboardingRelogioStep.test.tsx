@@ -89,6 +89,22 @@ describe('OnboardingRelogioStep', () => {
             expect(onChange).toHaveBeenCalledWith({ dispositivoMarca: 'COROS', canalIntegracao: undefined });
         });
 
+        it('flag ligada: rascunho carregado com Garmin e sem canal já assume GARMIN', () => {
+            config.garminHabilitado = true;
+            const onChange = vi.fn();
+            render(<OnboardingRelogioStep draft={{ dispositivoMarca: 'GARMIN' }} onChange={onChange} />);
+
+            expect(onChange).toHaveBeenCalledWith({ canalIntegracao: 'GARMIN' });
+        });
+
+        it('sem marca, nada é corrigido', () => {
+            config.garminHabilitado = true;
+            const onChange = vi.fn();
+            render(<OnboardingRelogioStep draft={{}} onChange={onChange} />);
+
+            expect(onChange).not.toHaveBeenCalled();
+        });
+
         it('flag ligada: rascunho antigo Garmin + intervals.icu é corrigido para GARMIN', () => {
             config.garminHabilitado = true;
             const onChange = vi.fn();

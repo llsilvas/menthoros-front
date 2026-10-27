@@ -195,3 +195,34 @@ describe('useConnection(GARMIN)', () => {
     expect(result.current.status?.conectado).toBe(false);
   });
 });
+
+describe('useConnection — URL de consentimento', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    Object.defineProperty(window, 'location', {
+      value: { ...window.location, assign },
+      writable: true,
+    });
+  });
+
+  it.each([
+    ['javascript:alert(1)'],
+    ['http://connect.garmin.com/oauth2Confirm'],
+    ['https://evil.example.com/oauth2Confirm'],
+    ['https://connect.garmin.com.evil.example/oauth2Confirm'],
+    ['nao e url'],
+  ])('Garmin: recusa %s e não navega', async (url) => {
+    vi.mocked(GarminConnectionService.getStatus).mockResolvedValue(null);
+    vi.mocked(GarminConnectionService.getAuthorizationUrl).mockResolvedValue({ authorizationUrl: url });
+
+    const { result } = renderHook(() => useConnection('GARMIN'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    await act(async () => {
+      await result.current.connect();
+    });
+
+    expect(assign).not.toHaveBeenCalled();
+    expect(result.current.error).toMatch(/Não foi possível iniciar a conexão com Garmin/);
+    expect(result.current.loading).toBe(false);
+  });
+});

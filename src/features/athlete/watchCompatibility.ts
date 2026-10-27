@@ -280,7 +280,7 @@ export function matrizCompatibilidade(garminHabilitado: boolean = runtimeConfig.
 
 export function compatibilidadeDe(
     marca: DispositivoMarca,
-    garminHabilitado: boolean = runtimeConfig.garminHabilitado,
+    garminHabilitado: boolean | undefined = runtimeConfig.garminHabilitado,
 ): WatchCompatibility {
     return matrizCompatibilidade(garminHabilitado).find((c) => c.marca === marca) ?? naoCoberto(marca);
 }

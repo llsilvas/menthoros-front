@@ -149,7 +149,7 @@ export function ConnectionCard({ plataforma }: ConnectionCardProps) {
 
           {status?.ultimoErro && (
             <Alert severity="warning" sx={{ bgcolor: `${semantic.warning[500]}1A`, color: surface[100] }}>
-              {status.ultimoErro} — reconecte sua conta do {nome}.
+              {status.ultimoErro.slice(0, 200)} — reconecte sua conta do {nome}.
             </Alert>
           )}
 

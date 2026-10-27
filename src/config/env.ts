@@ -18,10 +18,14 @@ const definedUrl = (value: string | undefined): string | undefined =>
 const runtimeApiUrl = definedUrl(window.__RUNTIME_CONFIG__?.apiBaseUrl);
 const runtimeKcUrl = definedUrl(window.__RUNTIME_CONFIG__?.keycloakUrl);
 
-// Flag de rollout do canal Garmin direto (D11): só a string "true" liga; ausente, vazio ou o
-// placeholder do env-config.js (entrypoint não rodou) desligam. Runtime primeiro, para o Railway
-// virar a flag sem rebuild.
-const flagLigada = (value: string | undefined): boolean => value === 'true';
+// Flag de rollout do canal Garmin direto (D11): só a string "true" liga. O runtime (env-config.js)
+// manda quando traz "true" ou "false" — assim o Railway liga e desliga sem rebuild; ausente, vazio ou
+// o placeholder (entrypoint não rodou) cai no valor do build.
+const flagRuntime = window.__RUNTIME_CONFIG__?.garminHabilitado;
+const garminHabilitado =
+  flagRuntime === 'true' || flagRuntime === 'false'
+    ? flagRuntime === 'true'
+    : import.meta.env.VITE_GARMIN_HABILITADO === 'true';
 
 // Cadeia de fallback para a URL base da API:
 // 1. window.__RUNTIME_CONFIG__.apiBaseUrl → injetado pelo container em runtime (Dockerfile.cloud)
@@ -38,7 +42,5 @@ export const runtimeConfig = {
     '/auth',
   keycloakRealm: import.meta.env.VITE_KEYCLOAK_REALM ?? 'menthoros',
   keycloakClientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID ?? 'menthoros-web',
-  garminHabilitado:
-    flagLigada(window.__RUNTIME_CONFIG__?.garminHabilitado) ||
-    flagLigada(import.meta.env.VITE_GARMIN_HABILITADO),
+  garminHabilitado,
 } as const;

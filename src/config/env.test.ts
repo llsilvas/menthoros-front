@@ -70,4 +70,16 @@ describe('runtimeConfig.garminHabilitado', () => {
     const cfg = await loadRuntimeConfig({ garminHabilitado: 'true' });
     expect(cfg.garminHabilitado).toBe(true);
   });
+
+  it('runtime "false" desliga mesmo com "true" no build (o Railway desliga sem rebuild)', async () => {
+    vi.stubEnv('VITE_GARMIN_HABILITADO', 'true');
+    const cfg = await loadRuntimeConfig({ garminHabilitado: 'false' });
+    expect(cfg.garminHabilitado).toBe(false);
+  });
+
+  it('runtime vazio ou placeholder cai no valor do build', async () => {
+    vi.stubEnv('VITE_GARMIN_HABILITADO', 'true');
+    expect((await loadRuntimeConfig({ garminHabilitado: '' })).garminHabilitado).toBe(true);
+    expect((await loadRuntimeConfig({ garminHabilitado: '__RUNTIME_GARMIN_HABILITADO_PLACEHOLDER__' })).garminHabilitado).toBe(true);
+  });
 });

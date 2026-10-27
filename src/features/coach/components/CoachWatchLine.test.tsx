@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { CoachWatchLine } from './CoachWatchLine';
 
 describe('CoachWatchLine', () => {
@@ -97,6 +97,24 @@ describe('CoachWatchLine', () => {
       );
 
       expect(screen.getByText(/^Canal:/)).toHaveTextContent('intervals.icu · conexão ativa');
+    });
+  });
+
+  describe('texto do guia segue o canal real (flag do front ligada)', () => {
+    it('Garmin conectado pelo intervals.icu mostra a entrada via intervals.icu, não "canal direto"', async () => {
+      vi.resetModules();
+      vi.doMock('../../../config/env', () => ({ runtimeConfig: { garminHabilitado: true } }));
+      const { CoachWatchLine: Linha } = await import('./CoachWatchLine');
+
+      render(
+        <Linha
+          relogio={{ marca: 'GARMIN' }}
+          conexaoCanal={{ plataforma: { value: 'INTERVALS_ICU', label: 'intervals.icu' }, ativo: true, workoutImport: true, activityExport: true }}
+        />,
+      );
+
+      expect(screen.getByText(/vão ao intervals\.icu e chegam ao relógio/)).toBeInTheDocument();
+      vi.doUnmock('../../../config/env');
     });
   });
 });
