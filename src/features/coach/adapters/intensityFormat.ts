@@ -22,6 +22,8 @@ const FC_BPM = /^(\d{2,3})-(\d{2,3})\s*bpm$/;
 
 const mmss = (seg: number): string => `${Math.floor(seg / 60)}:${String(seg % 60).padStart(2, '0')}`;
 
+export const formatPace = (seg: number): string => mmss(seg);
+
 export const formatPaceRange = (minSeg: number, maxSeg: number): string => `${mmss(minSeg)}–${mmss(maxSeg)}`;
 
 export const toCanonicalPace = (minSeg: number, maxSeg: number): string => `${mmss(minSeg)}-${mmss(maxSeg)}/km`;

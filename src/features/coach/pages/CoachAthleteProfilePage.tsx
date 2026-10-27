@@ -275,6 +275,7 @@ export default function CoachAthleteProfilePage() {
                         <SectionCard title="Plano da semana">
                             <CurrentWeekPlan
                                 plano={profile.planoVigente}
+                                atletaId={atletaId}
                                 onGerarPlano={() => navigate('/coach/inbox')}
                                 onRevisarPlano={() => navigate('/coach/planos/revisao')}
                                 onTreinoEditado={fetchProfile}

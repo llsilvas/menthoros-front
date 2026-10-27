@@ -21,6 +21,10 @@ import { indiceDoDia, isoDoDiaNaSemana, weekDatesFromInicio } from '../../../uti
 import { rotuloDiaComData, tipoTreinoLabel } from './tiposTreino';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { TreinoPlanejadoCard } from './TreinoPlanejadoCard';
+import { AthleteZonesTable } from './AthleteZonesTable';
+import { useAthleteTrainingZones } from '../../../hooks/useAthleteTrainingZones';
+import { buildIntensityLineFromTreino } from '../adapters/buildIntensityLine';
+import type { AthleteTrainingZonesDto } from '../../../types/AthleteTrainingZones';
 import { duracaoEmMinutos } from '../adapters/duracaoTreino';
 import { DANGER_BTN_SX, GHOST_BTN_SX } from '../../../shared/components/actionButtonSx';
 
@@ -108,10 +112,12 @@ function DescansoTag({
 function TreinoTag({
     treino,
     data,
+    zones,
     onEditar,
     onExcluir,
 }: {
     treino: TreinoPlanejadoDto;
+    zones: AthleteTrainingZonesDto | null;
     /** Data do dia na semana do plano; `undefined` quando o dia não é reconhecido. */
     data?: Date;
     onEditar?: () => void;
@@ -135,6 +141,7 @@ function TreinoTag({
             duracaoMin={duracaoEmMinutos(treino.duracaoMin)}
             rpeEsperado={treino.percepcaoEsforcoEsperada}
             zonaAlvo={treino.zonaAlvo}
+            intensidade={buildIntensityLineFromTreino(treino.etapas, zones)}
             tssPlanejado={treino.tssPlanejado}
             porQue={porQue}
             isProva={isProva}
@@ -372,6 +379,7 @@ export function PlanoDetalhePanel({
     onPrescreverNoDia,
 }: PlanoDetalhePanelProps) {
     const [modalAberto, setModalAberto] = useState(false);
+    const { zones, loading: zonesLoading, error: zonesError } = useAthleteTrainingZones(plano?.atletaId);
 
     if (!plano) return <EstadoVazio />;
 
@@ -540,6 +548,13 @@ export function PlanoDetalhePanel({
                 )}
             </Box>
 
+            {/* ── Zonas do atleta (referência para revisar os alvos) ─────── */}
+            {(zonesLoading || zonesError || zones) && (
+                <Box sx={{ px: 3, py: 1.25, borderBottom: `1px solid ${content.divider}`, flexShrink: 0 }}>
+                    <AthleteZonesTable zones={zones} loading={zonesLoading} error={zonesError} />
+                </Box>
+            )}
+
             {/* ── Treinos ───────────────────────────────────────────────── */}
             <Box
                 sx={{
@@ -576,6 +591,7 @@ export function PlanoDetalhePanel({
                             <TreinoTag
                                 key={item.treino.id ?? i}
                                 treino={item.treino}
+                                zones={zones}
                                 data={indiceDoDia(item.dia) >= 0 ? datasDaSemana[indiceDoDia(item.dia)] : undefined}
                                 onEditar={isAguardando && item.treino.id && onEditarTreino
                                     ? () => onEditarTreino(item.treino.id!)

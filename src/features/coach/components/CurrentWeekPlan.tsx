@@ -10,6 +10,9 @@ import { useTreinoPlanejado } from '../../../hooks/useTreinoPlanejado';
 import { surface, semantic, primary } from '../../../theme/tokens';
 import { SyncStatusChip } from './SyncStatusChip';
 import { TreinoPlanejadoCard } from './TreinoPlanejadoCard';
+import { useAthleteTrainingZones } from '../../../hooks/useAthleteTrainingZones';
+import { buildIntensityLineFromTreino } from '../adapters/buildIntensityLine';
+import type { AthleteTrainingZonesDto } from '../../../types/AthleteTrainingZones';
 import { estadoDeExecucao } from './treinoPlanejadoEstado';
 import { rotuloDiaComData, tipoTreinoLabel } from './tiposTreino';
 import { duracaoEmMinutos } from '../adapters/duracaoTreino';
@@ -17,6 +20,8 @@ import { indiceDoDia, weekDatesFromInicio } from '../../../utils/semana';
 
 interface CurrentWeekPlanProps {
     plano: PlanoVigenteDto | null;
+    /** Atleta dono do plano; habilita as zonas (pace/FC) nos cards. */
+    atletaId?: string;
     onGerarPlano: () => void;
     onRevisarPlano: () => void;
     onTreinoEditado?: () => void;
@@ -38,10 +43,12 @@ function toDialogTreino(t: TreinoPlanejadoResumoDto): TreinoPlanejadoDto {
 function TreinoCard({
     treino,
     data,
+    zones,
     isAguardando,
     onEditar,
 }: {
     treino: TreinoPlanejadoResumoDto;
+    zones: AthleteTrainingZonesDto | null;
     /** Data do dia na semana do plano; `undefined` quando o dia não é reconhecido. */
     data?: Date;
     isAguardando?: boolean;
@@ -59,6 +66,7 @@ function TreinoCard({
             duracaoMin={duracaoEmMinutos(treino.duracaoMin)}
             rpeEsperado={treino.percepcaoEsforcoEsperada}
             zonaAlvo={treino.zonaAlvo}
+            intensidade={buildIntensityLineFromTreino(treino.etapas, zones)}
             tssPlanejado={treino.tssPlanejado}
             estado={estadoDeExecucao(treino.statusExecucao)}
             actions={isAguardando && treino.id && onEditar ? (
@@ -84,10 +92,12 @@ function TreinoCard({
 function TreinosGrid({
     treinos,
     semanaInicio,
+    zones,
     isAguardando,
     onEditar,
 }: {
     treinos: TreinoPlanejadoResumoDto[];
+    zones: AthleteTrainingZonesDto | null;
     semanaInicio: string;
     isAguardando?: boolean;
     onEditar?: (t: TreinoPlanejadoResumoDto) => void;
@@ -108,6 +118,7 @@ function TreinosGrid({
                 <Grid key={t.id ?? t.diaSemana} size={{ xs: 12, sm: 6 }}>
                     <TreinoCard
                         treino={t}
+                        zones={zones}
                         data={indiceDoDia(t.diaSemana) >= 0 ? datasDaSemana[indiceDoDia(t.diaSemana)] : undefined}
                         isAguardando={isAguardando}
                         onEditar={onEditar ? () => onEditar(t) : undefined}
@@ -118,7 +129,8 @@ function TreinosGrid({
     );
 }
 
-export function CurrentWeekPlan({ plano, onGerarPlano, onRevisarPlano, onTreinoEditado }: CurrentWeekPlanProps) {
+export function CurrentWeekPlan({ plano, atletaId, onGerarPlano, onRevisarPlano, onTreinoEditado }: CurrentWeekPlanProps) {
+    const { zones } = useAthleteTrainingZones(atletaId);
     const [editingTreino, setEditingTreino] = useState<TreinoPlanejadoDto | null>(null);
     const { isSaving, editarTreino } = useTreinoPlanejado();
 
@@ -173,6 +185,7 @@ export function CurrentWeekPlan({ plano, onGerarPlano, onRevisarPlano, onTreinoE
             <TreinosGrid
                 treinos={plano.treinos}
                 semanaInicio={plano.semanaInicio}
+                zones={zones}
                 isAguardando={isAguardando}
                 onEditar={isAguardando ? (t) => setEditingTreino(toDialogTreino(t)) : undefined}
             />

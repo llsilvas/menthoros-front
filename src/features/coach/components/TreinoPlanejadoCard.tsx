@@ -5,9 +5,10 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import FlagIcon from '@mui/icons-material/Flag';
 import { Card } from '../../../shared/components/Card';
-import { content, primary, semantic, surface } from '../../../theme/tokens';
+import { content, primary, semantic, surface, text } from '../../../theme/tokens';
 import { activeTheme, workoutTypeColor } from '../../../theme/activeTheme';
 import { COR_ICONE_PENDENTE, type EstadoTreinoVisual } from './treinoPlanejadoEstado';
+import type { IntensityLine } from '../adapters/buildIntensityLine';
 
 const MONO = activeTheme.font.mono;
 
@@ -23,6 +24,8 @@ interface TreinoPlanejadoCardProps {
     duracaoMin?: number | null;
     rpeEsperado?: number | null;
     zonaAlvo?: string | null;
+    /** Zona e faixas do atleta; quando presente, substitui a linha de zona em texto. */
+    intensidade?: IntensityLine | null;
     tssPlanejado?: number | null;
     /** Justificativa da IA — por que isto foi prescrito. Até 2 linhas. */
     porQue?: string;
@@ -59,6 +62,45 @@ function LinhaMetrica({ rotulo, valor }: { rotulo: string; valor: string }) {
     );
 }
 
+const ZONA_CHIP_SX = { fontFamily: MONO, fontSize: '0.6875rem', fontWeight: 700, px: 0.75, borderRadius: '4px' } as const;
+
+/**
+ * `Zn · pace · FC`, sempre nessa ordem (a posição não muda com o eixo). O primário se distingue só por
+ * peso e cor; lime fica reservado a ação e seleção, nunca à leitura.
+ */
+function LinhaIntensidade({ linha }: { linha: IntensityLine }) {
+    const valor = (eixo: 'PACE' | 'FC', texto: string) => {
+        const primario = linha.primario === eixo;
+        return (
+            <Typography
+                key={eixo}
+                component="span"
+                sx={{ fontFamily: MONO, fontSize: '0.8125rem', fontWeight: primario ? 600 : 400, color: primario ? text.primary : text.secondary }}
+            >
+                {texto}
+            </Typography>
+        );
+    };
+    return (
+        <Box data-testid="linha-intensidade" sx={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 1, rowGap: 0.25 }}>
+            {linha.zona && (
+                <Box
+                    component="span"
+                    data-testid="chip-zona"
+                    sx={{ ...ZONA_CHIP_SX, bgcolor: activeTheme.zones[linha.zona].color, color: activeTheme.primary.contrastText }}
+                >
+                    {linha.zona}
+                </Box>
+            )}
+            {linha.pace && valor('PACE', linha.pace)}
+            {linha.fc && valor('FC', linha.fc)}
+            {linha.paceIndisponivel && (
+                <Typography component="span" sx={{ fontSize: '0.75rem', color: text.secondary }}>pace indisponível</Typography>
+            )}
+        </Box>
+    );
+}
+
 function IconeEstado({ icone, cor }: Pick<EstadoTreinoVisual, 'icone' | 'cor'>) {
     if (icone === 'realizado') return <CheckCircleIcon sx={{ fontSize: 16, color: cor ?? semantic.success[500] }} />;
     if (icone === 'perdido') return <CancelIcon sx={{ fontSize: 16, color: cor ?? surface[500] }} />;
@@ -74,12 +116,12 @@ function IconeEstado({ icone, cor }: Pick<EstadoTreinoVisual, 'icone' | 'cor'>) 
  * (`Box` com borda esquerda, tipo em enum cru) e o dos Planos.
  */
 export function TreinoPlanejadoCard({
-    testId, dia, tipoTreino, rotulo, distanciaKm, duracaoMin, rpeEsperado, zonaAlvo, tssPlanejado,
+    testId, dia, tipoTreino, rotulo, distanciaKm, duracaoMin, rpeEsperado, zonaAlvo, intensidade, tssPlanejado,
     porQue, isProva, editado, adicionado, estado, onAbrir, actions, rodape,
 }: TreinoPlanejadoCardProps) {
     const corTipo = workoutTypeColor(tipoTreino);
     const corEstado = estado?.cor ?? null;
-    const temExtras = Boolean(zonaAlvo) || tssPlanejado != null;
+    const temExtras = Boolean(zonaAlvo) || Boolean(intensidade) || tssPlanejado != null;
 
     const corpo = (
         <>
@@ -104,7 +146,7 @@ export function TreinoPlanejadoCard({
 
             {temExtras && (
                 <Box sx={{ pt: 1, borderTop: `1px solid ${content.divider}`, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                    {zonaAlvo ? <LinhaMetrica rotulo="Zona" valor={zonaAlvo} /> : null}
+                    {intensidade ? <LinhaIntensidade linha={intensidade} /> : zonaAlvo ? <LinhaMetrica rotulo="Zona" valor={zonaAlvo} /> : null}
                     {tssPlanejado != null ? <LinhaMetrica rotulo="TSS" valor={String(tssPlanejado)} /> : null}
                 </Box>
             )}
