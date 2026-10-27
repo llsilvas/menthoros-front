@@ -9,6 +9,9 @@
 import type { EtapaTreino } from '../../../types/TreinoPlanejado';
 import type { EtapaTreinoDto } from '../../../types/PlanoReview';
 import type { EtapaItem } from '../../coach/components/etapas/etapaItem';
+import type { AthleteTrainingZonesDto } from '../../../types/AthleteTrainingZones';
+import { zonaDaEtapa } from '../../coach/adapters/zoneSelectorLogic';
+import type { ZoneKey } from './types';
 
 export interface ProfileEtapaInput {
   id?: string;
@@ -17,6 +20,13 @@ export interface ProfileEtapaInput {
   tipo: string;
   descricao?: string;
   duracaoMin?: number;
+  /** Peso do trecho quando não há duração (treino prescrito só por distância). */
+  distanciaKm?: number;
+  /**
+   * Zona escolhida no seletor, ou reconhecida pelos valores contra as zonas do atleta. Vence qualquer
+   * zona escrita em prosa. `PERSONALIZADO` = alvo numérico que não casa zona: não ressuscita a prosa.
+   */
+  zonaEtapa?: ZoneKey | 'PERSONALIZADO';
   fcAlvo?: string;
   ritmoAlvo?: string;
   intensidade?: string;
@@ -58,13 +68,16 @@ export function fromEtapaTreino(e: EtapaTreino): ProfileEtapaInput {
 }
 
 /** Treino salvo na revisão — `src/types/PlanoReview.ts`. Único com `blocoId`. */
-export function fromEtapaTreinoDto(e: EtapaTreinoDto): ProfileEtapaInput {
+export function fromEtapaTreinoDto(e: EtapaTreinoDto, zones: AthleteTrainingZonesDto | null = null): ProfileEtapaInput {
   return {
     ordem:           e.ordem,
     tipo:            e.tipoEtapa,
     descricao:       e.descricaoEtapa,
     duracaoMin:      e.duracaoMin,
+    distanciaKm:     e.distanciaKm,
+    zonaEtapa:       zonaDaEtapa(e.fcAlvoEtapa, e.ritmoAlvo, zones) ?? undefined,
     fcAlvo:          e.fcAlvoEtapa,
+    ritmoAlvo:       e.ritmoAlvo,
     repeticoes:      e.repeticoes,
     blocoId:         e.blocoId,
     blocoRepeticoes: e.blocoRepeticoes,
@@ -78,7 +91,11 @@ export function fromEtapaTreinoDto(e: EtapaTreinoDto): ProfileEtapaInput {
  * entradas no eixo, e essa expansão só existe no nível da lista. Adaptar do DTO
  * salvo aqui desenharia o treino gravado, não o que o treinador está montando.
  */
-export function fromEtapaItens(itens: EtapaItem[]): ProfileEtapaInput[] {
+export function fromEtapaItens(itens: EtapaItem[], zones: AthleteTrainingZonesDto | null = null): ProfileEtapaInput[] {
+  // Etapa que veio do backend e ainda não foi tocada não tem zona gravada: reconhece pelos valores.
+  const zonaDe = (e: { zonaEtapa?: ZoneKey | 'PERSONALIZADO'; fcAlvoEtapa: string; ritmoAlvo?: string }) =>
+    e.zonaEtapa ?? zonaDaEtapa(e.fcAlvoEtapa, e.ritmoAlvo, zones) ?? undefined;
+
   return itens.flatMap((item): ProfileEtapaInput[] => {
     if (item.kind === 'step') {
       return [{
@@ -86,7 +103,10 @@ export function fromEtapaItens(itens: EtapaItem[]): ProfileEtapaInput[] {
         tipo:       item.tipoEtapa,
         descricao:  item.descricaoEtapa,
         duracaoMin: minutosDe(item.duracaoMin),
+        distanciaKm: kmDe(item.distanciaKm),
+        zonaEtapa:  zonaDe(item),
         fcAlvo:     item.fcAlvoEtapa || undefined,
+        ritmoAlvo:  item.ritmoAlvo || undefined,
       }];
     }
 
@@ -101,7 +121,10 @@ export function fromEtapaItens(itens: EtapaItem[]): ProfileEtapaInput[] {
         tipo:       sub.tipoEtapa,
         descricao:  sub.descricaoEtapa,
         duracaoMin: minutosDe(sub.duracaoMin),
+        distanciaKm: kmDe(sub.distanciaKm),
+        zonaEtapa:  zonaDe(sub),
         fcAlvo:     sub.fcAlvoEtapa || undefined,
+        ritmoAlvo:  sub.ritmoAlvo || undefined,
       }));
     }
 
@@ -116,7 +139,10 @@ export function fromEtapaItens(itens: EtapaItem[]): ProfileEtapaInput[] {
           tipo:                sub.tipoEtapa,
           descricao:           sub.descricaoEtapa,
           duracaoMin:          minutosDe(sub.duracaoMin),
+          distanciaKm:         kmDe(sub.distanciaKm),
+          zonaEtapa:           zonaDe(sub),
           fcAlvo:              sub.fcAlvoEtapa || undefined,
+          ritmoAlvo:           sub.ritmoAlvo || undefined,
           blocoId:             item.id,
           blocoRepeticoes:     reps,
           blocoRepeticaoIndex: r,
@@ -125,6 +151,11 @@ export function fromEtapaItens(itens: EtapaItem[]): ProfileEtapaInput[] {
     }
     return entradas;
   });
+}
+
+function kmDe(valor: string): number | undefined {
+  const n = parseFloat(valor);
+  return Number.isFinite(n) && n > 0 ? n : undefined;
 }
 
 function minutosDe(valor: string): number | undefined {

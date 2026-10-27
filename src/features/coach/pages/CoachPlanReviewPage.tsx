@@ -342,6 +342,7 @@ export default function CoachPlanReviewPage() {
                     open
                     treino={editingTreino}
                     contexto={contextoDoTreino(selected, editingTreino)}
+                    atletaId={selected?.atletaId}
                     isSaving={isEditSaving}
                     onClose={() => setEditingTreinoId(null)}
                     onSave={handleSalvarEdicao}
@@ -357,6 +358,7 @@ export default function CoachPlanReviewPage() {
                     semanaFim={selected.semanaFim}
                     treinosExistentes={selected.treinosPlanejados ?? []}
                     contexto={selected.atletaNome}
+                    atletaId={selected.atletaId}
                     dataInicial={addDataInicial}
                     onClose={() => setAddDialogOpen(false)}
                     onSaved={handleTreinoAdicionado}

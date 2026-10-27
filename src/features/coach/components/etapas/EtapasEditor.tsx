@@ -23,6 +23,11 @@ import { GHOST_BTN_SX } from '../../../../shared/components/actionButtonSx';
 import { TIPOS_ETAPA, TIPO_ETAPA_LABEL, tipoEtapaLabel } from '../tiposTreino';
 import { EYEBROW_SX, fieldSx } from './etapasStyles';
 import { emptyBlock, emptyStep, emptySubStep, type EtapaItem } from './etapaItem';
+import { ZoneSelector } from './ZoneSelector';
+import { StepSummaryRow } from './StepSummaryRow';
+import { zonaDaEtapa, type IntensidadeEtapa } from '../../adapters/zoneSelectorLogic';
+import type { AlvoPrimario, AthleteTrainingZonesDto } from '../../../../types/AthleteTrainingZones';
+import type { ZoneKey } from '../../../workout/profile/types';
 
 /**
  * Editor de etapas — a lista de etapas avulsas e séries repetidas de um treino.
@@ -58,19 +63,31 @@ function accentDe(tipoEtapa: string): string {
 interface BlocoState {
     distanciaKm: string;
     duracaoMin: string;
-    zonaAlvo: string;
-    ritmoAlvo: string;
+    intensidade: IntensidadeEtapa;
     descricao: string;
 }
 
-type CamposEtapa = { duracaoMin: string; distanciaKm: string; fcAlvoEtapa: string; ritmoAlvo?: string; descricaoEtapa?: string };
+type CamposEtapa = {
+    duracaoMin: string;
+    distanciaKm: string;
+    fcAlvoEtapa: string;
+    ritmoAlvo?: string;
+    descricaoEtapa?: string;
+    alvoPrimario?: AlvoPrimario;
+    zonaEtapa?: ZoneKey | 'PERSONALIZADO';
+};
 
-function blocoStateDe(e: CamposEtapa): BlocoState {
+function blocoStateDe(e: CamposEtapa, zones: AthleteTrainingZonesDto | null): BlocoState {
     return {
         distanciaKm: e.distanciaKm,
         duracaoMin: e.duracaoMin,
-        zonaAlvo: e.fcAlvoEtapa,
-        ritmoAlvo: e.ritmoAlvo ?? '',
+        intensidade: {
+            // Etapa vinda do backend não traz a zona: reconhece pelos valores contra as zonas do atleta.
+            zona: e.zonaEtapa ?? zonaDaEtapa(e.fcAlvoEtapa, e.ritmoAlvo, zones),
+            fcAlvoEtapa: e.fcAlvoEtapa,
+            ritmoAlvo: e.ritmoAlvo ?? '',
+            alvoPrimario: e.alvoPrimario,
+        },
         descricao: e.descricaoEtapa ?? '',
     };
 }
@@ -79,10 +96,12 @@ function camposDe(b: BlocoState): CamposEtapa {
     return {
         duracaoMin: b.duracaoMin,
         distanciaKm: b.distanciaKm,
-        fcAlvoEtapa: b.zonaAlvo,
+        fcAlvoEtapa: b.intensidade.fcAlvoEtapa,
         // Vazio vira `undefined` para o serializador omitir o campo.
-        ritmoAlvo: b.ritmoAlvo.trim() || undefined,
+        ritmoAlvo: b.intensidade.ritmoAlvo.trim() || undefined,
         descricaoEtapa: b.descricao.trim() || undefined,
+        alvoPrimario: b.intensidade.alvoPrimario,
+        zonaEtapa: b.intensidade.zona ?? undefined,
     };
 }
 
@@ -130,6 +149,12 @@ interface BlocoCardProps {
     tipoAriaLabel?: string;
     /** Etapa dentro de uma série: fundo mais recuado, para não competir com o card da série. */
     aninhado?: boolean;
+    zones: AthleteTrainingZonesDto | null;
+    tipoTreino?: string;
+    /** Só a etapa em foco mostra o seletor de intensidade inteiro; as demais viram uma linha-resumo. */
+    focada: boolean;
+    onFocar: () => void;
+    idBase: string;
 }
 
 /**
@@ -139,10 +164,11 @@ interface BlocoCardProps {
  */
 function BlocoCard({
     accent, bloco, onChange, disabled, actions, tipoEtapa, onTipoChange, tipoAriaLabel, aninhado,
+    zones, tipoTreino, focada, onFocar, idBase,
 }: BlocoCardProps) {
     const sx = fieldSx(accent);
     const semTipo = onTipoChange != null && !tipoEtapa;
-    const temDetalhes = Boolean(bloco.ritmoAlvo || bloco.descricao);
+    const temDetalhes = Boolean(bloco.descricao);
     const [detalhesAbertos, setDetalhesAbertos] = useState(false);
     const mostraDetalhes = detalhesAbertos || temDetalhes;
     return (
@@ -190,7 +216,7 @@ function BlocoCard({
             </Box>
 
             <Box sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 1 }}>
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 1 }}>
                     <TextField
                         label="Distância (km)"
                         type="number"
@@ -211,17 +237,28 @@ function BlocoCard({
                         inputProps={{ min: 1, step: 1 }}
                         sx={sx}
                     />
-                    <TextField
-                        label="Zona (FC)"
-                        placeholder="Z2"
-                        value={bloco.zonaAlvo}
-                        onChange={e => onChange({ ...bloco, zonaAlvo: e.target.value })}
-                        disabled={disabled}
-                        size="small"
-                        slotProps={{ inputLabel: { shrink: true } }}
-                        sx={sx}
-                    />
                 </Box>
+
+                {focada ? (
+                    <ZoneSelector
+                        idBase={idBase}
+                        value={bloco.intensidade}
+                        zones={zones}
+                        tipoEtapa={tipoEtapa ?? ''}
+                        tipoTreino={tipoTreino}
+                        disabled={disabled}
+                        onChange={intensidade => onChange({ ...bloco, intensidade })}
+                    />
+                ) : (
+                    <StepSummaryRow
+                        intensidade={bloco.intensidade}
+                        zones={zones}
+                        tipoEtapa={tipoEtapa ?? ''}
+                        tipoTreino={tipoTreino}
+                        onAbrir={onFocar}
+                        rotulo={tipoAriaLabel ?? 'etapa'}
+                    />
+                )}
 
                 {!mostraDetalhes && (
                     <Button
@@ -237,18 +274,6 @@ function BlocoCard({
 
                 {mostraDetalhes && (
                     <>
-                        <TextField
-                            label="Ritmo"
-                            placeholder="4:10/km"
-                            value={bloco.ritmoAlvo}
-                            onChange={e => onChange({ ...bloco, ritmoAlvo: e.target.value })}
-                            disabled={disabled}
-                            size="small"
-                            fullWidth
-                            slotProps={{ inputLabel: { shrink: true } }}
-                            inputProps={{ maxLength: 40 }}
-                            sx={sx}
-                        />
                         <TextField
                             label="Descrição para o atleta"
                             placeholder="Ex.: 800m forte, trote entre os tiros"
@@ -277,9 +302,22 @@ export interface EtapasEditorProps {
     disabled?: boolean;
     /** Texto do estado vazio; o de edição diz "Nenhuma etapa. Use os botões abaixo…". */
     vazio?: string;
+    /** Zonas do atleta; `null` (carregando ou erro) deixa só os campos de ritmo e FC. */
+    zones?: AthleteTrainingZonesDto | null;
+    /** Tipo do treino: afina a faixa de FC típica de cada etapa. */
+    tipoTreino?: string;
 }
 
-export function EtapasEditor({ itens, onChange, disabled = false, vazio }: EtapasEditorProps) {
+export function EtapasEditor({ itens, onChange, disabled = false, vazio, zones = null, tipoTreino }: EtapasEditorProps) {
+    // A etapa em foco mostra o seletor inteiro; sem escolha explícita, a primeira.
+    const [focoId, setFocoId] = useState<string | null>(null);
+    const primeiraEtapaId = (() => {
+        const primeiro = itens[0];
+        if (!primeiro) return null;
+        return primeiro.kind === 'step' ? primeiro.id : primeiro.steps[0]?.id ?? null;
+    })();
+    const focoAtual = focoId ?? primeiraEtapaId;
+
     const atualizaStep = (idx: number, b: BlocoState) =>
         onChange(prev => prev.map((it, i) =>
             i !== idx || it.kind !== 'step' ? it : { ...it, ...camposDe(b) }));
@@ -305,12 +343,23 @@ export function EtapasEditor({ itens, onChange, disabled = false, vazio }: Etapa
             return { ...it, repeticoes: String(Math.min(20, Math.max(1, atual + delta))) };
         }));
 
-    const adicionarStep = () => onChange(prev => [...prev, emptyStep()]);
-    const adicionarBloco = () => onChange(prev => [...prev, emptyBlock()]);
+    const adicionarStep = () => {
+        const novo = emptyStep();
+        setFocoId(novo.id);
+        onChange(prev => [...prev, novo]);
+    };
+    const adicionarBloco = () => {
+        const novo = emptyBlock();
+        setFocoId(novo.steps[0].id);
+        onChange(prev => [...prev, novo]);
+    };
 
-    const adicionarSubStep = (idx: number) =>
+    const adicionarSubStep = (idx: number) => {
+        const novo = emptySubStep();
+        setFocoId(novo.id);
         onChange(prev => prev.map((it, i) =>
-            i !== idx || it.kind !== 'block' ? it : { ...it, steps: [...it.steps, emptySubStep()] }));
+            i !== idx || it.kind !== 'block' ? it : { ...it, steps: [...it.steps, novo] }));
+    };
 
     const removerSubStep = (idx: number, si: number) =>
         onChange(prev => prev.map((it, i) =>
@@ -339,8 +388,13 @@ export function EtapasEditor({ itens, onChange, disabled = false, vazio }: Etapa
                 <BlocoCard
                     key={item.id}
                     accent={accentDe(item.tipoEtapa)}
-                    bloco={blocoStateDe(item)}
+                    bloco={blocoStateDe(item, zones)}
                     onChange={b => atualizaStep(idx, b)}
+                    zones={zones}
+                    tipoTreino={tipoTreino}
+                    focada={focoAtual === item.id}
+                    onFocar={() => setFocoId(item.id)}
+                    idBase={`etapa-${item.id}`}
                     disabled={disabled}
                     tipoEtapa={item.tipoEtapa}
                     onTipoChange={t => atualizaTipoStep(idx, t)}
@@ -422,8 +476,13 @@ export function EtapasEditor({ itens, onChange, disabled = false, vazio }: Etapa
                                 key={sub.id}
                                 aninhado
                                 accent={accentDe(sub.tipoEtapa)}
-                                bloco={blocoStateDe(sub)}
+                                bloco={blocoStateDe(sub, zones)}
                                 onChange={b => atualizaSubStep(idx, si, b)}
+                                zones={zones}
+                                tipoTreino={tipoTreino}
+                                focada={focoAtual === sub.id}
+                                onFocar={() => setFocoId(sub.id)}
+                                idBase={`etapa-${sub.id}`}
                                 disabled={disabled}
                                 tipoEtapa={sub.tipoEtapa}
                                 onTipoChange={t => atualizaTipoSubStep(idx, si, t)}

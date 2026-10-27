@@ -19,6 +19,7 @@ import { GHOST_BTN_SX, PRIMARY_BTN_SX } from '../../../shared/components/actionB
 import type { TreinoPlanejadoDto, TreinoPlanejadoAddPayload } from '../../../types/PlanoReview';
 import { serializarItens, totaisDeItens, type EtapaItem } from './etapas/etapaItem';
 import { EtapasEditor } from './etapas/EtapasEditor';
+import { useAthleteTrainingZones } from '../../../hooks/useAthleteTrainingZones';
 import { EYEBROW_SX, fieldSx } from './etapas/etapasStyles';
 import { TIPOS_TREINO } from './tiposTreino';
 import { WorkoutProfile, selectWorkoutProfile, fromEtapaItens } from '../../workout/profile';
@@ -64,6 +65,8 @@ export interface TreinoAddDialogProps {
      * data salva, não a de origem.
      */
     dataInicial?: string;
+    /** Atleta do plano: habilita o seletor de zona por etapa. */
+    atletaId?: string;
     onClose: () => void;
     onSaved: (treino: TreinoPlanejadoDto) => void;
 }
@@ -75,8 +78,9 @@ const FIELD_SX = fieldSx(primary[500]);
 // ── Dialog ────────────────────────────────────────────────────────────────────
 
 export function TreinoAddDialog({
-    open, planoId, semanaInicio, semanaFim, treinosExistentes, contexto, dataInicial, onClose, onSaved,
+    open, planoId, semanaInicio, semanaFim, treinosExistentes, contexto, dataInicial, atletaId, onClose, onSaved,
 }: TreinoAddDialogProps) {
+    const { zones } = useAthleteTrainingZones(atletaId);
     const [tipoTreino,  setTipoTreino]  = useState('');
     const [dataTreino,  setDataTreino]  = useState(dataInicial ?? '');
     const [observacoes, setObservacoes] = useState('');
@@ -85,7 +89,6 @@ export function TreinoAddDialog({
     // da soma delas (e o campo some, para não haver dois números disputando).
     const [distancia,   setDistancia]   = useState('');
     const [duracao,     setDuracao]     = useState('');
-    const [zona,        setZona]        = useState('');
     const [rpe,         setRpe]         = useState('');
     const [itens,       setItens]       = useState<EtapaItem[]>([]);
     const [apiError,    setApiError]    = useState<string | null>(null);
@@ -114,17 +117,16 @@ export function TreinoAddDialog({
     // O gráfico desenha o que o coach está montando (estado vivo, não o salvo) — mesmo critério do
     // editor de treino.
     const profile = useMemo(
-        () => selectWorkoutProfile(fromEtapaItens(itens), {
+        () => selectWorkoutProfile(fromEtapaItens(itens, zones), {
             sport: 'run',
             tss: tss ? parseInt(tss, 10) || null : null,
-            zonaAlvoTreino: zona || null,
         }),
-        [itens, tss, zona],
+        [itens, tss, zones],
     );
 
     const temAlteracoes =
         tipoTreino !== '' || dataTreino !== (dataInicial ?? '') || observacoes !== '' || tss !== ''
-        || distancia !== '' || duracao !== '' || zona !== '' || rpe !== '' || itens.length > 0;
+        || distancia !== '' || duracao !== '' || rpe !== '' || itens.length > 0;
 
     // CA3c: aplicar a data a CADA abertura. O dialog fica montado entre aberturas e o `resetForm`
     // limpa o campo ao fechar — só inicializar o useState daria a data da 1ª abertura para sempre.
@@ -134,7 +136,7 @@ export function TreinoAddDialog({
 
     const resetForm = () => {
         setTipoTreino(''); setDataTreino(''); setObservacoes(''); setTss('');
-        setDistancia(''); setDuracao(''); setZona(''); setRpe('');
+        setDistancia(''); setDuracao(''); setRpe('');
         setItens([]); setApiError(null); setConfirmarDescarte(false);
     };
 
@@ -160,9 +162,10 @@ export function TreinoAddDialog({
             if (duracao)   { const v = parseInt(duracao, 10);    if (!isNaN(v)) payload.duracaoMin  = v; }
             if (distancia) { const v = parseFloat(distancia);    if (!isNaN(v)) payload.distanciaKm = v; }
         }
-        // Zona e esforço são do treino e valem com ou sem etapas — antes sumiam do payload assim que
-        // a primeira etapa era criada, mesmo preenchidos.
-        if (zona) payload.zonaAlvo = zona;
+        // A zona do treino é derivada das etapas, não digitada: sem zona derivável o campo fica de fora.
+        // O esforço é do treino e vale com ou sem etapas — antes sumia do payload assim que a primeira
+        // etapa era criada, mesmo preenchido.
+        if (profile.metrics.targetZone) payload.zonaAlvo = profile.metrics.targetZone;
         if (rpe)  { const v = parseInt(rpe, 10); if (!isNaN(v)) payload.percepcaoEsforcoEsperada = v; }
 
         if (observacoes) payload.observacoes  = observacoes;
@@ -299,6 +302,8 @@ export function TreinoAddDialog({
                     onChange={fn => setItens(fn)}
                     disabled={isSaving}
                     vazio="Nenhuma etapa ainda."
+                    zones={zones}
+                    tipoTreino={tipoTreino}
                 />
             </Box>
 
@@ -320,11 +325,15 @@ export function TreinoAddDialog({
                 )}
 
                 <Box sx={{ display: 'flex', gap: 1.25 }}>
-                    <TextField label="Zona predominante" value={zona}
-                        onChange={e => setZona(e.target.value)} disabled={isSaving}
-                        size="small" fullWidth slotProps={{ inputLabel: { shrink: true } }}
-                        placeholder="ex: Z2"
-                        helperText="Resumo mostrado no card do plano" sx={FIELD_SX} />
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography sx={{ fontSize: '0.75rem', color: surface[400] }}>Zona predominante</Typography>
+                        <Typography data-testid="zona-predominante" sx={{ fontFamily: activeTheme.font.mono, fontWeight: 600, color: surface[50] }}>
+                            {profile.metrics.targetZone ?? '—'}
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.6875rem', color: surface[400] }}>
+                            Derivada das etapas — resumo mostrado no card do plano
+                        </Typography>
+                    </Box>
                     <TextField label="Esforço esperado (RPE 1–10)" type="number" value={rpe}
                         onChange={e => setRpe(e.target.value)} disabled={isSaving}
                         size="small" fullWidth slotProps={{ inputLabel: { shrink: true } }}

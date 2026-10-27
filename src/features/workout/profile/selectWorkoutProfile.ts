@@ -20,6 +20,7 @@ import type {
   ZoneShare,
 } from './types';
 import type { ProfileEtapaInput } from './input';
+import { parseCanonicalFc, parseCanonicalPace } from '../../coach/adapters/intensityFormat';
 import { midpointOf, scaleFor, zoneOf, type AthleteThresholds } from './scale';
 import { inferirSeries } from './inferirSeries';
 
@@ -47,7 +48,7 @@ export interface ProfileContext {
   zonaAlvoTreino?: string | null;
 }
 
-const ZONAS: ZoneKey[] = ['Z1', 'Z2', 'Z3', 'Z4', 'Z5'];
+const ZONAS: ZoneKey[] = ['Z1', 'Z2', 'Z3', 'Z4', 'Z5', 'Z6'];
 
 /** Zona-alvo precisa de pelo menos 15% do tempo — abaixo disso é pico incidental. */
 const SHARE_MINIMO_ALVO = 0.15;
@@ -121,7 +122,7 @@ function papelDe(tipo: string): BlockKind {
 function zonaDeclarada(fontes: Array<{ campo: string; texto: string | undefined }>): ZoneKey | null {
   for (const { texto } of fontes) {
     if (!texto) continue;
-    const m = texto.toLowerCase().match(/z(?:ona\s*)?([1-5])\b/);
+    const m = texto.toLowerCase().match(/z(?:ona\s*)?([1-6])\b/);
     if (m) return `Z${m[1]}` as ZoneKey;
   }
   return null;
@@ -181,7 +182,16 @@ interface BlocoResolvido {
   confidence: IntensityConfidence;
 }
 
+function temAlvoNumerico(e: ProfileEtapaInput): boolean {
+  return Boolean(parseCanonicalFc(e.fcAlvo) ?? parseCanonicalPace(e.ritmoAlvo));
+}
+
 function resolverZona(e: ProfileEtapaInput): BlocoResolvido {
+  // A zona do seletor é a fonte mais específica: foi escolhida (ou reconhecida pelos valores gravados).
+  if (e.zonaEtapa && e.zonaEtapa !== 'PERSONALIZADO') return { zone: e.zonaEtapa, confidence: 'prescribed' };
+  // Valores numéricos que não casam zona nenhuma: a prosa antiga ("Corrida contínua Z2") não decide.
+  if (e.zonaEtapa === 'PERSONALIZADO' && temAlvoNumerico(e)) return { zone: null, confidence: 'unknown' };
+
   const declarada = zonaDeclarada(fontesDeZona(e));
   if (declarada) return { zone: declarada, confidence: 'prescribed' };
 
@@ -361,13 +371,27 @@ function elegerZonaAlvo(distribution: ZoneShare[]): ZoneShare | null {
   return candidatas.reduce((maior, d) => (ZONAS.indexOf(d.zone) > ZONAS.indexOf(maior.zone) ? d : maior));
 }
 
+/** Ritmo nominal só para pesar a distância quando a etapa não traz duração nem ritmo. */
+const RITMO_NOMINAL_SEG_KM = 360; // shortcut: 6:00/km fixo, trocar pelo ritmo do atleta se a leitura enganar
+
+/**
+ * Etapa prescrita só por distância não tem duração, e antes sumia do perfil (e da zona do treino).
+ * Ganha uma duração equivalente ao pace da etapa — ou o nominal —, usada apenas como peso.
+ */
+function comPesoDeDistancia(e: ProfileEtapaInput): ProfileEtapaInput {
+  if ((e.duracaoMin ?? 0) > 0 || !((e.distanciaKm ?? 0) > 0)) return e;
+  const pace = parseCanonicalPace(e.ritmoAlvo);
+  const segKm = pace ? (pace.minSegKm + pace.maxSegKm) / 2 : RITMO_NOMINAL_SEG_KM;
+  return { ...e, duracaoMin: (e.distanciaKm! * segKm) / 60 };
+}
+
 export function selectWorkoutProfile(
   etapas: ProfileEtapaInput[],
   context: ProfileContext,
 ): WorkoutProfile {
   const scale = scaleFor(context.sport, context.thresholds);
 
-  const comDuracao = etapas.filter((e) => (e.duracaoMin ?? 0) > 0);
+  const comDuracao = etapas.map(comPesoDeDistancia).filter((e) => (e.duracaoMin ?? 0) > 0);
   const droppedBlocks = etapas.length - comDuracao.length;
   // Depois do descarte: uma etapa sem duração no meio da série quebraria a
   // janela e esconderia a repetição que existe.

@@ -14,6 +14,7 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { TIPOS_TREINO } from './tiposTreino';
 import { primary, surface } from '../../../theme/tokens';
+import { activeTheme } from '../../../theme/activeTheme';
 import { overlayWhite } from '../../../theme/overlays';
 import { elevation } from '../../../shared/design-tokens';
 import { GHOST_BTN_SX, PRIMARY_BTN_SX } from '../../../shared/components/actionButtonSx';
@@ -26,6 +27,7 @@ import {
     type EtapaItem,
 } from './etapas/etapaItem';
 import { EtapasEditor } from './etapas/EtapasEditor';
+import { useAthleteTrainingZones } from '../../../hooks/useAthleteTrainingZones';
 import { WorkoutProfile, selectWorkoutProfile, fromEtapaItens } from '../../workout/profile';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -88,11 +90,14 @@ export interface TreinoEditDialogProps {
     isSaving: boolean;
     /** Contexto no cabeçalho ("Bruno Dias · Ter 20/10"): dois treinos abertos em sequência eram idênticos. */
     contexto?: string;
+    /** Atleta do treino: habilita a tabela de zonas e o seletor de zona por etapa. */
+    atletaId?: string;
     onClose: () => void;
     onSave: (patch: TreinoPlanejadoPatch) => void;
 }
 
-export function TreinoEditDialog({ open, treino, isSaving, contexto, onClose, onSave }: TreinoEditDialogProps) {
+export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, onClose, onSave }: TreinoEditDialogProps) {
+    const { zones } = useAthleteTrainingZones(atletaId);
     const [tipoTreino, setTipoTreino]         = useState(treino.tipoTreino ?? '');
     const [tss, setTss]                       = useState(treino.tssPlanejado != null ? String(treino.tssPlanejado) : '');
     const [observacao, setObservacao]         = useState(treino.observacao ?? '');
@@ -105,7 +110,6 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, onClose, on
     // principal era lido — os outros três eram inertes.
     const [rpe, setRpe]                       = useState(
         treino.percepcaoEsforcoEsperada != null ? String(treino.percepcaoEsforcoEsperada) : '');
-    const [zonaAlvo, setZonaAlvo]             = useState(treino.zonaAlvo ?? '');
     // Rastreia se o usuário alterou as etapas — evita incluir etapas em patches sem mudança.
     // Sem esta guarda, mudar só o TSS regravaria a estrutura inteira do treino.
     const [blocosMudados, setBlocosMudados]   = useState(false);
@@ -121,7 +125,6 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, onClose, on
     useEffect(() => {
         setItens(itensIniciais(treino));
         setTipoTreino(treino.tipoTreino ?? '');
-        setZonaAlvo(treino.zonaAlvo ?? '');
         setRpe(treino.percepcaoEsforcoEsperada != null ? String(treino.percepcaoEsforcoEsperada) : '');
         setTss(treino.tssPlanejado != null ? String(treino.tssPlanejado) : '');
         setObservacao(treino.observacao ?? '');
@@ -148,7 +151,7 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, onClose, on
     // por isso que adapta de `EtapaItem[]` e não do DTO salvo — do DTO ele
     // desenharia o treino gravado, não o que o treinador está montando.
     const profile = useMemo(
-        () => selectWorkoutProfile(fromEtapaItens(itens), {
+        () => selectWorkoutProfile(fromEtapaItens(itens, zones), {
             // TODO(DEP-3): o esporte não existe no contrato — nem `TreinoPlanejado`
             // nem `TreinoPlanejadoDto` carregam modalidade. Enquanto isso, todo
             // treino é normalizado na escala de corrida, inclusive bike e natação.
@@ -156,7 +159,7 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, onClose, on
             tss: treino.tssPlanejado ?? null,
             zonaAlvoTreino: treino.zonaAlvo ?? null,
         }),
-        [itens, treino.tssPlanejado, treino.zonaAlvo],
+        [itens, zones, treino.tssPlanejado, treino.zonaAlvo],
     );
 
     /** Tipos que o treino tinha e deixou de ter — base do aviso antes de salvar. */
@@ -195,7 +198,11 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, onClose, on
             if (duracaoIso && duracaoIso !== treino.duracaoMin) patch.duracaoMin = duracaoIso;
         }
 
-        if (zonaAlvo && zonaAlvo !== treino.zonaAlvo) patch.zonaAlvo = zonaAlvo;
+        // A zona do treino é derivada das etapas, não digitada. Só entra no patch quando as etapas
+        // mudaram e há zona derivável; sem ela o valor anterior é preservado (o perfil degradado não
+        // tem zona confiável, e apagar a do plano a cada edição seria perder dado).
+        const zonaDerivada = profile.metrics.targetZone;
+        if (blocosMudados && zonaDerivada && zonaDerivada !== treino.zonaAlvo) patch.zonaAlvo = zonaDerivada;
 
         const rpeNum = parseInt(rpe, 10);
         if (!isNaN(rpeNum) && rpeNum !== treino.percepcaoEsforcoEsperada) patch.percepcaoEsforcoEsperada = rpeNum;
@@ -447,7 +454,7 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, onClose, on
                 </Button>
 
                 {/* ── Lista de etapas: avulsas e séries repetidas (editor compartilhado com o Adicionar) ── */}
-                <EtapasEditor itens={itens} onChange={mudou} disabled={isSaving} />
+                <EtapasEditor itens={itens} onChange={mudou} disabled={isSaving} zones={zones} tipoTreino={tipoTreino} />
 
                 {avisoRemocao && (
                     <Box
@@ -498,17 +505,15 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, onClose, on
                         Treino inteiro
                     </Typography>
                     <Box sx={{ display: 'flex', gap: 1.25 }}>
-                        <TextField
-                            label="Zona predominante"
-                            // Havia "Zona alvo" por etapa E aqui, com o mesmo nome e semântica diferente.
-                            helperText="Resumo mostrado no card do plano; a zona de cada etapa fica acima"
-                            value={zonaAlvo}
-                            onChange={e => setZonaAlvo(e.target.value)}
-                            disabled={isSaving}
-                            size="small"
-                            fullWidth
-                            sx={footerFieldSx}
-                        />
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography sx={{ fontSize: '0.75rem', color: surface[400] }}>Zona predominante</Typography>
+                            <Typography data-testid="zona-predominante" sx={{ fontFamily: activeTheme.font.mono, fontWeight: 600, color: surface[50] }}>
+                                {profile.metrics.targetZone ?? treino.zonaAlvo ?? '—'}
+                            </Typography>
+                            <Typography sx={{ fontSize: '0.6875rem', color: surface[400] }}>
+                                Derivada das etapas — resumo mostrado no card do plano
+                            </Typography>
+                        </Box>
                         <TextField
                             label="Esforço esperado (RPE 1–10)"
                             type="number"

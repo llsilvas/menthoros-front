@@ -19,6 +19,8 @@ const TOLERANCIA_PACE_SEG = 2;
 const PACE_FAIXA = /^(\d{1,2}):([0-5]\d)-(\d{1,2}):([0-5]\d)(\/km)?$/;
 const PACE_UNICO = /^(\d{1,2}):([0-5]\d)(\/km)?$/;
 const FC_BPM = /^(\d{2,3})-(\d{2,3})\s*bpm$/;
+const FC_PERCENT = /^(\d{2,3})-(\d{2,3})%.*$/;
+const FC_ZONA = /^z([1-5])(-z?[1-5])?$/i;
 
 const mmss = (seg: number): string => `${Math.floor(seg / 60)}:${String(seg % 60).padStart(2, '0')}`;
 
@@ -49,6 +51,15 @@ export function parseCanonicalFc(texto: string | undefined): FcRange | null {
     const m = FC_BPM.exec(texto?.trim() ?? '');
     return m ? { min: Number(m[1]), max: Number(m[2]) } : null;
 }
+
+/**
+ * A FC vira alvo no relógio quando o parser do backend a entende: faixa em bpm, faixa em % ou zona
+ * ("Z2", "Z2-Z3"). Só a faixa em bpm é o formato que o seletor grava; os outros são legado válido.
+ */
+export const fcEntendidaPeloRelogio = (texto: string | undefined): boolean => {
+    const t = texto?.trim() ?? '';
+    return FC_BPM.test(t) || FC_PERCENT.test(t) || FC_ZONA.test(t);
+};
 
 const perto = (a: number, b: number, tolerancia: number): boolean => Math.abs(a - b) <= tolerancia;
 

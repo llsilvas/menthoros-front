@@ -194,6 +194,7 @@ export function CurrentWeekPlan({ plano, atletaId, onGerarPlano, onRevisarPlano,
                 <TreinoEditDialog
                     open
                     treino={editingTreino}
+                    atletaId={atletaId}
                     isSaving={isSaving}
                     onClose={() => setEditingTreino(null)}
                     onSave={handleSalvar}
