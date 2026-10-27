@@ -27,7 +27,7 @@ import {
     type EtapaItem,
 } from './etapas/etapaItem';
 import { EtapasEditor } from './etapas/EtapasEditor';
-import { detalheDaZonaPredominante, minutosNaZonaAlvo } from '../adapters/zonaPredominante';
+import { detalheDaZonaPredominante, minutosNaZonaAlvo, zonaPredominante } from '../adapters/zonaPredominante';
 import { useAthleteTrainingZones } from '../../../hooks/useAthleteTrainingZones';
 import { AthleteZonesTable } from './AthleteZonesTable';
 import { WorkoutProfile, selectWorkoutProfile, fromEtapaItens } from '../../workout/profile';
@@ -165,6 +165,7 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
         }),
         [itens, zones, treino.tssPlanejado, treino.zonaAlvo],
     );
+    const predominante = useMemo(() => zonaPredominante(profile.blocks), [profile]);
 
     /** Tipos que o treino tinha e deixou de ter — base do aviso antes de salvar. */
     const etapasRemovidas = (): string[] => {
@@ -205,7 +206,7 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
         // A zona do treino é derivada das etapas, não digitada. Só entra no patch quando as etapas
         // mudaram e há zona derivável; sem ela o valor anterior é preservado (o perfil degradado não
         // tem zona confiável, e apagar a do plano a cada edição seria perder dado).
-        const zonaDerivada = profile.metrics.targetZone;
+        const zonaDerivada = predominante?.zona;
         if (blocosMudados && zonaDerivada && zonaDerivada !== treino.zonaAlvo) patch.zonaAlvo = zonaDerivada;
 
         const rpeNum = parseInt(rpe, 10);
@@ -368,9 +369,9 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
                     {totalMin} min
                 </Typography>
             )}
-            {minutosNaZonaAlvo(profile.metrics) !== null && (
+            {predominante && (
                 <Typography data-testid="total-na-zona-alvo" sx={{ fontSize: '0.68rem', color: surface[200], fontFamily: 'monospace' }}>
-                    {minutosNaZonaAlvo(profile.metrics)} min {profile.metrics.targetZone}
+                    {minutosNaZonaAlvo(predominante)} min {predominante.zona}
                 </Typography>
             )}
         </Box>
@@ -522,12 +523,14 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
                         <Box sx={{ flex: 1, minWidth: 0 }}>
                             <Typography sx={{ fontSize: '0.75rem', color: surface[400] }}>Zona predominante</Typography>
                             <Typography data-testid="zona-predominante" sx={{ fontFamily: activeTheme.font.mono, fontWeight: 600, color: surface[50] }}>
-                                {profile.metrics.targetZone ?? treino.zonaAlvo ?? '—'}
+                                {predominante?.zona ?? treino.zonaAlvo ?? '—'}
                             </Typography>
                             <Typography sx={{ fontSize: '0.6875rem', color: surface[400] }}>
-                                Derivada das etapas
-                                {detalheDaZonaPredominante(profile.metrics) ? ` (${detalheDaZonaPredominante(profile.metrics)})` : ''}
-                                {' '}— resumo mostrado no card do plano
+                                {predominante
+                                    ? `Derivada das etapas (${detalheDaZonaPredominante(predominante)}) — resumo mostrado no card do plano`
+                                    : treino.zonaAlvo
+                                        ? 'Zona gravada no plano; atualiza quando as etapas tiverem zona escolhida'
+                                        : 'Escolha a zona das etapas para derivar a zona predominante'}
                             </Typography>
                         </Box>
                         <TextField

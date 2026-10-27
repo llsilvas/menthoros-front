@@ -112,12 +112,48 @@ describe('TreinoEditDialog — zonas do atleta', () => {
         expect(screen.getByTestId('total-na-zona-alvo')).toHaveTextContent('30 min Z5');
     });
 
+    it('uma etapa sem zona escolhida não apaga a predominante das outras (aquecimento livre + principal Z5)', () => {
+        vi.mocked(useAthleteTrainingZones).mockReturnValue({ zones: ZONES, loading: false, error: null, fetchZones: vi.fn() });
+        render(
+            <TreinoEditDialog
+                open
+                treino={{ ...TREINO, zonaAlvo: undefined, etapas: [
+                    { ordem: 1, tipoEtapa: 'AQUECIMENTO', duracaoMin: 10, descricaoEtapa: 'solto' },
+                    { ordem: 2, tipoEtapa: 'PRINCIPAL', duracaoMin: 30, fcAlvoEtapa: '168-178 bpm', ritmoAlvo: '4:30-4:45/km', alvoPrimario: 'PACE' },
+                ] }}
+                isSaving={false}
+                atletaId="atleta-1"
+                onClose={vi.fn()}
+                onSave={onSave}
+            />,
+        );
+
+        expect(screen.getByTestId('zona-predominante')).toHaveTextContent('Z5');
+        expect(screen.getByText(/30 min em Z5/)).toBeInTheDocument();
+    });
+
+    it('sem nenhuma zona escolhida o "—" vem com a instrução do que fazer', () => {
+        render(
+            <TreinoEditDialog
+                open
+                treino={{ ...TREINO, zonaAlvo: undefined, etapas: [{ ordem: 1, tipoEtapa: 'PRINCIPAL', duracaoMin: 30 }] }}
+                isSaving={false}
+                atletaId="atleta-1"
+                onClose={vi.fn()}
+                onSave={onSave}
+            />,
+        );
+
+        expect(screen.getByTestId('zona-predominante')).toHaveTextContent('—');
+        expect(screen.getByText(/escolha a zona das etapas/i)).toBeInTheDocument();
+    });
+
     it('sem zonas carregadas o editor segue funcionando só com os campos de valor', () => {
         vi.mocked(useAthleteTrainingZones).mockReturnValue({ zones: null, loading: false, error: new Error('x'), fetchZones: vi.fn() });
         abrir();
 
         expect(screen.queryByRole('radiogroup', { name: /zona da etapa/i })).not.toBeInTheDocument();
-        expect(within(screen.getByTestId('zona-predominante').parentElement!).getByText(/derivada das etapas/i)).toBeInTheDocument();
+        expect(within(screen.getByTestId('zona-predominante').parentElement!).getByText(/zona gravada no plano/i)).toBeInTheDocument();
         expect(screen.getByRole('textbox', { name: /pace alvo/i })).toBeInTheDocument();
     });
 });

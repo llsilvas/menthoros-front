@@ -1,34 +1,56 @@
 import { describe, expect, it } from 'vitest';
-import { detalheDaZonaPredominante, minutosNaZonaAlvo } from './zonaPredominante';
-import type { ProfileMetrics } from '../../workout/profile/types';
+import { detalheDaZonaPredominante, minutosNaZonaAlvo, zonaPredominante } from './zonaPredominante';
+import type { ProfileBlock, ZoneKey } from '../../workout/profile/types';
 
-const metricas = (over: Partial<ProfileMetrics>): Pick<ProfileMetrics, 'targetZone' | 'targetZoneSeconds' | 'distribution'> => ({
-    targetZone: 'Z5',
-    targetZoneSeconds: 1440,
-    distribution: [
-        { zone: 'Z1', seconds: 2280, share: 0.61 },
-        { zone: 'Z5', seconds: 1440, share: 0.39 },
-    ],
-    ...over,
+const bloco = (zone: ZoneKey, minutos: number, confidence: ProfileBlock['confidence'] = 'prescribed'): ProfileBlock =>
+    ({ id: `${zone}-${minutos}`, order: 0, kind: 'steady', durationSec: minutos * 60, label: '', target: { kind: 'none' }, intensityNormalized: 0.5, zone, confidence }) as ProfileBlock;
+
+describe('zonaPredominante', () => {
+    it('a maior zona com ao menos 15% do tempo escolhido', () => {
+        const z = zonaPredominante([bloco('Z1', 38), bloco('Z5', 24)]);
+
+        expect(z?.zona).toBe('Z5');
+        expect(z?.segundos).toBe(24 * 60);
+    });
+
+    it('etapa sem zona escolhida não apaga a predominante das outras (era o defeito: tudo virava "—")', () => {
+        const z = zonaPredominante([
+            bloco('Z2', 10, 'derived'), // aquecimento sem zona: estimativa
+            bloco('Z5', 24),
+            bloco('Z1', 5, 'unknown'),
+        ]);
+
+        expect(z?.zona).toBe('Z5');
+        expect(z?.distribuicao).toEqual([{ zone: 'Z5', seconds: 24 * 60 }]);
+    });
+
+    it('zona estimada ou desconhecida sozinha não conta: sem zona escolhida, sem predominante', () => {
+        expect(zonaPredominante([bloco('Z2', 30, 'derived'), bloco('Z1', 5, 'unknown')])).toBeNull();
+        expect(zonaPredominante([])).toBeNull();
+    });
+
+    it('zona com menos de 15% do tempo escolhido é pico incidental', () => {
+        expect(zonaPredominante([bloco('Z2', 50), bloco('Z5', 5)])?.zona).toBe('Z2');
+    });
 });
 
-describe('detalheDaZonaPredominante', () => {
+describe('detalheDaZonaPredominante / minutosNaZonaAlvo', () => {
+    const z = zonaPredominante([bloco('Z1', 38), bloco('Z5', 24)]);
+
     it('lista os minutos na zona alvo e na maior das outras', () => {
-        expect(detalheDaZonaPredominante(metricas({}))).toBe('24 min em Z5, 38 min em Z1');
+        expect(detalheDaZonaPredominante(z)).toBe('24 min em Z5, 38 min em Z1');
     });
 
     it('com uma zona só, só ela', () => {
-        expect(detalheDaZonaPredominante(metricas({ distribution: [{ zone: 'Z5', seconds: 1440, share: 1 }] }))).toBe('24 min em Z5');
+        expect(detalheDaZonaPredominante(zonaPredominante([bloco('Z5', 24)]))).toBe('24 min em Z5');
     });
 
-    it('sem zona alvo derivável devolve null', () => {
-        expect(detalheDaZonaPredominante(metricas({ targetZone: null, targetZoneSeconds: 0 }))).toBeNull();
-    });
-});
-
-describe('minutosNaZonaAlvo', () => {
     it('arredonda os segundos para minutos', () => {
-        expect(minutosNaZonaAlvo(metricas({ targetZoneSeconds: 1470 }))).toBe(25);
-        expect(minutosNaZonaAlvo(metricas({ targetZone: null, targetZoneSeconds: 0 }))).toBeNull();
+        expect(minutosNaZonaAlvo(zonaPredominante([bloco('Z5', 24.5)]))).toBe(25);
+    });
+
+    it('sem predominante, null', () => {
+        expect(detalheDaZonaPredominante(null)).toBeNull();
+        expect(minutosNaZonaAlvo(null)).toBeNull();
     });
 });

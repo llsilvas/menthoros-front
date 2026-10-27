@@ -19,7 +19,7 @@ import { GHOST_BTN_SX, PRIMARY_BTN_SX } from '../../../shared/components/actionB
 import type { TreinoPlanejadoDto, TreinoPlanejadoAddPayload } from '../../../types/PlanoReview';
 import { serializarItens, totaisDeItens, type EtapaItem } from './etapas/etapaItem';
 import { EtapasEditor } from './etapas/EtapasEditor';
-import { detalheDaZonaPredominante, minutosNaZonaAlvo } from '../adapters/zonaPredominante';
+import { detalheDaZonaPredominante, minutosNaZonaAlvo, zonaPredominante } from '../adapters/zonaPredominante';
 import { useAthleteTrainingZones } from '../../../hooks/useAthleteTrainingZones';
 import { AthleteZonesTable } from './AthleteZonesTable';
 import { EYEBROW_SX, fieldSx } from './etapas/etapasStyles';
@@ -125,6 +125,7 @@ export function TreinoAddDialog({
         }),
         [itens, tss, zones],
     );
+    const predominante = useMemo(() => zonaPredominante(profile.blocks), [profile]);
 
     const temAlteracoes =
         tipoTreino !== '' || dataTreino !== (dataInicial ?? '') || observacoes !== '' || tss !== ''
@@ -167,7 +168,7 @@ export function TreinoAddDialog({
         // A zona do treino é derivada das etapas, não digitada: sem zona derivável o campo fica de fora.
         // O esforço é do treino e vale com ou sem etapas — antes sumia do payload assim que a primeira
         // etapa era criada, mesmo preenchido.
-        if (profile.metrics.targetZone) payload.zonaAlvo = profile.metrics.targetZone;
+        if (predominante) payload.zonaAlvo = predominante.zona;
         if (rpe)  { const v = parseInt(rpe, 10); if (!isNaN(v)) payload.percepcaoEsforcoEsperada = v; }
 
         if (observacoes) payload.observacoes  = observacoes;
@@ -198,8 +199,8 @@ export function TreinoAddDialog({
                 <Box component="span" sx={EYEBROW_SX}>Total</Box>
                 {totais.km > 0 && <span>{totais.km} km</span>}
                 {totais.min > 0 && <span>{totais.min} min</span>}
-                {minutosNaZonaAlvo(profile.metrics) !== null && (
-                    <span data-testid="total-na-zona-alvo">{minutosNaZonaAlvo(profile.metrics)} min {profile.metrics.targetZone}</span>
+                {predominante && (
+                    <span data-testid="total-na-zona-alvo">{minutosNaZonaAlvo(predominante)} min {predominante.zona}</span>
                 )}
             </Box>
         ) : null
@@ -338,12 +339,12 @@ export function TreinoAddDialog({
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Typography sx={{ fontSize: '0.75rem', color: surface[400] }}>Zona predominante</Typography>
                         <Typography data-testid="zona-predominante" sx={{ fontFamily: activeTheme.font.mono, fontWeight: 600, color: surface[50] }}>
-                            {profile.metrics.targetZone ?? '—'}
+                            {predominante?.zona ?? '—'}
                         </Typography>
                         <Typography sx={{ fontSize: '0.6875rem', color: surface[400] }}>
-                            Derivada das etapas
-                            {detalheDaZonaPredominante(profile.metrics) ? ` (${detalheDaZonaPredominante(profile.metrics)})` : ''}
-                            {' '}— resumo mostrado no card do plano
+                            {predominante
+                                ? `Derivada das etapas (${detalheDaZonaPredominante(predominante)}) — resumo mostrado no card do plano`
+                                : 'Escolha a zona das etapas para derivar a zona predominante'}
                         </Typography>
                     </Box>
                     <TextField label="Esforço esperado (RPE 1–10)" type="number" value={rpe}
