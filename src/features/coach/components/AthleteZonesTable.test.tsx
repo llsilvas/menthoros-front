@@ -30,8 +30,8 @@ function zonas(over: Partial<AthleteTrainingZonesDto> = {}): AthleteTrainingZone
     };
 }
 
-const renderTabela = (z: AthleteTrainingZonesDto | null, extra: { loading?: boolean; error?: Error | null } = {}) =>
-    render(<AthleteZonesTable zones={z} loading={extra.loading ?? false} error={extra.error ?? null} hoje={HOJE} defaultExpanded />);
+const renderTabela = (z: AthleteTrainingZonesDto | null, extra: { loading?: boolean; error?: Error | null; nome?: string } = {}) =>
+    render(<AthleteZonesTable zones={z} loading={extra.loading ?? false} error={extra.error ?? null} nomeAtleta={extra.nome} hoje={HOJE} defaultExpanded />);
 
 describe('AthleteZonesTable', () => {
     it('está recolhida por padrão, com o título visível', () => {
@@ -40,28 +40,62 @@ describe('AthleteZonesTable', () => {
         expect(screen.getByRole('button', { name: /zonas do atleta/i })).toHaveAttribute('aria-expanded', 'false');
     });
 
-    it('mostra pace e FC de Z2 e o pace de Z6 sem FC (usar pace)', () => {
+    it('o título leva o primeiro nome do atleta, sem presumir gênero ("de", não "da"/"do")', () => {
+        renderTabela(zonas(), { nome: 'Mariana Costa' });
+
+        expect(screen.getByRole('button', { name: /zonas de mariana/i })).toBeInTheDocument();
+    });
+
+    it('com a tabela recolhida, o cabeçalho já mostra o ajuste de fadiga e a idade do limiar', () => {
+        render(
+            <AthleteZonesTable
+                zones={zonas({ ajusteFadiga: { segundosPorKm: 7, tsbProntidao: -12 } })}
+                loading={false}
+                error={null}
+                nomeAtleta="Mariana Costa"
+                hoje={HOJE}
+            />,
+        );
+
+        const cabecalho = screen.getByRole('button', { name: /zonas de mariana/i });
+        expect(cabecalho).toHaveAttribute('aria-expanded', 'false');
+        expect(cabecalho).toHaveTextContent('Ajuste por fadiga +7 s/km');
+        expect(cabecalho).toHaveTextContent('Limiar medido em 12 set · 45 dias');
+    });
+
+    it('colunas com unidade no cabeçalho e células sem unidade, com travessão espaçado', () => {
         renderTabela(zonas());
 
+        expect(screen.getByRole('columnheader', { name: 'Pace (min/km)' })).toBeInTheDocument();
+        expect(screen.getByRole('columnheader', { name: 'FC (bpm)' })).toBeInTheDocument();
+        expect(screen.getByRole('columnheader', { name: /RPE \(referência\)/ })).toBeInTheDocument();
         const z2 = screen.getByRole('row', { name: /Z2/ });
-        expect(within(z2).getByText('5:15–5:45')).toBeInTheDocument();
-        expect(within(z2).getByText('143–150 bpm')).toBeInTheDocument();
+        expect(within(z2).getByText('5:15 – 5:45')).toBeInTheDocument();
+        expect(within(z2).getByText('143 – 150')).toBeInTheDocument();
         const z6 = screen.getByRole('row', { name: /Z6/ });
-        expect(within(z6).getByText('4:06–4:30')).toBeInTheDocument();
+        expect(within(z6).getByText('4:06 – 4:30')).toBeInTheDocument();
         expect(within(z6).getByText(/usar pace/i)).toBeInTheDocument();
     });
 
-    it('mostra as âncoras com as datas dos testes', () => {
+    it('RPE típico e uso típico seguem o protótipo', () => {
         renderTabela(zonas());
 
-        expect(screen.getByText(/limiar de pace 5:00\/km/i)).toBeInTheDocument();
-        expect(screen.getByText(/limiar de FC 168 bpm/i)).toBeInTheDocument();
-        expect(screen.getAllByText(/12\/09\/2026/).length).toBeGreaterThan(0);
+        const z1 = screen.getByRole('row', { name: /Z1/ });
+        expect(within(z1).getByText('1–2')).toBeInTheDocument();
+        expect(within(z1).getByText('Rodagem leve, trote')).toBeInTheDocument();
+        expect(within(screen.getByRole('row', { name: /Z5/ })).getByText('Tiros de 3 a 5 min')).toBeInTheDocument();
     });
 
-    it('chip de fadiga aparece só com ajuste > 0 e diz que é informativo', () => {
+    it('rodapé de âncoras, sem link de cadastro', () => {
+        renderTabela(zonas());
+
+        expect(screen.getByText(/Âncoras: pace de limiar 5:00\/km · LTHR 168 bpm · modelo LTHR \(Friel\)/)).toBeInTheDocument();
+        expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    });
+
+    it('chip de fadiga aparece só com ajuste > 0', () => {
         const { unmount } = renderTabela(zonas({ ajusteFadiga: { segundosPorKm: 7, tsbProntidao: -12 } }));
-        expect(screen.getByText(/hoje \+7 s\/km \(fadiga\)/i)).toBeInTheDocument();
+        expect(screen.getByText('Ajuste por fadiga +7 s/km')).toBeInTheDocument();
         unmount();
 
         renderTabela(zonas());
@@ -73,12 +107,12 @@ describe('AthleteZonesTable', () => {
         velha.ancoras.dataUltimoTestePace = '2026-06-01';
         velha.ancoras.dataUltimoTesteFc = '2026-06-01';
         const { unmount } = renderTabela(velha);
-        expect(screen.getByText(/limiar há 148 dias/i)).toBeInTheDocument();
+        expect(screen.getByText('Limiar medido em 1 jun · 148 dias')).toBeInTheDocument();
         expect(screen.getByText(/refaça o teste/i)).toBeInTheDocument();
         unmount();
 
         renderTabela(zonas());
-        expect(screen.getByText(/limiar há 45 dias/i)).toBeInTheDocument();
+        expect(screen.getByText('Limiar medido em 12 set · 45 dias')).toBeInTheDocument();
         expect(screen.queryByText(/refaça o teste/i)).not.toBeInTheDocument();
     });
 
@@ -98,7 +132,7 @@ describe('AthleteZonesTable', () => {
 
         expect(screen.getByText(/pace indisponível — cadastre o pace de limiar/i)).toBeInTheDocument();
         expect(screen.queryByRole('link')).not.toBeInTheDocument();
-        expect(within(screen.getByRole('row', { name: /Z2/ })).getByText('143–150 bpm')).toBeInTheDocument();
+        expect(within(screen.getByRole('row', { name: /Z2/ })).getByText('143 – 150')).toBeInTheDocument();
     });
 
     it('RPE típico é referência genérica com explicação', () => {

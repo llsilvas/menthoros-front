@@ -25,6 +25,7 @@ export function PlanTabPanel({ selectedProfile, reloadDashboard, fetchSelectedPr
         <CurrentWeekPlan
           plano={selectedProfile.planoVigente}
           atletaId={selectedProfile.atletaId}
+          atletaNome={selectedProfile.nomeAtleta}
           onGerarPlano={onOpenRevisao}
           onRevisarPlano={onOpenRevisao}
           onTreinoEditado={() => {

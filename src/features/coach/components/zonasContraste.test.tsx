@@ -69,7 +69,7 @@ describe('contraste dos textos das zonas (CA17/CA18)', () => {
     it('cabeçalhos e rótulos da tabela de zonas usam text-secondary', () => {
         render(<AthleteZonesTable zones={ZONES} loading={false} error={null} defaultExpanded hoje={new Date('2026-10-27T12:00:00')} />);
 
-        for (const cabecalho of ['Zona', 'Pace', 'FC', 'RPE típico', 'Uso típico']) {
+        for (const cabecalho of ['Zona', 'Pace (min/km)', 'FC (bpm)', 'RPE (referência)', 'Uso típico']) {
             expect(cor(screen.getByRole('columnheader', { name: cabecalho }))).toBe(rgb(text.secondary));
         }
     });

@@ -20,6 +20,7 @@ import type { TreinoPlanejadoDto, TreinoPlanejadoAddPayload } from '../../../typ
 import { serializarItens, totaisDeItens, type EtapaItem } from './etapas/etapaItem';
 import { EtapasEditor } from './etapas/EtapasEditor';
 import { useAthleteTrainingZones } from '../../../hooks/useAthleteTrainingZones';
+import { AthleteZonesTable } from './AthleteZonesTable';
 import { EYEBROW_SX, fieldSx } from './etapas/etapasStyles';
 import { TIPOS_TREINO } from './tiposTreino';
 import { WorkoutProfile, selectWorkoutProfile, fromEtapaItens } from '../../workout/profile';
@@ -80,7 +81,7 @@ const FIELD_SX = fieldSx(primary[500]);
 export function TreinoAddDialog({
     open, planoId, semanaInicio, semanaFim, treinosExistentes, contexto, dataInicial, atletaId, onClose, onSaved,
 }: TreinoAddDialogProps) {
-    const { zones } = useAthleteTrainingZones(atletaId);
+    const { zones, loading: zonesLoading, error: zonesError } = useAthleteTrainingZones(atletaId);
     const [tipoTreino,  setTipoTreino]  = useState('');
     const [dataTreino,  setDataTreino]  = useState(dataInicial ?? '');
     const [observacoes, setObservacoes] = useState('');
@@ -286,6 +287,11 @@ export function TreinoAddDialog({
                 }}>
                     {treinosNaData.length} treino(s) já nesta data — double-day permitido, confirme.
                 </Alert>
+            )}
+
+            {/* ── Zonas do atleta ─────────────────────────────────────── */}
+            {(zonesLoading || zonesError || zones) && (
+                <AthleteZonesTable zones={zones} loading={zonesLoading} error={zonesError} nomeAtleta={contexto} />
             )}
 
             {/* ── Etapas (opcional) ───────────────────────────────────── */}

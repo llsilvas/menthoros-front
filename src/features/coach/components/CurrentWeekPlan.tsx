@@ -12,6 +12,7 @@ import { SyncStatusChip } from './SyncStatusChip';
 import { TreinoPlanejadoCard } from './TreinoPlanejadoCard';
 import { useAthleteTrainingZones } from '../../../hooks/useAthleteTrainingZones';
 import { buildIntensityLineFromTreino } from '../adapters/buildIntensityLine';
+import { resumoDaSerie } from '../adapters/resumoSerie';
 import type { AthleteTrainingZonesDto } from '../../../types/AthleteTrainingZones';
 import { estadoDeExecucao } from './treinoPlanejadoEstado';
 import { rotuloDiaComData, tipoTreinoLabel } from './tiposTreino';
@@ -22,6 +23,8 @@ interface CurrentWeekPlanProps {
     plano: PlanoVigenteDto | null;
     /** Atleta dono do plano; habilita as zonas (pace/FC) nos cards. */
     atletaId?: string;
+    /** Nome do atleta, no título da tabela de zonas do editor. */
+    atletaNome?: string;
     onGerarPlano: () => void;
     onRevisarPlano: () => void;
     onTreinoEditado?: () => void;
@@ -61,7 +64,7 @@ function TreinoCard({
         <TreinoPlanejadoCard
             dia={rotuloDiaComData(treino.diaSemana, data)}
             tipoTreino={treino.tipoTreino}
-            rotulo={tipoTreinoLabel(treino.tipoTreino)}
+            rotulo={[tipoTreinoLabel(treino.tipoTreino), resumoDaSerie(treino.etapas)].filter(Boolean).join(' · ')}
             distanciaKm={treino.distanciaKm}
             duracaoMin={duracaoEmMinutos(treino.duracaoMin)}
             rpeEsperado={treino.percepcaoEsforcoEsperada}
@@ -129,7 +132,7 @@ function TreinosGrid({
     );
 }
 
-export function CurrentWeekPlan({ plano, atletaId, onGerarPlano, onRevisarPlano, onTreinoEditado }: CurrentWeekPlanProps) {
+export function CurrentWeekPlan({ plano, atletaId, atletaNome, onGerarPlano, onRevisarPlano, onTreinoEditado }: CurrentWeekPlanProps) {
     const { zones } = useAthleteTrainingZones(atletaId);
     const [editingTreino, setEditingTreino] = useState<TreinoPlanejadoDto | null>(null);
     const { isSaving, editarTreino } = useTreinoPlanejado();
@@ -195,6 +198,7 @@ export function CurrentWeekPlan({ plano, atletaId, onGerarPlano, onRevisarPlano,
                     open
                     treino={editingTreino}
                     atletaId={atletaId}
+                    atletaNome={atletaNome}
                     isSaving={isSaving}
                     onClose={() => setEditingTreino(null)}
                     onSave={handleSalvar}

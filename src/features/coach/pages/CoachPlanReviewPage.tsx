@@ -343,6 +343,7 @@ export default function CoachPlanReviewPage() {
                     treino={editingTreino}
                     contexto={contextoDoTreino(selected, editingTreino)}
                     atletaId={selected?.atletaId}
+                    atletaNome={selected?.atletaNome}
                     isSaving={isEditSaving}
                     onClose={() => setEditingTreinoId(null)}
                     onSave={handleSalvarEdicao}

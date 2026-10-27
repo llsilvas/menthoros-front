@@ -61,8 +61,8 @@ export function StepSummaryRow({ intensidade, zones, tipoEtapa, tipoTreino, onAb
             )}
             {linha?.pace && <Typography component="span" sx={{ fontFamily: MONO, fontSize: '0.8125rem', color: text.primary }}>{linha.pace}</Typography>}
             {linha?.fc && <Typography component="span" sx={{ fontFamily: MONO, fontSize: '0.8125rem', color: text.primary }}>{linha.fc}</Typography>}
-            {!linha && <Typography component="span" sx={{ fontSize: '0.8125rem', color: text.secondary }}>Sem meta de intensidade</Typography>}
-            {relogio && <Typography component="span" sx={{ fontSize: '0.75rem', color: text.secondary }}>relógio {relogio}</Typography>}
+            {(!linha || linha.semMeta) && <Typography component="span" sx={{ fontSize: '0.8125rem', color: text.secondary }}>Sem meta de intensidade</Typography>}
+            {relogio && !linha?.semMeta && <Typography component="span" sx={{ fontSize: '0.75rem', color: text.secondary }}>relógio {relogio}</Typography>}
             {temAviso && (
                 <WarningAmberIcon
                     titleAccess="Esta etapa tem aviso"

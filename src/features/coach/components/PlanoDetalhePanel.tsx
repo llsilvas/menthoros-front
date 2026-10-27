@@ -24,6 +24,7 @@ import { TreinoPlanejadoCard } from './TreinoPlanejadoCard';
 import { AthleteZonesTable } from './AthleteZonesTable';
 import { useAthleteTrainingZones } from '../../../hooks/useAthleteTrainingZones';
 import { buildIntensityLineFromTreino } from '../adapters/buildIntensityLine';
+import { resumoDaSerie } from '../adapters/resumoSerie';
 import type { AthleteTrainingZonesDto } from '../../../types/AthleteTrainingZones';
 import { duracaoEmMinutos } from '../adapters/duracaoTreino';
 import { DANGER_BTN_SX, GHOST_BTN_SX } from '../../../shared/components/actionButtonSx';
@@ -126,7 +127,8 @@ function TreinoTag({
     const cor = workoutTypeColor(treino.tipoTreino);
     const isProva = treino.tipoTreino === 'PROVA';
     // Nome da prova no lugar do rótulo genérico do tipo (mesmo destaque da agenda do atleta).
-    const rotulo = isProva ? (treino.descricao || 'Prova') : tipoTreinoLabel(treino.tipoTreino);
+    const serie = isProva ? null : resumoDaSerie(treino.etapas);
+    const rotulo = isProva ? (treino.descricao || 'Prova') : [tipoTreinoLabel(treino.tipoTreino), serie].filter(Boolean).join(' · ');
     const dia = rotuloDiaComData(resolverDiaSemana(treino.diaSemana), data);
     // Para o treinador: por que a IA prescreveu isto. Sem a justificativa o card é só número.
     const porQue = treino.justificativaIa?.trim() || (!isProva ? treino.descricao?.trim() : undefined);
@@ -551,7 +553,7 @@ export function PlanoDetalhePanel({
             {/* ── Zonas do atleta (referência para revisar os alvos) ─────── */}
             {(zonesLoading || zonesError || zones) && (
                 <Box sx={{ px: 3, py: 1.25, borderBottom: `1px solid ${content.divider}`, flexShrink: 0 }}>
-                    <AthleteZonesTable zones={zones} loading={zonesLoading} error={zonesError} />
+                    <AthleteZonesTable zones={zones} loading={zonesLoading} error={zonesError} nomeAtleta={plano.atletaNome} />
                 </Box>
             )}
 

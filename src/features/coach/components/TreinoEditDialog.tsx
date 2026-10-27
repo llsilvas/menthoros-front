@@ -28,6 +28,7 @@ import {
 } from './etapas/etapaItem';
 import { EtapasEditor } from './etapas/EtapasEditor';
 import { useAthleteTrainingZones } from '../../../hooks/useAthleteTrainingZones';
+import { AthleteZonesTable } from './AthleteZonesTable';
 import { WorkoutProfile, selectWorkoutProfile, fromEtapaItens } from '../../workout/profile';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -92,12 +93,14 @@ export interface TreinoEditDialogProps {
     contexto?: string;
     /** Atleta do treino: habilita a tabela de zonas e o seletor de zona por etapa. */
     atletaId?: string;
+    /** Nome do atleta, no título da tabela de zonas. */
+    atletaNome?: string;
     onClose: () => void;
     onSave: (patch: TreinoPlanejadoPatch) => void;
 }
 
-export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, onClose, onSave }: TreinoEditDialogProps) {
-    const { zones } = useAthleteTrainingZones(atletaId);
+export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, atletaNome, onClose, onSave }: TreinoEditDialogProps) {
+    const { zones, loading: zonesLoading, error: zonesError } = useAthleteTrainingZones(atletaId);
     const [tipoTreino, setTipoTreino]         = useState(treino.tipoTreino ?? '');
     const [tss, setTss]                       = useState(treino.tssPlanejado != null ? String(treino.tssPlanejado) : '');
     const [observacao, setObservacao]         = useState(treino.observacao ?? '');
@@ -432,6 +435,11 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, o
                             </Button>
                         </Box>
                     </Box>
+                )}
+
+                {/* Zonas do atleta: a referência para escolher o alvo de cada etapa */}
+                {(zonesLoading || zonesError || zones) && (
+                    <AthleteZonesTable zones={zones} loading={zonesLoading} error={zonesError} nomeAtleta={atletaNome} />
                 )}
 
                 {/* O bloco destacado segue a linha em edição — ganho direto do

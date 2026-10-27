@@ -81,6 +81,13 @@ function LinhaIntensidade({ linha }: { linha: IntensityLine }) {
             </Typography>
         );
     };
+    if (linha.semMeta) {
+        return (
+            <Typography data-testid="linha-intensidade" sx={{ fontSize: '0.8125rem', color: text.secondary }}>
+                sem meta
+            </Typography>
+        );
+    }
     return (
         <Box data-testid="linha-intensidade" sx={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 1, rowGap: 0.25 }}>
             {linha.zona && (

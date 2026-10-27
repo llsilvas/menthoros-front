@@ -156,6 +156,13 @@ describe('estadoDeExecucao', () => {
             expect(screen.getByText(/pace indisponível/i)).toBeInTheDocument();
         });
 
+        it('etapa sem objetivo mostra "sem meta" e nenhum valor', () => {
+            renderCard({ intensidade: { zona: null, primario: 'NENHUM', paceIndisponivel: false, semMeta: true } });
+
+            expect(screen.getByTestId('linha-intensidade')).toHaveTextContent('sem meta');
+            expect(screen.queryByTestId('chip-zona')).not.toBeInTheDocument();
+        });
+
         it('substitui a linha de zona em texto livre', () => {
             renderCard({
                 zonaAlvo: 'Z2-Z3',

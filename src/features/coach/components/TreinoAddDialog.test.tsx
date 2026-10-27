@@ -283,6 +283,13 @@ describe('TreinoAddDialog', () => {
         expect(screen.getByText('Bruno Dias')).toBeInTheDocument();
     });
 
+    it('com as zonas do atleta carregadas, a tabela aparece no dialog de adicionar', () => {
+        stubZonas(ZONES);
+        renderDialog();
+
+        expect(screen.getByRole('button', { name: /zonas do atleta/i })).toBeInTheDocument();
+    });
+
     it('RPE vai no payload mesmo com etapas; zona predominante não é digitável nem sai sem zona derivável', async () => {
         mockAdicionarTreino.mockResolvedValue({ id: 'n', diaSemana: 'TERCA', tipoTreino: 'CONTINUO', distanciaKm: 0 });
         renderDialog({ treinosExistentes: [] });

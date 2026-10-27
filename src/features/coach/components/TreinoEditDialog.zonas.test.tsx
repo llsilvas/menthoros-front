@@ -44,12 +44,18 @@ describe('TreinoEditDialog — zonas do atleta', () => {
         vi.mocked(useAthleteTrainingZones).mockReturnValue({ zones: ZONES, loading: false, error: null, fetchZones: vi.fn() });
     });
 
-    const abrir = () => render(<TreinoEditDialog open treino={TREINO} isSaving={false} atletaId="atleta-1" onClose={vi.fn()} onSave={onSave} />);
+    const abrir = () => render(<TreinoEditDialog open treino={TREINO} isSaving={false} atletaId="atleta-1" atletaNome="Mariana Costa" onClose={vi.fn()} onSave={onSave} />);
 
     it('busca as zonas do atleta recebido', () => {
         abrir();
 
         expect(useAthleteTrainingZones).toHaveBeenCalledWith('atleta-1');
+    });
+
+    it('mostra a tabela "Zonas de Mariana" no topo, recolhida', () => {
+        abrir();
+
+        expect(screen.getByRole('button', { name: /zonas de mariana/i })).toHaveAttribute('aria-expanded', 'false');
     });
 
     it('só a primeira etapa mostra o seletor; as outras viram linha-resumo com zona, pace, FC e relógio', () => {

@@ -12,6 +12,8 @@ export interface IntensityLine {
     primario: AlvoPrimario | null;
     /** O atleta não tem pace de limiar e a etapa não traz ritmo próprio. */
     paceIndisponivel: boolean;
+    /** O treinador escolheu "sem objetivo" para a etapa: nada vai ao relógio, mesmo com texto nos campos. */
+    semMeta?: boolean;
 }
 
 const TIPOS_SEM_ESFORCO = new Set(['AQUECIMENTO', 'RECUPERACAO', 'DESAQUECIMENTO']);
@@ -31,6 +33,9 @@ export function buildIntensityLineFromEtapa(
     etapa: EtapaTreinoDto,
     zones: AthleteTrainingZonesDto | null,
 ): IntensityLine | null {
+    if (etapa.alvoPrimario === 'NENHUM') {
+        return { zona: null, primario: 'NENHUM', paceIndisponivel: false, semMeta: true };
+    }
     const fcTexto = etapa.fcAlvoEtapa?.trim() || undefined;
     const paceTexto = etapa.ritmoAlvo?.trim() || undefined;
     if (!fcTexto && !paceTexto) return null;

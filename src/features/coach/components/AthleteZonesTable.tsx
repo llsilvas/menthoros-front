@@ -24,6 +24,8 @@ interface AthleteZonesTableProps {
   zones: AthleteTrainingZonesDto | null;
   loading: boolean;
   error: Error | null;
+  /** Nome completo do atleta; o título usa o primeiro nome. */
+  nomeAtleta?: string;
   /** Referência para a idade do teste de limiar; injetável para teste. */
   hoje?: Date;
   defaultExpanded?: boolean;
@@ -33,28 +35,60 @@ const DIAS_LIMIAR_DESATUALIZADO = 90;
 const MS_POR_DIA = 86_400_000;
 
 // Escala genérica de percepção de esforço por zona — referência, não medida do atleta.
-const RPE_TIPICO: Record<number, string> = { 1: '2–3', 2: '3–4', 3: '5–6', 4: '7', 5: '8–9', 6: '9–10' };
+const RPE_TIPICO: Record<number, string> = { 1: '1–2', 2: '3–4', 3: '5–6', 4: '7', 5: '8–9', 6: '9–10' };
 const USO_TIPICO: Record<number, string> = {
-  1: 'rodagem leve',
-  2: 'base e longão',
-  3: 'ritmo moderado',
-  4: 'contínuo de limiar',
-  5: 'tiros de 3–5 min',
-  6: 'tiros curtos',
+  1: 'Rodagem leve, trote',
+  2: 'Base, longão',
+  3: 'Ritmo moderado',
+  4: 'Contínuo de limiar',
+  5: 'Tiros de 3 a 5 min',
+  6: 'Tiros curtos',
 };
 
-const formatarData = (iso: string): string => iso.split('-').reverse().join('/');
+const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+/** "2026-09-12" → "12 set". */
+const formatarDiaMes = (iso: string): string => {
+  const [, mes, dia] = iso.split('-');
+  return `${Number(dia)} ${MESES[Number(mes) - 1]}`;
+};
+
+const primeiroNome = (nome: string | undefined): string | null => nome?.trim().split(/\s+/)[0] || null;
 
 function diasDesde(iso: string, hoje: Date): number {
   return Math.floor((hoje.getTime() - new Date(`${iso}T12:00:00`).getTime()) / MS_POR_DIA);
 }
 
-/** Idade do teste mais antigo entre os informados; `null` se nenhum teste tem data. */
-function idadeDoLimiar(zones: AthleteTrainingZonesDto, hoje: Date): number | null {
+/** Teste de limiar mais antigo entre os informados; `null` se nenhum tem data. */
+function limiarMaisAntigo(zones: AthleteTrainingZonesDto, hoje: Date): { dias: number; data: string } | null {
   const datas = [zones.ancoras.dataUltimoTestePace, zones.ancoras.dataUltimoTesteFc].filter(
     (d): d is string => Boolean(d),
   );
-  return datas.length ? Math.max(...datas.map((d) => diasDesde(d, hoje))) : null;
+  if (!datas.length) return null;
+  const maisAntiga = datas.reduce((a, b) => (a < b ? a : b));
+  return { dias: diasDesde(maisAntiga, hoje), data: maisAntiga };
+}
+
+/** Os dois chips do cabeçalho — ficam visíveis com a tabela recolhida. */
+function ChipsDoCabecalho({ zones, hoje }: { zones: AthleteTrainingZonesDto; hoje: Date }) {
+  const limiar = limiarMaisAntigo(zones, hoje);
+  const fadiga = zones.ajusteFadiga.segundosPorKm;
+  return (
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, alignItems: 'center' }}>
+      {fadiga > 0 && (
+        <Tooltip title="Informativo: as faixas da tabela são as base. Ajuste o pace à mão se quiser.">
+          <Chip size="small" variant="outlined" label={`Ajuste por fadiga +${fadiga} s/km`} sx={{ color: text.secondary }} />
+        </Tooltip>
+      )}
+      {limiar && (
+        <Chip
+          size="small"
+          variant="outlined"
+          label={`Limiar medido em ${formatarDiaMes(limiar.data)} · ${limiar.dias} dias`}
+          sx={{ color: text.secondary }}
+        />
+      )}
+    </Box>
+  );
 }
 
 const zoneColor = (numero: number): string =>
@@ -75,10 +109,10 @@ function ZonaRow({ zona }: { zona: AthleteTrainingZoneDto }) {
         {zona.nome}
       </TableCell>
       <TableCell sx={celula}>
-        {zona.pace ? formatPaceRange(zona.pace.minSegKm, zona.pace.maxSegKm) : '—'}
+        {zona.pace ? formatPaceRange(zona.pace.minSegKm, zona.pace.maxSegKm).replace('–', ' – ') : '—'}
       </TableCell>
       <TableCell sx={celula}>
-        {zona.fc ? `${zona.fc.min}–${zona.fc.max} bpm` : <span style={{ color: text.secondary }}>— (usar pace)</span>}
+        {zona.fc ? `${zona.fc.min} – ${zona.fc.max}` : <span style={{ color: text.secondary }}>— usar pace</span>}
       </TableCell>
       <TableCell sx={{ ...celula, color: text.secondary }}>
         <Tooltip title="Escala genérica, não medida do atleta">
@@ -91,34 +125,12 @@ function ZonaRow({ zona }: { zona: AthleteTrainingZoneDto }) {
 }
 
 function Corpo({ zones, hoje }: { zones: AthleteTrainingZonesDto; hoje: Date }) {
-  const { ancoras, ajusteFadiga, disponibilidade } = zones;
-  const idade = idadeDoLimiar(zones, hoje);
-  const desatualizado = idade !== null && idade > DIAS_LIMIAR_DESATUALIZADO;
+  const { ancoras, disponibilidade } = zones;
+  const limiar = limiarMaisAntigo(zones, hoje);
+  const desatualizado = limiar !== null && limiar.dias > DIAS_LIMIAR_DESATUALIZADO;
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center', mb: 1.25 }}>
-        {ancoras.paceLimiarMinKm != null && (
-          <Typography sx={{ fontSize: '0.75rem', color: text.secondary }}>
-            Limiar de pace {formatPace(Math.round(ancoras.paceLimiarMinKm * 60))}/km
-            {ancoras.dataUltimoTestePace ? ` (teste de ${formatarData(ancoras.dataUltimoTestePace)})` : ''}
-          </Typography>
-        )}
-        <Typography sx={{ fontSize: '0.75rem', color: text.secondary }}>
-          Limiar de FC {ancoras.fcLimiar} bpm
-          {ancoras.dataUltimoTesteFc ? ` (teste de ${formatarData(ancoras.dataUltimoTesteFc)})` : ''}
-        </Typography>
-        {ancoras.fcLimiarEstimada && <Chip size="small" variant="outlined" label="estimada" sx={{ color: text.secondary }} />}
-        {idade !== null && (
-          <Chip size="small" variant="outlined" label={`limiar há ${idade} dias`} sx={{ color: text.secondary }} />
-        )}
-        {ajusteFadiga.segundosPorKm > 0 && (
-          <Tooltip title="Informativo: as faixas da tabela são as base. Ajuste o pace à mão se quiser.">
-            <Chip size="small" variant="outlined" label={`hoje +${ajusteFadiga.segundosPorKm} s/km (fadiga)`} sx={{ color: text.secondary }} />
-          </Tooltip>
-        )}
-      </Box>
-
       {desatualizado && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
           <WarningAmberIcon sx={{ fontSize: '1rem', color: semantic.warning[500] }} aria-hidden />
@@ -138,9 +150,9 @@ function Corpo({ zones, hoje }: { zones: AthleteTrainingZonesDto; hoje: Date }) 
         <TableHead>
           <TableRow>
             <TableCell sx={cabecalho}>Zona</TableCell>
-            <TableCell sx={cabecalho}>Pace</TableCell>
-            <TableCell sx={cabecalho}>FC</TableCell>
-            <TableCell sx={cabecalho}>RPE típico</TableCell>
+            <TableCell sx={cabecalho}>Pace (min/km)</TableCell>
+            <TableCell sx={cabecalho}>FC (bpm)</TableCell>
+            <TableCell sx={cabecalho}>RPE (referência)</TableCell>
             <TableCell sx={cabecalho}>Uso típico</TableCell>
           </TableRow>
         </TableHead>
@@ -150,11 +162,20 @@ function Corpo({ zones, hoje }: { zones: AthleteTrainingZonesDto; hoje: Date }) 
           ))}
         </TableBody>
       </Table>
+
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0.75, mt: 1.25 }}>
+        <Typography sx={{ fontSize: '0.75rem', color: text.secondary }}>
+          Âncoras:
+          {ancoras.paceLimiarMinKm != null && ` pace de limiar ${formatPace(Math.round(ancoras.paceLimiarMinKm * 60))}/km ·`}
+          {` LTHR ${ancoras.fcLimiar} bpm · modelo LTHR (Friel)`}
+        </Typography>
+        {ancoras.fcLimiarEstimada && <Chip size="small" variant="outlined" label="estimada" sx={{ color: text.secondary }} />}
+      </Box>
     </Box>
   );
 }
 
-export function AthleteZonesTable({ zones, loading, error, hoje = new Date(), defaultExpanded = false }: AthleteZonesTableProps) {
+export function AthleteZonesTable({ zones, loading, error, nomeAtleta, hoje = new Date(), defaultExpanded = false }: AthleteZonesTableProps) {
   if (loading) {
     return <Skeleton role="status" aria-label="Carregando zonas do atleta" variant="rounded" height={44} />;
   }
@@ -175,7 +196,12 @@ export function AthleteZonesTable({ zones, loading, error, hoje = new Date(), de
       sx={{ bgcolor: content.cardBg, border: `1px solid ${content.cardBorder}`, backgroundImage: 'none', color: text.primary }}
     >
       <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ color: text.secondary }} />}>
-        <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>Zonas do atleta</Typography>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', columnGap: 1.5, rowGap: 0.5 }}>
+          <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>
+            {primeiroNome(nomeAtleta) ? `Zonas de ${primeiroNome(nomeAtleta)}` : 'Zonas do atleta'}
+          </Typography>
+          <ChipsDoCabecalho zones={zones} hoje={hoje} />
+        </Box>
       </AccordionSummary>
       <AccordionDetails>
         <Corpo zones={zones} hoje={hoje} />

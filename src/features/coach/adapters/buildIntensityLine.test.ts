@@ -94,7 +94,8 @@ describe('buildIntensityLineFromEtapa', () => {
 
     it('etapa sem alvo algum devolve null', () => {
         expect(buildIntensityLineFromEtapa(etapa({}), ZONES)).toBeNull();
-        expect(buildIntensityLineFromEtapa(etapa({ alvoPrimario: 'NENHUM', fcAlvoEtapa: '143-150 bpm' }), ZONES)?.primario).toBe('NENHUM');
+        expect(buildIntensityLineFromEtapa(etapa({ alvoPrimario: 'NENHUM', fcAlvoEtapa: '143-150 bpm' }), ZONES))
+            .toEqual({ zona: null, primario: 'NENHUM', paceIndisponivel: false, semMeta: true });
     });
 });
 
