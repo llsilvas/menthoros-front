@@ -6,7 +6,9 @@
  *
  * Fonte: "Politica de Privacidade" (versão de 2 de agosto de 2026), com a descrição da plataforma
  * ajustada em 8 de outubro de 2026 ("corrida de rua e modalidades de endurance" -> "corrida",
- * alinhada ao posicionamento "IA para assessorias de corrida"). Ao alterar o texto, atualize
+ * alinhada ao posicionamento "IA para assessorias de corrida"), e a seção 3.1 ganhou, em 26 de outubro de
+ * 2026, a declaração de transparência de IA e a transferência de treinos ao Garmin (garmin-connection).
+ * Ao alterar o texto, atualize
  * também `POLITICA_ATUALIZADA_EM` e siga o procedimento de bump descrito em `PrivacidadePage.tsx`.
  */
 
@@ -20,10 +22,10 @@ export const CONTATO_EMAIL = 'contato@menthoros.com';
  * carimba a versão no registro de consentimento — se as duas divergirem, o sistema grava que o
  * coach aceitou uma versão diferente da que leu aqui.
  */
-export const POLITICA_VERSAO = '2026-10-08';
+export const POLITICA_VERSAO = '2026-10-26';
 
 /** Mesma data de `POLITICA_VERSAO`, por extenso para exibição. */
-export const POLITICA_ATUALIZADA_EM = '8 de outubro de 2026';
+export const POLITICA_ATUALIZADA_EM = '26 de outubro de 2026';
 
 export interface Tabela {
   /** Rótulo acessível da tabela — vira `aria-label`. */
@@ -128,6 +130,8 @@ export const POLITICA_SECOES: Secao[] = [
           'Tanto a OpenAI quanto a Anthropic não utilizam dados enviados via API para treinar seus modelos. Os dados são processados exclusivamente para gerar a resposta e descartados em até 30 dias (OpenAI) ou imediatamente (Anthropic). Ambos os provedores mantêm certificações de segurança compatíveis com a legislação brasileira (ISO 27001, SOC 2 Type II).',
           'Durante a fase atual de MVP, o processamento por IA utiliza contas de desenvolvedor. A Menthoros se compromete a formalizar Data Processing Agreements (DPAs) com ambos os provedores antes do lançamento comercial, incluindo cláusulas contratuais padrão (SCCs) para transferência internacional conforme o Art. 33 da LGPD.',
           'Sem o consentimento para IA, o Menthoros continua funcionando, mas os planos de treino são gerados manualmente pelo treinador e as análises pós-treino automáticas são desabilitadas.',
+          'Transparência sobre dados do Garmin: os treinos recebidos do Garmin podem ser analisados pela inteligência artificial descrita acima, sempre sob revisão do treinador, para gerar o plano e a análise do próprio atleta. Os dados recebidos do Garmin não são usados para treinar, ajustar ou avaliar modelos de inteligência artificial, e a Menthoros não os retém com essa finalidade.',
+          'Transferência ao Garmin: ao conectar a conta Garmin, o atleta autoriza expressamente que seus treinos sejam transferidos entre a Menthoros e o Garmin — envio de treinos planejados ao relógio e recebimento das atividades realizadas. O atleta pode revogar a autorização a qualquer momento, na tela de Conexões do Menthoros ou na própria conta Garmin. O tratamento pelo Garmin segue a política de privacidade da Garmin (garmin.com/privacy/connect).',
         ],
       },
     ],

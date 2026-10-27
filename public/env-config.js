@@ -4,4 +4,5 @@
 window.__RUNTIME_CONFIG__ = {
   apiBaseUrl: "__RUNTIME_API_URL_PLACEHOLDER__",
   keycloakUrl: "__RUNTIME_KEYCLOAK_URL_PLACEHOLDER__",
+  garminHabilitado: "__RUNTIME_GARMIN_HABILITADO_PLACEHOLDER__",
 };

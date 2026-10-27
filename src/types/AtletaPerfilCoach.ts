@@ -152,6 +152,20 @@ export interface AtletaPerfilCoachDto {
      * em backend anterior ao campo ou quando a consulta falha (`avisos` traz "relogio").
      */
     relogio?: { marca: string; modelo?: string | null } | null;
+    /**
+     * Canal de conexão mais recente (garmin-connection, D7): `ativo=false` é revogada/desconectada;
+     * ausente = nunca conectou ou backend anterior ao campo.
+     */
+    conexaoCanal?: ConexaoCanalDto | null;
+}
+
+/** Plataforma serializada como objeto (FonteDados é `@JsonFormat(OBJECT)`); `value` é a chave. */
+export interface ConexaoCanalDto {
+    plataforma: { value: string; label: string };
+    ativo: boolean;
+    workoutImport: boolean;
+    activityExport: boolean;
+    lastSyncError?: string | null;
 }
 
 /** Treino realizado recente, com feedback do atleta quando registrado (athlete-training-loop, D3). */

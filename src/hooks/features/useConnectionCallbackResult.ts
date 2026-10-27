@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router';
+import type { ConnectionPlataforma } from './useConnection';
 
-const PARAM = 'intervals-icu';
+const PARAMS: Record<ConnectionPlataforma, string> = {
+  INTERVALS_ICU: 'intervals-icu',
+  GARMIN: 'garmin',
+};
 
-export type IntervalsIcuCallbackResult = 'success' | 'error' | null;
+/** `denied` só existe no Garmin: o atleta recusou o consentimento (o callback manda `garmin=denied`). */
+export type ConnectionCallbackResult = 'success' | 'error' | 'denied' | null;
 
 /**
  * Remove um parâmetro do query string que vive **dentro do hash**, preservando a rota.
@@ -31,9 +36,10 @@ function removerParamDoHash(param: string): void {
 }
 
 /**
- * Lê o desfecho do callback OAuth2 do intervals.icu na URL e o consome uma única vez.
+ * Lê o desfecho do callback OAuth2 (intervals.icu ou Garmin) na URL e o consome uma única vez.
  *
- * O backend devolve o atleta a `/#/athlete/profile?intervals-icu=success|error`. O parâmetro vai
+ * O backend devolve o atleta a `/#/athlete/profile?intervals-icu=success|error` ou
+ * `?garmin=success|denied|error`. O parâmetro vai
  * **dentro do hash** de propósito: o app usa `createHashRouter`, então um `?param` antes do `#`
  * seria invisível para o `useSearchParams` — que lê o query string do hash, não o
  * `window.location.search`.
@@ -43,18 +49,20 @@ function removerParamDoHash(param: string): void {
  *
  * @returns o desfecho na primeira renderização após o retorno, `null` nas demais
  */
-export function useIntervalsIcuCallbackResult(): IntervalsIcuCallbackResult {
+export function useConnectionCallbackResult(plataforma: ConnectionPlataforma): ConnectionCallbackResult {
+  const param = PARAMS[plataforma];
   const [searchParams] = useSearchParams();
-  const [resultado, setResultado] = useState<IntervalsIcuCallbackResult>(null);
+  const [resultado, setResultado] = useState<ConnectionCallbackResult>(null);
 
-  const valorNaUrl = searchParams.get(PARAM);
+  const valorNaUrl = searchParams.get(param);
 
   useEffect(() => {
-    if (valorNaUrl !== 'success' && valorNaUrl !== 'error') return;
+    const valido = valorNaUrl === 'success' || valorNaUrl === 'error' || (plataforma === 'GARMIN' && valorNaUrl === 'denied');
+    if (!valido) return;
 
-    setResultado(valorNaUrl);
-    removerParamDoHash(PARAM);
-  }, [valorNaUrl]);
+    setResultado(valorNaUrl as ConnectionCallbackResult);
+    removerParamDoHash(param);
+  }, [valorNaUrl, param, plataforma]);
 
   return resultado;
 }

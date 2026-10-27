@@ -1,23 +1,23 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { IntervalsIcuConnectionCard } from './IntervalsIcuConnectionCard';
-import * as useIntervalsIcuConnectionHook from '../../../hooks/features/useIntervalsIcuConnection';
-import { useIntervalsIcuCallbackResult } from '../../../hooks/features/useIntervalsIcuCallbackResult';
+import { ConnectionCard } from './ConnectionCard';
+import * as useConnectionHook from '../../../hooks/features/useConnection';
+import { useConnectionCallbackResult } from '../../../hooks/features/useConnectionCallbackResult';
 import { useAthleteWatchBrand } from '../hooks/useAthleteWatchBrand';
 
-vi.mock('../../../hooks/features/useIntervalsIcuConnection');
-vi.mock('../../../hooks/features/useIntervalsIcuCallbackResult');
+vi.mock('../../../hooks/features/useConnection');
+vi.mock('../../../hooks/features/useConnectionCallbackResult');
 vi.mock('../hooks/useAthleteWatchBrand');
 
 const mockConnect = vi.fn();
 const mockDisconnect = vi.fn();
 const mockRefresh = vi.fn();
-const mockCallbackResult = vi.mocked(useIntervalsIcuCallbackResult);
+const mockCallbackResult = vi.mocked(useConnectionCallbackResult);
 const mockWatchBrand = vi.mocked(useAthleteWatchBrand);
 
-function stubHook(overrides: Partial<ReturnType<typeof useIntervalsIcuConnectionHook.useIntervalsIcuConnection>> = {}) {
-  vi.mocked(useIntervalsIcuConnectionHook.useIntervalsIcuConnection).mockReturnValue({
+function stubHook(overrides: Partial<ReturnType<typeof useConnectionHook.useConnection>> = {}) {
+  vi.mocked(useConnectionHook.useConnection).mockReturnValue({
     status: null,
     loading: false,
     error: null,
@@ -28,7 +28,7 @@ function stubHook(overrides: Partial<ReturnType<typeof useIntervalsIcuConnection
   });
 }
 
-describe('IntervalsIcuConnectionCard', () => {
+describe('ConnectionCard (intervals.icu)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Sem retorno de callback é o estado normal da tela; os testes do retorno sobrescrevem.
@@ -41,7 +41,7 @@ describe('IntervalsIcuConnectionCard', () => {
   it('desconectado mostra o botão de conectar, sem campo de API key', () => {
     stubHook({ status: { conectado: false } });
 
-    render(<IntervalsIcuConnectionCard />);
+    render(<ConnectionCard plataforma="INTERVALS_ICU" />);
 
     expect(screen.getByRole('button', { name: /conectar com intervals\.icu/i })).toBeEnabled();
     expect(screen.queryByLabelText(/api key/i)).not.toBeInTheDocument();
@@ -53,7 +53,7 @@ describe('IntervalsIcuConnectionCard', () => {
     stubHook({ status: { conectado: false } });
     const user = userEvent.setup();
 
-    render(<IntervalsIcuConnectionCard />);
+    render(<ConnectionCard plataforma="INTERVALS_ICU" />);
 
     await user.click(screen.getByRole('button', { name: /conectar com intervals\.icu/i }));
 
@@ -63,7 +63,7 @@ describe('IntervalsIcuConnectionCard', () => {
   it('desabilita o botão enquanto carrega', () => {
     stubHook({ status: { conectado: false }, loading: true });
 
-    render(<IntervalsIcuConnectionCard />);
+    render(<ConnectionCard plataforma="INTERVALS_ICU" />);
 
     // Carregando, o botão mostra só o spinner (sem nome acessível); o acordeão do guia tem nome.
     expect(screen.getByRole('button', { name: '' })).toBeDisabled();
@@ -72,7 +72,7 @@ describe('IntervalsIcuConnectionCard', () => {
   it('exibe a mensagem de erro do hook em um Alert de erro (nunca texto genérico)', () => {
     stubHook({ status: { conectado: false }, error: 'API key inválida ou expirada' });
 
-    render(<IntervalsIcuConnectionCard />);
+    render(<ConnectionCard plataforma="INTERVALS_ICU" />);
 
     expect(screen.getByText('API key inválida ou expirada')).toBeInTheDocument();
   });
@@ -86,7 +86,7 @@ describe('IntervalsIcuConnectionCard', () => {
       },
     });
 
-    render(<IntervalsIcuConnectionCard />);
+    render(<ConnectionCard plataforma="INTERVALS_ICU" />);
 
     expect(screen.getByText(/i123456/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /desconectar/i })).toBeInTheDocument();
@@ -102,7 +102,7 @@ describe('IntervalsIcuConnectionCard', () => {
       },
     });
 
-    render(<IntervalsIcuConnectionCard />);
+    render(<ConnectionCard plataforma="INTERVALS_ICU" />);
 
     expect(screen.getByText(/Falha ao enviar treino: 401 Unauthorized/)).toBeInTheDocument();
     // A orientação mudou junto com o fluxo: não há mais key para gerar, só reconectar.
@@ -114,7 +114,7 @@ describe('IntervalsIcuConnectionCard', () => {
       mockCallbackResult.mockReturnValue('success');
       stubHook({ status: { conectado: false } });
 
-      render(<IntervalsIcuConnectionCard />);
+      render(<ConnectionCard plataforma="INTERVALS_ICU" />);
 
       expect(screen.getByText(/conta do intervals\.icu conectada/i)).toBeInTheDocument();
       // Sem o refresh, o atleta autorizaria com sucesso e continuaria vendo o botão "Conectar":
@@ -126,7 +126,7 @@ describe('IntervalsIcuConnectionCard', () => {
       mockCallbackResult.mockReturnValue('error');
       stubHook({ status: { conectado: false } });
 
-      render(<IntervalsIcuConnectionCard />);
+      render(<ConnectionCard plataforma="INTERVALS_ICU" />);
 
       expect(screen.getByText(/não foi possível concluir a conexão/i)).toBeInTheDocument();
       expect(mockRefresh).not.toHaveBeenCalled();
@@ -138,7 +138,7 @@ describe('IntervalsIcuConnectionCard', () => {
       mockCallbackResult.mockReturnValue('error');
       stubHook({ status: { conectado: false } });
 
-      render(<IntervalsIcuConnectionCard />);
+      render(<ConnectionCard plataforma="INTERVALS_ICU" />);
 
       const alerta = screen.getByText(/não foi possível concluir a conexão/i);
       expect(alerta.textContent).not.toMatch(/state|token|code|401|500/i);
@@ -148,7 +148,7 @@ describe('IntervalsIcuConnectionCard', () => {
       mockCallbackResult.mockReturnValue(null);
       stubHook({ status: { conectado: false } });
 
-      render(<IntervalsIcuConnectionCard />);
+      render(<ConnectionCard plataforma="INTERVALS_ICU" />);
 
       expect(screen.queryByText(/conta do intervals\.icu conectada/i)).not.toBeInTheDocument();
       expect(screen.queryByText(/não foi possível concluir/i)).not.toBeInTheDocument();
@@ -165,7 +165,7 @@ describe('IntervalsIcuConnectionCard', () => {
       error: 'Erro ao desconectar intervals.icu',
     });
 
-    render(<IntervalsIcuConnectionCard />);
+    render(<ConnectionCard plataforma="INTERVALS_ICU" />);
 
     expect(screen.getByText('Erro ao desconectar intervals.icu')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /desconectar/i })).toBeInTheDocument();
@@ -182,7 +182,7 @@ describe('IntervalsIcuConnectionCard', () => {
     });
     const user = userEvent.setup();
 
-    render(<IntervalsIcuConnectionCard />);
+    render(<ConnectionCard plataforma="INTERVALS_ICU" />);
 
     await user.click(screen.getByRole('button', { name: /desconectar/i }));
     expect(mockDisconnect).not.toHaveBeenCalled();
@@ -196,7 +196,7 @@ describe('IntervalsIcuConnectionCard', () => {
     mockWatchBrand.mockReturnValue({ marca: 'APPLE', modelo: undefined, loading: false, error: null });
     stubHook({ status: { conectado: false } });
 
-    render(<IntervalsIcuConnectionCard />);
+    render(<ConnectionCard plataforma="INTERVALS_ICU" />);
 
     expect(screen.getAllByText('Compatível via app parceiro')[0]).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /conectar com intervals\.icu/i })).toBeEnabled();
@@ -205,7 +205,7 @@ describe('IntervalsIcuConnectionCard', () => {
   it('sem marca no perfil, o guia pede para informar o relógio e a conexão segue disponível', () => {
     stubHook({ status: { conectado: false } });
 
-    render(<IntervalsIcuConnectionCard />);
+    render(<ConnectionCard plataforma="INTERVALS_ICU" />);
 
     expect(screen.getByText(/Informe seu relógio no onboarding/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /conectar com intervals\.icu/i })).toBeEnabled();
