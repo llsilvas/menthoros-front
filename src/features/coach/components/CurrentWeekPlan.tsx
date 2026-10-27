@@ -7,38 +7,19 @@ import type { TreinoPlanejadoDto, TreinoPlanejadoPatch } from '../../../types/Pl
 import { resolveReviewStatus } from '../../../types/PlanoReview';
 import { TreinoEditDialog } from './TreinoEditDialog';
 import { useTreinoPlanejado } from '../../../hooks/useTreinoPlanejado';
-import { surface, semantic } from '../../../theme/tokens';
-import { activeTheme } from '../../../theme/activeTheme';
+import { surface, semantic, primary } from '../../../theme/tokens';
 import { SyncStatusChip } from './SyncStatusChip';
-
-const { primary, trainingStatus: STATUS_COLORS } = activeTheme;
+import { TreinoPlanejadoCard } from './TreinoPlanejadoCard';
+import { estadoDeExecucao } from './treinoPlanejadoEstado';
+import { rotuloDiaComData, tipoTreinoLabel } from './tiposTreino';
+import { duracaoEmMinutos } from '../adapters/duracaoTreino';
+import { indiceDoDia, weekDatesFromInicio } from '../../../utils/semana';
 
 interface CurrentWeekPlanProps {
     plano: PlanoVigenteDto | null;
     onGerarPlano: () => void;
     onRevisarPlano: () => void;
     onTreinoEditado?: () => void;
-}
-
-function parseDuracao(valor: string): string | null {
-    if (!valor) return null;
-    // ISO-8601: PT90M, PT1H30M
-    const iso = valor.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
-    if (iso) {
-        const h = parseInt(iso[1] ?? '0', 10);
-        const m = parseInt(iso[2] ?? '0', 10);
-        const total = h * 60 + m;
-        return total > 0 ? `${total} min` : null;
-    }
-    // Legado HH:MM:SS ou MM:SS (mapper durationToString)
-    const hms = valor.match(/^(?:(\d+):)?(\d{1,2}):(\d{2})$/);
-    if (hms) {
-        const h = parseInt(hms[1] ?? '0', 10);
-        const m = parseInt(hms[2], 10);
-        const total = h * 60 + m;
-        return total > 0 ? `${total} min` : null;
-    }
-    return null;
 }
 
 function toDialogTreino(t: TreinoPlanejadoResumoDto): TreinoPlanejadoDto {
@@ -56,90 +37,58 @@ function toDialogTreino(t: TreinoPlanejadoResumoDto): TreinoPlanejadoDto {
 
 function TreinoCard({
     treino,
+    data,
     isAguardando,
     onEditar,
 }: {
     treino: TreinoPlanejadoResumoDto;
+    /** Data do dia na semana do plano; `undefined` quando o dia não é reconhecido. */
+    data?: Date;
     isAguardando?: boolean;
     onEditar?: () => void;
 }) {
-    const statusColor = STATUS_COLORS[treino.statusExecucao] ?? surface[400];
-    const duracaoDisplay = treino.duracaoMin ? parseDuracao(treino.duracaoMin) : null;
+    const mostraSync = !isAguardando
+        && (treino.statusSincronizacao !== undefined || treino.atletaConectadoIntervalsIcu !== undefined);
 
     return (
-        <Box
-            sx={{
-                p: 1.5,
-                borderRadius: 2,
-                backgroundColor: surface[800],
-                borderLeft: `3px solid ${statusColor}`,
-                minWidth: 0,
-            }}
-        >
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 0.5 }}>
-                <Typography variant="caption" color="text.secondary" noWrap sx={{ flexShrink: 0 }}>
-                    {treino.diaSemana.slice(0, 3)}
-                </Typography>
-                {!isAguardando &&
-                    (treino.statusSincronizacao !== undefined || treino.atletaConectadoIntervalsIcu !== undefined) && (
-                        <SyncStatusChip
-                            statusSincronizacao={treino.statusSincronizacao}
-                            atletaConectado={treino.atletaConectadoIntervalsIcu}
-                        />
-                    )}
-                {isAguardando && treino.id && onEditar && (
-                    <IconButton
-                        size="small"
-                        onClick={onEditar}
-                        aria-label="Editar treino"
-                        sx={{ p: 0.25, color: surface[500], '&:hover': { color: primary[400] } }}
-                    >
-                        <EditOutlinedIcon sx={{ fontSize: 12 }} />
-                    </IconButton>
-                )}
-            </Box>
-
-            <Typography
-                variant="body2"
-                fontWeight={600}
-                sx={{
-                    mt: 0.25,
-                    lineHeight: 1.15,
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                    overflowWrap: 'break-word',
-                }}
-            >
-                {treino.tipoTreino.replace(/_/g, ' ')}
-            </Typography>
-
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                {treino.distanciaKm.toFixed(1)} km{duracaoDisplay ? ` · ${duracaoDisplay}` : ''}
-            </Typography>
-
-            {(treino.zonaAlvo || treino.percepcaoEsforcoEsperada || treino.tssPlanejado != null) && (
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
-                    {[
-                        treino.zonaAlvo,
-                        treino.percepcaoEsforcoEsperada ? `RPE ${treino.percepcaoEsforcoEsperada}` : null,
-                        treino.tssPlanejado != null ? `TSS ${treino.tssPlanejado}` : null,
-                    ]
-                        .filter(Boolean)
-                        .join(' · ')}
-                </Typography>
-            )}
-        </Box>
+        <TreinoPlanejadoCard
+            dia={rotuloDiaComData(treino.diaSemana, data)}
+            tipoTreino={treino.tipoTreino}
+            rotulo={tipoTreinoLabel(treino.tipoTreino)}
+            distanciaKm={treino.distanciaKm}
+            duracaoMin={duracaoEmMinutos(treino.duracaoMin)}
+            rpeEsperado={treino.percepcaoEsforcoEsperada}
+            zonaAlvo={treino.zonaAlvo}
+            tssPlanejado={treino.tssPlanejado}
+            estado={estadoDeExecucao(treino.statusExecucao)}
+            actions={isAguardando && treino.id && onEditar ? (
+                <IconButton
+                    size="small"
+                    onClick={onEditar}
+                    aria-label="Editar treino"
+                    sx={{ p: 0.5, color: surface[400], '&:hover': { color: primary[400] } }}
+                >
+                    <EditOutlinedIcon sx={{ fontSize: 18 }} />
+                </IconButton>
+            ) : undefined}
+            rodape={mostraSync ? (
+                <SyncStatusChip
+                    statusSincronizacao={treino.statusSincronizacao}
+                    atletaConectado={treino.atletaConectadoIntervalsIcu}
+                />
+            ) : undefined}
+        />
     );
 }
 
 function TreinosGrid({
     treinos,
+    semanaInicio,
     isAguardando,
     onEditar,
 }: {
     treinos: TreinoPlanejadoResumoDto[];
+    semanaInicio: string;
     isAguardando?: boolean;
     onEditar?: (t: TreinoPlanejadoResumoDto) => void;
 }) {
@@ -150,14 +99,16 @@ function TreinosGrid({
             </Typography>
         );
     }
+    const datasDaSemana = semanaInicio ? weekDatesFromInicio(semanaInicio) : [];
     return (
         // Sem breakpoint `lg` dedicado (herda 4 colunas do `md`) — um `lg: 12/7` anterior
         // forçava 7 cards/linha (1 por dia da semana) e truncava "CONTÍNUO"/"No intervals.icu".
         <Grid container spacing={1}>
             {treinos.map((t) => (
-                <Grid key={t.id ?? t.diaSemana} size={{ xs: 6, sm: 4, md: 3 }}>
+                <Grid key={t.id ?? t.diaSemana} size={{ xs: 12, sm: 6 }}>
                     <TreinoCard
                         treino={t}
+                        data={indiceDoDia(t.diaSemana) >= 0 ? datasDaSemana[indiceDoDia(t.diaSemana)] : undefined}
                         isAguardando={isAguardando}
                         onEditar={onEditar ? () => onEditar(t) : undefined}
                     />
@@ -221,6 +172,7 @@ export function CurrentWeekPlan({ plano, onGerarPlano, onRevisarPlano, onTreinoE
 
             <TreinosGrid
                 treinos={plano.treinos}
+                semanaInicio={plano.semanaInicio}
                 isAguardando={isAguardando}
                 onEditar={isAguardando ? (t) => setEditingTreino(toDialogTreino(t)) : undefined}
             />
