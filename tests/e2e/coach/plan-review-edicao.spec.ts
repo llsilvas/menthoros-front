@@ -207,17 +207,17 @@ test.describe('revisão do plano — edição de treino', () => {
     await page.getByLabel(/TSS planejado/i).fill('60')
     await page.keyboard.press('Escape')
 
-    await expect(page.getByRole('alert', { name: /descarte/i })).toBeVisible()
-    await expect(page.getByRole('dialog')).toBeVisible()
-    await page.getByRole('button', { name: /continuar editando/i }).click()
-    await expect(page.getByRole('alert', { name: /descarte/i })).toHaveCount(0)
+    const confirmacao = page.getByRole('dialog', { name: /descartar alterações/i })
+    await expect(confirmacao).toBeVisible()
+    await confirmacao.getByRole('button', { name: /voltar a editar/i }).click()
+    await expect(confirmacao).toHaveCount(0)
     await expect(page.getByLabel(/TSS planejado/i)).toHaveValue('60')
 
-    // Volta ao campo antes do Esc: o botão "Continuar editando" desmonta e o foco cai no body, e
+    // Volta ao campo antes do Esc: o botão "Voltar a editar" desmonta e o foco cai no body, e
     // o Esc só fecha o dialog quando o foco está dentro dele — é o que o treinador faz de verdade.
     await page.getByLabel(/TSS planejado/i).focus()
     await page.keyboard.press('Escape')
-    await page.getByRole('button', { name: /^descartar$/i }).click()
+    await page.getByRole('dialog', { name: /descartar alterações/i }).getByRole('button', { name: /^descartar$/i }).click()
     await expect(page.getByRole('dialog')).toHaveCount(0)
     expect(patches).toHaveLength(0)
   })
