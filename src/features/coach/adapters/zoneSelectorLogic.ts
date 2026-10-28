@@ -39,8 +39,20 @@ export interface AvisoEtapa {
         | 'fc-acima-maxima'
         | 'fc-fora-da-faixa-tipica'
         | 'sem-pace-limiar'
-        | 'fc-limiar-estimada';
+        | 'fc-limiar-estimada'
+        | 'descricao-diverge';
     texto: string;
+}
+
+/**
+ * Etapa legada (sem `alvoPrimario` gravado) com valor preenchido ganha o eixo da regra de
+ * pré-preenchimento, marcado como não escolhido — senão o toggle `Relógio` abre sem nada
+ * selecionado e o treinador não sabe o que o relógio vai seguir.
+ */
+export function comEixoPadrao(i: IntensidadeEtapa, tipoEtapa: string): IntensidadeEtapa {
+    if (i.alvoPrimario || (!eixoDisponivel('PACE', i) && !eixoDisponivel('FC', i))) return i;
+    const zona = i.zona && i.zona !== 'PERSONALIZADO' ? i.zona : null;
+    return { ...i, alvoPrimario: eixoPara(defaultAlvoPrimario(tipoEtapa, zona), i), eixoTocado: false };
 }
 
 const MIN_SOBREPOSICAO_FC = 0.5;
@@ -127,10 +139,14 @@ interface ContextoAvisos {
     zones: AthleteTrainingZonesDto | null;
     tipoEtapa: string;
     tipoTreino?: string;
+    /** Texto que o atleta lê: quando cita uma zona ("Corrida contínua Z2"), tem que bater com os valores. */
+    descricao?: string;
 }
 
+const ZONA_NA_DESCRICAO = /\bZ([1-6])\b/i;
+
 /** Avisos informativos do seletor — nunca bloqueiam o salvar. */
-export function avisosDaEtapa(i: IntensidadeEtapa, { zones, tipoEtapa, tipoTreino }: ContextoAvisos): AvisoEtapa[] {
+export function avisosDaEtapa(i: IntensidadeEtapa, { zones, tipoEtapa, tipoTreino, descricao }: ContextoAvisos): AvisoEtapa[] {
     const avisos: AvisoEtapa[] = [];
     const fcTexto = i.fcAlvoEtapa.trim();
     const paceTexto = i.ritmoAlvo.trim();
@@ -184,6 +200,15 @@ export function avisosDaEtapa(i: IntensidadeEtapa, { zones, tipoEtapa, tipoTrein
     }
     if (zonaEscolhida && zones.ancoras.fcLimiarEstimada && !fcTexto) {
         avisos.push({ id: 'fc-limiar-estimada', texto: 'O limiar de FC é estimado: informe a FC à mão ou cadastre o limiar.' });
+    }
+
+    const citada = descricao?.match(ZONA_NA_DESCRICAO)?.[1];
+    const zonaDosValores = zonaPorValor(fcTexto, paceTexto, i.alvoPrimario, zones);
+    if (citada && zonaDosValores && `Z${citada}` !== zonaDosValores) {
+        avisos.push({
+            id: 'descricao-diverge',
+            texto: `A descrição cita Z${citada}, mas os valores caem em ${zonaDosValores} para este atleta. Ajuste um dos dois.`,
+        });
     }
     return avisos;
 }

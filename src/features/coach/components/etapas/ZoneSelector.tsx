@@ -1,7 +1,7 @@
 import { Box, ButtonBase, TextField, Typography } from '@mui/material';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { activeTheme } from '../../../../theme/activeTheme';
-import { content, primary, semantic, surface, text } from '../../../../theme/tokens';
+import { content, primary, semantic, text } from '../../../../theme/tokens';
 import type { AthleteTrainingZonesDto } from '../../../../types/AthleteTrainingZones';
 import type { ZoneKey } from '../../../workout/profile/types';
 import {
@@ -24,6 +24,8 @@ export interface ZoneSelectorProps {
     zones: AthleteTrainingZonesDto | null;
     tipoEtapa: string;
     tipoTreino?: string;
+    /** Descrição para o atleta: só para avisar quando ela cita uma zona diferente dos valores. */
+    descricao?: string;
     disabled?: boolean;
     /** Prefixo estável para os ids de aria (um seletor por etapa). */
     idBase: string;
@@ -60,13 +62,13 @@ const PILL_SX = {
  * a "Personalizado", onde ficam os campos editáveis. Lime só no segmento selecionado do toggle
  * `Relógio:` — em leitura nunca (design D9 V3).
  */
-export function ZoneSelector({ value, zones, tipoEtapa, tipoTreino, disabled, idBase, onChange }: ZoneSelectorProps) {
+export function ZoneSelector({ value, zones, tipoEtapa, tipoTreino, descricao, disabled, idBase, onChange }: ZoneSelectorProps) {
     // Um eixo que veio gravado (ou que o treinador já trocou) não é sobrescrito pelo default da regra.
     const eixoTocado = eixoFoiEscolhido(value);
     const sx = fieldSx(text.secondary);
     const escolher = (eixo: 'PACE' | 'FC') => onChange(escolherEixo(value, eixo));
 
-    const avisos = avisosDaEtapa(value, { zones, tipoEtapa, tipoTreino });
+    const avisos = avisosDaEtapa(value, { zones, tipoEtapa, tipoTreino, descricao });
     const avisoIds = avisos.map((a) => `${idBase}-aviso-${a.id}`).join(' ') || undefined;
     const temPace = value.ritmoAlvo.trim() !== '';
     const temFc = value.fcAlvoEtapa.trim() !== '';
@@ -74,7 +76,7 @@ export function ZoneSelector({ value, zones, tipoEtapa, tipoTreino, disabled, id
     const semPaceLimiar = zones ? !zones.disponibilidade.pace : false;
 
     const dica = (() => {
-        if (!zonaEscolhida || !temPace || !temFc) return null;
+        if (!temPace || !temFc) return null;
         if (eixoTocado) return 'Sua escolha · mantida ao trocar de zona';
         return value.alvoPrimario === 'PACE'
             ? 'Pré-preenchido com pace: a FC leva ~2 min para estabilizar. Troque se preferir.'
@@ -100,11 +102,14 @@ export function ZoneSelector({ value, zones, tipoEtapa, tipoTreino, disabled, id
                                 aria-checked={ativa}
                                 aria-label={z}
                                 disabled={disabled || indisponivel}
+                                title={indisponivel ? 'Z6 precisa do pace de limiar do atleta' : undefined}
                                 onClick={() => onChange(aplicarZona(value, z, zones, tipoEtapa))}
                                 sx={{
                                     ...radioBase,
                                     minHeight: 40,
                                     minWidth: 44,
+                                    // A cor da zona fica à mostra mesmo inativa: o treinador lê a escala sem clicar.
+                                    borderLeft: `3px solid ${activeTheme.zones[z].color}`,
                                     ...(ativa
                                         ? { bgcolor: activeTheme.zones[z].color, color: activeTheme.primary.contrastText, borderColor: activeTheme.zones[z].color }
                                         : {}),
@@ -126,19 +131,13 @@ export function ZoneSelector({ value, zones, tipoEtapa, tipoTreino, disabled, id
                             fontFamily: 'inherit',
                             fontWeight: 600,
                             ...(value.zona === 'PERSONALIZADO'
-                                ? { bgcolor: surface[700], borderColor: text.secondary }
+                                ? { bgcolor: primary[500], borderColor: primary[500], color: activeTheme.primary.contrastText }
                                 : {}),
                         }}
                     >
                         Personalizado
                     </ButtonBase>
                 </Box>
-            )}
-
-            {semPaceLimiar && !zonaEscolhida && (
-                <Typography sx={{ fontSize: '0.75rem', color: text.secondary }}>
-                    Z6 precisa do pace de limiar do atleta.
-                </Typography>
             )}
 
             {zonaEscolhida ? (
@@ -250,7 +249,7 @@ function EixoDoRelogio({ value, temPace, temFc, disabled, onEscolher }: EixoDoRe
     }
     return (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography sx={{ fontSize: '0.75rem', color: text.secondary }}>Relógio:</Typography>
+            <Typography sx={{ fontSize: '0.75rem', color: text.secondary }}>Relógio alerta por:</Typography>
             <Box role="radiogroup" aria-label="Eixo que o relógio controla" sx={{ display: 'flex', gap: 0.5 }}>
                 {([['PACE', 'Pace'], ['FC', 'FC']] as const).map(([eixo, rotulo]) => {
                     const ativo = value.alvoPrimario === eixo;

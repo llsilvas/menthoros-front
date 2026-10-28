@@ -85,12 +85,12 @@ describe('ZoneSelector', () => {
         expect(u.get()).toMatchObject({ zona: 'Z2', alvoPrimario: 'FC', ritmoAlvo: '5:15-5:45/km', fcAlvoEtapa: '143-150 bpm' });
     });
 
-    it('o toggle "Relógio:" tem rótulo visível e troca o eixo num clique', async () => {
+    it('o toggle "Relógio alerta por:" tem rótulo visível e troca o eixo num clique', async () => {
         const u = ultimo();
         render(<Harness onValor={u.set} />);
         await userEvent.click(screen.getByRole('radio', { name: 'Z2' }));
 
-        expect(screen.getByText('Relógio:')).toBeVisible();
+        expect(screen.getByText('Relógio alerta por:')).toBeVisible();
         await userEvent.click(screen.getByRole('radio', { name: 'Pace' }));
 
         expect(u.get().alvoPrimario).toBe('PACE');

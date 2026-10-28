@@ -16,7 +16,7 @@ import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { backgrounds, content, primary, surface } from '../../../../theme/tokens';
+import { backgrounds, content, primary, semantic, surface } from '../../../../theme/tokens';
 import { activeTheme } from '../../../../theme/activeTheme';
 import { Card } from '../../../../shared/components/Card';
 import { GHOST_BTN_SX } from '../../../../shared/components/actionButtonSx';
@@ -25,7 +25,7 @@ import { EYEBROW_SX, fieldSx } from './etapasStyles';
 import { emptyBlock, emptyStep, emptySubStep, type EtapaItem } from './etapaItem';
 import { ZoneSelector } from './ZoneSelector';
 import { StepSummaryRow } from './StepSummaryRow';
-import { zonaDaEtapa, type IntensidadeEtapa } from '../../adapters/zoneSelectorLogic';
+import { comEixoPadrao, zonaDaEtapa, type IntensidadeEtapa } from '../../adapters/zoneSelectorLogic';
 import type { AlvoPrimario, AthleteTrainingZonesDto } from '../../../../types/AthleteTrainingZones';
 import type { ZoneKey } from '../../../workout/profile/types';
 
@@ -78,18 +78,18 @@ type CamposEtapa = {
     eixoTocado?: boolean;
 };
 
-function blocoStateDe(e: CamposEtapa, zones: AthleteTrainingZonesDto | null): BlocoState {
+function blocoStateDe(e: CamposEtapa & { tipoEtapa: string }, zones: AthleteTrainingZonesDto | null): BlocoState {
     return {
         distanciaKm: e.distanciaKm,
         duracaoMin: e.duracaoMin,
-        intensidade: {
+        intensidade: comEixoPadrao({
             // Etapa vinda do backend não traz a zona: reconhece pelos valores contra as zonas do atleta.
             zona: e.zonaEtapa ?? zonaDaEtapa(e.fcAlvoEtapa, e.ritmoAlvo, zones),
             fcAlvoEtapa: e.fcAlvoEtapa,
             ritmoAlvo: e.ritmoAlvo ?? '',
             alvoPrimario: e.alvoPrimario,
             eixoTocado: e.eixoTocado,
-        },
+        }, e.tipoEtapa),
         descricao: e.descricaoEtapa ?? '',
     };
 }
@@ -131,8 +131,10 @@ function ItemActions({ idx, total, disabled, onMover, onRemover, nome = 'etapa' 
                 disabled={disabled || idx === total - 1} onClick={() => onMover(idx, 1)}>
                 <ArrowDownwardIcon sx={{ fontSize: 16 }} />
             </IconButton>
+            {/* Afastado das setas e em cor de erro: remover não é "mover", e não tem desfazer. */}
             <IconButton size="small" aria-label={`Remover ${nome} ${idx + 1}`}
-                disabled={disabled} onClick={() => onRemover(idx)}>
+                disabled={disabled} onClick={() => onRemover(idx)}
+                sx={{ ml: 1, color: semantic.danger[500] }}>
                 <DeleteOutlineIcon sx={{ fontSize: 17 }} />
             </IconButton>
         </Box>
@@ -249,6 +251,7 @@ function BlocoCard({
                         zones={zones}
                         tipoEtapa={tipoEtapa ?? ''}
                         tipoTreino={tipoTreino}
+                        descricao={bloco.descricao}
                         disabled={disabled}
                         onChange={intensidade => onChange({ ...bloco, intensidade })}
                     />
@@ -258,6 +261,7 @@ function BlocoCard({
                         zones={zones}
                         tipoEtapa={tipoEtapa ?? ''}
                         tipoTreino={tipoTreino}
+                        descricao={bloco.descricao}
                         onAbrir={onFocar}
                         rotulo={tipoAriaLabel ?? 'etapa'}
                     />

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
     aplicarZona,
     avisosDaEtapa,
+    comEixoPadrao,
     editarValor,
     eixoFoiEscolhido,
     escolherEixo,
@@ -244,6 +245,39 @@ describe('avisosDaEtapa', () => {
 
     it('etapa sem nada preenchido não gera aviso', () => {
         expect(ids(VAZIA)).toEqual([]);
+    });
+
+    it('descrição que cita uma zona diferente da que os valores caem avisa', () => {
+        // 130-136 bpm e 6:00-6:10/km caem em Z1; a descrição diz Z2
+        const i: IntensidadeEtapa = { zona: 'PERSONALIZADO', fcAlvoEtapa: '130-136 bpm', ritmoAlvo: '6:00-6:10/km', alvoPrimario: 'FC' };
+        const aviso = avisosDaEtapa(i, { zones: ZONES, tipoEtapa: 'PRINCIPAL', descricao: 'Corrida contínua Z2' })
+            .find((a) => a.id === 'descricao-diverge');
+
+        expect(aviso?.texto).toContain('Z2');
+        expect(aviso?.texto).toContain('Z1');
+        expect(avisosDaEtapa(i, { zones: ZONES, tipoEtapa: 'PRINCIPAL', descricao: 'Trote leve Z1' }).map((a) => a.id)).not.toContain('descricao-diverge');
+        expect(avisosDaEtapa(i, { zones: ZONES, tipoEtapa: 'PRINCIPAL', descricao: 'Trote leve' }).map((a) => a.id)).not.toContain('descricao-diverge');
+        expect(avisosDaEtapa(VAZIA, { zones: ZONES, tipoEtapa: 'PRINCIPAL', descricao: 'Corrida Z2' }).map((a) => a.id)).not.toContain('descricao-diverge');
+    });
+});
+
+describe('comEixoPadrao (etapa legada sem eixo gravado)', () => {
+    it('com pace e FC e sem eixo, aplica o default do tipo e marca o eixo como não escolhido', () => {
+        const legada: IntensidadeEtapa = { zona: null, fcAlvoEtapa: '121-126 bpm', ritmoAlvo: '6:45-7:10/km' };
+
+        expect(comEixoPadrao(legada, 'PRINCIPAL')).toMatchObject({ alvoPrimario: 'FC', eixoTocado: false });
+        expect(comEixoPadrao(legada, 'INTERVALADO')).toMatchObject({ alvoPrimario: 'PACE', eixoTocado: false });
+    });
+
+    it('com um só valor, o eixo é o que tem valor', () => {
+        expect(comEixoPadrao({ zona: null, fcAlvoEtapa: '', ritmoAlvo: '6:45-7:10/km' }, 'PRINCIPAL').alvoPrimario).toBe('PACE');
+    });
+
+    it('eixo já gravado ou etapa vazia ficam como estão', () => {
+        const gravada: IntensidadeEtapa = { zona: null, fcAlvoEtapa: '121-126 bpm', ritmoAlvo: '6:45-7:10/km', alvoPrimario: 'PACE' };
+
+        expect(comEixoPadrao(gravada, 'PRINCIPAL')).toBe(gravada);
+        expect(comEixoPadrao(VAZIA, 'PRINCIPAL')).toBe(VAZIA);
     });
 });
 

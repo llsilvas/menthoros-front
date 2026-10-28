@@ -39,7 +39,7 @@ describe('contraste dos textos das zonas (CA17/CA18)', () => {
             />,
         );
 
-        expect(cor(screen.getByText('Relógio:'))).toBe(rgb(text.secondary));
+        expect(cor(screen.getByText('Relógio alerta por:'))).toBe(rgb(text.secondary));
     });
 
     it('rótulos de campo do editor (fieldSx) são text-secondary — não text-muted', () => {
