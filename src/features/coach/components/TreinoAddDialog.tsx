@@ -349,8 +349,10 @@ export function TreinoAddDialog({
                     </Box>
                     <TextField label="Esforço esperado (RPE 1–10)" type="number" value={rpe}
                         onChange={e => setRpe(e.target.value)} disabled={isSaving}
-                        size="small" fullWidth slotProps={{ inputLabel: { shrink: true } }}
-                        placeholder="1–10" inputProps={{ min: 1, max: 10, step: 1 }} sx={FIELD_SX} />
+                        size="small" slotProps={{ inputLabel: { shrink: true } }}
+                        placeholder="1–10" inputProps={{ min: 1, max: 10, step: 1 }}
+                        // largura fixa: com fullWidth o campo tomava a linha inteira e esmagava a zona predominante
+                        sx={{ ...FIELD_SX, flex: '0 0 200px' }} />
                 </Box>
 
                 <TextField label="TSS planejado (opcional)" type="number" value={tss}

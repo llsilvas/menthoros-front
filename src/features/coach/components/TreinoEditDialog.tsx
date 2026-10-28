@@ -540,9 +540,9 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
                             onChange={e => setRpe(e.target.value)}
                             disabled={isSaving}
                             size="small"
-                            fullWidth
                             inputProps={{ min: 1, max: 10, step: 1 }}
-                            sx={footerFieldSx}
+                            // largura fixa: com fullWidth o campo tomava a linha inteira e esmagava a zona predominante
+                            sx={{ ...footerFieldSx, flex: '0 0 200px' }}
                         />
                     </Box>
                     <TextField
