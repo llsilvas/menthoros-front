@@ -136,8 +136,8 @@ describe('TreinoEditDialog', () => {
 
         const select = screen.getByLabelText('Tipo da etapa 1');
         expect(select).toHaveValue('PRINCIPAL');
-        expect(screen.getByRole('option', { name: 'Volta à calma' })).toHaveValue('DESAQUECIMENTO');
-        expect(screen.getByRole('option', { name: 'Tiro / esforço' })).toHaveValue('INTERVALADO');
+        expect(screen.getByRole('option', { name: 'Desaquecimento' })).toHaveValue('DESAQUECIMENTO');
+        expect(screen.getByRole('option', { name: 'Intervalado' })).toHaveValue('INTERVALADO');
     });
 
     it('ritmo e descrição da etapa são editáveis e saem no patch', () => {
