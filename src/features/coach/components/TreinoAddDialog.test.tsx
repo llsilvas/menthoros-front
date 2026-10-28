@@ -1,10 +1,29 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TreinoAddDialog } from './TreinoAddDialog';
+import { semantic } from '../../../theme/tokens';
 import type { TreinoPlanejadoDto, TreinoPlanejadoAddPayload } from '../../../types/PlanoReview';
 import * as useTreinoHook from '../../../hooks/useTreinoPlanejado';
+import { useAthleteTrainingZones } from '../../../hooks/useAthleteTrainingZones';
+import type { AthleteTrainingZonesDto } from '../../../types/AthleteTrainingZones';
 
 vi.mock('../../../hooks/useTreinoPlanejado');
+vi.mock('../../../hooks/useAthleteTrainingZones');
+
+const ZONES: AthleteTrainingZonesDto = {
+    modelo: 'LTHR_FRIEL',
+    ancoras: { paceLimiarMinKm: 5, fcLimiar: 168, fcLimiarEstimada: false },
+    ajusteFadiga: { segundosPorKm: 0 },
+    fcMaxima: { bpm: 185, estimada: false },
+    disponibilidade: { pace: true, fc: true },
+    zonas: [
+        { numero: 2, nome: 'Aeróbico', pace: { minSegKm: 315, maxSegKm: 345 }, fc: { min: 143, max: 150 } },
+    ],
+};
+
+function stubZonas(zones: AthleteTrainingZonesDto | null = null) {
+    vi.mocked(useAthleteTrainingZones).mockReturnValue({ zones, loading: false, error: null, fetchZones: vi.fn() });
+}
 
 const SEMANA_INICIO = '2026-07-01';
 const SEMANA_FIM    = '2026-07-07';
@@ -53,6 +72,7 @@ describe('TreinoAddDialog', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         stubHook();
+        stubZonas();
     });
 
     it('renderiza campos obrigatórios: tipo e data', () => {
@@ -264,7 +284,15 @@ describe('TreinoAddDialog', () => {
         expect(screen.getByText('Bruno Dias')).toBeInTheDocument();
     });
 
-    it('zona e RPE do treino vão no payload mesmo com etapas (antes sumiam)', async () => {
+    it('com as zonas do atleta carregadas, a tabela aparece no dialog de adicionar', () => {
+        stubZonas(ZONES);
+        renderDialog();
+
+        expect(screen.getByRole('button', { name: /zonas do atleta/i })).toBeInTheDocument();
+    });
+
+    it('valores digitados à mão dentro de uma zona dão a zona predominante e vão no payload', async () => {
+        stubZonas(ZONES);
         mockAdicionarTreino.mockResolvedValue({ id: 'n', diaSemana: 'TERCA', tipoTreino: 'CONTINUO', distanciaKm: 0 });
         renderDialog({ treinosExistentes: [] });
 
@@ -273,16 +301,59 @@ describe('TreinoAddDialog', () => {
         fireEvent.click(screen.getByRole('button', { name: /^etapa$/i }));
         fireEvent.change(screen.getByLabelText('Tipo da etapa 1'), { target: { value: 'PRINCIPAL' } });
         fireEvent.change(screen.getByLabelText('Duração (min)'), { target: { value: '40' } });
-        fireEvent.change(screen.getByLabelText(/zona predominante/i), { target: { value: 'Z2' } });
+        fireEvent.change(screen.getByLabelText('FC alvo (bpm)'), { target: { value: '144-148 bpm' } });
+
+        expect(screen.getByTestId('zona-predominante')).toHaveTextContent('Z2');
+        fireEvent.click(screen.getByRole('button', { name: /salvar treino/i }));
+        await waitFor(() => {
+            const payload: TreinoPlanejadoAddPayload = mockAdicionarTreino.mock.calls[0][1];
+            expect(payload.zonaAlvo).toBe('Z2');
+        });
+    });
+
+    it('RPE vai no payload mesmo com etapas; zona predominante não é digitável nem sai sem zona derivável', async () => {
+        mockAdicionarTreino.mockResolvedValue({ id: 'n', diaSemana: 'TERCA', tipoTreino: 'CONTINUO', distanciaKm: 0 });
+        renderDialog({ treinosExistentes: [] });
+
+        fireEvent.change(screen.getByLabelText(/tipo de treino/i), { target: { value: 'CONTINUO' } });
+        fireEvent.change(screen.getByLabelText(/data do treino/i), { target: { value: '2026-07-03' } });
+        fireEvent.click(screen.getByRole('button', { name: /^etapa$/i }));
+        fireEvent.change(screen.getByLabelText('Tipo da etapa 1'), { target: { value: 'PRINCIPAL' } });
+        fireEvent.change(screen.getByLabelText('Duração (min)'), { target: { value: '40' } });
         fireEvent.change(screen.getByLabelText(/esforço esperado/i), { target: { value: '5' } });
+        expect(screen.queryByRole('textbox', { name: /zona predominante/i })).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: /salvar treino/i }));
+
+        await waitFor(() => {
+            const payload: TreinoPlanejadoAddPayload = mockAdicionarTreino.mock.calls[0][1];
+            expect(payload.zonaAlvo).toBeUndefined();
+            expect(payload.percepcaoEsforcoEsperada).toBe(5);
+            expect(payload.duracaoMin).toBe(40);
+            expect(payload.etapas).toHaveLength(1);
+        });
+    });
+
+    it('zona escolhida no seletor preenche os valores do atleta e vira a zona do treino no payload', async () => {
+        stubZonas(ZONES);
+        mockAdicionarTreino.mockResolvedValue({ id: 'n', diaSemana: 'TERCA', tipoTreino: 'CONTINUO', distanciaKm: 0 });
+        renderDialog({ treinosExistentes: [] });
+
+        fireEvent.change(screen.getByLabelText(/tipo de treino/i), { target: { value: 'CONTINUO' } });
+        fireEvent.change(screen.getByLabelText(/data do treino/i), { target: { value: '2026-07-03' } });
+        fireEvent.click(screen.getByRole('button', { name: /^etapa$/i }));
+        fireEvent.change(screen.getByLabelText('Tipo da etapa 1'), { target: { value: 'PRINCIPAL' } });
+        fireEvent.change(screen.getByLabelText('Duração (min)'), { target: { value: '40' } });
+        fireEvent.click(screen.getByRole('radio', { name: 'Z2' }));
         fireEvent.click(screen.getByRole('button', { name: /salvar treino/i }));
 
         await waitFor(() => {
             const payload: TreinoPlanejadoAddPayload = mockAdicionarTreino.mock.calls[0][1];
             expect(payload.zonaAlvo).toBe('Z2');
-            expect(payload.percepcaoEsforcoEsperada).toBe(5);
-            expect(payload.duracaoMin).toBe(40);
-            expect(payload.etapas).toHaveLength(1);
+            expect(payload.etapas![0]).toMatchObject({
+                ritmoAlvo: '5:15-5:45/km',
+                fcAlvoEtapa: '143-150 bpm',
+                alvoPrimario: 'FC',
+            });
         });
     });
 
@@ -296,16 +367,15 @@ describe('TreinoAddDialog', () => {
         expect(screen.queryByPlaceholderText('0.0')).not.toBeInTheDocument();
     });
 
-    it('ritmo e descrição ficam em "Mais detalhes": fechados numa etapa nova, abrem ao clicar', () => {
+    it('descrição fica em "Mais detalhes"; ritmo e FC ficam na seção de intensidade da etapa em foco', () => {
         renderDialog({ treinosExistentes: [] });
 
         fireEvent.click(screen.getByRole('button', { name: /^etapa$/i }));
-        expect(screen.queryByLabelText('Ritmo')).not.toBeInTheDocument();
+        expect(screen.getByLabelText('Pace alvo')).toBeInTheDocument();
         expect(screen.queryByLabelText('Descrição para o atleta')).not.toBeInTheDocument();
 
         fireEvent.click(screen.getByRole('button', { name: /mais detalhes/i }));
 
-        expect(screen.getByLabelText('Ritmo')).toBeInTheDocument();
         expect(screen.getByLabelText('Descrição para o atleta')).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /mais detalhes/i })).not.toBeInTheDocument();
     });
@@ -318,8 +388,8 @@ describe('TreinoAddDialog', () => {
         fireEvent.change(screen.getByLabelText(/data do treino/i), { target: { value: '2026-07-03' } });
         fireEvent.click(screen.getByRole('button', { name: /^etapa$/i }));
         fireEvent.change(screen.getByLabelText('Tipo da etapa 1'), { target: { value: 'PRINCIPAL' } });
+        fireEvent.change(screen.getByLabelText('Pace alvo'), { target: { value: '5:30/km' } });
         fireEvent.click(screen.getByRole('button', { name: /mais detalhes/i }));
-        fireEvent.change(screen.getByLabelText('Ritmo'), { target: { value: '5:30/km' } });
         fireEvent.change(screen.getByLabelText('Descrição para o atleta'), { target: { value: 'Leve, conversando' } });
         fireEvent.click(screen.getByRole('button', { name: /salvar treino/i }));
 
@@ -329,7 +399,7 @@ describe('TreinoAddDialog', () => {
         });
     });
 
-    it('fechar com alterações pede confirmação; sem alterações fecha direto', () => {
+    it('fechar com alterações pede confirmação; sem alterações fecha direto', async () => {
         const { onClose } = renderDialog();
 
         fireEvent.click(screen.getByRole('button', { name: /cancelar/i }));
@@ -338,10 +408,11 @@ describe('TreinoAddDialog', () => {
         fireEvent.change(screen.getByLabelText(/tipo de treino/i), { target: { value: 'CONTINUO' } });
         fireEvent.click(screen.getByRole('button', { name: /cancelar/i }));
         expect(onClose).toHaveBeenCalledOnce();
-        expect(screen.getByRole('alert', { name: /descarte/i })).toBeInTheDocument();
+        const confirmacao = screen.getByRole('dialog', { name: /descartar alterações/i });
+        expect(within(confirmacao).getByRole('button', { name: /^descartar$/i })).toHaveStyle({ backgroundColor: semantic.danger[500] });
 
-        fireEvent.click(screen.getByRole('button', { name: /continuar editando/i }));
-        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+        fireEvent.click(within(confirmacao).getByRole('button', { name: /voltar a editar/i }));
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: /descartar alterações/i })).not.toBeInTheDocument());
 
         fireEvent.click(screen.getByRole('button', { name: /cancelar/i }));
         fireEvent.click(screen.getByRole('button', { name: /^descartar$/i }));

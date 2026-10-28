@@ -18,7 +18,7 @@ export type BlockKind =
   | 'steady'     // bloco contínuo do corpo principal
   | 'cooldown';
 
-export type ZoneKey = 'Z1' | 'Z2' | 'Z3' | 'Z4' | 'Z5';
+export type ZoneKey = 'Z1' | 'Z2' | 'Z3' | 'Z4' | 'Z5' | 'Z6';
 
 /**
  * Alvo prescrito. União discriminada — cada esporte prescreve na sua moeda, e o

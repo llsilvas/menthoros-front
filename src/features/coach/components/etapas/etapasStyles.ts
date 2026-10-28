@@ -27,7 +27,7 @@ export function fieldSx(accent: string) {
             '&:hover fieldset': { borderColor: overlayWhite[22] },
             '&.Mui-focused fieldset': { borderColor: accent },
         },
-        '& .MuiInputLabel-root': { fontSize: '0.75rem', color: surface[500] },
+        '& .MuiInputLabel-root': { fontSize: '0.75rem', color: surface[400] },
         '& .MuiInputLabel-root.Mui-focused': { color: accent },
         '& select': { fontSize: '0.8125rem', color: surface[100], bgcolor: 'transparent' },
         '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button': {

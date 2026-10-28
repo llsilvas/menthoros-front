@@ -30,9 +30,9 @@ export const TIPOS_ETAPA = ['AQUECIMENTO', 'PRINCIPAL', 'INTERVALADO', 'RECUPERA
 export const TIPO_ETAPA_LABEL: Record<(typeof TIPOS_ETAPA)[number], string> = {
     AQUECIMENTO:    'Aquecimento',
     PRINCIPAL:      'Principal',
-    INTERVALADO:    'Tiro / esforço',
+    INTERVALADO:    'Intervalado',
     RECUPERACAO:    'Recuperação',
-    DESAQUECIMENTO: 'Volta à calma',
+    DESAQUECIMENTO: 'Desaquecimento',
 };
 
 export function tipoEtapaLabel(tipo: string | undefined): string {

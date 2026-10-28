@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { TreinoPlanejadoCard } from './TreinoPlanejadoCard';
 import { estadoDeExecucao } from './treinoPlanejadoEstado';
+import { primary } from '../../../theme/tokens';
 
 function renderCard(props: Partial<React.ComponentProps<typeof TreinoPlanejadoCard>> = {}) {
     return render(
@@ -123,5 +124,62 @@ describe('estadoDeExecucao', () => {
 
         expect(e.rotulo).toBe(rotulo);
         expect(e.cor !== null).toBe(comCor);
+    });
+
+    describe('linha de intensidade (zonas do atleta)', () => {
+        it('mostra Zn · pace · FC, nessa ordem, com o eixo primário em peso 600', () => {
+            renderCard({
+                intensidade: { zona: 'Z2', pace: '5:15–5:45', fc: '143–150 bpm', primario: 'FC', paceIndisponivel: false },
+            });
+
+            const linha = screen.getByTestId('linha-intensidade');
+            expect(linha).toHaveTextContent('Z2');
+            expect(linha.textContent).toMatch(/Z2.*5:15–5:45.*143–150 bpm/);
+            expect(screen.getByText('143–150 bpm')).toHaveStyle({ fontWeight: 600 });
+            expect(screen.getByText('5:15–5:45')).not.toHaveStyle({ fontWeight: 600 });
+        });
+
+        it('alvo personalizado não tem chip de zona', () => {
+            renderCard({
+                intensidade: { zona: null, pace: '5:20–5:40', primario: 'PACE', paceIndisponivel: false },
+            });
+
+            expect(screen.queryByTestId('chip-zona')).not.toBeInTheDocument();
+            expect(screen.getByText('5:20–5:40')).toBeInTheDocument();
+        });
+
+        it('pace indisponível é dito, sem inventar número', () => {
+            renderCard({
+                intensidade: { zona: 'Z2', fc: '143–150 bpm', primario: 'FC', paceIndisponivel: true },
+            });
+
+            expect(screen.getByText(/pace indisponível/i)).toBeInTheDocument();
+        });
+
+        it('etapa sem objetivo mostra "sem meta" e nenhum valor', () => {
+            renderCard({ intensidade: { zona: null, primario: 'NENHUM', paceIndisponivel: false, semMeta: true } });
+
+            expect(screen.getByTestId('linha-intensidade')).toHaveTextContent('sem meta');
+            expect(screen.queryByTestId('chip-zona')).not.toBeInTheDocument();
+        });
+
+        it('substitui a linha de zona em texto livre', () => {
+            renderCard({
+                zonaAlvo: 'Z2-Z3',
+                intensidade: { zona: 'Z2', pace: '5:15–5:45', primario: 'PACE', paceIndisponivel: false },
+            });
+
+            expect(screen.queryByText('Z2-Z3')).not.toBeInTheDocument();
+        });
+
+        it('não usa lime (primary-500) na leitura', () => {
+            renderCard({
+                intensidade: { zona: 'Z2', pace: '5:15–5:45', fc: '143–150 bpm', primario: 'PACE', paceIndisponivel: false },
+            });
+
+            for (const valor of ['5:15–5:45', '143–150 bpm']) {
+                expect(screen.getByText(valor)).not.toHaveStyle({ color: primary[500] });
+            }
+        });
     });
 });

@@ -126,13 +126,14 @@ export const zone = {
   Z3: semantic.info,    // #3B82F6
   Z4: semantic.warning, // #F59E0B
   Z5: semantic.danger,  // #EF4444
+  Z6: categorical.magenta, // sprint (só pace) — token `zone-6`, luminosidade distinta de Z5
 } as const;
 
 // Rótulos das cinco zonas. Vivem aqui, e não em `activeTheme`, porque dois
 // grupos de cor os consomem (`zones` e `workoutZone`) — declarar em cada um
 // criaria duas listas que divergem no dia em que alguém renomear uma zona.
 export const zoneLabel = {
-  Z1: 'Recuperação', Z2: 'Base', Z3: 'Tempo', Z4: 'Limiar', Z5: 'VO₂ Máx',
+  Z1: 'Recuperação', Z2: 'Base', Z3: 'Tempo', Z4: 'Limiar', Z5: 'VO₂ Máx', Z6: 'Sprint',
 } as const;
 
 // ── WorkoutZone — rampa do perfil de treino (frio → quente) ──────────────────
@@ -150,6 +151,7 @@ export const workoutZone = {
   Z3: '#FACC15', // yellow
   Z4: '#F97316', // orange
   Z5: '#EF4444', // red    — mantém o hex de `zone.Z5`
+  Z6: categorical.magenta, // sprint — mantém o hex de `zone.Z6`
 } as const;
 
 export const workoutZoneLabel = zoneLabel;

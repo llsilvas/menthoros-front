@@ -10,15 +10,18 @@ import {
     TextField,
     Typography,
 } from '@mui/material';
-import { alpha } from '@mui/material/styles';
 import { primary, surface, semantic } from '../../../theme/tokens';
 import { activeTheme } from '../../../theme/activeTheme';
 import { useTreinoPlanejado } from '../../../hooks/useTreinoPlanejado';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
+import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { GHOST_BTN_SX, PRIMARY_BTN_SX } from '../../../shared/components/actionButtonSx';
 import type { TreinoPlanejadoDto, TreinoPlanejadoAddPayload } from '../../../types/PlanoReview';
 import { serializarItens, totaisDeItens, type EtapaItem } from './etapas/etapaItem';
 import { EtapasEditor } from './etapas/EtapasEditor';
+import { detalheDaZonaPredominante, minutosNaZonaAlvo, zonaPredominante } from '../adapters/zonaPredominante';
+import { useAthleteTrainingZones } from '../../../hooks/useAthleteTrainingZones';
+import { AthleteZonesTable } from './AthleteZonesTable';
 import { EYEBROW_SX, fieldSx } from './etapas/etapasStyles';
 import { TIPOS_TREINO } from './tiposTreino';
 import { WorkoutProfile, selectWorkoutProfile, fromEtapaItens } from '../../workout/profile';
@@ -64,6 +67,8 @@ export interface TreinoAddDialogProps {
      * data salva, não a de origem.
      */
     dataInicial?: string;
+    /** Atleta do plano: habilita o seletor de zona por etapa. */
+    atletaId?: string;
     onClose: () => void;
     onSaved: (treino: TreinoPlanejadoDto) => void;
 }
@@ -75,8 +80,9 @@ const FIELD_SX = fieldSx(primary[500]);
 // ── Dialog ────────────────────────────────────────────────────────────────────
 
 export function TreinoAddDialog({
-    open, planoId, semanaInicio, semanaFim, treinosExistentes, contexto, dataInicial, onClose, onSaved,
+    open, planoId, semanaInicio, semanaFim, treinosExistentes, contexto, dataInicial, atletaId, onClose, onSaved,
 }: TreinoAddDialogProps) {
+    const { zones, loading: zonesLoading, error: zonesError } = useAthleteTrainingZones(atletaId);
     const [tipoTreino,  setTipoTreino]  = useState('');
     const [dataTreino,  setDataTreino]  = useState(dataInicial ?? '');
     const [observacoes, setObservacoes] = useState('');
@@ -85,7 +91,6 @@ export function TreinoAddDialog({
     // da soma delas (e o campo some, para não haver dois números disputando).
     const [distancia,   setDistancia]   = useState('');
     const [duracao,     setDuracao]     = useState('');
-    const [zona,        setZona]        = useState('');
     const [rpe,         setRpe]         = useState('');
     const [itens,       setItens]       = useState<EtapaItem[]>([]);
     const [apiError,    setApiError]    = useState<string | null>(null);
@@ -114,17 +119,17 @@ export function TreinoAddDialog({
     // O gráfico desenha o que o coach está montando (estado vivo, não o salvo) — mesmo critério do
     // editor de treino.
     const profile = useMemo(
-        () => selectWorkoutProfile(fromEtapaItens(itens), {
+        () => selectWorkoutProfile(fromEtapaItens(itens, zones), {
             sport: 'run',
             tss: tss ? parseInt(tss, 10) || null : null,
-            zonaAlvoTreino: zona || null,
         }),
-        [itens, tss, zona],
+        [itens, tss, zones],
     );
+    const predominante = useMemo(() => zonaPredominante(profile.blocks), [profile]);
 
     const temAlteracoes =
         tipoTreino !== '' || dataTreino !== (dataInicial ?? '') || observacoes !== '' || tss !== ''
-        || distancia !== '' || duracao !== '' || zona !== '' || rpe !== '' || itens.length > 0;
+        || distancia !== '' || duracao !== '' || rpe !== '' || itens.length > 0;
 
     // CA3c: aplicar a data a CADA abertura. O dialog fica montado entre aberturas e o `resetForm`
     // limpa o campo ao fechar — só inicializar o useState daria a data da 1ª abertura para sempre.
@@ -134,7 +139,7 @@ export function TreinoAddDialog({
 
     const resetForm = () => {
         setTipoTreino(''); setDataTreino(''); setObservacoes(''); setTss('');
-        setDistancia(''); setDuracao(''); setZona(''); setRpe('');
+        setDistancia(''); setDuracao(''); setRpe('');
         setItens([]); setApiError(null); setConfirmarDescarte(false);
     };
 
@@ -160,9 +165,10 @@ export function TreinoAddDialog({
             if (duracao)   { const v = parseInt(duracao, 10);    if (!isNaN(v)) payload.duracaoMin  = v; }
             if (distancia) { const v = parseFloat(distancia);    if (!isNaN(v)) payload.distanciaKm = v; }
         }
-        // Zona e esforço são do treino e valem com ou sem etapas — antes sumiam do payload assim que
-        // a primeira etapa era criada, mesmo preenchidos.
-        if (zona) payload.zonaAlvo = zona;
+        // A zona do treino é derivada das etapas, não digitada: sem zona derivável o campo fica de fora.
+        // O esforço é do treino e vale com ou sem etapas — antes sumia do payload assim que a primeira
+        // etapa era criada, mesmo preenchido.
+        if (predominante) payload.zonaAlvo = predominante.zona;
         if (rpe)  { const v = parseInt(rpe, 10); if (!isNaN(v)) payload.percepcaoEsforcoEsperada = v; }
 
         if (observacoes) payload.observacoes  = observacoes;
@@ -193,6 +199,9 @@ export function TreinoAddDialog({
                 <Box component="span" sx={EYEBROW_SX}>Total</Box>
                 {totais.km > 0 && <span>{totais.km} km</span>}
                 {totais.min > 0 && <span>{totais.min} min</span>}
+                {predominante && (
+                    <span data-testid="total-na-zona-alvo">{minutosNaZonaAlvo(predominante)} min {predominante.zona}</span>
+                )}
             </Box>
         ) : null
     ) : (
@@ -230,25 +239,18 @@ export function TreinoAddDialog({
                 </>
             }
         >
-            {confirmarDescarte && (
-                <Box
-                    role="alert"
-                    aria-label="Confirmar descarte das alterações"
-                    sx={{ border: `1px solid ${alpha(primary[500], 0.4)}`, borderRadius: '8px', p: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}
-                >
-                    <Box sx={{ fontSize: '0.82rem', color: surface[200] }}>
-                        Há alterações não salvas neste treino. Descartar?
-                    </Box>
-                    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-                        <Button size="small" sx={GHOST_BTN_SX} onClick={() => setConfirmarDescarte(false)}>
-                            Continuar editando
-                        </Button>
-                        <Button size="small" sx={PRIMARY_BTN_SX} onClick={fechar}>
-                            Descartar
-                        </Button>
-                    </Box>
-                </Box>
-            )}
+            {/* Modal próprio, não aviso inline: o clique vem do rodapé e o aviso no topo do conteúdo
+                ficava fora da tela; e o botão destrutivo não pode ter a cor de Salvar. */}
+            <ConfirmDialog
+                open={confirmarDescarte}
+                title="Descartar alterações?"
+                message="As mudanças neste treino não foram salvas e serão perdidas."
+                confirmLabel="Descartar"
+                cancelLabel="Voltar a editar"
+                severity="danger"
+                onClose={() => setConfirmarDescarte(false)}
+                onConfirm={fechar}
+            />
 
             {/* ── Tipo + Data ─────────────────────────────────────────── */}
             <Box sx={{ display: 'flex', gap: 1.5 }}>
@@ -285,6 +287,11 @@ export function TreinoAddDialog({
                 </Alert>
             )}
 
+            {/* ── Zonas do atleta ─────────────────────────────────────── */}
+            {(zonesLoading || zonesError || zones) && (
+                <AthleteZonesTable zones={zones} loading={zonesLoading} error={zonesError} nomeAtleta={contexto} />
+            )}
+
             {/* ── Etapas (opcional) ───────────────────────────────────── */}
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 <Typography sx={EYEBROW_SX}>Etapas do treino (opcional)</Typography>
@@ -299,6 +306,8 @@ export function TreinoAddDialog({
                     onChange={fn => setItens(fn)}
                     disabled={isSaving}
                     vazio="Nenhuma etapa ainda."
+                    zones={zones}
+                    tipoTreino={tipoTreino}
                 />
             </Box>
 
@@ -320,15 +329,23 @@ export function TreinoAddDialog({
                 )}
 
                 <Box sx={{ display: 'flex', gap: 1.25 }}>
-                    <TextField label="Zona predominante" value={zona}
-                        onChange={e => setZona(e.target.value)} disabled={isSaving}
-                        size="small" fullWidth slotProps={{ inputLabel: { shrink: true } }}
-                        placeholder="ex: Z2"
-                        helperText="Resumo mostrado no card do plano" sx={FIELD_SX} />
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography sx={{ fontSize: '0.75rem', color: surface[400] }}>Zona predominante</Typography>
+                        <Typography data-testid="zona-predominante" sx={{ fontFamily: activeTheme.font.mono, fontWeight: 600, color: surface[50] }}>
+                            {predominante?.zona ?? '—'}
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.6875rem', color: surface[400] }}>
+                            {predominante
+                                ? `Derivada das etapas (${detalheDaZonaPredominante(predominante)}) — resumo mostrado no card do plano`
+                                : 'Escolha a zona das etapas para derivar a zona predominante'}
+                        </Typography>
+                    </Box>
                     <TextField label="Esforço esperado (RPE 1–10)" type="number" value={rpe}
                         onChange={e => setRpe(e.target.value)} disabled={isSaving}
-                        size="small" fullWidth slotProps={{ inputLabel: { shrink: true } }}
-                        placeholder="1–10" inputProps={{ min: 1, max: 10, step: 1 }} sx={FIELD_SX} />
+                        size="small" slotProps={{ inputLabel: { shrink: true } }}
+                        placeholder="1–10" inputProps={{ min: 1, max: 10, step: 1 }}
+                        // largura fixa: com fullWidth o campo tomava a linha inteira e esmagava a zona predominante
+                        sx={{ ...FIELD_SX, flex: '0 0 200px' }} />
                 </Box>
 
                 <TextField label="TSS planejado (opcional)" type="number" value={tss}

@@ -281,3 +281,69 @@ describe('etapaItem — a descrição sobrevive ao round-trip', () => {
         expect(payload[0].descricaoEtapa).toBeUndefined();
     });
 });
+
+describe('etapaItem — o eixo do relógio (alvoPrimario) sobrevive ao round-trip', () => {
+    it('hidrata alvoPrimario da etapa e o devolve no payload', () => {
+        const itens = itensFromEtapas([
+            { ordem: 1, tipoEtapa: 'INTERVALADO', duracaoMin: 4, fcAlvoEtapa: '168-178 bpm', ritmoAlvo: '4:30-4:45/km', alvoPrimario: 'PACE' },
+        ]);
+
+        const passo = itens[0];
+        expect(passo.kind === 'step' && passo.alvoPrimario).toBe('PACE');
+        expect(serializarItens(itens)[0]).toMatchObject({
+            fcAlvoEtapa: '168-178 bpm',
+            ritmoAlvo: '4:30-4:45/km',
+            alvoPrimario: 'PACE',
+        });
+    });
+
+    it('etapa legada sem alvoPrimario continua sem — o backend segue derivando', () => {
+        const payload = serializarItens(itensFromEtapas([{ ordem: 1, tipoEtapa: 'PRINCIPAL', duracaoMin: 30, fcAlvoEtapa: '140-150 bpm' }]));
+
+        expect(payload[0].alvoPrimario).toBeUndefined();
+    });
+
+    it('NENHUM explícito sobrevive mesmo com texto nos campos', () => {
+        const payload = serializarItens(itensFromEtapas([
+            { ordem: 1, tipoEtapa: 'PRINCIPAL', duracaoMin: 30, fcAlvoEtapa: 'trote leve', alvoPrimario: 'NENHUM' },
+        ]));
+
+        expect(payload[0]).toMatchObject({ fcAlvoEtapa: 'trote leve', alvoPrimario: 'NENHUM' });
+    });
+
+    it('sub-etapas de bloco levam o eixo cada uma', () => {
+        const etapas: EtapaTreinoDto[] = [0, 1, 2].flatMap((i) => [
+            { ordem: i * 2 + 1, tipoEtapa: 'INTERVALADO', duracaoMin: 3, ritmoAlvo: '4:00-4:10/km', alvoPrimario: 'PACE' as const, blocoId: 'b', blocoRepeticoes: 3 },
+            { ordem: i * 2 + 2, tipoEtapa: 'RECUPERACAO', duracaoMin: 2, fcAlvoEtapa: '120-136 bpm', alvoPrimario: 'FC' as const, blocoId: 'b', blocoRepeticoes: 3 },
+        ]);
+
+        const bloco = serializarItens(itensFromEtapas(etapas))[0];
+
+        expect(bloco.subEtapas?.map((s) => s.alvoPrimario)).toEqual(['PACE', 'FC']);
+    });
+
+    it('etapas iguais com eixos diferentes não viram repetição (assinatura inclui alvoPrimario)', () => {
+        const base = { tipoEtapa: 'INTERVALADO', duracaoMin: 1, fcAlvoEtapa: '150-160 bpm', ritmoAlvo: '4:30-4:45/km' };
+        const recup = { tipoEtapa: 'RECUPERACAO', duracaoMin: 2 };
+        const itens = itensFromEtapas([
+            { ordem: 1, ...base, alvoPrimario: 'PACE' },
+            { ordem: 2, ...recup },
+            { ordem: 3, ...base, alvoPrimario: 'FC' },
+            { ordem: 4, ...recup },
+        ]);
+
+        expect(itens.every((i) => i.kind === 'step')).toBe(true);
+        expect(itens).toHaveLength(4);
+    });
+
+    it('etapas idênticas com o mesmo eixo continuam agrupando em série', () => {
+        const base = { tipoEtapa: 'INTERVALADO', duracaoMin: 1, ritmoAlvo: '4:30-4:45/km', alvoPrimario: 'PACE' as const };
+        const recup = { tipoEtapa: 'RECUPERACAO', duracaoMin: 2 };
+        const itens = itensFromEtapas([
+            { ordem: 1, ...base }, { ordem: 2, ...recup }, { ordem: 3, ...base }, { ordem: 4, ...recup },
+        ]);
+
+        expect(itens).toHaveLength(1);
+        expect(itens[0].kind).toBe('block');
+    });
+});
