@@ -1,6 +1,7 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TreinoAddDialog } from './TreinoAddDialog';
+import { semantic } from '../../../theme/tokens';
 import type { TreinoPlanejadoDto, TreinoPlanejadoAddPayload } from '../../../types/PlanoReview';
 import * as useTreinoHook from '../../../hooks/useTreinoPlanejado';
 import { useAthleteTrainingZones } from '../../../hooks/useAthleteTrainingZones';
@@ -398,7 +399,7 @@ describe('TreinoAddDialog', () => {
         });
     });
 
-    it('fechar com alterações pede confirmação; sem alterações fecha direto', () => {
+    it('fechar com alterações pede confirmação; sem alterações fecha direto', async () => {
         const { onClose } = renderDialog();
 
         fireEvent.click(screen.getByRole('button', { name: /cancelar/i }));
@@ -407,10 +408,11 @@ describe('TreinoAddDialog', () => {
         fireEvent.change(screen.getByLabelText(/tipo de treino/i), { target: { value: 'CONTINUO' } });
         fireEvent.click(screen.getByRole('button', { name: /cancelar/i }));
         expect(onClose).toHaveBeenCalledOnce();
-        expect(screen.getByRole('alert', { name: /descarte/i })).toBeInTheDocument();
+        const confirmacao = screen.getByRole('dialog', { name: /descartar alterações/i });
+        expect(within(confirmacao).getByRole('button', { name: /^descartar$/i })).toHaveStyle({ backgroundColor: semantic.danger[500] });
 
-        fireEvent.click(screen.getByRole('button', { name: /continuar editando/i }));
-        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+        fireEvent.click(within(confirmacao).getByRole('button', { name: /voltar a editar/i }));
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: /descartar alterações/i })).not.toBeInTheDocument());
 
         fireEvent.click(screen.getByRole('button', { name: /cancelar/i }));
         fireEvent.click(screen.getByRole('button', { name: /^descartar$/i }));

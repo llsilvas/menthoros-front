@@ -1,6 +1,7 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TreinoEditDialog } from './TreinoEditDialog';
+import { semantic } from '../../../theme/tokens';
 import type { TreinoPlanejadoDto, TreinoPlanejadoPatch, EtapaTreinoDto } from '../../../types/PlanoReview';
 
 const TREINO: TreinoPlanejadoDto = {
@@ -154,7 +155,7 @@ describe('TreinoEditDialog', () => {
         );
     });
 
-    it('fechar com alterações pede confirmação; sem alterações fecha direto', () => {
+    it('fechar com alterações pede confirmação; sem alterações fecha direto', async () => {
         renderDialog();
 
         fireEvent.click(screen.getByRole('button', { name: /cancelar/i }));
@@ -165,10 +166,12 @@ describe('TreinoEditDialog', () => {
 
         // Não fechou de novo: pediu confirmação.
         expect(onClose).toHaveBeenCalledOnce();
-        expect(screen.getByRole('alert', { name: /descarte/i })).toBeInTheDocument();
+        // Modal próprio: o aviso inline ficava no topo do conteúdo, fora da tela de quem clicou no rodapé.
+        const confirmacao = screen.getByRole('dialog', { name: /descartar alterações/i });
+        expect(within(confirmacao).getByRole('button', { name: /^descartar$/i })).toHaveStyle({ backgroundColor: semantic.danger[500] });
 
-        fireEvent.click(screen.getByRole('button', { name: /continuar editando/i }));
-        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+        fireEvent.click(within(confirmacao).getByRole('button', { name: /voltar a editar/i }));
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: /descartar alterações/i })).not.toBeInTheDocument());
 
         fireEvent.click(screen.getByRole('button', { name: /cancelar/i }));
         fireEvent.click(screen.getByRole('button', { name: /^descartar$/i }));

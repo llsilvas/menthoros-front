@@ -10,11 +10,11 @@ import {
     TextField,
     Typography,
 } from '@mui/material';
-import { alpha } from '@mui/material/styles';
 import { primary, surface, semantic } from '../../../theme/tokens';
 import { activeTheme } from '../../../theme/activeTheme';
 import { useTreinoPlanejado } from '../../../hooks/useTreinoPlanejado';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
+import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { GHOST_BTN_SX, PRIMARY_BTN_SX } from '../../../shared/components/actionButtonSx';
 import type { TreinoPlanejadoDto, TreinoPlanejadoAddPayload } from '../../../types/PlanoReview';
 import { serializarItens, totaisDeItens, type EtapaItem } from './etapas/etapaItem';
@@ -239,25 +239,18 @@ export function TreinoAddDialog({
                 </>
             }
         >
-            {confirmarDescarte && (
-                <Box
-                    role="alert"
-                    aria-label="Confirmar descarte das alterações"
-                    sx={{ border: `1px solid ${alpha(primary[500], 0.4)}`, borderRadius: '8px', p: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}
-                >
-                    <Box sx={{ fontSize: '0.82rem', color: surface[200] }}>
-                        Há alterações não salvas neste treino. Descartar?
-                    </Box>
-                    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-                        <Button size="small" sx={GHOST_BTN_SX} onClick={() => setConfirmarDescarte(false)}>
-                            Continuar editando
-                        </Button>
-                        <Button size="small" sx={PRIMARY_BTN_SX} onClick={fechar}>
-                            Descartar
-                        </Button>
-                    </Box>
-                </Box>
-            )}
+            {/* Modal próprio, não aviso inline: o clique vem do rodapé e o aviso no topo do conteúdo
+                ficava fora da tela; e o botão destrutivo não pode ter a cor de Salvar. */}
+            <ConfirmDialog
+                open={confirmarDescarte}
+                title="Descartar alterações?"
+                message="As mudanças neste treino não foram salvas e serão perdidas."
+                confirmLabel="Descartar"
+                cancelLabel="Voltar a editar"
+                severity="danger"
+                onClose={() => setConfirmarDescarte(false)}
+                onConfirm={fechar}
+            />
 
             {/* ── Tipo + Data ─────────────────────────────────────────── */}
             <Box sx={{ display: 'flex', gap: 1.5 }}>
