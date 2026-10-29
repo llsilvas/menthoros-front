@@ -76,7 +76,11 @@ export function ConnectionCard({ plataforma }: ConnectionCardProps) {
       sx={{ border: 'none', borderRadius: 1, display: 'flex', flexDirection: 'column', gap: 2 }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <LinkIcon sx={{ color: primary[500], fontSize: 20 }} />
+        {garmin ? (
+          <Box component="img" src="/garmin-logo-300.png" alt="Garmin" sx={{ height: 28, width: 28, objectFit: 'contain' }} />
+        ) : (
+          <LinkIcon sx={{ color: primary[500], fontSize: 20 }} />
+        )}
         <Typography variant="h6" sx={{ color: surface[50] }}>
           Conexões — {nome}
         </Typography>
