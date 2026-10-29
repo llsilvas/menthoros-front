@@ -1,4 +1,6 @@
+import type { AlvoPrimario } from '../../../../types/AthleteTrainingZones';
 import type { EtapaInputPayload, EtapaTreinoDto } from '../../../../types/PlanoReview';
+import type { ZoneKey } from '../../../workout/profile/types';
 import { detectarJanelaRepetida } from '../../../workout/serie/janelaRepetida';
 
 /**
@@ -35,6 +37,15 @@ export interface StepRow {
      * costuma estar escrita ("Corrida contínua Z2"), que o perfil do treino lê.
      */
     descricaoEtapa?: string;
+    /** Eixo que o relógio controla; ausente em etapa legada (o backend deriva do conteúdo). */
+    alvoPrimario?: AlvoPrimario;
+    /**
+     * Zona escolhida no seletor — só view-model do editor, não vai ao contrato. `PERSONALIZADO`
+     * quando o treinador editou os valores à mão ou o texto não casa nenhuma zona do atleta.
+     */
+    zonaEtapa?: ZoneKey | 'PERSONALIZADO';
+    /** View-model: o treinador escolheu o eixo do relógio nesta sessão. Não vai ao contrato. */
+    eixoTocado?: boolean;
 }
 
 export interface SubStep {
@@ -47,6 +58,10 @@ export interface SubStep {
     ritmoAlvo?: string;
     /** Preservada de ponta a ponta, como em `StepRow`. */
     descricaoEtapa?: string;
+    alvoPrimario?: AlvoPrimario;
+    zonaEtapa?: ZoneKey | 'PERSONALIZADO';
+    /** View-model: o treinador escolheu o eixo do relógio nesta sessão. Não vai ao contrato. */
+    eixoTocado?: boolean;
 }
 
 export interface BlockRow {
@@ -84,6 +99,7 @@ function subEtapaPayload(s: SubStep): EtapaInputPayload {
         fcAlvoEtapa:    s.fcAlvoEtapa || undefined,
         ritmoAlvo:      s.ritmoAlvo || undefined,
         descricaoEtapa: s.descricaoEtapa || undefined,
+        alvoPrimario:   s.alvoPrimario,
     };
 }
 
@@ -107,6 +123,7 @@ export function serializarItens(itens: EtapaItem[]): EtapaInputPayload[] {
             fcAlvoEtapa:    item.fcAlvoEtapa || undefined,
             ritmoAlvo:      item.ritmoAlvo || undefined,
             descricaoEtapa: item.descricaoEtapa || undefined,
+            alvoPrimario:   item.alvoPrimario,
         }];
     });
 }
@@ -124,6 +141,7 @@ function subStepFromEtapa(e: EtapaTreinoDto): SubStep {
         fcAlvoEtapa: e.fcAlvoEtapa ?? '',
         ritmoAlvo: e.ritmoAlvo,
         descricaoEtapa: e.descricaoEtapa,
+        alvoPrimario: e.alvoPrimario,
     };
 }
 
@@ -142,7 +160,7 @@ function stepFromEtapa(e: EtapaTreinoDto): StepRow {
 const VOCABULARIO_EDITOR = {
     /** A descrição e a ordem são ruído: não entram na assinatura. */
     assinatura: (e: EtapaTreinoDto) =>
-        `${e.tipoEtapa}|${e.duracaoMin}|${e.distanciaKm}|${e.fcAlvoEtapa}|${e.ritmoAlvo}`,
+        `${e.tipoEtapa}|${e.duracaoMin}|${e.distanciaKm}|${e.fcAlvoEtapa}|${e.ritmoAlvo}|${e.alvoPrimario}`,
     ehTrabalho: (e: EtapaTreinoDto) => e.tipoEtapa?.toUpperCase() === 'INTERVALADO',
 };
 
@@ -208,4 +226,29 @@ export function itensFromEtapas(etapas: EtapaTreinoDto[] | undefined): EtapaItem
     }
 
     return itens;
+}
+
+// ── Totais ────────────────────────────────────────────────────────────────────
+
+/**
+ * Soma de duração e distância do treino INTEIRO: uma série de N repetições conta N vezes as suas
+ * etapas. Fonte única para os dois diálogos — o de adição tinha a própria conta, o de edição outra.
+ * Valores crus (sem arredondar): cada tela escolhe quantas casas mostrar.
+ */
+export function totaisDeItens(itens: EtapaItem[]): { min: number; km: number } {
+    let min = 0;
+    let km = 0;
+    for (const item of itens) {
+        if (item.kind === 'step') {
+            min += parseInt(item.duracaoMin, 10) || 0;
+            km  += parseFloat(item.distanciaKm) || 0;
+            continue;
+        }
+        const reps = Math.max(1, parseInt(item.repeticoes, 10) || 1);
+        for (const s of item.steps) {
+            min += (parseInt(s.duracaoMin, 10) || 0) * reps;
+            km  += (parseFloat(s.distanciaKm) || 0) * reps;
+        }
+    }
+    return { min, km };
 }

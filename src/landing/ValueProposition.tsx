@@ -95,6 +95,7 @@ export function ValueProposition() {
         <span>
           {garminNotice.pre}
           <Box component="strong" sx={{ color: "text.secondary" }}>{garminNotice.brand}</Box>
+          <Box component="img" src="/garmin-logo-300.png" alt="" sx={{ height: 18, width: 18, objectFit: "contain", verticalAlign: "middle", ml: "4px" }} />
           {garminNotice.post}
         </span>
       </Typography>

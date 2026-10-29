@@ -155,7 +155,7 @@ export default function CoachAthleteProfilePage() {
                     onClick={() => navigate('/coach/athletes')}
                     sx={{ color: surface[400], fontSize: '0.8rem' }}
                 >
-                    Roster
+                    Atletas
                 </Button>
             </Box>
 
@@ -196,7 +196,7 @@ export default function CoachAthleteProfilePage() {
                                 })()}
                             </Box>
                         )}
-                        <CoachWatchLine relogio={profile.relogio} avisos={profile.avisos} />
+                        <CoachWatchLine relogio={profile.relogio} avisos={profile.avisos} conexaoCanal={profile.conexaoCanal} />
                     </Box>
                     <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
                         <Button
@@ -275,6 +275,8 @@ export default function CoachAthleteProfilePage() {
                         <SectionCard title="Plano da semana">
                             <CurrentWeekPlan
                                 plano={profile.planoVigente}
+                                atletaId={atletaId}
+                                atletaNome={profile.nomeAtleta}
                                 onGerarPlano={() => navigate('/coach/inbox')}
                                 onRevisarPlano={() => navigate('/coach/planos/revisao')}
                                 onTreinoEditado={fetchProfile}

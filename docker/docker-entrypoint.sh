@@ -7,11 +7,14 @@ set -e
 ENV_CONFIG="/usr/share/nginx/html/env-config.js"
 API_BASE_URL="${VITE_API_BASE_URL-}"
 KEYCLOAK_RUNTIME_URL="${VITE_KEYCLOAK_URL-}"
+GARMIN_HABILITADO="${VITE_GARMIN_HABILITADO-}"
 echo "Configurando API base URL: ${API_BASE_URL}"
 echo "Configurando Keycloak URL: ${KEYCLOAK_RUNTIME_URL}"
+echo "Configurando canal Garmin habilitado: ${GARMIN_HABILITADO:-false}"
 sed -i \
     -e "s|__RUNTIME_API_URL_PLACEHOLDER__|${API_BASE_URL}|g" \
     -e "s|__RUNTIME_KEYCLOAK_URL_PLACEHOLDER__|${KEYCLOAK_RUNTIME_URL}|g" \
+    -e "s|__RUNTIME_GARMIN_HABILITADO_PLACEHOLDER__|${GARMIN_HABILITADO}|g" \
     "${ENV_CONFIG}"
 
 # 2. Extrai nameserver de /etc/resolv.conf para o resolver do nginx

@@ -474,3 +474,67 @@ describe('selectWorkoutProfile — invariantes do AC-6', () => {
     expect(fatia!.share).toBeGreaterThanOrEqual(0.15);
   });
 });
+
+describe('selectWorkoutProfile — zona escolhida no seletor (coach-zonas-pace-fc-prescricao)', () => {
+  it('aceita Z6 declarada no alvo', () => {
+    const [b] = selectWorkoutProfile([etapa({ ritmoAlvo: 'Z6' })], ctx).blocks;
+    expect(b.zone).toBe('Z6');
+    expect(b.confidence).toBe('prescribed');
+  });
+
+  it('a zona escolhida no seletor vence a prosa antiga da descrição', () => {
+    const [b] = selectWorkoutProfile(
+      [etapa({ fcAlvo: '143-150 bpm', descricao: 'Corrida contínua Z3', zonaEtapa: 'Z2' })],
+      ctx,
+    ).blocks;
+    expect(b.zone).toBe('Z2');
+    expect(b.confidence).toBe('prescribed');
+  });
+
+  it('alvo numérico personalizado não ressuscita a zona escrita na descrição', () => {
+    const [b] = selectWorkoutProfile(
+      [etapa({ fcAlvo: '151-155 bpm', descricao: 'Corrida contínua Z2', zonaEtapa: 'PERSONALIZADO' })],
+      ctx,
+    ).blocks;
+    expect(b.confidence).toBe('unknown');
+  });
+
+  it('texto legado não numérico em Personalizado ainda usa o fallback textual', () => {
+    const [b] = selectWorkoutProfile(
+      [etapa({ fcAlvo: 'trote leve', descricao: 'Corrida contínua Z2', zonaEtapa: 'PERSONALIZADO' })],
+      ctx,
+    ).blocks;
+    expect(b.zone).toBe('Z2');
+  });
+});
+
+describe('selectWorkoutProfile — treino prescrito só por distância', () => {
+  it('etapa sem duração mas com distância entra no perfil, ponderada pela distância', () => {
+    const perfil = selectWorkoutProfile(
+      [{ tipo: 'INTERVALADO', distanciaKm: 5, zonaEtapa: 'Z5' } as ProfileEtapaInput],
+      ctx,
+    );
+
+    expect(perfil.blocks).toHaveLength(1);
+    expect(perfil.blocks[0].zone).toBe('Z5');
+    expect(perfil.droppedBlocks).toBe(0);
+    expect(perfil.metrics.totalDurationSec).toBeGreaterThan(0);
+  });
+
+  it('usa o ritmo da etapa para pesar a distância quando existe', () => {
+    const [b] = selectWorkoutProfile(
+      [{ tipo: 'PRINCIPAL', distanciaKm: 10, ritmoAlvo: '5:00-5:00/km' } as ProfileEtapaInput],
+      ctx,
+    ).blocks;
+
+    expect(b.durationSec).toBe(3000);
+  });
+
+  it('sem duração nem distância a etapa continua descartada, e o resultado sem zona é nulo', () => {
+    const perfil = selectWorkoutProfile([{ tipo: 'PRINCIPAL', zonaEtapa: 'Z2' } as ProfileEtapaInput], ctx);
+
+    expect(perfil.blocks).toHaveLength(0);
+    expect(perfil.droppedBlocks).toBe(1);
+    expect(perfil.metrics.targetZone).toBeNull();
+  });
+});

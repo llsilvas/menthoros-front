@@ -13,8 +13,9 @@ export interface OnboardingSaudeStepProps {
 }
 
 /**
- * Etapa 4 — histórico de lesões. Campos de detalhe só aparecem quando `temLesao` é sim (CA12 —
- * dado sensível, visível ao próprio atleta e a TECNICO/ADMIN do mesmo tenant).
+ * Passo 3 — saúde. Tudo opcional: quem não tem nada a declarar pula. Campos de detalhe só
+ * aparecem quando `temLesao` é sim (CA12 — dado sensível, visível ao próprio atleta e a
+ * TECNICO/ADMIN do mesmo tenant).
  */
 export function OnboardingSaudeStep({ draft, onChange }: OnboardingSaudeStepProps) {
     const temLesaoSelecionado = draft.temLesao === undefined ? undefined : (draft.temLesao ? 'sim' : 'nao');
@@ -22,7 +23,9 @@ export function OnboardingSaudeStep({ draft, onChange }: OnboardingSaudeStepProp
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             <OnboardingChipGroup
-                label="Você possui alguma lesão?"
+                label="Você está com alguma lesão ou dor agora?"
+                optional
+                hint="Seu treinador usa isso para não prescrever o que pode piorar."
                 options={SIM_NAO_OPTIONS}
                 labels={SIM_NAO_LABELS}
                 selected={temLesaoSelecionado}
@@ -36,12 +39,12 @@ export function OnboardingSaudeStep({ draft, onChange }: OnboardingSaudeStepProp
             {draft.temLesao && (
                 <>
                     <Box>
-                        <OnboardingSectionLabel>Descrição da lesão</OnboardingSectionLabel>
+                        <OnboardingSectionLabel>Onde e o quê?</OnboardingSectionLabel>
                         <TextField
                             multiline
                             rows={2}
                             label="Descrição"
-                            placeholder="Ex.: Tendinite no joelho direito"
+                            placeholder="Ex.: Dor no joelho direito ao descer escada"
                             value={draft.descricaoLesao ?? ''}
                             onChange={(e) => onChange({ descricaoLesao: e.target.value.slice(0, 1000) })}
                             fullWidth
@@ -51,14 +54,17 @@ export function OnboardingSaudeStep({ draft, onChange }: OnboardingSaudeStepProp
                     </Box>
 
                     <Box>
-                        <OnboardingSectionLabel>Data da última lesão</OnboardingSectionLabel>
+                        <OnboardingSectionLabel optional>Desde quando?</OnboardingSectionLabel>
                         <TextField
                             type="date"
-                            label="Data da última lesão"
+                            label="Data aproximada"
                             value={draft.dataUltimaLesao ?? ''}
                             onChange={(e) => onChange({ dataUltimaLesao: e.target.value || undefined })}
                             fullWidth
                             inputProps={{ max: new Date().toISOString().slice(0, 10) }}
+                            // Campo de data nativo mostra "mm/dd/yyyy" mesmo vazio; sem `shrink` o
+                            // rótulo fica desenhado por cima desse placeholder.
+                            slotProps={{ inputLabel: { shrink: true } }}
                             sx={onboardingInputSx}
                         />
                     </Box>
@@ -66,12 +72,14 @@ export function OnboardingSaudeStep({ draft, onChange }: OnboardingSaudeStepProp
             )}
 
             <Box>
-                <OnboardingSectionLabel>Histórico de lesões (opcional)</OnboardingSectionLabel>
+                <OnboardingSectionLabel optional hint="Mesmo já recuperadas — ajuda a prevenir que voltem.">
+                    Teve lesões importantes no passado?
+                </OnboardingSectionLabel>
                 <TextField
                     multiline
-                    rows={3}
-                    label="Histórico de lesões"
-                    placeholder="Lesões anteriores relevantes, mesmo que já recuperadas"
+                    rows={2}
+                    label="Histórico"
+                    placeholder="Ex.: Canelite em 2024, fascite em 2023"
                     value={draft.historicoLesoes ?? ''}
                     onChange={(e) => onChange({ historicoLesoes: e.target.value.slice(0, 5000) })}
                     fullWidth

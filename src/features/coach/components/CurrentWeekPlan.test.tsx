@@ -86,8 +86,10 @@ describe('CurrentWeekPlan', () => {
             />,
         );
 
-        expect(screen.getByText('FACIL')).toBeInTheDocument();
-        expect(screen.getByText(/10\.0 km/)).toBeInTheDocument();
+        // Rótulo humano do tipo (não o enum cru) e a distância como veio do backend.
+        expect(screen.getByText('Fácil')).toBeInTheDocument();
+        expect(screen.queryByText('FACIL')).not.toBeInTheDocument();
+        expect(screen.getByText('10 km')).toBeInTheDocument();
         expect(screen.getByText(/60 min/)).toBeInTheDocument();
     });
 
@@ -101,8 +103,9 @@ describe('CurrentWeekPlan', () => {
         );
 
         expect(screen.getByText(/Z2/)).toBeInTheDocument();
-        expect(screen.getByText(/RPE 5/)).toBeInTheDocument();
-        expect(screen.getByText(/TSS 65/)).toBeInTheDocument();
+        expect(screen.getByText('5/10')).toBeInTheDocument();
+        expect(screen.getByText('TSS')).toBeInTheDocument();
+        expect(screen.getByText('65')).toBeInTheDocument();
     });
 
     it('não exibe TSS quando tssPlanejado é null/ausente', () => {
@@ -118,7 +121,7 @@ describe('CurrentWeekPlan', () => {
             />,
         );
 
-        expect(screen.queryByText(/TSS/)).not.toBeInTheDocument();
+        expect(screen.queryByText('TSS')).not.toBeInTheDocument();
     });
 
     it('converte corretamente PT1H30M para 90 min', () => {

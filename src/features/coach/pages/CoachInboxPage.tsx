@@ -55,6 +55,7 @@ import { buildInboxQueue, buildSelectedAthleteFromDashboard, calcularDiasAteProv
 import { buildAthleteKpis, buildNextRaceHeader } from '../adapters/athleteKpiAdapters';
 import { AthleteKpiStrip } from '../components/AthleteKpiStrip';
 import { KpiStrip } from '../components/KpiStrip';
+import { TELA_BAIXA } from '../theme/mediaQueries';
 import { buildInboxSummaryKpiViews } from '../adapters/inboxSummaryKpis';
 import type { InboxSummaryKpiKey } from '../adapters/inboxSummaryKpis';
 import { AthleteNextRace } from '../components/AthleteNextRace';
@@ -343,6 +344,7 @@ function CoachInboxPage() {
           alignItems: 'center',
           gap: 2,
           flexWrap: 'wrap',
+          [TELA_BAIXA]: { py: 1.25 },
         }}
       >
         <Box sx={{ minWidth: 0, flex: '1 1 260px' }}>
@@ -360,7 +362,8 @@ function CoachInboxPage() {
           >
             Fila, plano e calendário
           </Typography>
-          <Typography sx={{ fontSize: '0.86rem', color: surface[400], mt: 0.3 }}>
+          {/* Em tela baixa a descrição sai: é texto de apresentação, e cada linha aqui é uma linha a menos na lista de atletas. */}
+          <Typography sx={{ fontSize: '0.86rem', color: surface[400], mt: 0.3, [TELA_BAIXA]: { display: 'none' } }}>
             Revisão rápida, ajuste de plano e leitura de prova, status e adesão.
           </Typography>
         </Box>
@@ -410,10 +413,16 @@ function CoachInboxPage() {
       <KpiStrip
         items={buildInboxSummaryKpiViews(summary).map((v) => ({ ...v, icon: INBOX_SUMMARY_ICON[v.key] }))}
         testIdPrefix="inbox-kpi"
-        sx={{ border: `1px solid ${content.divider}`, borderRadius: 2, overflow: 'hidden', mb: { xs: 1, lg: 1.25 } }}
+        sx={{
+          border: `1px solid ${content.divider}`,
+          borderRadius: 2,
+          overflow: 'hidden',
+          mb: { xs: 1, lg: 1.25 },
+          [TELA_BAIXA]: { mb: 0.5 },
+        }}
       />
       {dashboardUpdatedAt ? (
-        <Typography sx={{ fontSize: '0.7rem', color: surface[500], mb: { xs: 1, lg: 1.25 }, mt: -0.5 }}>
+        <Typography sx={{ fontSize: '0.7rem', color: surface[500], mb: { xs: 1, lg: 1.25 }, mt: -0.5, [TELA_BAIXA]: { mb: 0.5, mt: 0 } }}>
           Atualizado em {dashboardUpdatedAt}
         </Typography>
       ) : null}
@@ -427,6 +436,13 @@ function CoachInboxPage() {
             xs: '1fr',
             // Duas colunas: lista + detalhe. A terceira existia para os previews removidos, e
             // devolvê-la ao painel do atleta é o ponto — ele é o conteúdo, o resto era chrome.
+            //
+            // Lado a lado já a partir de `md` (900px), não só de `lg`: num notebook de 13" ou num
+            // Full HD com escala de 125%, a largura CSS fica em 1024–1199px — e nesse intervalo a
+            // coluna única empilhava lista e detalhe dentro de um container sem rolagem vertical,
+            // deixando o detalhe do atleta cortado. A lista cede largura (260–300px) para o
+            // detalhe, que é o conteúdo.
+            md: 'minmax(260px, 300px) minmax(0, 1fr)',
             lg: 'minmax(300px, 360px) minmax(0, 1fr)',
             xl: 'minmax(340px, 400px) minmax(0, 1fr)',
           },
@@ -434,13 +450,15 @@ function CoachInboxPage() {
             gridTemplateColumns: 'minmax(380px, 440px) minmax(0, 1fr)',
           },
           overflowX: 'auto',
-          overflowY: 'hidden',
+          // Em coluna única (< md) a página rola: esconder o overflow aqui era o que tornava o
+          // detalhe inalcançável.
+          overflowY: { xs: 'auto', md: 'hidden' },
         }}
       >
         <Box
           sx={{
             minHeight: 0,
-            borderRight: { lg: `1px solid ${surface[0]}22` },
+            borderRight: { md: `1px solid ${surface[0]}22` },
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',

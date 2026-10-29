@@ -12,7 +12,9 @@ import { elevation } from '../../../shared/design-tokens';
 import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
 import type { ReviewFilter } from '../../../hooks/useCoachPlanReview';
 import { useTreinoPlanejado } from '../../../hooks/useTreinoPlanejado';
-import type { TreinoPlanejadoPatch, TreinoPlanejadoDto } from '../../../types/PlanoReview';
+import type { PlanoSemanalDto, TreinoPlanejadoPatch, TreinoPlanejadoDto } from '../../../types/PlanoReview';
+import { indiceDoDia, weekDatesFromInicio } from '../../../utils/semana';
+import { rotuloDiaComData } from '../components/tiposTreino';
 
 // ── Coluna de filtros ────────────────────────────────────────────────────────
 
@@ -81,6 +83,15 @@ function FilterColumn({
     );
 }
 
+/** "Bruno Dias · Ter 20/10" para o cabeçalho do editor — dois treinos abertos em sequência eram idênticos. */
+function contextoDoTreino(plano: PlanoSemanalDto | null, treino: TreinoPlanejadoDto): string | undefined {
+    if (!plano) return undefined;
+    const dia = typeof treino.diaSemana === 'string' ? treino.diaSemana : treino.diaSemana.value;
+    const i = indiceDoDia(dia);
+    const data = i >= 0 ? weekDatesFromInicio(plano.semanaInicio)[i] : undefined;
+    return [plano.atletaNome, rotuloDiaComData(dia, data)].filter(Boolean).join(' · ');
+}
+
 // ── Empty state labels por filtro ────────────────────────────────────────────
 
 const EMPTY_LABEL: Record<ReviewFilter, string> = {
@@ -117,12 +128,12 @@ export default function CoachPlanReviewPage() {
 
     const { isSaving: isEditSaving, isDeleting, editarTreino, excluirTreino } = useTreinoPlanejado();
 
-    // Mantém seleção válida ao remover plano da lista ou mudar filtro
+    // Seleciona o primeiro plano ao abrir (como a Inbox faz com o atleta) e mantém a seleção válida
+    // ao remover plano da lista ou mudar filtro. Abrir numa tela vazia pedindo "Selecione um plano"
+    // com um único item na fila era um clique a mais para todo plano revisado.
     useEffect(() => {
-        if (!selectedId) return;
-        if (!pendentes.find((p) => p.id === selectedId)) {
-            setSelectedId(pendentes[0]?.id ?? null);
-        }
+        if (selectedId && pendentes.some((p) => p.id === selectedId)) return;
+        setSelectedId(pendentes[0]?.id ?? null);
     }, [pendentes, selectedId]);
 
     const selected = pendentes.find((p) => p.id === selectedId) ?? null;
@@ -224,10 +235,10 @@ export default function CoachPlanReviewPage() {
             {/* Coluna 1 — Filtros (80px) */}
             <FilterColumn activeFilter={activeFilter} onFilterChange={setFilter} />
 
-            {/* Coluna 2 — Fila de revisão (296px) */}
+            {/* Coluna 2 — Fila de revisão (296px; 240px abaixo de lg, onde o detalhe é quem precisa da largura) */}
             <Box
                 sx={{
-                    width: 296,
+                    width: { xs: 240, lg: 296 },
                     flexShrink: 0,
                     display: 'flex',
                     flexDirection: 'column',
@@ -330,6 +341,9 @@ export default function CoachPlanReviewPage() {
                 <TreinoEditDialog
                     open
                     treino={editingTreino}
+                    contexto={contextoDoTreino(selected, editingTreino)}
+                    atletaId={selected?.atletaId}
+                    atletaNome={selected?.atletaNome}
                     isSaving={isEditSaving}
                     onClose={() => setEditingTreinoId(null)}
                     onSave={handleSalvarEdicao}
@@ -344,6 +358,8 @@ export default function CoachPlanReviewPage() {
                     semanaInicio={selected.semanaInicio}
                     semanaFim={selected.semanaFim}
                     treinosExistentes={selected.treinosPlanejados ?? []}
+                    contexto={selected.atletaNome}
+                    atletaId={selected.atletaId}
                     dataInicial={addDataInicial}
                     onClose={() => setAddDialogOpen(false)}
                     onSaved={handleTreinoAdicionado}

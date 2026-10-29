@@ -7,6 +7,9 @@ import { autenticarComPkce } from '../../fixtures/pkceAuth'
  * O que só aqui se prova: os oito chips aparecem na ordem do founder e a marca escolhida chega ao
  * `POST` do rascunho com o valor do enum que o backend aceita (`AMAZFIT`), pelo router e pela rede
  * reais. Regra de matriz e rótulos ficam nos testes unitários.
+ *
+ * Desde improve-athlete-onboarding-usability o relógio é o passo 4 (depois de você, rotina e
+ * saúde) — o spec percorre os três primeiros com o mínimo obrigatório.
  */
 
 const ME = { id: 'user-uuid', atletaId: 'atleta-uuid', nome: 'Marina Teste', email: 'marina@teste.com', lgpdConsentGranted: true, onboardingConcluido: false }
@@ -31,6 +34,14 @@ test.describe('Atleta — marca do relógio no onboarding', () => {
 
     await page.goto('/#/athlete/onboarding')
 
+    // Passos 1–3: você, rotina, saúde (pulada).
+    await page.getByRole('radio', { name: 'Avançado' }).click()
+    await page.getByRole('radio', { name: 'Melhorar meu tempo' }).click()
+    await page.getByRole('button', { name: 'Avançar' }).click()
+    await page.getByRole('checkbox', { name: 'Terça' }).click()
+    await page.getByRole('button', { name: 'Avançar' }).click()
+    await page.getByRole('button', { name: 'Pular' }).click()
+
     await expect(page.getByRole('radio', { name: 'Garmin' })).toBeVisible()
     const marcas = await page.getByRole('radio').evaluateAll(
       (els, ordem) => els.map((el) => el.textContent ?? '').filter((nome) => ordem.includes(nome)),
@@ -38,12 +49,10 @@ test.describe('Atleta — marca do relógio no onboarding', () => {
     )
     expect(marcas).toEqual(ORDEM)
 
-    await page.getByRole('radio', { name: 'Avançado' }).click()
     await page.getByRole('radio', { name: 'Amazfit' }).click()
-    await page.getByRole('radio', { name: 'intervals.icu' }).click()
     await page.getByRole('button', { name: 'Avançar' }).click()
 
-    await expect(page.getByRole('button', { name: 'Voltar' })).toBeEnabled()
-    expect(corpoDoRascunho).toMatchObject({ dispositivoMarca: 'AMAZFIT' })
+    await expect(page.getByText(/você já tem uma prova em vista/i)).toBeVisible()
+    expect(corpoDoRascunho).toMatchObject({ dispositivoMarca: 'AMAZFIT', nivelExperiencia: 'AVANCADO', diasDisponiveis: ['TERCA'] })
   })
 })

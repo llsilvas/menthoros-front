@@ -373,11 +373,15 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas, onDecisao }: Rec
 
       {loading ? <LinearProgress sx={{ mb: 1.25 }} /> : null}
 
+      {/*
+        Cabeçalho de colunas só quando as linhas são tabulares (≥ lg). Abaixo disso o painel divide
+        a largura com o calendário de provas e os 640px fixos de antes forçavam rolagem horizontal
+        dentro do detalhe — cada linha vira resumo + chips em fluxo, e um cabeçalho não faz sentido.
+      */}
       <Box
         sx={{
-          minWidth: 640,
-          display: 'grid',
-          gridTemplateColumns: { xs: '1.15fr 0.75fr 0.75fr 0.75fr auto', lg: '1.2fr 0.75fr 0.75fr 0.75fr auto' },
+          display: { xs: 'none', lg: 'grid' },
+          gridTemplateColumns: '1.2fr 0.75fr 0.75fr 0.75fr auto',
           gap: 0.75,
           px: 0.35,
           py: 0.6,
@@ -394,7 +398,7 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas, onDecisao }: Rec
         <Box />
       </Box>
 
-      <Stack spacing={0.65} sx={{ minWidth: 640, overflowX: 'auto', pb: 0.4 }}>
+      <Stack spacing={0.65} sx={{ pb: 0.4 }}>
         {rows.map((row) => {
           const tipoColor = TIPO_COLORS[row.tipo] ?? categorical.cat1;
           const statusColor = STATUS_COLORS[row.status] ?? semantic.warning[400];
@@ -404,13 +408,12 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas, onDecisao }: Rec
             <Box
               key={row.id}
               sx={{
-                minWidth: 640,
                 p: 0.85,
                 borderRadius: 1.5,
                 border: `1px solid ${content.cardBorder}`,
                 backgroundColor: `${surface[0]}06`,
                 display: 'grid',
-                gridTemplateColumns: { xs: '1.15fr 0.75fr 0.75fr 0.75fr auto', lg: '1.2fr 0.75fr 0.75fr 0.75fr auto' },
+                gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: '1.2fr 0.75fr 0.75fr 0.75fr auto' },
                 gap: 0.75,
                 alignItems: 'center',
               }}
@@ -424,6 +427,11 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas, onDecisao }: Rec
                 </Typography>
               </Box>
 
+              {/*
+                Abaixo de lg os chips e o botão formam uma segunda linha em fluxo; a partir de lg o
+                wrapper some (`display: contents`) e cada um volta a ser célula da grade.
+              */}
+              <Box sx={{ display: { xs: 'flex', lg: 'contents' }, flexWrap: 'wrap', alignItems: 'center', gap: 0.75 }}>
               <Chip
                 label={formatSummaryType(row.tipo)}
                 size="small"
@@ -466,13 +474,14 @@ export function RecentSuggestionsPanel({ sugestoes, onVerTodas, onDecisao }: Rec
               <Button
                 size="small"
                 variant="text"
-                sx={{ fontSize: '0.72rem', minWidth: 0, px: 0.75, justifySelf: 'end' }}
+                sx={{ fontSize: '0.72rem', minWidth: 0, px: 0.75, justifySelf: 'end', ml: { xs: 'auto', lg: 0 } }}
                 onClick={() => {
                   void openSuggestion(row.id);
                 }}
               >
                 Ver
               </Button>
+              </Box>
             </Box>
           );
         })}

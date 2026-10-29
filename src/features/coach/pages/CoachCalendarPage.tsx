@@ -9,6 +9,9 @@ import {
 } from '@mui/icons-material';
 import { primary, surface, semantic, categorical } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
+
+/** Largura da coluna fixa de atleta, por breakpoint — usada na linha e no template da grade. */
+const ATHLETE_COL_WIDTH = { xs: 150, lg: 200 } as const;
 import { CoachAthleteAvatar } from '../components/CoachAthleteAvatar';
 import { PendingSuggestionDot } from '../components/PendingSuggestionDot';
 import { useCoachCalendar } from '../../../hooks/useCoachCalendar';
@@ -66,6 +69,46 @@ const WORKOUT_LABEL: Record<WorkoutType, string> = {
 };
 
 const DAY_LABELS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+
+/** Tipos que aparecem na legenda, na ordem de leitura; `rest` não vira chip na grade. */
+const LEGEND_TYPES: WorkoutType[] = ['easy_run', 'long_run', 'tempo', 'intervals', 'recovery', 'strength'];
+
+// ── Legenda ───────────────────────────────────────────────────────────────────
+
+/**
+ * A grade é a tela mais visual do coach e era a menos autoexplicativa: cor por tipo, ★, ▲ e o
+ * ponto laranja não tinham explicação em lugar nenhum (o tooltip exige saber que existe). A legenda
+ * fica no cabeçalho, sempre visível, em texto de 11px — o mínimo legível do produto.
+ */
+function CalendarLegend() {
+  const itemSx = { display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.6875rem', color: surface[400], whiteSpace: 'nowrap' } as const;
+  return (
+    <Box
+      component="ul"
+      aria-label="Legenda do calendário"
+      sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.25, listStyle: 'none', m: 0, p: 0, ml: { md: 'auto' } }}
+    >
+      {LEGEND_TYPES.map((type) => (
+        <Box component="li" key={type} sx={itemSx}>
+          <Box component="span" sx={{ width: 10, height: 10, borderRadius: '3px', bgcolor: `${WORKOUT_COLORS[type]}40`, border: `1px solid ${WORKOUT_COLORS[type]}` }} />
+          {WORKOUT_LABEL[type]}
+        </Box>
+      ))}
+      <Box component="li" sx={itemSx}>
+        <StarIcon sx={{ fontSize: 12, color: surface[300] }} />
+        treino-chave
+      </Box>
+      <Box component="li" sx={itemSx}>
+        <WarningIcon sx={{ fontSize: 12, color: semantic.warning[500] }} />
+        alerta
+      </Box>
+      <Box component="li" sx={itemSx}>
+        <Box component="span" sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: semantic.warning[500] }} />
+        sugestão pendente
+      </Box>
+    </Box>
+  );
+}
 
 // ── WorkoutBlock ──────────────────────────────────────────────────────────────
 
@@ -144,8 +187,8 @@ function CalendarGridRow({ row, weekDates, todayStr, workoutsByDate }: CalendarG
           position: 'sticky',
           left: 0,
           zIndex: 1,
-          minWidth: 200,
-          width: 200,
+          minWidth: ATHLETE_COL_WIDTH,
+          width: ATHLETE_COL_WIDTH,
         }}
       >
         <CoachAthleteAvatar athlete={{ id: row.atletaId, name: row.nomeAtleta }} size="xs" status="none" />
@@ -154,7 +197,7 @@ function CalendarGridRow({ row, weekDates, todayStr, workoutsByDate }: CalendarG
             fontSize: '0.8rem',
             fontWeight: 500,
             color: surface[50],
-            maxWidth: 140,
+            maxWidth: { xs: 100, lg: 140 },
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -302,6 +345,8 @@ export default function CoachCalendarPage() {
             Hoje
           </Button>
         )}
+
+        <CalendarLegend />
       </Box>
 
       {/* ── Conteúdo: erro / carregando / grade ── */}
@@ -327,8 +372,13 @@ export default function CoachCalendarPage() {
           <Box
             sx={{
               display: 'grid',
-              gridTemplateColumns: '200px repeat(7, minmax(80px, 1fr))',
-              minWidth: 760,
+              // Coluna do atleta mais estreita abaixo de lg: em 1024px com sidebar recolhida sobram
+              // ~960px, e 200px fixos deixavam os 7 dias no mínimo de 80px, com rolagem horizontal.
+              gridTemplateColumns: {
+                xs: `${ATHLETE_COL_WIDTH.xs}px repeat(7, minmax(80px, 1fr))`,
+                lg: `${ATHLETE_COL_WIDTH.lg}px repeat(7, minmax(80px, 1fr))`,
+              },
+              minWidth: { xs: ATHLETE_COL_WIDTH.xs + 7 * 80, lg: ATHLETE_COL_WIDTH.lg + 7 * 80 },
             }}
           >
             {/* Athlete header cell */}

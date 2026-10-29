@@ -311,10 +311,11 @@ describe('CoachAthleteProfilePage', () => {
         expect(screen.getByText(/pmc/i)).toBeInTheDocument();
     });
 
-    it('navega de volta ao roster ao clicar em "Roster"', async () => {
+    // "Atletas", como na sidebar — "Roster" era anglicismo que só este botão usava.
+    it('navega de volta à lista ao clicar em "Atletas"', async () => {
         mockHook({ profile: STUB_PROFILE });
         renderPage();
-        fireEvent.click(screen.getByText('Roster'));
+        fireEvent.click(screen.getByRole('button', { name: /atletas/i }));
         await waitFor(() => expect(screen.getByText('Roster')).toBeInTheDocument());
     });
 

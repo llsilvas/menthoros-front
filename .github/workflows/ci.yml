@@ -30,7 +30,7 @@ jobs:
   # único, o feedback de um erro de lint esperaria o download do browser.
   verify:
     name: Lint, build e testes
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4.2.2
@@ -56,7 +56,7 @@ jobs:
 
   e2e:
     name: E2E (Playwright)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4.2.2

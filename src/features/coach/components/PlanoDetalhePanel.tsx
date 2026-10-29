@@ -10,7 +10,6 @@ import {
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import AddIcon from '@mui/icons-material/Add';
-import FlagIcon from '@mui/icons-material/Flag';
 import { resolveReviewStatus } from '../../../types/PlanoReview';
 import type { DiaSemanaDto, PlanoSemanalDto, TreinoPlanejadoDto } from '../../../types/PlanoReview';
 import { primary, surface, semantic, content } from '../../../theme/tokens';
@@ -18,8 +17,16 @@ import { workoutTypeColor } from '../../../theme/activeTheme';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { resolvePlannerReviewBadge, resolvePlannerReviewReasons } from '../adapters/plannerReviewAdapters';
 import { mesclarPlanoPorDia } from '../adapters/mesclarPlanoPorDia';
-import { isoDoDiaNaSemana, weekDatesFromInicio } from '../../../utils/semana';
+import { indiceDoDia, isoDoDiaNaSemana, weekDatesFromInicio } from '../../../utils/semana';
+import { rotuloDiaComData, tipoTreinoLabel } from './tiposTreino';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
+import { TreinoPlanejadoCard } from './TreinoPlanejadoCard';
+import { AthleteZonesTable } from './AthleteZonesTable';
+import { useAthleteTrainingZones } from '../../../hooks/useAthleteTrainingZones';
+import { buildIntensityLineFromTreino } from '../adapters/buildIntensityLine';
+import { resumoDaSerie } from '../adapters/resumoSerie';
+import type { AthleteTrainingZonesDto } from '../../../types/AthleteTrainingZones';
+import { duracaoEmMinutos } from '../adapters/duracaoTreino';
 import { DANGER_BTN_SX, GHOST_BTN_SX } from '../../../shared/components/actionButtonSx';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -27,27 +34,6 @@ import { DANGER_BTN_SX, GHOST_BTN_SX } from '../../../shared/components/actionBu
 function resolverDiaSemana(dia: string | DiaSemanaDto): string {
     if (typeof dia === 'string') return dia;
     return dia.short ?? dia.label ?? dia.value;
-}
-
-function parseDuracao(valor: string): string | null {
-    if (!valor) return null;
-    // ISO-8601: PT90M, PT1H30M
-    const iso = valor.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
-    if (iso) {
-        const h = parseInt(iso[1] ?? '0', 10);
-        const m = parseInt(iso[2] ?? '0', 10);
-        const total = h * 60 + m;
-        return total > 0 ? `${total}min` : null;
-    }
-    // Legado HH:MM:SS ou MM:SS (mapper durationToString)
-    const hms = valor.match(/^(?:(\d+):)?(\d{1,2}):(\d{2})$/);
-    if (hms) {
-        const h = parseInt(hms[1] ?? '0', 10);
-        const m = parseInt(hms[2], 10);
-        const total = h * 60 + m;
-        return total > 0 ? `${total}min` : null;
-    }
-    return null;
 }
 
 function formatarData(iso: string): string {
@@ -86,9 +72,7 @@ function DescansoTag({
                 position: 'relative',
                 display: 'flex',
                 flexDirection: 'column',
-                flexShrink: 0,
-                minWidth: 150,
-                maxWidth: 260,
+                minWidth: 0,
                 borderRadius: '6px',
                 borderLeft: `3px dashed ${cor}`,
                 border: `1px dashed ${cor}55`,
@@ -96,10 +80,10 @@ function DescansoTag({
                 px: 1, py: 0.75, gap: 0.25,
             }}
         >
-            <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: surface[300], letterSpacing: 0.4 }}>
+            <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: surface[300], letterSpacing: 0.4 }}>
                 {dia.slice(0, 3)} · Descanso
             </Typography>
-            <Typography sx={{ fontSize: '0.68rem', color: surface[400], lineHeight: 1.35 }}>
+            <Typography sx={{ fontSize: '0.72rem', color: surface[400], lineHeight: 1.35 }}>
                 {motivo}
             </Typography>
             {onPrescrever && (
@@ -107,7 +91,7 @@ function DescansoTag({
                     data-testid={`acao-prescrever-${dia}`}
                     size="small"
                     onClick={onPrescrever}
-                    sx={{ alignSelf: 'flex-start', fontSize: '0.65rem', px: 0.5, minWidth: 0 }}
+                    sx={{ alignSelf: 'flex-start', fontSize: '0.72rem', px: 0.5, minWidth: 0 }}
                 >
                     Prescrever treino neste dia
                 </Button>
@@ -118,189 +102,100 @@ function DescansoTag({
 
 // ── Tag de treino ─────────────────────────────────────────────────────────────
 
+/**
+ * Card de um treino do plano.
+ *
+ * Revisto em improve-plan-edit-usability: o tipo e as métricas estavam em 8,6px (abaixo do mínimo
+ * de 11px que o próprio inbox fixa), os ícones de editar/excluir tinham 12px em cor quase invisível
+ * e o corpo do card — 150×90px — não abria nada. A justificativa da IA, que é o que o treinador
+ * precisa para decidir, não aparecia em lugar nenhum da Revisão.
+ */
 function TreinoTag({
     treino,
+    data,
+    zones,
     onEditar,
     onExcluir,
 }: {
     treino: TreinoPlanejadoDto;
+    zones: AthleteTrainingZonesDto | null;
+    /** Data do dia na semana do plano; `undefined` quando o dia não é reconhecido. */
+    data?: Date;
     onEditar?: () => void;
     onExcluir?: () => void;
 }) {
     const cor = workoutTypeColor(treino.tipoTreino);
     const isProva = treino.tipoTreino === 'PROVA';
     // Nome da prova no lugar do rótulo genérico do tipo (mesmo destaque da agenda do atleta).
-    const abbrev = isProva ? (treino.descricao || 'PROVA') : treino.tipoTreino;
-    const dia = resolverDiaSemana(treino.diaSemana).slice(0, 3).toUpperCase();
-    const duracaoDisplay = treino.duracaoMin ? parseDuracao(treino.duracaoMin) : null;
-
-    const metaItems = [
-        duracaoDisplay,
-        treino.zonaAlvo,
-        treino.percepcaoEsforcoEsperada != null ? `RPE ${treino.percepcaoEsforcoEsperada}` : null,
-    ].filter(Boolean);
+    const serie = isProva ? null : resumoDaSerie(treino.etapas);
+    const rotulo = isProva ? (treino.descricao || 'Prova') : [tipoTreinoLabel(treino.tipoTreino), serie].filter(Boolean).join(' · ');
+    const dia = rotuloDiaComData(resolverDiaSemana(treino.diaSemana), data);
+    // Para o treinador: por que a IA prescreveu isto. Sem a justificativa o card é só número.
+    const porQue = treino.justificativaIa?.trim() || (!isProva ? treino.descricao?.trim() : undefined);
 
     return (
-        <Box
-            data-testid={`tag-treino-${treino.id ?? 'sem-id'}`}
-            sx={{
-                position: 'relative',
-                display: 'flex',
-                flexDirection: 'column',
-                flexShrink: 0,
-                minWidth: 150,
-                borderRadius: '6px',
-                // Borda esquerda grossa na cor do tipo — elemento visual dominante
-                borderLeft: `3px solid ${cor}`,
-                borderTop: `1px solid ${cor}20`,
-                borderRight: `1px solid ${cor}14`,
-                borderBottom: `1px solid ${cor}14`,
-                bgcolor: `${cor}07`,
-                backgroundImage: `linear-gradient(160deg, ${cor}0D 0%, transparent 55%)`,
-                overflow: 'hidden',
-            }}
-        >
-            {/* Stripe decorativa no topo */}
-            <Box sx={{ height: '2px', background: `linear-gradient(90deg, ${cor}50, transparent)` }} />
-
-            <Box sx={{ px: 1.25, pt: 0.75, pb: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-
-                {/* Dia da semana — label primário */}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        {isProva && (
-                            <FlagIcon data-testid="icone-prova" sx={{ fontSize: 10, color: cor }} aria-hidden />
-                        )}
-                        {treino.editadoPeloCoach && (
-                            <Box
-                                data-testid="chip-editado-coach"
-                                sx={{
-                                    width: 4,
-                                    height: 4,
-                                    borderRadius: '50%',
-                                    bgcolor: semantic.warning[400],
-                                    boxShadow: `0 0 4px ${semantic.warning[500]}`,
-                                }}
-                            />
-                        )}
-                        {treino.adicionadoPeloCoach && (
-                            <Box
-                                data-testid="chip-adicionado-coach"
-                                sx={{
-                                    width: 4,
-                                    height: 4,
-                                    borderRadius: '50%',
-                                    bgcolor: primary[400],
-                                    boxShadow: `0 0 4px ${primary[500]}`,
-                                }}
-                            />
-                        )}
-                        <Typography
-                            sx={{
-                                fontFamily: '"JetBrains Mono", monospace',
-                                fontSize: '0.62rem',
-                                fontWeight: 700,
-                                color: surface[200],
-                                letterSpacing: '0.12em',
-                                lineHeight: 1,
-                            }}
+        <TreinoPlanejadoCard
+            testId={`tag-treino-${treino.id ?? 'sem-id'}`}
+            dia={dia}
+            tipoTreino={treino.tipoTreino}
+            rotulo={rotulo}
+            distanciaKm={treino.distanciaKm}
+            duracaoMin={duracaoEmMinutos(treino.duracaoMin)}
+            rpeEsperado={treino.percepcaoEsforcoEsperada}
+            zonaAlvo={treino.zonaAlvo}
+            intensidade={buildIntensityLineFromTreino(treino.etapas, zones)}
+            tssPlanejado={treino.tssPlanejado}
+            porQue={porQue}
+            isProva={isProva}
+            editado={treino.editadoPeloCoach}
+            adicionado={treino.adicionadoPeloCoach}
+            onAbrir={onEditar}
+            actions={(onEditar || onExcluir) && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    {onEditar && (
+                        <IconButton
+                            size="small"
+                            aria-label="Editar treino"
+                            onClick={onEditar}
+                            sx={{ p: 0.5, color: surface[400], borderRadius: '4px', '&:hover': { color: cor, bgcolor: `${cor}18` } }}
                         >
-                            {dia}
-                        </Typography>
-                    </Box>
-                    {(onEditar || onExcluir) && (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-                            {onEditar && (
-                                <IconButton
-                                    size="large"
-                                    aria-label="Editar treino"
-                                    onClick={onEditar}
-                                    sx={{
-                                        p: 0.125,
-                                        color: surface[700],
-                                        borderRadius: '3px',
-                                        '&:hover': { color: cor, bgcolor: `${cor}18` },
-                                    }}
-                                >
-                                    <EditOutlinedIcon sx={{ fontSize: 12 }} />
-                                </IconButton>
-                            )}
-                            {onExcluir && (
-                                <IconButton
-                                    size="large"
-                                    aria-label="Excluir treino"
-                                    onClick={onExcluir}
-                                    sx={{
-                                        p: 0.125,
-                                        color: surface[700],
-                                        borderRadius: '3px',
-                                        '&:hover': { color: semantic.danger[500], bgcolor: `${semantic.danger[500]}18` },
-                                    }}
-                                >
-                                    <DeleteOutlinedIcon sx={{ fontSize: 12 }} />
-                                </IconButton>
-                            )}
-                        </Box>
+                            <EditOutlinedIcon sx={{ fontSize: 18 }} />
+                        </IconButton>
+                    )}
+                    {onExcluir && (
+                        <IconButton
+                            size="small"
+                            aria-label="Excluir treino"
+                            onClick={onExcluir}
+                            sx={{ p: 0.5, color: surface[400], borderRadius: '4px', '&:hover': { color: semantic.danger[500], bgcolor: `${semantic.danger[500]}18` } }}
+                        >
+                            <DeleteOutlinedIcon sx={{ fontSize: 18 }} />
+                        </IconButton>
                     )}
                 </Box>
+            )}
+        />
+    );
+}
 
-                {/* Distância — hero number */}
-                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.25 }}>
-                    <Typography
-                        sx={{
-                            fontFamily: '"JetBrains Mono", monospace',
-                            fontSize: '1.45rem',
-                            fontWeight: 800,
-                            color: cor,
-                            letterSpacing: '-0.04em',
-                            lineHeight: 1,
-                            textShadow: `0 0 20px ${cor}40`,
-                        }}
-                    >
-                        {treino.distanciaKm}
-                    </Typography>
-                    <Typography
-                        sx={{
-                            fontFamily: '"JetBrains Mono", monospace',
-                            fontSize: '0.56rem',
-                            fontWeight: 600,
-                            color: `${cor}70`,
-                            lineHeight: 1,
-                            mb: '2px',
-                        }}
-                    >
-                        km
-                    </Typography>
+/** Legenda dos pontos de "editado"/"adicionado" — só quando algum card os mostra. */
+function LegendaMarcadores({ editado, adicionado }: { editado: boolean; adicionado: boolean }) {
+    if (!editado && !adicionado) return null;
+    const item = { display: 'flex', alignItems: 'center', gap: 0.6, fontSize: '0.7rem', color: surface[400] } as const;
+    return (
+        <Box data-testid="legenda-marcadores" sx={{ display: 'flex', gap: 1.5, mt: 1.25, flexWrap: 'wrap' }}>
+            {editado && (
+                <Box sx={item}>
+                    <Box component="span" sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: semantic.warning[400] }} />
+                    editado por você
                 </Box>
-
-                {/* Tipo + métricas */}
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.125 }}>
-                    <Typography
-                        sx={{
-                            fontSize: '0.54rem',
-                            fontWeight: 700,
-                            color: `${cor}90`,
-                            letterSpacing: '0.1em',
-                            lineHeight: 1,
-                        }}
-                    >
-                        {abbrev}
-                    </Typography>
-                    {metaItems.length > 0 && (
-                        <Typography
-                            sx={{
-                                fontSize: '0.54rem',
-                                fontWeight: 500,
-                                color: surface[600],
-                                letterSpacing: '0.01em',
-                                lineHeight: 1.3,
-                            }}
-                        >
-                            {metaItems.join(' · ')}
-                        </Typography>
-                    )}
+            )}
+            {adicionado && (
+                <Box sx={item}>
+                    <Box component="span" sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: primary[400] }} />
+                    adicionado por você
                 </Box>
-            </Box>
+            )}
         </Box>
     );
 }
@@ -486,6 +381,7 @@ export function PlanoDetalhePanel({
     onPrescreverNoDia,
 }: PlanoDetalhePanelProps) {
     const [modalAberto, setModalAberto] = useState(false);
+    const { zones, loading: zonesLoading, error: zonesError } = useAthleteTrainingZones(plano?.atletaId);
 
     if (!plano) return <EstadoVazio />;
 
@@ -654,6 +550,13 @@ export function PlanoDetalhePanel({
                 )}
             </Box>
 
+            {/* ── Zonas do atleta (referência para revisar os alvos) ─────── */}
+            {(zonesLoading || zonesError || zones) && (
+                <Box sx={{ px: 3, py: 1.25, borderBottom: `1px solid ${content.divider}`, flexShrink: 0 }}>
+                    <AthleteZonesTable zones={zones} loading={zonesLoading} error={zonesError} nomeAtleta={plano.atletaNome} />
+                </Box>
+            )}
+
             {/* ── Treinos ───────────────────────────────────────────────── */}
             <Box
                 sx={{
@@ -671,7 +574,12 @@ export function PlanoDetalhePanel({
                         Nenhuma sessão disponível.
                     </Typography>
                 ) : (
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                    /*
+                      Grade com colunas de largura igual, em vez de flex-wrap: os cards alinham em
+                      linhas e colunas e a leitura segue a ordem da semana. Uma coluna por dia (seg→dom)
+                      não cabe no painel em notebook (~107px por dia); fica para quando houver largura.
+                    */
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 1 }}>
                         {itensDoPlano.map((item, i) => item.kind === 'descanso' ? (
                             <DescansoTag
                                 key={`descanso-${item.dia}`}
@@ -685,6 +593,8 @@ export function PlanoDetalhePanel({
                             <TreinoTag
                                 key={item.treino.id ?? i}
                                 treino={item.treino}
+                                zones={zones}
+                                data={indiceDoDia(item.dia) >= 0 ? datasDaSemana[indiceDoDia(item.dia)] : undefined}
                                 onEditar={isAguardando && item.treino.id && onEditarTreino
                                     ? () => onEditarTreino(item.treino.id!)
                                     : undefined}
@@ -695,6 +605,11 @@ export function PlanoDetalhePanel({
                         ))}
                     </Box>
                 )}
+
+                <LegendaMarcadores
+                    editado={sessoes.some((t) => t.editadoPeloCoach)}
+                    adicionado={sessoes.some((t) => t.adicionadoPeloCoach)}
+                />
 
                 {isAguardando && onAdicionarTreino && (
                     <Box sx={{ mt: 1.5 }}>

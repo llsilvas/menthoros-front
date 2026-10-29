@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { DISPOSITIVO_MARCA_LABELS, labelDispositivoMarca, type DispositivoMarca } from '../../types/Onboarding';
-import { WATCH_COMPATIBILITY, compatibilidadeDe } from './watchCompatibility';
+import { compatibilidadeDe, matrizCompatibilidade } from './watchCompatibility';
+
+// Flag desligada: a matriz de hoje (CA11). Os casos do canal direto estão no describe de baixo.
+const WATCH_COMPATIBILITY = matrizCompatibilidade(false);
 
 const ORDEM_DO_FOUNDER: DispositivoMarca[] = ['GARMIN', 'APPLE', 'AMAZFIT', 'COROS', 'SAMSUNG', 'POLAR', 'SUUNTO', 'OUTRO'];
 
@@ -72,5 +75,41 @@ describe('labelDispositivoMarca', () => {
     it('devolve o rótulo da marca conhecida e o valor cru da desconhecida', () => {
         expect(labelDispositivoMarca('SAMSUNG')).toBe('Samsung Galaxy Watch');
         expect(labelDispositivoMarca('HUAWEI')).toBe('HUAWEI');
+    });
+});
+
+describe('canal Garmin direto (garminHabilitado)', () => {
+    const direto = () => compatibilidadeDe('GARMIN', true);
+
+    it('com a flag ligada, GARMIN é "Em validação" com critério de promoção explícito', () => {
+        expect(direto().posicionamento).toBe('EM_VALIDACAO');
+        expect(direto().criterioPromocao).toMatch(/canal direto/);
+    });
+
+    it('com a flag ligada, a entrada GARMIN não menciona o intervals.icu em lugar nenhum', () => {
+        expect(JSON.stringify(direto()).toLowerCase()).not.toContain('intervals');
+    });
+
+    it('com a flag ligada, os passos descrevem autorizar o Menthoros na conta Garmin', () => {
+        expect(direto().passos.join(' ')).toMatch(/Conectar Garmin/);
+        expect(direto().passos.join(' ')).toMatch(/Autorize o Menthoros/);
+    });
+
+    it('o resumo para o treinador não afirma chegada automática ao relógio', () => {
+        const semNegacao = direto().resumoParaCoach.replace('não verificado automaticamente', '');
+        expect(semNegacao).not.toMatch(/automaticamente/);
+    });
+
+    it('só a entrada GARMIN muda entre as flags; a ordem e as demais marcas ficam iguais', () => {
+        const off = matrizCompatibilidade(false);
+        const on = matrizCompatibilidade(true);
+        expect(on.map((c) => c.marca)).toEqual(off.map((c) => c.marca));
+        expect(on.filter((c, i) => c !== off[i]).map((c) => c.marca)).toEqual(['GARMIN']);
+    });
+
+    it('com a flag desligada, GARMIN segue SUPORTADO via intervals.icu (inalterado)', () => {
+        const item = compatibilidadeDe('GARMIN', false);
+        expect(item.posicionamento).toBe('SUPORTADO');
+        expect(item.passos.join(' ')).toContain('intervals.icu');
     });
 });

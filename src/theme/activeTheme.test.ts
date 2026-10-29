@@ -21,6 +21,12 @@ describe('activeTheme — palette premium consolidado', () => {
     expect(activeTheme.trainingStage.principal).not.toBe(brandLime[500]);
   });
 
+  it('zone Z6 (Sprint) existe com cor própria, distinta de Z5', () => {
+    expect(activeTheme.zones.Z6.label).toBe('Sprint');
+    expect(activeTheme.zones.Z6.color).not.toBe(activeTheme.zones.Z5.color);
+    expect(activeTheme.workoutZone.Z6).toBe(activeTheme.zones.Z6.color);
+  });
+
   it('zone Z2 (Base) não usa o lime de marca e preserva o shape estruturado', () => {
     expect(activeTheme.zones.Z2.color).not.toBe(brandLime[500]);
     expect(activeTheme.zones.Z2).toMatchObject({

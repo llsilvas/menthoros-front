@@ -3,36 +3,34 @@ import {
     Box,
     Button,
     CircularProgress,
-    FormControl,
-    IconButton,
-    InputLabel,
     MenuItem,
     Select,
     TextField,
     Typography,
+    useMediaQuery,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import AddIcon from '@mui/icons-material/Add';
-import RemoveIcon from '@mui/icons-material/Remove';
-import RepeatIcon from '@mui/icons-material/Repeat';
-import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
-import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { TIPOS_TREINO } from './tiposTreino';
 import { primary, surface } from '../../../theme/tokens';
+import { activeTheme } from '../../../theme/activeTheme';
 import { overlayWhite } from '../../../theme/overlays';
 import { elevation } from '../../../shared/design-tokens';
 import { GHOST_BTN_SX, PRIMARY_BTN_SX } from '../../../shared/components/actionButtonSx';
-import { activeTheme } from '../../../theme/activeTheme';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
+import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import type { TreinoPlanejadoDto, TreinoPlanejadoPatch } from '../../../types/PlanoReview';
 import {
-    emptyStep,
-    emptyBlock,
-    emptySubStep,
     itensFromEtapas,
     serializarItens,
+    totaisDeItens,
     type EtapaItem,
 } from './etapas/etapaItem';
+import { EtapasEditor } from './etapas/EtapasEditor';
+import { detalheDaZonaPredominante, minutosNaZonaAlvo, zonaPredominante } from '../adapters/zonaPredominante';
+import { useAthleteTrainingZones } from '../../../hooks/useAthleteTrainingZones';
+import { AthleteZonesTable } from './AthleteZonesTable';
 import { WorkoutProfile, selectWorkoutProfile, fromEtapaItens } from '../../workout/profile';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -45,106 +43,12 @@ function toIso8601(minutos: string): string | undefined {
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 
-const TIPOS_TREINO = [
-    { value: 'FACIL',        label: 'Fácil'        },
-    { value: 'CONTINUO',     label: 'Contínuo'     },
-    { value: 'LONGO',        label: 'Longo'        },
-    { value: 'TEMPO_RUN',    label: 'Tempo Run'    },
-    { value: 'INTERVALADO',  label: 'Intervalado'  },
-    { value: 'FARTLEK',      label: 'Fartlek'      },
-    { value: 'REGENERATIVO', label: 'Regenerativo' },
-    { value: 'TIRO',         label: 'Tiro'         },
-    { value: 'SUBIDA',       label: 'Subida'       },
-    { value: 'PROVA',        label: 'Prova'        },
-];
-
-
-const ACCENT = activeTheme.trainingStage;
+/** Altura em que o gráfico de perfil passa a nascer recolhido: em 1024×640 ele tomava 55% do dialog. */
+const TELA_BAIXA_QUERY = '(max-height: 700px)';
 
 // A inferência de zona vivia aqui, numa segunda derivação independente da do
 // detalhe do treino — o mesmo treino podia sair com zonas diferentes em cada
 // tela. Agora existe uma só, em `selectWorkoutProfile`.
-
-// ── Estado de bloco ───────────────────────────────────────────────────────────
-
-interface BlocoState {
-    distanciaKm: string;
-    duracaoMin: string;
-    zonaAlvo: string;
-    rpe: string;
-}
-
-
-
-
-// ── BlocoCard ─────────────────────────────────────────────────────────────────
-
-function fieldSx(accent: string) {
-    return {
-        '& .MuiOutlinedInput-root': {
-            fontSize: '0.82rem',
-            color: surface[100],
-            bgcolor: overlayWhite[4],
-            '& fieldset': { borderColor: overlayWhite[10] },
-            '&:hover fieldset': { borderColor: overlayWhite[22] },
-            '&.Mui-focused fieldset': { borderColor: accent },
-        },
-        '& .MuiInputLabel-root': { fontSize: '0.72rem', color: surface[500] },
-        '& .MuiInputLabel-root.Mui-focused': { color: accent },
-        '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button': {
-            WebkitAppearance: 'none',
-        },
-    } as const;
-}
-
-
-/** BlocoCard fala em BlocoState; o modelo de itens fala em tipoEtapa/fcAlvoEtapa. */
-function blocoStateDe(e: { duracaoMin: string; distanciaKm: string; fcAlvoEtapa: string }): BlocoState {
-    return { distanciaKm: e.distanciaKm, duracaoMin: e.duracaoMin, zonaAlvo: e.fcAlvoEtapa, rpe: '' };
-}
-
-function camposDe(b: BlocoState): { duracaoMin: string; distanciaKm: string; fcAlvoEtapa: string } {
-    return { duracaoMin: b.duracaoMin, distanciaKm: b.distanciaKm, fcAlvoEtapa: b.zonaAlvo };
-}
-
-function accentDe(tipoEtapa: string): string {
-    switch (tipoEtapa?.toUpperCase()) {
-        case 'AQUECIMENTO':    return ACCENT.aquecimento;
-        case 'DESAQUECIMENTO': return ACCENT.desaquecimento;
-        case 'RECUPERACAO':    return ACCENT.recuperacao;
-        case 'INTERVALADO':    return ACCENT.esforco;
-        default:               return ACCENT.principal;
-    }
-}
-
-interface ItemActionsProps {
-    idx: number;
-    total: number;
-    /** "etapa" ou "série" — o rótulo do leitor de tela precisa dizer o que está sendo movido. */
-    nome?: string;
-    disabled?: boolean;
-    onMover: (idx: number, delta: number) => void;
-    onRemover: (idx: number) => void;
-}
-
-function ItemActions({ idx, total, disabled, onMover, onRemover, nome = 'etapa' }: ItemActionsProps) {
-    return (
-        <Box sx={{ display: 'flex', gap: 0.25 }}>
-            <IconButton size="small" aria-label={`Mover ${nome} ${idx + 1} para cima`}
-                disabled={disabled || idx === 0} onClick={() => onMover(idx, -1)}>
-                <ArrowUpwardIcon sx={{ fontSize: 14 }} />
-            </IconButton>
-            <IconButton size="small" aria-label={`Mover ${nome} ${idx + 1} para baixo`}
-                disabled={disabled || idx === total - 1} onClick={() => onMover(idx, 1)}>
-                <ArrowDownwardIcon sx={{ fontSize: 14 }} />
-            </IconButton>
-            <IconButton size="small" aria-label={`Remover ${nome} ${idx + 1}`}
-                disabled={disabled} onClick={() => onRemover(idx)}>
-                <DeleteOutlineIcon sx={{ fontSize: 15 }} />
-            </IconButton>
-        </Box>
-    );
-}
 
 
 /**
@@ -181,137 +85,24 @@ function parseDuracaoMinutos(iso: string | undefined): string {
     return total > 0 ? String(total) : '';
 }
 
-const TIPOS_ETAPA = ['AQUECIMENTO', 'PRINCIPAL', 'INTERVALADO', 'RECUPERACAO', 'DESAQUECIMENTO'] as const;
-
-interface BlocoCardProps {
-    label: string;
-    accent: string;
-    bloco: BlocoState;
-    onChange: (b: BlocoState) => void;
-    disabled?: boolean;
-    actions?: React.ReactNode;
-    /** Quando presente, o card deixa o coach escolher o tipo — etapa sem tipo não é persistida. */
-    tipoEtapa?: string;
-    onTipoChange?: (tipo: string) => void;
-    tipoAriaLabel?: string;
-}
-
-function BlocoCard({
-    label, accent, bloco, onChange, disabled, actions, tipoEtapa, onTipoChange, tipoAriaLabel,
-}: BlocoCardProps) {
-    return (
-        <Box
-            sx={{
-                borderLeft: `3px solid ${accent}`,
-                borderRadius: '0 8px 8px 0',
-                bgcolor: alpha(surface[0], 0.025),
-                p: 1.5,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 1.25,
-            }}
-        >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box
-                    sx={{
-                        px: 0.75,
-                        py: 0.2,
-                        borderRadius: '4px',
-                        bgcolor: `${accent}18`,
-                        border: `1px solid ${accent}33`,
-                        fontSize: '0.62rem',
-                        fontWeight: 700,
-                        color: accent,
-                        letterSpacing: '0.08em',
-                        textTransform: 'uppercase',
-                        fontFamily: 'monospace',
-                        userSelect: 'none',
-                    }}
-                >
-                    {label}
-                </Box>
-                {onTipoChange && (
-                    <FormControl size="small" sx={{ minWidth: 150, ...fieldSx(accent) }}>
-                        <InputLabel shrink>Tipo</InputLabel>
-                        <Select
-                            native
-                            label="Tipo"
-                            value={tipoEtapa ?? ''}
-                            onChange={e => onTipoChange(e.target.value as string)}
-                            disabled={disabled}
-                            inputProps={{ 'aria-label': tipoAriaLabel ?? 'Tipo da etapa' }}
-                        >
-                            <option value="" disabled />
-                            {TIPOS_ETAPA.map(t => <option key={t} value={t}>{t}</option>)}
-                        </Select>
-                    </FormControl>
-                )}
-                {actions && <Box sx={{ ml: 'auto' }}>{actions}</Box>}
-            </Box>
-
-            <Box sx={{ display: 'flex', gap: 1 }}>
-                <TextField
-                    label="Distância (km)"
-                    type="number"
-                    value={bloco.distanciaKm}
-                    onChange={e => onChange({ ...bloco, distanciaKm: e.target.value })}
-                    disabled={disabled}
-                    size="small"
-                    fullWidth
-                    inputProps={{ min: 0, step: 0.1 }}
-                    sx={fieldSx(accent)}
-                />
-                <TextField
-                    label="Duração (min)"
-                    type="number"
-                    value={bloco.duracaoMin}
-                    onChange={e => onChange({ ...bloco, duracaoMin: e.target.value })}
-                    disabled={disabled}
-                    size="small"
-                    fullWidth
-                    inputProps={{ min: 1, step: 1 }}
-                    sx={fieldSx(accent)}
-                />
-            </Box>
-
-            <Box sx={{ display: 'flex', gap: 1 }}>
-                <TextField
-                    label="Zona alvo"
-                    value={bloco.zonaAlvo}
-                    onChange={e => onChange({ ...bloco, zonaAlvo: e.target.value })}
-                    disabled={disabled}
-                    size="small"
-                    fullWidth
-                    sx={fieldSx(accent)}
-                />
-                <TextField
-                    label="RPE (1–10)"
-                    type="number"
-                    value={bloco.rpe}
-                    onChange={e => onChange({ ...bloco, rpe: e.target.value })}
-                    disabled={disabled}
-                    size="small"
-                    fullWidth
-                    inputProps={{ min: 1, max: 10, step: 1 }}
-                    sx={fieldSx(accent)}
-                />
-            </Box>
-        </Box>
-    );
-}
-
-
 // ── TreinoEditDialog ──────────────────────────────────────────────────────────
 
 export interface TreinoEditDialogProps {
     open: boolean;
     treino: TreinoPlanejadoDto;
     isSaving: boolean;
+    /** Contexto no cabeçalho ("Bruno Dias · Ter 20/10"): dois treinos abertos em sequência eram idênticos. */
+    contexto?: string;
+    /** Atleta do treino: habilita a tabela de zonas e o seletor de zona por etapa. */
+    atletaId?: string;
+    /** Nome do atleta, no título da tabela de zonas. */
+    atletaNome?: string;
     onClose: () => void;
     onSave: (patch: TreinoPlanejadoPatch) => void;
 }
 
-export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: TreinoEditDialogProps) {
+export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, atletaNome, onClose, onSave }: TreinoEditDialogProps) {
+    const { zones, loading: zonesLoading, error: zonesError } = useAthleteTrainingZones(atletaId);
     const [tipoTreino, setTipoTreino]         = useState(treino.tipoTreino ?? '');
     const [tss, setTss]                       = useState(treino.tssPlanejado != null ? String(treino.tssPlanejado) : '');
     const [observacao, setObservacao]         = useState(treino.observacao ?? '');
@@ -324,42 +115,34 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
     // principal era lido — os outros três eram inertes.
     const [rpe, setRpe]                       = useState(
         treino.percepcaoEsforcoEsperada != null ? String(treino.percepcaoEsforcoEsperada) : '');
-    const [zonaAlvo, setZonaAlvo]             = useState(treino.zonaAlvo ?? '');
     // Rastreia se o usuário alterou as etapas — evita incluir etapas em patches sem mudança.
     // Sem esta guarda, mudar só o TSS regravaria a estrutura inteira do treino.
     const [blocosMudados, setBlocosMudados]   = useState(false);
     // Aviso de remoção de aquecimento/desaquecimento, com o patch retido até a confirmação
     const [avisoRemocao, setAvisoRemocao]     = useState<string[] | null>(null);
     const [pendente, setPendente]             = useState<TreinoPlanejadoPatch | null>(null);
+    // Esc, X ou Cancelar com alteração pendente: pedir confirmação em vez de descartar em silêncio.
+    const [confirmarDescarte, setConfirmarDescarte] = useState(false);
+    // O gráfico nasce recolhido em altura baixa; o treinador abre quando quiser.
+    const telaBaixa = useMediaQuery(TELA_BAIXA_QUERY);
+    const [graficoAberto, setGraficoAberto]   = useState(!telaBaixa);
 
     useEffect(() => {
         setItens(itensIniciais(treino));
         setTipoTreino(treino.tipoTreino ?? '');
-        setZonaAlvo(treino.zonaAlvo ?? '');
         setRpe(treino.percepcaoEsforcoEsperada != null ? String(treino.percepcaoEsforcoEsperada) : '');
         setTss(treino.tssPlanejado != null ? String(treino.tssPlanejado) : '');
         setObservacao(treino.observacao ?? '');
         setBlocosMudados(false);
+        setConfirmarDescarte(false);
     }, [treino]);
 
+    useEffect(() => { setGraficoAberto(!telaBaixa); }, [telaBaixa]);
 
-    /** Um item rende N cópias das suas sub-etapas; uma etapa avulsa rende ela mesma. */
-    const etapasDoItem = (item: EtapaItem): { duracaoMin: string; distanciaKm: string; fcAlvoEtapa: string; tipoEtapa: string }[] => {
-        if (item.kind === 'step') return [item];
-        const reps = Math.max(1, parseInt(item.repeticoes, 10) || 1);
-        return Array.from({ length: reps }, () => item.steps).flat();
-    };
 
-    // Totais em tempo real: soma o treino inteiro já expandido
+    // Totais em tempo real: soma o treino inteiro já expandido (mesma conta do Adicionar treino)
     const { totalKm, totalMin } = useMemo(() => {
-        let km = 0;
-        let min = 0;
-        for (const item of itens) {
-            for (const e of etapasDoItem(item)) {
-                km  += parseFloat(e.distanciaKm) || 0;
-                min += parseInt(e.duracaoMin, 10) || 0;
-            }
-        }
+        const { km, min } = totaisDeItens(itens);
         return {
             totalKm:  km  > 0 ? km.toFixed(1) : null,
             totalMin: min > 0 ? String(min)   : null,
@@ -373,7 +156,7 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
     // por isso que adapta de `EtapaItem[]` e não do DTO salvo — do DTO ele
     // desenharia o treino gravado, não o que o treinador está montando.
     const profile = useMemo(
-        () => selectWorkoutProfile(fromEtapaItens(itens), {
+        () => selectWorkoutProfile(fromEtapaItens(itens, zones), {
             // TODO(DEP-3): o esporte não existe no contrato — nem `TreinoPlanejado`
             // nem `TreinoPlanejadoDto` carregam modalidade. Enquanto isso, todo
             // treino é normalizado na escala de corrida, inclusive bike e natação.
@@ -381,8 +164,9 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
             tss: treino.tssPlanejado ?? null,
             zonaAlvoTreino: treino.zonaAlvo ?? null,
         }),
-        [itens, treino.tssPlanejado, treino.zonaAlvo],
+        [itens, zones, treino.tssPlanejado, treino.zonaAlvo],
     );
+    const predominante = useMemo(() => zonaPredominante(profile.blocks), [profile]);
 
     /** Tipos que o treino tinha e deixou de ter — base do aviso antes de salvar. */
     const etapasRemovidas = (): string[] => {
@@ -400,53 +184,6 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
         setItens(fn);
         setBlocosMudados(true);
     };
-
-    const atualizaStep = (idx: number, b: BlocoState) =>
-        mudou(prev => prev.map((it, i) =>
-            i !== idx || it.kind !== 'step' ? it : { ...it, ...camposDe(b) }));
-
-    const atualizaSubStep = (idx: number, si: number, b: BlocoState) =>
-        mudou(prev => prev.map((it, i) =>
-            i !== idx || it.kind !== 'block' ? it
-                : { ...it, steps: it.steps.map((s, y) => y !== si ? s : { ...s, ...camposDe(b) }) }));
-
-    const atualizaTipoStep = (idx: number, tipo: string) =>
-        mudou(prev => prev.map((it, i) =>
-            i !== idx || it.kind !== 'step' ? it : { ...it, tipoEtapa: tipo }));
-
-    const atualizaTipoSubStep = (idx: number, si: number, tipo: string) =>
-        mudou(prev => prev.map((it, i) =>
-            i !== idx || it.kind !== 'block' ? it
-                : { ...it, steps: it.steps.map((s, y) => y !== si ? s : { ...s, tipoEtapa: tipo }) }));
-
-    const atualizaReps = (idx: number, delta: number) =>
-        mudou(prev => prev.map((it, i) => {
-            if (i !== idx || it.kind !== 'block') return it;
-            const atual = parseInt(it.repeticoes, 10) || 1;
-            return { ...it, repeticoes: String(Math.min(20, Math.max(1, atual + delta))) };
-        }));
-
-    const adicionarStep = () => mudou(prev => [...prev, emptyStep()]);
-    const adicionarBloco = () => mudou(prev => [...prev, emptyBlock()]);
-
-    const adicionarSubStep = (idx: number) =>
-        mudou(prev => prev.map((it, i) =>
-            i !== idx || it.kind !== 'block' ? it : { ...it, steps: [...it.steps, emptySubStep()] }));
-
-    const removerSubStep = (idx: number, si: number) =>
-        mudou(prev => prev.map((it, i) =>
-            i !== idx || it.kind !== 'block' ? it : { ...it, steps: it.steps.filter((_, y) => y !== si) }));
-
-    const removerItem = (idx: number) => mudou(prev => prev.filter((_, i) => i !== idx));
-
-    const moverItem = (idx: number, delta: number) =>
-        mudou(prev => {
-            const destino = idx + delta;
-            if (destino < 0 || destino >= prev.length) return prev;
-            const copia = [...prev];
-            [copia[idx], copia[destino]] = [copia[destino], copia[idx]];
-            return copia;
-        });
 
     const montarPatch = (): TreinoPlanejadoPatch => {
         const patch: TreinoPlanejadoPatch = {};
@@ -467,7 +204,11 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
             if (duracaoIso && duracaoIso !== treino.duracaoMin) patch.duracaoMin = duracaoIso;
         }
 
-        if (zonaAlvo && zonaAlvo !== treino.zonaAlvo) patch.zonaAlvo = zonaAlvo;
+        // A zona do treino é derivada das etapas, não digitada. Só entra no patch quando as etapas
+        // mudaram e há zona derivável; sem ela o valor anterior é preservado (o perfil degradado não
+        // tem zona confiável, e apagar a do plano a cada edição seria perder dado).
+        const zonaDerivada = predominante?.zona;
+        if (blocosMudados && zonaDerivada && zonaDerivada !== treino.zonaAlvo) patch.zonaAlvo = zonaDerivada;
 
         const rpeNum = parseInt(rpe, 10);
         if (!isNaN(rpeNum) && rpeNum !== treino.percepcaoEsforcoEsperada) patch.percepcaoEsforcoEsperada = rpeNum;
@@ -535,9 +276,21 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
         },
     } as const;
 
+    const temAlteracoes = () => Object.keys(montarPatch()).length > 0;
+
+    // Fechar (Esc, X, Cancelar) com alteração pendente pede confirmação: dez minutos montando uma
+    // série não podem sumir num Esc. Sem alteração, fecha direto.
     const handleClose = () => {
-        if (!isSaving) onClose();
+        if (isSaving) return;
+        if (temAlteracoes()) {
+            setConfirmarDescarte(true);
+            return;
+        }
+        onClose();
     };
+
+    // TSS não é recalculado pelo sistema ao salvar etapas editadas: avisar em vez de fingir.
+    const tssDesatualizado = blocosMudados && tss !== '' && tss === String(treino.tssPlanejado ?? '');
 
     const diaChip = (
         <Box
@@ -554,7 +307,7 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
                 userSelect: 'none',
             }}
         >
-            {diaSemana.slice(0, 3).toUpperCase()}
+            {contexto ?? diaSemana.slice(0, 3).toUpperCase()}
         </Box>
     );
 
@@ -617,6 +370,11 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
                     {totalMin} min
                 </Typography>
             )}
+            {predominante && (
+                <Typography data-testid="total-na-zona-alvo" sx={{ fontSize: '0.68rem', color: surface[200], fontFamily: 'monospace' }}>
+                    {minutosNaZonaAlvo(predominante)} min {predominante.zona}
+                </Typography>
+            )}
         </Box>
     ) : null;
 
@@ -628,6 +386,7 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
             disableClose={isSaving}
             chip={diaChip}
             title="Editar treino"
+            subtitle={treino.justificativaIa?.trim() || undefined}
             headerAction={tipoSelect}
             contentSx={{ px: 2.5, py: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}
             actionsHint={totalHint}
@@ -635,7 +394,7 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
                 <>
                     <Button
                         variant="text"
-                        onClick={onClose}
+                        onClick={handleClose}
                         disabled={isSaving}
                         sx={{ ...GHOST_BTN_SX, fontSize: '0.8rem' }}
                     >
@@ -659,150 +418,45 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
             }
         >
 
-                {/* O bloco destacado segue a linha em edição — ganho direto do
-                    modelo de lista: o treinador vê no gráfico o que está mexendo. */}
-                <WorkoutProfile
-                    profile={profile}
-                    activeBlockId={blocoDestacado}
-                    onActiveBlockChange={setBlocoDestacado}
+                {/* Modal próprio, não aviso inline: o clique vem do rodapé e o aviso no topo do conteúdo
+                    ficava fora da tela; e o botão destrutivo não pode ter a cor de Salvar. */}
+                <ConfirmDialog
+                    open={confirmarDescarte}
+                    title="Descartar alterações?"
+                    message="As mudanças neste treino não foram salvas e serão perdidas."
+                    confirmLabel="Descartar"
+                    cancelLabel="Voltar a editar"
+                    severity="danger"
+                    onClose={() => setConfirmarDescarte(false)}
+                    onConfirm={onClose}
                 />
 
-                {/* ── Lista de etapas: avulsas e blocos repetidos ── */}
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    {itens.length === 0 && (
-                        <Box sx={{ py: 2, textAlign: 'center', color: surface[500], fontSize: '0.8rem' }}>
-                            Nenhuma etapa. Use os botões abaixo para montar o treino.
-                        </Box>
-                    )}
+                {/* Zonas do atleta: a referência para escolher o alvo de cada etapa */}
+                {(zonesLoading || zonesError || zones) && (
+                    <AthleteZonesTable zones={zones} loading={zonesLoading} error={zonesError} nomeAtleta={atletaNome} />
+                )}
 
-                    {itens.map((item, idx) => item.kind === 'step' ? (
-                        <BlocoCard
-                            key={item.id}
-                            label={item.tipoEtapa || 'Etapa'}
-                            accent={accentDe(item.tipoEtapa)}
-                            bloco={blocoStateDe(item)}
-                            onChange={b => atualizaStep(idx, b)}
-                            disabled={isSaving}
-                            tipoEtapa={item.tipoEtapa}
-                            onTipoChange={t => atualizaTipoStep(idx, t)}
-                            tipoAriaLabel={`Tipo da etapa ${idx + 1}`}
-                            actions={
-                                <ItemActions
-                                    idx={idx}
-                                    total={itens.length}
-                                    disabled={isSaving}
-                                    onMover={moverItem}
-                                    onRemover={removerItem}
-                                />
-                            }
-                        />
-                    ) : (
-                        <Box
-                            key={item.id}
-                            sx={{
-                                border: `1px solid ${overlayWhite[7]}`,
-                                borderRadius: '8px',
-                                p: 1,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: 0.75,
-                            }}
-                        >
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 0.5 }}>
-                                <Box sx={{ fontSize: '0.7rem', letterSpacing: '0.08em', color: surface[400] }}>
-                                    SÉRIE
-                                </Box>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 'auto' }}>
-                                    <IconButton
-                                        size="small"
-                                        aria-label={`Diminuir repetições da série ${idx + 1}`}
-                                        disabled={isSaving || (parseInt(item.repeticoes, 10) || 1) <= 1}
-                                        onClick={() => atualizaReps(idx, -1)}
-                                    >
-                                        <RemoveIcon sx={{ fontSize: 15 }} />
-                                    </IconButton>
-                                    <Box
-                                        data-testid={`repeticoes-display-${idx}`}
-                                        sx={{ minWidth: 28, textAlign: 'center', fontWeight: 700, color: primary[400] }}
-                                    >
-                                        {item.repeticoes}×
-                                    </Box>
-                                    <IconButton
-                                        size="small"
-                                        aria-label={`Aumentar repetições da série ${idx + 1}`}
-                                        disabled={isSaving || (parseInt(item.repeticoes, 10) || 1) >= 20}
-                                        onClick={() => atualizaReps(idx, 1)}
-                                    >
-                                        <AddIcon sx={{ fontSize: 15 }} />
-                                    </IconButton>
-                                    <ItemActions
-                                        idx={idx}
-                                        total={itens.length}
-                                        disabled={isSaving}
-                                        onMover={moverItem}
-                                        onRemover={removerItem}
-                                        nome="série"
-                                    />
-                                </Box>
-                            </Box>
+                {/* O bloco destacado segue a linha em edição — ganho direto do
+                    modelo de lista: o treinador vê no gráfico o que está mexendo. */}
+                {graficoAberto ? (
+                    <WorkoutProfile
+                        profile={profile}
+                        activeBlockId={blocoDestacado}
+                        onActiveBlockChange={setBlocoDestacado}
+                    />
+                ) : null}
+                <Button
+                    size="small"
+                    onClick={() => setGraficoAberto(v => !v)}
+                    startIcon={graficoAberto ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                    aria-expanded={graficoAberto}
+                    sx={{ ...GHOST_BTN_SX, alignSelf: 'flex-start', mt: -1 }}
+                >
+                    {graficoAberto ? 'Ocultar gráfico' : 'Mostrar gráfico do treino'}
+                </Button>
 
-                            {item.steps.map((sub, si) => (
-                                <BlocoCard
-                                    key={sub.id}
-                                    label={sub.tipoEtapa || 'Etapa'}
-                                    accent={accentDe(sub.tipoEtapa)}
-                                    bloco={blocoStateDe(sub)}
-                                    onChange={b => atualizaSubStep(idx, si, b)}
-                                    disabled={isSaving}
-                                    tipoEtapa={sub.tipoEtapa}
-                                    onTipoChange={t => atualizaTipoSubStep(idx, si, t)}
-                                    tipoAriaLabel={`Tipo da etapa ${si + 1} da série ${idx + 1}`}
-                                    actions={
-                                        <IconButton
-                                            size="small"
-                                            aria-label={`Remover etapa ${si + 1} da série ${idx + 1}`}
-                                            disabled={isSaving || item.steps.length <= 1}
-                                            onClick={() => removerSubStep(idx, si)}
-                                        >
-                                            <RemoveIcon sx={{ fontSize: 15 }} />
-                                        </IconButton>
-                                    }
-                                />
-                            ))}
-
-                            <Button
-                                size="small"
-                                startIcon={<AddIcon />}
-                                onClick={() => adicionarSubStep(idx)}
-                                disabled={isSaving}
-                                sx={{ ...GHOST_BTN_SX, alignSelf: 'flex-start' }}
-                            >
-                                Etapa na série
-                            </Button>
-                        </Box>
-                    ))}
-
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                        <Button
-                            size="small"
-                            startIcon={<AddIcon />}
-                            onClick={adicionarStep}
-                            disabled={isSaving}
-                            sx={GHOST_BTN_SX}
-                        >
-                            Etapa
-                        </Button>
-                        <Button
-                            size="small"
-                            startIcon={<RepeatIcon />}
-                            onClick={adicionarBloco}
-                            disabled={isSaving}
-                            sx={GHOST_BTN_SX}
-                        >
-                            Série
-                        </Button>
-                    </Box>
-                </Box>
+                {/* ── Lista de etapas: avulsas e séries repetidas (editor compartilhado com o Adicionar) ── */}
+                <EtapasEditor itens={itens} onChange={mudou} disabled={isSaving} zones={zones} tipoTreino={tipoTreino} />
 
                 {avisoRemocao && (
                     <Box
@@ -849,26 +503,33 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
                         gap: 1.25,
                     }}
                 >
+                    <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: surface[400], letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                        Treino inteiro
+                    </Typography>
                     <Box sx={{ display: 'flex', gap: 1.25 }}>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography sx={{ fontSize: '0.75rem', color: surface[400] }}>Zona predominante</Typography>
+                            <Typography data-testid="zona-predominante" sx={{ fontFamily: activeTheme.font.mono, fontWeight: 600, color: surface[50] }}>
+                                {predominante?.zona ?? treino.zonaAlvo ?? '—'}
+                            </Typography>
+                            <Typography sx={{ fontSize: '0.6875rem', color: surface[400] }}>
+                                {predominante
+                                    ? `Derivada das etapas (${detalheDaZonaPredominante(predominante)}) — resumo mostrado no card do plano`
+                                    : treino.zonaAlvo
+                                        ? 'Zona gravada no plano; atualiza quando as etapas tiverem zona escolhida'
+                                        : 'Escolha a zona das etapas para derivar a zona predominante'}
+                            </Typography>
+                        </Box>
                         <TextField
-                            label="Zona alvo"
-                            value={zonaAlvo}
-                            onChange={e => setZonaAlvo(e.target.value)}
-                            disabled={isSaving}
-                            size="small"
-                            fullWidth
-                            sx={footerFieldSx}
-                        />
-                        <TextField
-                            label="RPE (1–10)"
+                            label="Esforço esperado (RPE 1–10)"
                             type="number"
                             value={rpe}
                             onChange={e => setRpe(e.target.value)}
                             disabled={isSaving}
                             size="small"
-                            fullWidth
                             inputProps={{ min: 1, max: 10, step: 1 }}
-                            sx={footerFieldSx}
+                            // largura fixa: com fullWidth o campo tomava a linha inteira e esmagava a zona predominante
+                            sx={{ ...footerFieldSx, flex: '0 0 200px' }}
                         />
                     </Box>
                     <TextField
@@ -881,10 +542,11 @@ export function TreinoEditDialog({ open, treino, isSaving, onClose, onSave }: Tr
                         size="small"
                         fullWidth
                         inputProps={{ min: 1, max: 500, step: 1 }}
+                        helperText={tssDesatualizado ? 'As etapas mudaram e o TSS não é recalculado ao salvar — confira ou apague para estimar depois.' : undefined}
                         sx={footerFieldSx}
                     />
                     <TextField
-                        label="Observação"
+                        label="Observação (nota do treinador)"
                         value={observacao}
                         onChange={e => setObservacao(e.target.value)}
                         disabled={isSaving}

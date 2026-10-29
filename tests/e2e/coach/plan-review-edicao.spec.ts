@@ -156,6 +156,72 @@ test.describe('revisão do plano — edição de treino', () => {
     expect(bloco?.subEtapas?.[0].ritmoAlvo, 'o tiro deve manter o ritmo prescrito').toBe('4:00-4:10/km')
   })
 
+  /**
+   * improve-plan-edit-usability: o ritmo por etapa deixou de ser só preservado e passou a ser
+   * editável — é o que o atleta lê no treino. (coach-zonas-pace-fc-prescricao: o campo agora é "Pace
+   * alvo", dentro do seletor de intensidade da etapa em foco.) O que só aqui se prova é que o valor digitado no campo
+   * da sub-etapa da série chega ao PATCH dentro do BLOCO, e não solto nem perdido.
+   */
+  test('ritmo editado numa etapa da série sai no PATCH dentro do bloco', async ({ page }) => {
+    await mockarApis(page)
+
+    const patches: unknown[] = []
+    await page.route(PATCH_API, async route => {
+      patches.push(route.request().postDataJSON())
+      await route.fulfill({ json: { ...PLANO.treinosPlanejados[0], editadoPeloCoach: true } })
+    })
+
+    await autenticarComPkce(page, { roles: ['TECNICO'] })
+    await page.goto(REVIEW_URL)
+
+    await page.getByRole('button', { name: /Atleta Teste/i }).click()
+    // O corpo do card também abre a edição — não só o ícone.
+    await page.getByRole('button', { name: /abrir treino de qui/i }).click()
+    await expect(page.getByTestId('repeticoes-display-1')).toHaveText('4×')
+
+    // Só a etapa em foco mostra o seletor de intensidade; as demais são uma linha-resumo. O tiro é a
+    // primeira etapa da série: abre pela linha-resumo e mostra o ritmo prescrito no campo "Pace alvo".
+    await page.getByRole('button', { name: /editar intensidade — tipo da etapa 1 da série 2/i }).click()
+    const ritmo = page.getByLabel('Pace alvo')
+    await expect(ritmo).toHaveCount(1)
+    await expect(ritmo).toHaveValue('4:00-4:10/km')
+    await ritmo.fill('4:20/km')
+    await page.getByRole('button', { name: /^salvar$/i }).click()
+
+    await expect.poll(() => patches.length).toBe(1)
+    const patch = patches[0] as { etapas?: Array<{ tipoEtapa: string; subEtapas?: Array<{ tipoEtapa: string; ritmoAlvo?: string }> }> }
+    const bloco = patch.etapas?.find(e => e.tipoEtapa === 'BLOCO')
+    expect(bloco?.subEtapas?.[0]).toMatchObject({ tipoEtapa: 'INTERVALADO', ritmoAlvo: '4:20/km' })
+  })
+
+  test('Esc com alteração pendente pede confirmação em vez de descartar', async ({ page }) => {
+    await mockarApis(page)
+    const patches: unknown[] = []
+    await page.route(PATCH_API, async route => { patches.push(route.request().postDataJSON()); await route.fulfill({ json: PLANO.treinosPlanejados[0] }) })
+
+    await autenticarComPkce(page, { roles: ['TECNICO'] })
+    await page.goto(REVIEW_URL)
+    await page.getByRole('button', { name: /Atleta Teste/i }).click()
+    await page.getByRole('button', { name: 'Editar treino' }).first().click()
+
+    await page.getByLabel(/TSS planejado/i).fill('60')
+    await page.keyboard.press('Escape')
+
+    const confirmacao = page.getByRole('dialog', { name: /descartar alterações/i })
+    await expect(confirmacao).toBeVisible()
+    await confirmacao.getByRole('button', { name: /voltar a editar/i }).click()
+    await expect(confirmacao).toHaveCount(0)
+    await expect(page.getByLabel(/TSS planejado/i)).toHaveValue('60')
+
+    // Volta ao campo antes do Esc: o botão "Voltar a editar" desmonta e o foco cai no body, e
+    // o Esc só fecha o dialog quando o foco está dentro dele — é o que o treinador faz de verdade.
+    await page.getByLabel(/TSS planejado/i).focus()
+    await page.keyboard.press('Escape')
+    await page.getByRole('dialog', { name: /descartar alterações/i }).getByRole('button', { name: /^descartar$/i }).click()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    expect(patches).toHaveLength(0)
+  })
+
   test('editar só o TSS não envia etapas — não regrava a estrutura', async ({ page }) => {
     await mockarApis(page)
 
@@ -180,3 +246,56 @@ test.describe('revisão do plano — edição de treino', () => {
     expect(patches[0].etapas, 'edição administrativa não pode regravar as etapas').toBeUndefined()
   })
 })
+
+/**
+ * improve-plan-edit-usability, Fase 3 — Adicionar treino usa o MESMO editor de etapas do Editar
+ * (série, cartões, gráfico). O que só aqui se prova: montar uma série pelo diálogo de adição faz o
+ * POST sair com o BLOCO e as repetições certas, e o gráfico aparece enquanto se monta.
+ */
+test.describe('revisão do plano — adição de treino com o editor unificado', () => {
+  const ADD_API = '**/api/v1/coach/planos/*/treinos'
+
+  test('série montada no Adicionar sai como BLOCO no POST, com gráfico e totais', async ({ page }) => {
+    await mockarApis(page)
+
+    const posts: Array<Record<string, unknown>> = []
+    await page.route(ADD_API, async route => {
+      if (route.request().method() !== 'POST') return route.fallback()
+      posts.push(route.request().postDataJSON())
+      await route.fulfill({ status: 201, json: { id: 'novo', diaSemana: 'SEXTA', tipoTreino: 'INTERVALADO', distanciaKm: 0, adicionadoPeloCoach: true } })
+    })
+
+    await autenticarComPkce(page, { roles: ['TECNICO'] })
+    await page.goto(REVIEW_URL)
+    await page.getByRole('button', { name: /Atleta Teste/i }).click()
+    await page.getByRole('button', { name: 'Adicionar treino' }).click()
+
+    const dialog = page.getByRole('dialog')
+    await expect(dialog.getByText('Atleta Teste')).toBeVisible()
+    // Sem tipo e dia, o diálogo diz o que falta em vez de só desabilitar o botão.
+    await expect(page.getByTestId('falta-para-salvar')).toContainText('o tipo de treino e o dia')
+
+    await page.getByLabel('Tipo de treino').selectOption('INTERVALADO')
+    await page.getByLabel('Data do treino').selectOption('2026-08-21')
+    await expect(page.getByTestId('falta-para-salvar')).toHaveCount(0)
+
+    await dialog.getByRole('button', { name: /^série$/i }).click()
+    await expect(page.getByTestId('repeticoes-display-0')).toHaveText('3×')
+    await page.getByLabel(/Aumentar repetições da série 1/i).click()
+    await page.getByLabel('Tipo da etapa 1 da série 1').selectOption('INTERVALADO')
+    await page.getByLabel('Duração (min)').first().fill('3')
+
+    await expect(page.getByTestId('workout-profile')).toBeVisible()
+    await expect(page.getByTestId('totais-treino')).toContainText('12 min')
+
+    await page.getByRole('button', { name: 'Salvar treino' }).click()
+
+    await expect.poll(() => posts.length).toBe(1)
+    const corpo = posts[0] as { etapas?: Array<{ tipoEtapa: string; blocoRepeticoes?: number; subEtapas?: unknown[] }>; duracaoMin?: number }
+    const bloco = corpo.etapas?.find(e => e.tipoEtapa === 'BLOCO')
+    expect(bloco?.blocoRepeticoes).toBe(4)
+    expect(bloco?.subEtapas).toHaveLength(1)
+    expect(corpo.duracaoMin).toBe(12)
+  })
+})
+

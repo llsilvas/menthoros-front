@@ -72,6 +72,7 @@ const premiumZones = {
   Z3: zoneEntry(premiumZone.Z3, ZONE_LABELS.Z3),
   Z4: zoneEntry(premiumZone.Z4, ZONE_LABELS.Z4),
   Z5: zoneEntry(premiumZone.Z5, ZONE_LABELS.Z5),
+  Z6: zoneEntry(premiumZone.Z6, ZONE_LABELS.Z6),
 } as const;
 
 export const activeTheme = {

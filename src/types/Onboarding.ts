@@ -5,7 +5,7 @@
 import type { nivelExperiencia, diaSemana } from './Atleta';
 import type { TipoProva, DistanciaProva, Prova } from './Prova';
 
-export type CanalIntegracao = 'INTERVALS_ICU' | 'MANUAL';
+export type CanalIntegracao = 'INTERVALS_ICU' | 'MANUAL' | 'GARMIN';
 export type DispositivoMarca = 'GARMIN' | 'APPLE' | 'AMAZFIT' | 'COROS' | 'SAMSUNG' | 'POLAR' | 'SUUNTO' | 'OUTRO';
 export type ConfidenceTier = 'A' | 'B' | 'C';
 /** Backend guarda como String livre (sem enum) — union aqui reflete as únicas opções que a UI oferece. */
@@ -18,6 +18,7 @@ export const PERCEPCAO_CONDICIONAMENTO_LABELS: Record<PercepcaoCondicionamento, 
 export const CANAL_INTEGRACAO_LABELS: Record<CanalIntegracao, string> = {
     INTERVALS_ICU: 'intervals.icu',
     MANUAL: 'Manual',
+    GARMIN: 'Garmin Connect',
 };
 
 /** A ordem das chaves é a ordem dos chips do onboarding (prioridade do founder, 2026-10-15). */
@@ -66,14 +67,29 @@ export interface AthleteOnboardingProfile extends OnboardingDraftInput {
     atualizadoEm: string;
 }
 
-/** Dados da prova alvo para concluir o onboarding (CA13). */
+/**
+ * Dados da prova alvo para concluir o onboarding (CA13). Todos opcionais desde
+ * improve-athlete-onboarding-usability: corpo vazio (`{}`) conclui sem prova — o atleta cadastra
+ * depois em Provas. Se `dataProva` vier, o backend exige `tipoProva` e `distancia` juntos.
+ */
 export interface OnboardingConclusaoInput {
-    dataProva: string;
-    tipoProva: TipoProva;
-    distancia: DistanciaProva;
+    dataProva?: string;
+    tipoProva?: TipoProva;
+    distancia?: DistanciaProva;
     distanciaKm?: number;
     nomeProva?: string;
 }
+
+/**
+ * Objetivos prontos do passo "Você". O atleta escolhe um chip em vez de redigir — o texto escolhido
+ * é o que vai em `objetivo` (string livre que o motor de plano exige). "Outro" abre o campo livre.
+ */
+export const OBJETIVO_PRESETS = [
+    'Começar a correr com segurança',
+    'Completar minha primeira prova',
+    'Melhorar meu tempo',
+    'Manter a forma e a saúde',
+] as const;
 
 /** Resultado da conclusão: perfil migrado + prova alvo + baseline/score iniciais. */
 export interface OnboardingConclusaoResult {
