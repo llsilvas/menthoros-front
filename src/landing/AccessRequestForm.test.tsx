@@ -238,7 +238,7 @@ describe('AccessRequestForm', () => {
     mockSegment = 'OTHER_BRAND';
     await user.click(screen.getByRole('button', { name: /solicitar acesso/i }));
 
-    expect(await screen.findByText(/só lê dados de relógios garmin/i)).toBeInTheDocument();
+    expect(await screen.findByText(/em teste via intervals\.icu/i)).toBeInTheDocument();
   });
 
   it('exibe a confirmação de atleta, com CTA de compartilhar, quando enviou como atleta', async () => {
@@ -259,13 +259,13 @@ describe('AccessRequestForm', () => {
 
   it('em modo compact (página já mostra oferta e Garmin acima) não repete o aviso nem o rodapé', () => {
     renderForm({ compact: true });
-    expect(screen.queryByText(/hoje o menthoros lê dados do/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/hoje o menthoros lê dados direto do/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/continuidade mediante contratação/i)).not.toBeInTheDocument();
   });
 
   it('mostra o aviso de Garmin perto do envio por padrão', () => {
     renderForm();
-    expect(screen.getByText(/hoje o menthoros lê dados do/i)).toBeInTheDocument();
+    expect(screen.getByText(/hoje o menthoros lê dados direto do/i)).toBeInTheDocument();
   });
 
   it('renderiza o honeypot oculto', () => {

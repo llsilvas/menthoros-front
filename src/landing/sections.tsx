@@ -409,6 +409,11 @@ function FounderOfferCard() {
         <Box component="strong" sx={{ color: "text.primary" }}>{C.founderOffer.afterTrialPrice}</Box>
         {C.founderOffer.afterTrialPost}
       </Typography>
+      <Box component="ul" sx={{ m: 0, pl: 2.5, color: "text.secondary", fontSize: 15, maxWidth: "62ch", display: "flex", flexDirection: "column", gap: 0.75 }}>
+        {C.founderOffer.perks.map((perk) => (
+          <li key={perk}>{perk}</li>
+        ))}
+      </Box>
       <Typography sx={{ color: "text.secondary", fontSize: 13.5, maxWidth: "62ch" }}>
         {C.founderOffer.continuityNote}
       </Typography>

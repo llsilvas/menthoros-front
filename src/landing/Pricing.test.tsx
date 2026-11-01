@@ -39,6 +39,20 @@ describe('Pricing — oferta fundadora e comparação de planos', () => {
     }
   });
 
+  it('lista os três itens da oferta v2 entre a condição pós-teste e o aviso de contratação', () => {
+    render(<Pricing />);
+    const posTeste = screen.getByText(/Após o teste, continue no Basic/);
+    const paralelo = screen.getByText(/Roda em paralelo com a ferramenta que você usa hoje/);
+    const convite = screen.getByText(/autoriza a conexão com o Garmin/);
+    const devolucao = screen.getByText(/devolvemos o primeiro mês em até 30 dias/);
+    const aviso = screen.getByText(/cadastrar um cartão e contratar o plano/);
+    const ordem = [posTeste, paralelo, convite, devolucao, aviso];
+    for (let i = 0; i < ordem.length - 1; i++) {
+      expect(ordem[i].compareDocumentPosition(ordem[i + 1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+    expect(convite.textContent).toMatch(/primeira semana/);
+  });
+
   it('não atribui ao teste os limites de capacidade do Basic (D-02 pendente)', () => {
     render(<Pricing />);
     // a frase do teste em si não deve citar "20 atletas" fora do contexto "após o teste"
