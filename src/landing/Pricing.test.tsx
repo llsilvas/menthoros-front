@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { Pricing } from './sections';
 import { FoundersSlotsService } from '../services/FoundersSlotsService';
 
@@ -37,6 +37,23 @@ describe('Pricing — oferta fundadora e comparação de planos', () => {
       const proximo = elementos[i + 1];
       expect(atual.compareDocumentPosition(proximo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     }
+  });
+
+  it('lista os três itens da oferta v2 entre a condição pós-teste e o aviso de contratação', () => {
+    render(<Pricing />);
+    const posTeste = screen.getByText(/Após o teste, continue no Basic/);
+    const paralelo = screen.getByText(/Roda em paralelo com a ferramenta que você usa hoje/);
+    const convite = screen.getByText(/autoriza a conexão com o Garmin/);
+    const devolucao = screen.getByText(/devolvemos o primeiro mês em até 30 dias/);
+    const aviso = screen.getByText(/cadastrar um cartão e contratar o plano/);
+    const ordem = [posTeste, paralelo, convite, devolucao, aviso];
+    for (let i = 0; i < ordem.length - 1; i++) {
+      expect(ordem[i].compareDocumentPosition(ordem[i + 1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+    expect(convite.textContent).toMatch(/primeira semana/);
+    const lista = paralelo.closest('ul');
+    expect(lista).not.toBeNull();
+    expect(within(lista as HTMLElement).getAllByRole('listitem')).toHaveLength(3);
   });
 
   it('não atribui ao teste os limites de capacidade do Basic (D-02 pendente)', () => {

@@ -79,7 +79,7 @@ test.describe('Formulário de acesso (programa fundador)', () => {
 
     expect(corpoEnviado.perfil).toBe('PROPRIETARIO')
     expect(corpoEnviado.watchBrand).toBe('COROS')
-    await expect(page.getByText(/só lê dados de relógios garmin/i)).toBeVisible()
+    await expect(page.getByText(/a sua marca está em teste via intervals\.icu/i)).toBeVisible()
   })
 
   test('o link da Política de Privacidade navega — não alterna o checkbox', async ({ page }) => {

@@ -27,7 +27,7 @@ export const hero = {
   titleAccent: "decide.",
   sub: "Feito para assessorias de corrida: a IA lê o treino de cada atleta e propõe ajustes. Você decide o que muda, sem perder tempo com planilha.",
   cta: "Solicitar acesso",
-  scarcity: `${VAGAS_PROGRAMA_FUNDADOR} vagas do programa fundador · 60 dias grátis, sem cartão`,
+  scarcity: `${VAGAS_PROGRAMA_FUNDADOR} vagas do programa fundador · 60 dias grátis, sem cartão · em paralelo, sem migrar`,
   // RF-01: indicação curta de continuidade paga, com link para a seção de preços — sem sugerir
   // ativação imediata ao clicar em "Solicitar acesso" (o clique continua indo para o formulário).
   continuityHint: "Depois do teste, planos a partir de R$ 99/mês.",
@@ -41,9 +41,9 @@ export const hero = {
 // — mesmo ponto de honestidade sobre o requisito de marca, sem duas strings divergindo com o tempo.
 // Texto da FE-01 (spec de conversão do Instagram, 2026-10-08) — o mesmo do protótipo aprovado.
 export const garminNotice = {
-  pre: 'Hoje o Menthoros lê dados do ',
+  pre: 'Hoje o Menthoros lê dados direto do ',
   brand: 'Garmin',
-  post: '. Usa outra marca? Conta pra gente no formulário.',
+  post: '. Apple Watch e outras marcas estão em teste via intervals.icu: conta a sua no formulário.',
 };
 
 export const founderOffer = {
@@ -54,6 +54,13 @@ export const founderOffer = {
   afterTrialPre: "Após o teste, continue no Basic por ",
   afterTrialPrice: "R$ 99/mês",
   afterTrialPost: ", com 1 técnico e até 20 atletas.",
+  // Itens da oferta v2 (founder/offer.md). "5 a 10" é sugestão de por onde começar, não limite do teste
+  // (D-02 segue pendente); o Menthoros não cadastra atleta nem conecta relógio em nome do treinador.
+  perks: [
+    "Roda em paralelo com a ferramenta que você usa hoje: nada para migrar nem cancelar.",
+    "Para começar, você convida de 5 a 10 atletas pelo link; cada um aceita e autoriza a conexão com o Garmin. Acompanhamos a sua primeira semana.",
+    "Se pagar e não gostar, devolvemos o primeiro mês em até 30 dias.",
+  ],
   continuityNote: "Para continuar, será necessário cadastrar um cartão e contratar o plano. Sem a contratação, o acesso será encerrado ao fim dos 60 dias.",
   cta: "Solicitar acesso",
 };
@@ -75,7 +82,7 @@ export const how = {
   title: "O loop fechado,\nem três passos.",
   loopLabel: "A decisão do treinador retroalimenta o modelo",
   steps: [
-    { n: "01", t: "Conecte e colete", b: "Os dados de treino entram automaticamente do Garmin, a integração ativa nesta primeira turma. Outras marcas entram por demanda dos parceiros fundadores." },
+    { n: "01", t: "Conecte e colete", b: "Os dados de treino entram automaticamente do Garmin, lido direto. Apple Watch e outras marcas estão em teste via intervals.icu. Cada atleta autoriza a conexão." },
     { n: "02", t: "A IA analisa", b: "Modelos transformam carga, fadiga e prontidão em sinais claros: quem precisa de atenção e o porquê." },
     { n: "03", t: "Você decide", b: "A IA propõe os ajustes. Você aplica sua experiência e conduz cada atleta. Nada vai ao atleta sem o seu aval." },
   ],
@@ -153,8 +160,9 @@ export const faq = {
   title: "O que os treinadores\nperguntam.",
   items: [
     { q: "A IA vai substituir o treinador?", a: "Pelo contrário: o Menthoros faz o trabalho pesado de ler os dados e propõe ajustes, mas a decisão é 100% sua. Nada chega ao atleta sem o seu aval. A ideia é devolver seu tempo, não tomar seu lugar." },
-    { q: "Preciso que meus atletas tenham um relógio específico?", a: "Nesta primeira turma, sim: o Menthoros lê os dados direto do Garmin. Se os atletas da sua assessoria usam outra marca, me conta na conversa de acesso. A próxima integração é priorizada pela demanda dos parceiros fundadores." },
-    { q: "Quanto custa?", a: `As ${VAGAS_PROGRAMA_FUNDADOR} vagas do programa fundador entram com 60 dias grátis, sem cartão. Depois do teste, você cadastra o cartão e segue no plano Basic: R$ 99/mês, 1 técnico e até 20 atletas. Não cadastrou até lá? Perde o acesso.` },
+    { q: "Preciso que meus atletas tenham um relógio específico?", a: "O Garmin é lido direto. Apple Watch e outras marcas entram pelo intervals.icu e estão em teste: pode funcionar, mas ainda não temos uso real para garantir. Cada atleta aceita o convite e autoriza a conexão. Usa outra marca? Conta no formulário." },
+    { q: "Quanto custa?", a: `As ${VAGAS_PROGRAMA_FUNDADOR} vagas do programa fundador entram com 60 dias grátis, sem cartão. Depois do teste, você cadastra o cartão e segue no plano Basic: R$ 99/mês, 1 técnico e até 20 atletas. Se pagar e não gostar, devolvemos o primeiro mês em até 30 dias. Não cadastrou até lá? Perde o acesso.` },
+    { q: "Preciso largar a ferramenta que uso hoje?", a: "Não. O teste roda em paralelo com a ferramenta ou a planilha que você usa hoje: você não migra ninguém e não cancela nada. Nada chega ao atleta sem o seu aval." },
     { q: "Existe um plano gratuito permanente?", a: "Não. O acesso gratuito vale somente durante os 60 dias de teste. Depois desse período, é necessário contratar um plano pago para continuar usando o Menthoros." },
     { q: "Serve para uma assessoria pequena?", a: "Serve, e às vezes encaixa até melhor. Quando você cuida de tudo, o gargalo é tempo. É exatamente onde o Menthoros ajuda, automatizando a análise para você focar na decisão." },
   ],
@@ -179,7 +187,7 @@ export const valueProposition = {
     "Nada chega ao atleta sem o seu aval.",
   ],
   // Linha de oferta da FE-01: mesmas condições do `founderOffer` (preço lido de lá), em forma curta.
-  offerPre: "60 dias grátis, sem cartão. Depois, Basic a ",
+  offerPre: "60 dias grátis, sem cartão, em paralelo com a sua ferramenta atual. Depois, Basic a ",
   offerPost: " (1 técnico, até 20 atletas).",
 };
 
@@ -194,7 +202,7 @@ export const accessSuccess = {
   },
   outraMarca: {
     title: "Você está na fila!",
-    body: "Hoje o Menthoros só lê dados de relógios Garmin. Você entrou na fila da turma fundadora e vamos avisar assim que a sua marca for suportada.",
+    body: "O Menthoros lê o Garmin direto, e a sua marca está em teste via intervals.icu. Você entrou na fila da turma fundadora e avisamos se ela for liberada.",
   },
   atleta: {
     title: "Avisa seu treinador?",

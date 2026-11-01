@@ -214,7 +214,7 @@ export function AccessRequestForm({ header, onStatusChange, compact = false }: A
           </Field>
         )}
 
-        {/* Último ponto de honestidade antes do envio: hoje só Garmin está integrado. */}
+        {/* Último ponto de honestidade antes do envio: Garmin lido direto; outras marcas em teste via intervals.icu. */}
         {!compact && (
           <Typography sx={{ fontSize: 12.5, color: "text.secondary", lineHeight: 1.4 }}>
             {garminNotice.pre}

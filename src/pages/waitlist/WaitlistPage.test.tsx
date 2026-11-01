@@ -121,9 +121,9 @@ describe('WaitlistPage', () => {
     renderPage();
 
     expect(screen.getByText(/IA para assessorias de corrida/i)).toBeInTheDocument();
-    expect(screen.getByText(/60 dias grátis, sem cartão\. Depois, Basic a/i)).toBeInTheDocument();
+    expect(screen.getByText(/60 dias grátis, sem cartão, em paralelo com a sua ferramenta atual\. Depois, Basic a/i)).toBeInTheDocument();
     expect(screen.getAllByText(/R\$ 99\/mês/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Hoje o Menthoros lê dados do/i)).toBeInTheDocument();
+    expect(screen.getByText(/Hoje o Menthoros lê dados direto do/i)).toBeInTheDocument();
     expect(screen.getByText('Garmin')).toBeInTheDocument();
   });
 
