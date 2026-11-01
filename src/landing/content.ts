@@ -202,7 +202,7 @@ export const accessSuccess = {
   },
   outraMarca: {
     title: "Você está na fila!",
-    body: "O Menthoros lê o Garmin direto, e a sua marca está em teste via intervals.icu. Você entrou na fila da turma fundadora e avisamos quando ela estiver liberada.",
+    body: "O Menthoros lê o Garmin direto, e a sua marca está em teste via intervals.icu. Você entrou na fila da turma fundadora e avisamos se ela for liberada.",
   },
   atleta: {
     title: "Avisa seu treinador?",

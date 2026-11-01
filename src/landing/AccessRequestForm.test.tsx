@@ -238,7 +238,8 @@ describe('AccessRequestForm', () => {
     mockSegment = 'OTHER_BRAND';
     await user.click(screen.getByRole('button', { name: /solicitar acesso/i }));
 
-    expect(await screen.findByText(/em teste via intervals\.icu/i)).toBeInTheDocument();
+    expect(await screen.findByText(/a sua marca está em teste via intervals\.icu/i)).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: 'Nome' })).not.toBeInTheDocument();
   });
 
   it('exibe a confirmação de atleta, com CTA de compartilhar, quando enviou como atleta', async () => {

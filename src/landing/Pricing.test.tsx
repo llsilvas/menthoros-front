@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { Pricing } from './sections';
 import { FoundersSlotsService } from '../services/FoundersSlotsService';
 
@@ -51,6 +51,9 @@ describe('Pricing — oferta fundadora e comparação de planos', () => {
       expect(ordem[i].compareDocumentPosition(ordem[i + 1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     }
     expect(convite.textContent).toMatch(/primeira semana/);
+    const lista = paralelo.closest('ul');
+    expect(lista).not.toBeNull();
+    expect(within(lista as HTMLElement).getAllByRole('listitem')).toHaveLength(3);
   });
 
   it('não atribui ao teste os limites de capacidade do Basic (D-02 pendente)', () => {
