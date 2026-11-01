@@ -67,7 +67,10 @@ server {
     }
 
     # SPA fallback (hash routing já trata rotas no cliente, mas é boa prática)
+    # no-cache: o HTML aponta para o bundle com hash; sem revalidar, o navegador reusa o HTML
+    # antigo (cache heurístico por Last-Modified) e o deploy não chega a quem já visitou.
     location / {
+        add_header Cache-Control "no-cache";
         try_files $uri $uri/ /index.html;
     }
 }
