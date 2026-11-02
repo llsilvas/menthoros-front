@@ -123,4 +123,55 @@ test.describe('Atleta — edição com data de nascimento', () => {
     await expect(page.getByText('Data de nascimento é obrigatória')).toBeVisible()
     expect(putFeito).toBe(false)
   })
+
+  test('cadastro novo pelos chips e selects, peso com vírgula, e o atleta aparece na lista', async ({ page }) => {
+    let corpoPost: Record<string, unknown> | null = null
+    let cadastrado = false
+    await page.route(ROSTER_API, (route) =>
+      route.fulfill({
+        json: cadastrado
+          ? [{ atletaId: 'atleta-novo', nome: 'Carla Souza', status: 'active', weeklyVolume: 0 }]
+          : [],
+      }),
+    )
+    await page.route('**/api/v1/atletas', async (route) => {
+      if (route.request().method() !== 'POST') return route.fallback()
+      corpoPost = route.request().postDataJSON()
+      cadastrado = true
+      await route.fulfill({ status: 201, json: atletaCadastrado({ id: 'atleta-novo', nome: 'Carla Souza' }) })
+    })
+
+    await page.goto(ATLETAS_URL)
+    await page.setViewportSize({ width: 1600, height: 900 })
+    await page.getByRole('button', { name: 'Adicionar', exact: true }).click()
+
+    await page.getByLabel('Nome').fill('Carla Souza')
+    await page.getByLabel('Data de nascimento').fill('1993-05-15')
+    await page.getByLabel('Sexo').click()
+    await page.getByRole('option', { name: 'Feminino' }).click()
+    await page.getByLabel('Peso').fill('72,5')
+    await page.getByLabel('Altura').fill('168')
+    await page.getByLabel('Objetivo').fill('Correr 10K')
+    await page.getByLabel('Nível de experiência').click()
+    await page.getByRole('option', { name: 'Intermediário' }).click()
+    await page.getByRole('button', { name: 'Terça' }).click()
+    await page.getByRole('button', { name: 'Sábado' }).click()
+    await page.getByLabel('Dia do treino longo').click()
+    await page.getByRole('option', { name: 'Sábado' }).click()
+
+    await page.getByRole('button', { name: 'Adicionar atleta' }).click()
+
+    await expect.poll(() => corpoPost).not.toBeNull()
+    expect(corpoPost).toMatchObject({
+      nome: 'Carla Souza',
+      dataNascimento: '1993-05-15',
+      sexo: 'FEMININO',
+      pesoKg: 72.5,
+      alturaCm: 168,
+      nivelExperiencia: 'INTERMEDIARIO',
+      diaPreferidoLongo: 'SABADO',
+    })
+    expect((corpoPost as unknown as { diasDisponiveis: string[] }).diasDisponiveis.sort()).toEqual(['SABADO', 'TERCA'])
+    await expect(page.getByText('Carla Souza')).toBeVisible()
+  })
 })
