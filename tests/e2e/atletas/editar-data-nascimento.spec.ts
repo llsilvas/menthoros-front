@@ -32,6 +32,7 @@ function atletaCadastrado(extra: Record<string, unknown> = {}) {
     objetivo: 'Correr 10K',
     nivelExperiencia: 'INTERMEDIARIO',
     diasDisponiveis: ['SEGUNDA', 'QUARTA'],
+    diaPreferidoLongo: 'QUARTA',
     temLesao: false,
     provas: [],
     email: 'bruno@teste.dev',
@@ -92,11 +93,11 @@ test.describe('Atleta — edição com data de nascimento', () => {
 
     await abrirEdicao(page)
 
-    await expect(page.getByLabel('Data de Nascimento *')).toHaveValue(DATA_NASCIMENTO)
+    await expect(page.getByLabel('Data de nascimento *')).toHaveValue(DATA_NASCIMENTO)
 
     const objetivo = page.getByLabel('Objetivo *')
     await objetivo.fill('Meia maratona')
-    await page.getByRole('button', { name: /salvar/i }).click()
+    await page.getByRole('button', { name: 'Salvar alterações' }).click()
 
     await expect.poll(() => corpoPut).not.toBeNull()
     expect(corpoPut).toMatchObject({ dataNascimento: DATA_NASCIMENTO, objetivo: 'Meia maratona' })
@@ -116,8 +117,8 @@ test.describe('Atleta — edição com data de nascimento', () => {
 
     await abrirEdicao(page)
 
-    await expect(page.getByLabel('Data de Nascimento *')).toHaveValue('')
-    await page.getByRole('button', { name: /salvar/i }).click()
+    await expect(page.getByLabel('Data de nascimento *')).toHaveValue('')
+    await page.getByRole('button', { name: 'Salvar alterações' }).click()
 
     await expect(page.getByText('Data de nascimento é obrigatória')).toBeVisible()
     expect(putFeito).toBe(false)
