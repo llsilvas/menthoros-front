@@ -7,6 +7,7 @@ import { Outlet } from 'react-router';
 import DashboardHeader from './DashboardHeader';
 import DashboardSidebar from './DashboardSidebar';
 import logoMenthoros from '../../assets/icons/logo_rino.png';
+import logoNome from '../../assets/icons/logo_nome_menthoros.png';
 import { text } from '../../theme/tokens';
 import { overlayBlack } from '../../theme/overlays';
 import { elevation } from '../../shared/design-tokens';
@@ -62,14 +63,16 @@ export default function DashboardLayout() {
     >
       <DashboardHeader
         logo={
-          <Box
-            component="img"
-            src={logoMenthoros}
-            alt="Logo Menthoros"
-            sx={{ height: 44, filter: `drop-shadow(0 6px 12px ${overlayBlack[25]})` }}
-          />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box
+              component="img"
+              src={logoMenthoros}
+              alt="Logo Menthoros"
+              sx={{ height: 36, filter: `drop-shadow(0 6px 12px ${overlayBlack[25]})` }}
+            />
+            <Box component="img" src={logoNome} alt="Menthoros AI Coaching" sx={{ height: 24, width: 'auto' }} />
+          </Box>
         }
-        title="Menthoros"
         menuOpen={isNavigationExpanded}
         onToggleMenu={handleToggleHeaderMenu}
       />

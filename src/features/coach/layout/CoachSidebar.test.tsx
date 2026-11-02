@@ -63,14 +63,11 @@ describe('CoachSidebar — logo da assessoria', () => {
     expect(screen.getByAltText(/menthoros/i)).toBeInTheDocument();
   });
 
-  /**
-   * White-label: quem atende o atleta é a assessoria. Com logo, ela ocupa o lugar da marca do
-   * produto no header — e volta para a marca se não houver logo ou se a imagem falhar.
-   */
-  it('com logo, o header exibe a marca da assessoria no lugar da Menthoros', () => {
+  /** A marca do header é sempre a Menthoros; a logo da assessoria aparece só no seletor de tenant. */
+  it('com logo da assessoria, o header continua exibindo a marca Menthoros', () => {
     montar({ logoUrl: '/api/v1/assessorias/me/logo', version: 2 });
 
-    expect(screen.queryByAltText(/menthoros/i)).not.toBeInTheDocument();
-    expect(screen.getAllByAltText(/corridas serra/i).length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByAltText(/menthoros/i)).toBeInTheDocument();
+    expect(screen.getAllByAltText(/corridas serra/i).length).toBeGreaterThanOrEqual(1);
   });
 });

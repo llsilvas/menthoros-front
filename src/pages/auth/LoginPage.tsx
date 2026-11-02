@@ -6,7 +6,7 @@ import { useAuth } from '../../context/auth/useAuth';
 import { getRoles } from '../../context/auth/session';
 import { gradients, glassAzulSx, transitions, primary, surface } from '../../theme/tokens';
 import { overlayWhite } from '../../theme/overlays';
-import logoMenthoros from '../../assets/icons/logo_rino.png';
+import logoMenthoros from '../../assets/landing/logo.png';
 
 /** Destino pós-login por role. */
 function destinoPorRoles(roles: string[]): string {
@@ -90,7 +90,7 @@ export default function LoginPage() {
       >
         <Stack spacing={3}>
           <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
-            <img src={logoMenthoros} alt="Menthoros" style={{ height: 44, opacity: 0.95 }} />
+            <img src={logoMenthoros} alt="Menthoros" style={{ height: 96, width: "auto", opacity: 0.95 }} />
           </Box>
 
           <Box>

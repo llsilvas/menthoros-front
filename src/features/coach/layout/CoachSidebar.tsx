@@ -27,6 +27,7 @@ import { activeTheme } from '../../../theme/activeTheme';
 import { useLogoAssessoria } from '../../../hooks/useLogoAssessoria';
 import { useCompactViewport } from '../hooks/useCompactViewport';
 import menthorosMark from '../../../assets/icons/logo_rino.png';
+import menthorosNome from '../../../assets/icons/logo_nome_menthoros.png';
 
 const { primary, sidebar, overlayBlack } = activeTheme;
 
@@ -359,9 +360,6 @@ export default function CoachSidebar({
   const [collapsed, setCollapsed] = useState<boolean>(
     () => compact || lerPreferenciaRecolhida(),
   );
-  const [logoHeaderFalhou, setLogoHeaderFalhou] = useState(false);
-  const logoCarregada = useLogoAssessoria(currentTenant.logoUrl, currentTenant.version);
-  const logoDoHeader = logoHeaderFalhou ? null : logoCarregada;
 
   useEffect(() => {
     setCollapsed(compact || lerPreferenciaRecolhida());
@@ -426,30 +424,22 @@ export default function CoachSidebar({
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
             <Box
               component="img"
-              // Com logo da assessoria, o produto se apresenta com a marca DELA — é a assessoria
-              // que atende o atleta. Sem logo, a marca Menthoros; e se a imagem falhar, também.
-              src={logoDoHeader ?? menthorosMark}
-              alt={logoDoHeader ? currentTenant.name : 'Menthoros'}
-              onError={() => setLogoHeaderFalhou(true)}
+              src={menthorosMark}
+              alt="Menthoros"
               sx={{
-                width: logoDoHeader ? 32 : 'auto',
-                height: 32,
+                width: 'auto',
+                height: 26,
                 objectFit: 'contain',
                 userSelect: 'none',
                 flexShrink: 0,
               }}
             />
-            <Typography
-              sx={{
-                fontSize: '1rem',
-                fontWeight: 700,
-                color: primary[500],
-                letterSpacing: '-0.02em',
-                userSelect: 'none',
-              }}
-            >
-              Menthoros
-            </Typography>
+            <Box
+              component="img"
+              src={menthorosNome}
+              alt=""
+              sx={{ height: 22, width: 'auto', userSelect: 'none', flexShrink: 0 }}
+            />
           </Box>
         )}
 
