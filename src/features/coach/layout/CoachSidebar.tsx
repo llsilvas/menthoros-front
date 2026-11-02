@@ -26,7 +26,7 @@ import { elevation } from '../../../shared/design-tokens';
 import { activeTheme } from '../../../theme/activeTheme';
 import { useLogoAssessoria } from '../../../hooks/useLogoAssessoria';
 import { useCompactViewport } from '../hooks/useCompactViewport';
-import menthorosMark from '../../../assets/icons/menthoros_mark.png';
+import menthorosMark from '../../../assets/icons/logo_rino.png';
 
 const { primary, sidebar, overlayBlack } = activeTheme;
 
@@ -432,7 +432,7 @@ export default function CoachSidebar({
               alt={logoDoHeader ? currentTenant.name : 'Menthoros'}
               onError={() => setLogoHeaderFalhou(true)}
               sx={{
-                width: 32,
+                width: logoDoHeader ? 32 : 'auto',
                 height: 32,
                 objectFit: 'contain',
                 userSelect: 'none',

@@ -6,7 +6,7 @@ import Toolbar from '@mui/material/Toolbar';
 import { Outlet } from 'react-router';
 import DashboardHeader from './DashboardHeader';
 import DashboardSidebar from './DashboardSidebar';
-import logoMenthoros from '../../assets/icons/menthoros_navbar.png';
+import logoMenthoros from '../../assets/icons/logo_rino.png';
 import { text } from '../../theme/tokens';
 import { overlayBlack } from '../../theme/overlays';
 import { elevation } from '../../shared/design-tokens';

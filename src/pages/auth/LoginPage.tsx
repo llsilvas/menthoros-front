@@ -6,7 +6,7 @@ import { useAuth } from '../../context/auth/useAuth';
 import { getRoles } from '../../context/auth/session';
 import { gradients, glassAzulSx, transitions, primary, surface } from '../../theme/tokens';
 import { overlayWhite } from '../../theme/overlays';
-import logoMenthoros from '../../assets/icons/menthoros_mark.png';
+import logoMenthoros from '../../assets/icons/logo_rino.png';
 
 /** Destino pós-login por role. */
 function destinoPorRoles(roles: string[]): string {
