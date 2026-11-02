@@ -2,6 +2,22 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import AtletaDialog from './AtletaDialog';
+import type { Atleta } from '../../../types/Atleta';
+
+function atletaCadastrado(extra: Partial<Atleta> = {}): Atleta {
+  return {
+    id: 'a1',
+    nome: 'Ana Silva',
+    dataNascimento: '1993-05-15',
+    pesoKg: 70,
+    alturaCm: 170,
+    objetivo: 'Correr 10K',
+    nivelExperiencia: 'INTERMEDIARIO',
+    diasDisponiveis: ['SEGUNDA', 'QUARTA'],
+    temLesao: false,
+    ...extra,
+  } as Atleta;
+}
 
 describe('AtletaDialog', () => {
   async function preencherCamposObrigatorios(user: ReturnType<typeof userEvent.setup>) {
@@ -33,5 +49,41 @@ describe('AtletaDialog', () => {
         dataVencimentoPlano: expect.anything(),
       }),
     );
+  });
+
+  describe('edição — data de nascimento', () => {
+    it('abre com a data cadastrada preenchida', () => {
+      render(<AtletaDialog open onClose={vi.fn()} onSave={vi.fn()} atleta={atletaCadastrado()} />);
+
+      expect(screen.getByLabelText('Data de Nascimento *')).toHaveValue('1993-05-15');
+    });
+
+    it('editar só o objetivo e salvar envia a data original, sem redigitar', async () => {
+      const onSave = vi.fn().mockResolvedValue(undefined);
+      const user = userEvent.setup();
+      render(<AtletaDialog open onClose={vi.fn()} onSave={onSave} atleta={atletaCadastrado()} />);
+
+      const objetivo = screen.getByLabelText('Objetivo *');
+      await user.clear(objetivo);
+      await user.type(objetivo, 'Meia maratona');
+      await user.click(screen.getByRole('button', { name: /salvar/i }));
+
+      expect(onSave).toHaveBeenCalledWith(
+        expect.objectContaining({ dataNascimento: '1993-05-15', objetivo: 'Meia maratona' }),
+      );
+    });
+
+    it('atleta legado sem data abre vazio e bloqueia o salvamento', async () => {
+      const onSave = vi.fn().mockResolvedValue(undefined);
+      const user = userEvent.setup();
+      const legado = atletaCadastrado({ dataNascimento: undefined as unknown as string });
+      render(<AtletaDialog open onClose={vi.fn()} onSave={onSave} atleta={legado} />);
+
+      expect(screen.getByLabelText('Data de Nascimento *')).toHaveValue('');
+      await user.click(screen.getByRole('button', { name: /salvar/i }));
+
+      expect(await screen.findByText('Data de nascimento é obrigatória')).toBeInTheDocument();
+      expect(onSave).not.toHaveBeenCalled();
+    });
   });
 });
