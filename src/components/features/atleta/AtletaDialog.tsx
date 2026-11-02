@@ -5,6 +5,8 @@ import Grid from '@mui/material/Grid';
 import { primary, surface, content } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
+import { Card } from '../../../shared/components/Card';
+import { CardHeader } from '../../../shared/components/CardHeader';
 import { GHOST_BTN_SX, PRIMARY_BTN_SX } from '../../../shared/components/actionButtonSx';
 
 import type { Atleta, CreateAtleta, UpdateAtleta, AtletaDialogProps, diaSemana, Sexo } from "../../../types/Atleta";
@@ -232,27 +234,12 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
         >
                 <Stack spacing={2.5} sx={{ p: { xs: 1.5, md: 3 } }}>
                     {submitError && <Alert severity="error">{submitError}</Alert>}
-                    <Box
-                        sx={{
-                            borderRadius: 1,
-                            border: `1px solid ${content.cardBorder}`,
-                            background: elevation.card,
-                            p: { xs: 2, md: 2.5 },
-                        }}
-                    >
+                    <Card padding={2.5}>
                         <Box sx={{ mb: 2 }}>
-                            <Typography
-                                sx={{
-                                    fontSize: '1.1rem',
-                                    fontWeight: 800,
-                                    color: surface[50],
-                                }}
-                            >
-                                Dados do atleta
-                            </Typography>
-                            <Typography variant="body2" sx={{ mt: 0.5, color: surface[400] }}>
-                                Preencha as informações obrigatórias, rotina disponível e eventuais restrições.
-                            </Typography>
+                            <CardHeader
+                                title="Dados do atleta"
+                                subtitle="Preencha as informações obrigatórias, rotina disponível e eventuais restrições."
+                            />
                         </Box>
 
                         <Grid container spacing={1.5}>
@@ -450,7 +437,7 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                                 </Grid>
                             )}
                         </Grid>
-                    </Box>
+                    </Card>
                 </Stack>
         </CoachDialog>
     )
