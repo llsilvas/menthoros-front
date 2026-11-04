@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Alert, Box, Button, CircularProgress, MenuItem, Tab, Table, TableBody, TableCell, TableHead, TableRow, Tabs, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, CircularProgress, MenuItem, Tab, Table, TableBody, TableCell, TableHead, TableRow, Tabs, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
+import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { GHOST_BTN_SX, PRIMARY_BTN_SX } from '../../../shared/components/actionButtonSx';
 import { activeTheme } from '../../../theme/activeTheme';
 import { content, text } from '../../../theme/tokens';
-import type { AthleteTrainingZonesDto, FonteLimiar } from '../../../types/AthleteTrainingZones';
+import type { AthleteTrainingZonesDto, FonteLimiar, ModoZonas } from '../../../types/AthleteTrainingZones';
 import { buildZonePreviewFromZones } from '../adapters/zoneAnchors';
+import { comFaixasDoLimiar, type ErrosManuais, type LinhaManual } from '../adapters/manualZones';
 import { fieldSx } from './etapas/etapasStyles';
 import { useAthleteZoneAnchorsEditor, type EixoZona } from '../hooks/useAthleteZoneAnchorsEditor';
 
@@ -29,6 +31,84 @@ const NOTA_SX = { fontSize: '0.75rem', color: text.secondary } as const;
 const GRUPO_SX = { display: 'grid', gap: 1.5, m: 0, p: 2, border: `1px solid ${content.divider}`, borderRadius: 2, minWidth: 0 } as const;
 const LEGENDA_SX = { px: 0.75, fontSize: '0.8125rem', fontWeight: 600, color: text.primary } as const;
 const zoneColor = (n: number): string => activeTheme.zones[`Z${n}` as keyof typeof activeTheme.zones].color;
+
+const NOME_EIXO: Record<EixoZona, string> = { fc: 'FC', pace: 'ritmo' };
+const NOMES_ZONAS = ['Recuperação', 'Aeróbico', 'Tempo', 'Limiar', 'VO2max', 'Sprint'];
+const MODOS: { modo: ModoZonas; titulo: string; descricao: string }[] = [
+  { modo: 'LIMIAR', titulo: 'Calcular pelo limiar', descricao: 'Informe o limiar e o sistema gera as zonas.' },
+  { modo: 'MANUAL', titulo: 'Informar manualmente', descricao: 'Digite as faixas de cada zona (ex.: vindas do laboratório).' },
+];
+
+type Confirmacao = { tipo: 'recalcular' | 'voltar'; eixo: EixoZona } | null;
+
+interface TabelaManualProps {
+  eixo: EixoZona;
+  linhas: LinhaManual[];
+  erros: ErrosManuais;
+  onChange: (indice: number, campo: keyof LinhaManual, valor: string) => void;
+}
+
+function TabelaManual({ eixo, linhas, erros, onChange }: TabelaManualProps) {
+  const celula = { color: text.primary, borderColor: content.divider, verticalAlign: 'top' } as const;
+  const cabecalho = { color: text.secondary, borderColor: content.divider } as const;
+  const input = { ...FIELD, '& .MuiInputBase-root': { minHeight: 44 }, minWidth: 0 } as const;
+  return (
+    <Box data-testid="faixas-manuais">
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 1 }}>
+        <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: text.secondary, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          Faixas por zona (editável)
+        </Typography>
+        <Typography sx={{ fontSize: '0.75rem', color: text.secondary }}>{eixo === 'fc' ? 'bpm' : 'm:ss /km'}</Typography>
+      </Box>
+      <Table size="small" aria-label="Faixas por zona">
+        <TableHead>
+          <TableRow>
+            <TableCell sx={cabecalho}>Zona</TableCell>
+            <TableCell sx={cabecalho}>{eixo === 'fc' ? 'De' : 'De (mais rápido)'}</TableCell>
+            <TableCell sx={cabecalho}>{eixo === 'fc' ? 'Até' : 'Até (mais lento)'}</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {linhas.map((l, i) => {
+            const erro = erros[i];
+            const idErro = `erro-${eixo}-z${i + 1}`;
+            const campo = (lado: keyof LinhaManual, rotulo: string) => (
+              <TextField
+                size="small"
+                value={l[lado]}
+                onChange={(e) => onChange(i, lado, e.target.value)}
+                error={Boolean(erro)}
+                slotProps={{
+                  htmlInput: {
+                    'aria-label': `Z${i + 1} ${rotulo}`,
+                    'aria-invalid': Boolean(erro),
+                    'aria-describedby': erro ? idErro : undefined,
+                    inputMode: eixo === 'fc' ? 'numeric' : 'text',
+                  },
+                }}
+                sx={input}
+              />
+            );
+            return (
+              <TableRow key={i}>
+                <TableCell component="th" scope="row" sx={celula}>
+                  {`Z${i + 1} ${NOMES_ZONAS[i]}`}
+                  {erro && (
+                    <Typography id={idErro} sx={{ fontSize: '0.75rem', color: 'error.main', mt: 0.5 }}>
+                      {erro}
+                    </Typography>
+                  )}
+                </TableCell>
+                <TableCell sx={celula}>{campo('de', 'De')}</TableCell>
+                <TableCell sx={celula}>{campo('ate', 'Até')}</TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </Box>
+  );
+}
 
 export interface AthleteZonesDialogProps {
   open: boolean;
@@ -94,7 +174,29 @@ function Previa({ zonas, eixo }: { zonas: AthleteTrainingZonesDto; eixo: EixoZon
 
 function Conteudo({ onClose, atletaId, nomeAtleta, zonas, abaInicial = 'fc', onSalvo }: Omit<AthleteZonesDialogProps, 'open'>) {
   const [eixo, setEixo] = useState<EixoZona>(abaInicial);
+  const [confirmacao, setConfirmacao] = useState<Confirmacao>(null);
   const ed = useAthleteZoneAnchorsEditor(atletaId, zonas, eixo);
+  const manual = ed.modos[eixo] === 'MANUAL';
+
+  const escolherModo = (modo: ModoZonas | null) => {
+    if (!modo || modo === ed.modos[eixo]) return;
+    // Voltar ao limiar um eixo gravado em manual apaga as faixas ao salvar (Q1): confirma antes.
+    if (modo === 'LIMIAR' && ed.manualGravado[eixo] === 'MANUAL') setConfirmacao({ tipo: 'voltar', eixo });
+    else ed.setModo(eixo, modo);
+  };
+  const confirmar = () => {
+    if (!confirmacao) return;
+    if (confirmacao.tipo === 'voltar') ed.setModo(confirmacao.eixo, 'LIMIAR');
+    else ed.recalcular(confirmacao.eixo);
+    setConfirmacao(null);
+  };
+  const badge = (e: EixoZona) => (
+    // aria-hidden: o nome da aba fica estável; o modo é anunciado no grupo "Como definir as zonas".
+    <Typography component="span" aria-hidden data-testid={`modo-${e}`} sx={{ ml: 1, fontSize: '0.6875rem', color: text.secondary }}>
+      {ed.modos[e] === 'MANUAL' ? 'Manual' : 'Pelo limiar'}
+    </Typography>
+  );
+  const recalcularDisponivel = ed.recalcularDisponivel(eixo);
   const primeiroNome = nomeAtleta?.trim().split(/\s+/)[0];
 
   const salvar = async () => {
@@ -148,8 +250,8 @@ function Conteudo({ onClose, atletaId, nomeAtleta, zonas, abaInicial = 'fc', onS
       }
     >
       <Tabs value={eixo} onChange={(_, v: EixoZona) => setEixo(v)} aria-label="Eixo das zonas" sx={{ mb: 2 }}>
-        <Tab value="fc" label="Zonas de FC" id="tab-zonas-fc" aria-controls="painel-zonas-fc" />
-        <Tab value="pace" label="Zonas de Ritmo" id="tab-zonas-pace" aria-controls="painel-zonas-pace" />
+        <Tab value="fc" label={<span>Zonas de FC{badge('fc')}</span>} id="tab-zonas-fc" aria-controls="painel-zonas-fc" />
+        <Tab value="pace" label={<span>Zonas de Ritmo{badge('pace')}</span>} id="tab-zonas-pace" aria-controls="painel-zonas-pace" />
       </Tabs>
 
       {ed.error && (
@@ -164,6 +266,25 @@ function Conteudo({ onClose, atletaId, nomeAtleta, zonas, abaInicial = 'fc', onS
         aria-labelledby={`tab-zonas-${eixo}`}
         sx={{ display: 'grid', gap: 3 }}
       >
+        <Box>
+          <Typography sx={{ ...NOTA_SX, mb: 0.75 }}>Como definir as zonas</Typography>
+          <ToggleButtonGroup
+            exclusive
+            fullWidth
+            value={ed.modos[eixo]}
+            onChange={(_, m: ModoZonas | null) => escolherModo(m)}
+            aria-label="Como definir as zonas"
+            sx={{ gap: 1, '& .MuiToggleButton-root': { border: `1px solid ${content.divider}`, borderRadius: '8px !important' } }}
+          >
+            {MODOS.map((m) => (
+              <ToggleButton key={m.modo} value={m.modo} sx={{ display: 'grid', justifyItems: 'start', textAlign: 'left', textTransform: 'none', minHeight: 44, color: text.secondary }}>
+                <Typography component="span" sx={{ fontSize: '0.875rem', fontWeight: 600, color: text.primary }}>{m.titulo}</Typography>
+                <Typography component="span" sx={NOTA_SX}>{m.descricao}</Typography>
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+        </Box>
+
         {eixo === 'fc' ? (
           <Box component="fieldset" sx={{ ...GRUPO_SX, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' } }}>
             <Box component="legend" sx={LEGENDA_SX}>Âncoras de FC</Box>
@@ -237,9 +358,44 @@ function Conteudo({ onClose, atletaId, nomeAtleta, zonas, abaInicial = 'fc', onS
           </Box>
         )}
 
+        {ed.limiarMudouComManual(eixo) && (
+          <Alert severity="info">
+            As faixas manuais de {NOME_EIXO[eixo]} continuam valendo: o novo limiar não muda as faixas. Use
+            “Recalcular a partir do limiar” para gerá-las de novo.
+          </Alert>
+        )}
+
         <Box>
-          {ed.previa ? (
-            <Previa zonas={ed.previa} eixo={eixo} />
+          {manual ? (
+            <Box sx={{ display: 'grid', gap: 1.5 }}>
+              <TabelaManual
+                eixo={eixo}
+                linhas={ed.linhas[eixo]}
+                erros={ed.errosManuais[eixo]}
+                onChange={(i, campo, valor) => ed.setLinha(eixo, i, campo, valor)}
+              />
+              {eixo === 'fc' && ed.fcManualAcimaDaMaxima != null && (
+                <Alert severity="warning">
+                  Faixas acima da FC máxima ({ed.fcManualAcimaDaMaxima} bpm) não são enviadas ao relógio.
+                </Alert>
+              )}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                <Button
+                  sx={{ ...GHOST_BTN_SX, minHeight: 44 }}
+                  disabled={!recalcularDisponivel}
+                  onClick={() => setConfirmacao({ tipo: 'recalcular', eixo })}
+                >
+                  Recalcular a partir do limiar
+                </Button>
+                {!recalcularDisponivel && (
+                  <Typography sx={NOTA_SX}>
+                    {ed.previaPendente ? 'Calculando a prévia…' : eixo === 'pace' ? 'Sem pace de limiar' : 'Sem limiar de FC'}
+                  </Typography>
+                )}
+              </Box>
+            </Box>
+          ) : ed.previa ? (
+            <Previa zonas={comFaixasDoLimiar(ed.previa)} eixo={eixo} />
           ) : ed.erroPrevia ? (
             <Alert severity="warning">{ed.erroPrevia}</Alert>
           ) : (
@@ -249,6 +405,20 @@ function Conteudo({ onClose, atletaId, nomeAtleta, zonas, abaInicial = 'fc', onS
           )}
         </Box>
       </Box>
+
+      <ConfirmDialog
+        open={confirmacao != null}
+        title={confirmacao?.tipo === 'voltar' ? 'Voltar ao cálculo pelo limiar?' : 'Recalcular a partir do limiar?'}
+        message={
+          confirmacao?.tipo === 'voltar'
+            ? `As faixas manuais de ${NOME_EIXO[confirmacao.eixo]} serão apagadas ao salvar.`
+            : 'As faixas editadas serão substituídas pelas calculadas a partir do limiar.'
+        }
+        confirmLabel={confirmacao?.tipo === 'voltar' ? 'Voltar ao limiar' : 'Recalcular'}
+        severity={confirmacao?.tipo === 'voltar' ? 'danger' : 'default'}
+        onClose={() => setConfirmacao(null)}
+        onConfirm={confirmar}
+      />
     </CoachDialog>
   );
 }

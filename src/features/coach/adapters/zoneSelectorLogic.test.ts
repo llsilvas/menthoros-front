@@ -94,6 +94,12 @@ describe('aplicarZona', () => {
         expect(r).toMatchObject({ zona: 'Z2', ritmoAlvo: '5:15-5:45/km', fcAlvoEtapa: '', alvoPrimario: 'PACE' });
     });
 
+    it('FC manual vale mesmo com limiar estimado: a faixa foi escrita pelo treinador', () => {
+        const fcManual: AthleteTrainingZonesDto = { ...fcEstimada, modos: { fc: 'MANUAL', pace: 'LIMIAR' } };
+
+        expect(aplicarZona(VAZIA, 'Z2', fcManual, 'PRINCIPAL')).toMatchObject({ fcAlvoEtapa: '143-150 bpm', alvoPrimario: 'FC' });
+    });
+
     it('a faixa gravada é a base: nenhum ajuste de fadiga é somado', () => {
         const comFadiga = { ...ZONES, ajusteFadiga: { segundosPorKm: 12, tsbProntidao: -20 } };
 
@@ -241,6 +247,12 @@ describe('avisosDaEtapa', () => {
 
     it('FC de limiar estimada avisa que a FC não foi preenchida', () => {
         expect(ids({ zona: 'Z2', fcAlvoEtapa: '', ritmoAlvo: '5:15-5:45/km' }, fcEstimada)).toContain('fc-limiar-estimada');
+    });
+
+    it('FC manual não avisa de limiar estimado', () => {
+        const fcManual: AthleteTrainingZonesDto = { ...fcEstimada, modos: { fc: 'MANUAL', pace: 'LIMIAR' } };
+
+        expect(ids({ zona: 'Z2', fcAlvoEtapa: '', ritmoAlvo: '5:15-5:45/km' }, fcManual)).not.toContain('fc-limiar-estimada');
     });
 
     it('etapa sem nada preenchido não gera aviso', () => {
