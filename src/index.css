@@ -20,6 +20,11 @@ body {
   padding: 0;
 }
 
+/* Controles nativos não herdam a fonte por padrão do navegador (saem em Arial). */
+button, input, select, textarea {
+  font-family: inherit;
+}
+
 /* Reset de margens para consistência */
 h1, h2, h3, h4, h5, h6, p {
   margin: 0;
