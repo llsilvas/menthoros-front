@@ -6,7 +6,6 @@ const familia = (valor: unknown) => String(valor ?? '');
 
 describe('coachTheme', () => {
   describe('famílias', () => {
-    /** Syne é display: boa em título curto, ruim em label e número, que é o grosso desta tela. */
     it('usa Inter em texto de leitura e dados', () => {
       expect(familia(coachTheme.typography.body1.fontFamily)).toMatch(/Inter/);
       expect(familia(coachTheme.typography.body2.fontFamily)).toMatch(/Inter/);
@@ -14,9 +13,18 @@ describe('coachTheme', () => {
       expect(familia(coachTheme.typography.button.fontFamily)).toMatch(/Inter/);
     });
 
-    it('mantém Syne nos títulos', () => {
-      expect(familia(coachTheme.typography.h3.fontFamily)).toMatch(/Syne/);
-      expect(familia(coachTheme.typography.h4.fontFamily)).toMatch(/Syne/);
+    // padronizar-tipografia-inter (CA3): títulos em Inter, mesmo tamanho de antes, peso ≥ 700.
+    it.each([
+      ['h1', 28],
+      ['h2', 28],
+      ['h3', 20],
+      ['h4', 20],
+    ] as const)('%s em Inter, %ipx, peso ≥ 700', (variante, tamanhoPx) => {
+      const v = coachTheme.typography[variante];
+      expect(familia(v.fontFamily)).toMatch(/^"?Inter/);
+      expect(familia(v.fontFamily)).not.toMatch(/Syne/);
+      expect(Number.parseFloat(String(v.fontSize)) * 16).toBe(tamanhoPx);
+      expect(Number(v.fontWeight)).toBeGreaterThanOrEqual(700);
     });
 
     it('o default do tema não é mais Syne', () => {
