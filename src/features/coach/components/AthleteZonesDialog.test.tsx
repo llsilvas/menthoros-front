@@ -67,6 +67,18 @@ describe('AthleteZonesDialog', () => {
         expect(CoachAthleteZonesService.simular).not.toHaveBeenCalled();
     });
 
+    it('Escape durante o salvamento não fecha o diálogo', async () => {
+        const user = userEvent.setup();
+        vi.mocked(CoachAthleteZonesService.salvarAncoras).mockReturnValue(new Promise(() => undefined) as never);
+        const { onClose } = abre({ abaInicial: 'pace' });
+
+        await user.type(screen.getByLabelText(/Ritmo de limiar/), '4:50');
+        await user.click(screen.getByRole('button', { name: 'Salvar zonas' }));
+        await user.keyboard('{Escape}');
+
+        expect(onClose).not.toHaveBeenCalled();
+    });
+
     it('ritmo válido mostra a prévia e salva: fecha e avisa (CA12)', async () => {
         const user = userEvent.setup();
         const { onClose, onSalvo } = abre({ abaInicial: 'pace' });
@@ -89,7 +101,7 @@ describe('AthleteZonesDialog', () => {
         await user.type(screen.getByLabelText(/Ritmo de limiar/), '4:50');
         await user.click(screen.getByRole('button', { name: 'Salvar zonas' }));
 
-        expect(await screen.findByText('Falha ao salvar')).toBeInTheDocument();
+        expect(await screen.findByText('Erro ao salvar as zonas')).toBeInTheDocument();
         expect(onClose).not.toHaveBeenCalled();
         expect(screen.getByLabelText(/Ritmo de limiar/)).toHaveValue('4:50');
     });

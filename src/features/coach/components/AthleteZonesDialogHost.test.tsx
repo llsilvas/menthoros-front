@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAthleteTrainingZones } from '../../../hooks/useAthleteTrainingZones';
 import type { AthleteTrainingZonesDto } from '../../../types/AthleteTrainingZones';
@@ -32,10 +32,22 @@ describe('AthleteZonesDialogHost', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('enquanto carrega não abre o diálogo (o formulário nasceria vazio)', () => {
+  it('enquanto carrega mostra o carregamento, sem o formulário (nasceria vazio)', () => {
     hook({ zones: null, loading: true });
     monta(true);
-    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.getByRole('status', { name: 'Carregando zonas' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('FC de limiar (bpm)')).toBeNull();
+  });
+
+  it('GET falho mostra o erro com tentar de novo e não abre o formulário', () => {
+    const fetchZones = vi.fn();
+    hook({ zones: null, error: new Error('x'), fetchZones });
+    monta(true);
+    expect(screen.getByText('Não foi possível carregar as zonas do atleta.')).toBeInTheDocument();
+    expect(screen.queryByLabelText('FC de limiar (bpm)')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tentar de novo' }));
+    expect(fetchZones).toHaveBeenCalledTimes(1);
   });
 
   it('carregado, abre o diálogo com os valores vigentes', () => {

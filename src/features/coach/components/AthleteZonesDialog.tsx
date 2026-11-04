@@ -99,7 +99,7 @@ function Conteudo({ onClose, atletaId, nomeAtleta, zonas, abaInicial = 'fc', onS
   return (
     <CoachDialog
       open
-      onClose={onClose}
+      onClose={ed.saving ? () => undefined : onClose}
       maxWidth="md"
       title={primeiroNome ? `Zonas de ${primeiroNome}` : 'Zonas do atleta'}
       subtitle="Cadastre o limiar e veja as zonas que ele gera."
@@ -209,6 +209,8 @@ function Conteudo({ onClose, atletaId, nomeAtleta, zonas, abaInicial = 'fc', onS
         <Box>
           {ed.previa ? (
             <Previa zonas={ed.previa} eixo={eixo} />
+          ) : ed.erroPrevia ? (
+            <Alert severity="warning">{ed.erroPrevia}</Alert>
           ) : (
             <Typography sx={{ fontSize: '0.8125rem', color: text.secondary }}>
               Preencha o limiar para ver as zonas.

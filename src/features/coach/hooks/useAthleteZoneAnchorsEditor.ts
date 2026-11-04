@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ApiError } from '../../../api/core/ApiError';
 import { CoachAthleteZonesService } from '../../../api/services/CoachAthleteZonesService';
 import { invalidarZonasDoAtleta } from '../../../hooks/useAthleteTrainingZones';
 import type {
@@ -50,6 +51,22 @@ function formsIniciais(z: AthleteTrainingZonesDto | null, hoje: string) {
     return { fc, pace };
 }
 
+/**
+ * Texto seguro para o treinador: só os `fields` do 400 de validação do backend (mensagens de regra,
+ * sem dado do atleta). Qualquer outra falha vira o texto padrão — `err.message` não é exibido.
+ */
+export function mensagemDeErro(err: unknown, padrao: string): string {
+    if (!(err instanceof ApiError)) return padrao;
+    const fields = (err.body as { fields?: Record<string, string> } | undefined)?.fields;
+    const itens = fields ? Object.entries(fields) : [];
+    if (err.status === 400 && itens.length > 0) return itens.map(([campo, msg]) => `${campo}: ${msg}`).join('; ');
+    if (err.status === 404) return 'Atleta não encontrado';
+    return padrao;
+}
+
+// Erro de um campo que nasce da combinação com outro: aparece se qualquer um dos dois foi tocado.
+const CAMPOS_RELACIONADOS: Record<string, string[]> = { 'fc.maxima': ['fc.limiar'] };
+
 const inteiro = (t: string): number | null => (/^\d+$/.test(t.trim()) ? Number(t) : null);
 
 /**
@@ -70,6 +87,7 @@ export function useAthleteZoneAnchorsEditor(
     const [previa, setPrevia] = useState<AthleteTrainingZonesDto | null>(null);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [erroPrevia, setErroPrevia] = useState<string | null>(null);
     const seq = useRef(0);
 
     // Só a troca de atleta zera o formulário. Reabrir o diálogo remonta o hook; um refetch de zonas
@@ -82,6 +100,7 @@ export function useAthleteZoneAnchorsEditor(
         setTocados(new Set());
         setPrevia(null);
         setError(null);
+        setErroPrevia(null);
     }
 
     const maximaGravada = zonasAtuais && !zonasAtuais.fcMaxima.estimada ? zonasAtuais.fcMaxima.bpm : null;
@@ -125,6 +144,7 @@ export function useAthleteZoneAnchorsEditor(
     const ativoValido = eixoAtivo === 'fc' ? fcValido : paceValido;
     useEffect(() => {
         const minha = ++seq.current;
+        setErroPrevia(null);
         if (!ativoValido) {
             setPrevia(null);
             return;
@@ -136,8 +156,10 @@ export function useAthleteZoneAnchorsEditor(
                 .then((z) => {
                     if (minha === seq.current) setPrevia(z);
                 })
-                .catch(() => {
-                    if (minha === seq.current) setPrevia(null);
+                .catch((err) => {
+                    if (minha !== seq.current) return;
+                    setPrevia(null);
+                    setErroPrevia(mensagemDeErro(err, 'Não foi possível simular as zonas'));
                 });
         }, DEBOUNCE_SIMULACAO_MS);
         return () => clearTimeout(t);
@@ -145,7 +167,10 @@ export function useAthleteZoneAnchorsEditor(
 
     const tocar = useCallback((campo: string) => setTocados((s) => new Set(s).add(campo)), []);
     const visivel = <T extends Record<string, string | undefined>>(erros: T, eixo: EixoZona) =>
-        Object.fromEntries(Object.entries(erros).filter(([k]) => tocados.has(`${eixo}.${k}`))) as Partial<T>;
+        Object.fromEntries(Object.entries(erros).filter(([k]) => {
+                const chave = `${eixo}.${k}`;
+                return tocados.has(chave) || (CAMPOS_RELACIONADOS[chave] ?? []).some((c) => tocados.has(c));
+            })) as Partial<T>;
 
     // Salvar envia os eixos alterados; eixo alterado e inválido bloqueia.
     const podeSalvar =
@@ -163,7 +188,7 @@ export function useAthleteZoneAnchorsEditor(
             invalidarZonasDoAtleta(atletaId);
             return true;
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Erro ao salvar as zonas');
+            setError(mensagemDeErro(err, 'Erro ao salvar as zonas'));
             return false;
         } finally {
             setSaving(false);
@@ -182,6 +207,7 @@ export function useAthleteZoneAnchorsEditor(
         podeSalvar,
         saving,
         error,
+        erroPrevia,
         salvar,
     };
 }

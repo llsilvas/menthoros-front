@@ -1,5 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ApiError } from '../../../api/core/ApiError';
 import { CoachAthleteZonesService } from '../../../api/services/CoachAthleteZonesService';
 import * as zonasHook from '../../../hooks/useAthleteTrainingZones';
 import type { AthleteTrainingZonesDto } from '../../../types/AthleteTrainingZones';
@@ -128,6 +129,50 @@ describe('useAthleteZoneAnchorsEditor', () => {
         expect(result.current.podeSalvar).toBe(false);
     });
 
+    const erro400 = (fields: Record<string, string>) =>
+        new ApiError(
+            { method: 'PUT', url: '/x' },
+            { url: '/x', ok: false, status: 400, statusText: 'Bad Request', body: { fields } },
+            'Bad Request',
+        );
+
+    it('400 do PUT mostra os campos rejeitados, não o message genérico', async () => {
+        vi.mocked(CoachAthleteZonesService.salvarAncoras).mockRejectedValue(
+            erro400({ 'pace.dataTeste': 'data no futuro no fuso do atleta' }),
+        );
+        const { result } = monta('pace');
+        act(() => result.current.setPace((p) => ({ ...p, limiar: '4:50' })));
+        await act(async () => {
+            await result.current.salvar();
+        });
+
+        expect(result.current.error).toBe('pace.dataTeste: data no futuro no fuso do atleta');
+    });
+
+    it('400 na simulação aparece em erroPrevia', async () => {
+        vi.mocked(CoachAthleteZonesService.simular).mockRejectedValue(erro400({ 'pace.limiarSegKm': 'fora da faixa' }));
+        const { result } = monta('pace');
+        act(() => result.current.setPace((p) => ({ ...p, limiar: '4:50' })));
+        await avancar(DEBOUNCE_SIMULACAO_MS);
+
+        expect(result.current.previa).toBeNull();
+        expect(result.current.erroPrevia).toBe('pace.limiarSegKm: fora da faixa');
+    });
+
+    it('erro cruzado da máxima aparece ao tocar só o limiar', () => {
+        const zonas: AthleteTrainingZonesDto = {
+            ...ZONAS,
+            ancoras: { fcLimiar: 160, fcLimiarEstimada: false },
+            fcMaxima: { bpm: 186, estimada: false },
+        };
+        const { result } = renderHook(() => useAthleteZoneAnchorsEditor('a1', zonas, 'fc'));
+        act(() => result.current.setFc((f) => ({ ...f, limiar: '180' })));
+        expect(result.current.errosFc.maxima).toBeUndefined();
+
+        act(() => result.current.tocar('fc.limiar'));
+        expect(result.current.errosFc.maxima).toMatch(/pelo menos/);
+    });
+
     it('erro no PUT devolve false, guarda a mensagem e não invalida', async () => {
         const invalidar = vi.spyOn(zonasHook, 'invalidarZonasDoAtleta');
         vi.mocked(CoachAthleteZonesService.salvarAncoras).mockRejectedValue(new Error('boom'));
@@ -140,7 +185,7 @@ describe('useAthleteZoneAnchorsEditor', () => {
         });
 
         expect(ok).toBe(false);
-        expect(result.current.error).toBe('boom');
+        expect(result.current.error).toBe('Erro ao salvar as zonas');
         expect(invalidar).not.toHaveBeenCalled();
     });
 });
