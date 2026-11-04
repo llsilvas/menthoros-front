@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AthleteTrainingZonesDto } from '../../../types/AthleteTrainingZones';
-import { comFaixasDoLimiar, corpoManual, faixasDoLimiar, linhasDasZonas, validarFaixasManuais } from './manualZones';
+import { comFaixasDoLimiar, corpoManual, faixasDoLimiar, linhasDasZonas, previaManual, validarFaixasManuais } from './manualZones';
 
 const ZONAS: AthleteTrainingZonesDto = {
     modelo: 'LTHR_FRIEL',
@@ -140,5 +140,40 @@ describe('corpoManual', () => {
     it('converte as linhas em faixas numeradas na ordem', () => {
         expect(corpoManual(linhasDasZonas(ZONAS.zonas, 'pace'), 'pace')[1]).toEqual({ zona: 2, min: 315, max: 345 });
         expect(corpoManual(linhasDasZonas(ZONAS.zonas, 'fc'), 'fc')[4]).toEqual({ zona: 5, min: 168, max: 178 });
+    });
+});
+
+describe('previaManual', () => {
+    it('FC: barra proporcional à largura de cada faixa e referência em % do LTHR', () => {
+        const linhasFc = [
+            { de: '120', ate: '140' }, { de: '140', ate: '150' }, { de: '153', ate: '160' },
+            { de: '160', ate: '168' }, { de: '168', ate: '178' },
+        ];
+        const { barra, referencias } = previaManual(linhasFc, 'fc', 168);
+
+        expect(barra).toEqual([
+            { numero: 1, peso: 20 }, { numero: 2, peso: 10 }, { numero: 3, peso: 7 },
+            { numero: 4, peso: 8 }, { numero: 5, peso: 10 },
+        ]);
+        expect(referencias[1]).toBe('83–89% LTHR');
+    });
+
+    it('pace: largura em s/km e referência em % do limiar', () => {
+        const linhasPace = [
+            { de: '5:45', ate: '6:15' }, { de: '5:15', ate: '5:45' }, { de: '5:00', ate: '5:15' },
+            { de: '4:45', ate: '5:00' }, { de: '4:30', ate: '4:45' }, { de: '4:06', ate: '4:30' },
+        ];
+        const { barra, referencias } = previaManual(linhasPace, 'pace', 300);
+
+        expect(barra[0]).toEqual({ numero: 1, peso: 30 });
+        expect(barra).toHaveLength(6);
+        expect(referencias[2]).toBe('100–105% limiar');
+    });
+
+    it('linha incompleta ou invertida ocupa peso 1; sem limiar a referência é "—"', () => {
+        const { barra, referencias } = previaManual([{ de: '150', ate: '' }, { de: '160', ate: '150' }], 'fc', null);
+
+        expect(barra).toEqual([{ numero: 1, peso: 1 }, { numero: 2, peso: 1 }]);
+        expect(referencias).toEqual(['—', '—']);
     });
 });

@@ -6,8 +6,8 @@ import { GHOST_BTN_SX, PRIMARY_BTN_SX } from '../../../shared/components/actionB
 import { activeTheme } from '../../../theme/activeTheme';
 import { content, text } from '../../../theme/tokens';
 import type { AthleteTrainingZonesDto, FonteLimiar, ModoZonas } from '../../../types/AthleteTrainingZones';
-import { buildZonePreviewFromZones } from '../adapters/zoneAnchors';
-import { comFaixasDoLimiar, type ErrosManuais, type LinhaManual } from '../adapters/manualZones';
+import { buildZonePreviewFromZones, parsePace } from '../adapters/zoneAnchors';
+import { comFaixasDoLimiar, previaManual, type ErrosManuais, type LinhaManual } from '../adapters/manualZones';
 import { fieldSx } from './etapas/etapasStyles';
 import { useAthleteZoneAnchorsEditor, type EixoZona } from '../hooks/useAthleteZoneAnchorsEditor';
 
@@ -45,10 +45,13 @@ interface TabelaManualProps {
   eixo: EixoZona;
   linhas: LinhaManual[];
   erros: ErrosManuais;
+  /** Limiar digitado (bpm ou s/km), base da coluna Referência. */
+  limiar: number | null;
   onChange: (indice: number, campo: keyof LinhaManual, valor: string) => void;
 }
 
-function TabelaManual({ eixo, linhas, erros, onChange }: TabelaManualProps) {
+function TabelaManual({ eixo, linhas, erros, limiar, onChange }: TabelaManualProps) {
+  const { barra, referencias } = previaManual(linhas, eixo, limiar);
   const celula = { color: text.primary, borderColor: content.divider, verticalAlign: 'top' } as const;
   const cabecalho = { color: text.secondary, borderColor: content.divider } as const;
   const input = { ...FIELD, '& .MuiInputBase-root': { minHeight: 44 }, minWidth: 0 } as const;
@@ -60,10 +63,16 @@ function TabelaManual({ eixo, linhas, erros, onChange }: TabelaManualProps) {
         </Typography>
         <Typography sx={{ fontSize: '0.75rem', color: text.secondary }}>{eixo === 'fc' ? 'bpm' : 'm:ss /km'}</Typography>
       </Box>
+      <Box aria-hidden sx={{ display: 'flex', gap: '2px', height: 10, borderRadius: 1, overflow: 'hidden', mb: 1 }}>
+        {barra.map((b) => (
+          <Box key={b.numero} data-testid="faixa-barra" sx={{ flex: `${b.peso} 1 0`, bgcolor: zoneColor(b.numero) }} />
+        ))}
+      </Box>
       <Table size="small" aria-label="Faixas por zona">
         <TableHead>
           <TableRow>
             <TableCell sx={cabecalho}>Zona</TableCell>
+            <TableCell sx={cabecalho}>Referência</TableCell>
             <TableCell sx={cabecalho}>{eixo === 'fc' ? 'De' : 'De (mais rápido)'}</TableCell>
             <TableCell sx={cabecalho}>{eixo === 'fc' ? 'Até' : 'Até (mais lento)'}</TableCell>
           </TableRow>
@@ -99,11 +108,19 @@ function TabelaManual({ eixo, linhas, erros, onChange }: TabelaManualProps) {
                     </Typography>
                   )}
                 </TableCell>
+                <TableCell sx={cabecalho}>{referencias[i]}</TableCell>
                 <TableCell sx={celula}>{campo('de', 'De')}</TableCell>
                 <TableCell sx={celula}>{campo('ate', 'Até')}</TableCell>
               </TableRow>
             );
           })}
+          {eixo === 'fc' && (
+            <TableRow>
+              <TableCell component="th" scope="row" sx={celula}>{`Z6 ${NOMES_ZONAS[5]}`}</TableCell>
+              <TableCell sx={cabecalho}>—</TableCell>
+              <TableCell colSpan={2} sx={cabecalho}>— usar ritmo (FC não estabiliza)</TableCell>
+            </TableRow>
+          )}
         </TableBody>
       </Table>
     </Box>
@@ -372,6 +389,7 @@ function Conteudo({ onClose, atletaId, nomeAtleta, zonas, abaInicial = 'fc', onS
                 eixo={eixo}
                 linhas={ed.linhas[eixo]}
                 erros={ed.errosManuais[eixo]}
+                limiar={eixo === 'fc' ? (/^\d+$/.test(ed.fc.limiar.trim()) ? Number(ed.fc.limiar) : null) : parsePace(ed.pace.limiar)}
                 onChange={(i, campo, valor) => ed.setLinha(eixo, i, campo, valor)}
               />
               {eixo === 'fc' && ed.fcManualAcimaDaMaxima != null && (
