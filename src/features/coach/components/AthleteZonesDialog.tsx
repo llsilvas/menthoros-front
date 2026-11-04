@@ -54,7 +54,7 @@ function TabelaManual({ eixo, linhas, erros, limiar, onChange }: TabelaManualPro
   const { barra, referencias } = previaManual(linhas, eixo, limiar);
   const celula = { color: text.primary, borderColor: content.divider, verticalAlign: 'top' } as const;
   const cabecalho = { color: text.secondary, borderColor: content.divider } as const;
-  const input = { ...FIELD, '& .MuiInputBase-root': { minHeight: 44 }, minWidth: 0 } as const;
+  const input = { ...FIELD, '& .MuiInputBase-root': { minHeight: 44 }, '& input': { fontVariantNumeric: 'tabular-nums' }, minWidth: 0 } as const;
   return (
     <Box data-testid="faixas-manuais">
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 1 }}>
@@ -108,7 +108,7 @@ function TabelaManual({ eixo, linhas, erros, limiar, onChange }: TabelaManualPro
                     </Typography>
                   )}
                 </TableCell>
-                <TableCell sx={cabecalho}>{referencias[i]}</TableCell>
+                <TableCell sx={{ ...cabecalho, fontVariantNumeric: 'tabular-nums' }}>{referencias[i]}</TableCell>
                 <TableCell sx={celula}>{campo('de', 'De')}</TableCell>
                 <TableCell sx={celula}>{campo('ate', 'Até')}</TableCell>
               </TableRow>
@@ -170,7 +170,7 @@ function Previa({ zonas, eixo }: { zonas: AthleteTrainingZonesDto; eixo: EixoZon
           {linhas.map((z) => (
             <TableRow key={z.numero}>
               <TableCell component="th" scope="row" sx={celula}>{`Z${z.numero} ${z.nome}`}</TableCell>
-              <TableCell sx={{ ...cabecalho }}>{z.referencia}</TableCell>
+              <TableCell sx={{ ...cabecalho, fontVariantNumeric: 'tabular-nums' }}>{z.referencia}</TableCell>
               {z.semFc ? (
                 <TableCell colSpan={2} sx={cabecalho}>
                   — usar ritmo (FC não estabiliza)

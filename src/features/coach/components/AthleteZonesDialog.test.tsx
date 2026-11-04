@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ComponentProps } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -71,6 +71,15 @@ describe('AthleteZonesDialog', () => {
         expect(screen.getByRole('columnheader', { name: 'Até' })).toBeInTheDocument();
         expect(screen.getByRole('row', { name: /Z1 Recuperação/ })).toHaveTextContent('75–85% LTHR126143');
         expect(screen.getByRole('row', { name: /Z6 Sprint/ })).toHaveTextContent('usar ritmo (FC não estabiliza)');
+    });
+
+    it('na prévia, referência, De e Até usam tabular-nums (CA5)', async () => {
+        abre();
+
+        const z1 = within(await screen.findByTestId('previa-zonas')).getAllByRole('row')[1];
+        for (const celula of within(z1).getAllByRole('cell')) {
+            expect(celula).toHaveStyle({ fontVariantNumeric: 'tabular-nums' });
+        }
     });
 
     it('aba Ritmo mostra a nota do formato m:ss', () => {
