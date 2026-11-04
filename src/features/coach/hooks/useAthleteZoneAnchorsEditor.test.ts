@@ -102,6 +102,32 @@ describe('useAthleteZoneAnchorsEditor', () => {
         expect(invalidar).toHaveBeenCalledWith('a1');
     });
 
+    it('refetch de zonas com o diálogo aberto não apaga o que foi digitado', () => {
+        const { result, rerender } = renderHook(
+            ({ zonas }) => useAthleteZoneAnchorsEditor('a1', zonas, 'pace'),
+            { initialProps: { zonas: ZONAS } },
+        );
+        act(() => result.current.setPace((p) => ({ ...p, limiar: '4:50' })));
+
+        rerender({ zonas: { ...ZONAS } });
+
+        expect(result.current.pace.limiar).toBe('4:50');
+        expect(result.current.podeSalvar).toBe(true);
+    });
+
+    it('troca de atleta zera o formulário', () => {
+        const { result, rerender } = renderHook(
+            ({ id }) => useAthleteZoneAnchorsEditor(id, ZONAS, 'pace'),
+            { initialProps: { id: 'a1' } },
+        );
+        act(() => result.current.setPace((p) => ({ ...p, limiar: '4:50' })));
+
+        rerender({ id: 'a2' });
+
+        expect(result.current.pace.limiar).toBe('');
+        expect(result.current.podeSalvar).toBe(false);
+    });
+
     it('erro no PUT devolve false, guarda a mensagem e não invalida', async () => {
         const invalidar = vi.spyOn(zonasHook, 'invalidarZonasDoAtleta');
         vi.mocked(CoachAthleteZonesService.salvarAncoras).mockRejectedValue(new Error('boom'));

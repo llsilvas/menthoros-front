@@ -72,14 +72,17 @@ export function useAthleteZoneAnchorsEditor(
     const [error, setError] = useState<string | null>(null);
     const seq = useRef(0);
 
-    // Reabrir o diálogo (ou o atleta mudar) volta ao estado vigente.
-    useEffect(() => {
+    // Só a troca de atleta zera o formulário. Reabrir o diálogo remonta o hook; um refetch de zonas
+    // com o diálogo aberto muda `inicial` e não pode apagar o que o coach digitou.
+    const [atletaAnterior, setAtletaAnterior] = useState(atletaId);
+    if (atletaAnterior !== atletaId) {
+        setAtletaAnterior(atletaId);
         setFc(inicial.fc);
         setPace(inicial.pace);
         setTocados(new Set());
         setPrevia(null);
         setError(null);
-    }, [inicial, atletaId]);
+    }
 
     const maximaGravada = zonasAtuais && !zonasAtuais.fcMaxima.estimada ? zonasAtuais.fcMaxima.bpm : null;
 
