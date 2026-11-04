@@ -49,6 +49,16 @@ describe('AthleteZonesDialog', () => {
         expect(screen.getByRole('button', { name: 'Salvar zonas' })).toBeDisabled();
     });
 
+    it('com FC máxima real mostra a ressalva do envio ao relógio', () => {
+        abre();
+        expect(screen.getByText(/deixam de ser enviados ao relógio/)).toBeInTheDocument();
+    });
+
+    it('FC máxima estimada e campo vazio: sem a ressalva', () => {
+        abre({ zonas: { ...ZONAS, fcMaxima: { bpm: 186, estimada: true } } });
+        expect(screen.queryByText(/deixam de ser enviados ao relógio/)).toBeNull();
+    });
+
     it('abaInicial pace abre na aba Ritmo (CA10)', () => {
         abre({ abaInicial: 'pace' });
         expect(screen.getByRole('tab', { name: 'Zonas de Ritmo', selected: true })).toBeInTheDocument();

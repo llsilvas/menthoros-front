@@ -12,6 +12,8 @@ import { useAthleteZoneAnchorsEditor, type EixoZona } from '../hooks/useAthleteZ
 const AVISO_ALCANCE =
   'Os próximos planos usam estes valores. Treinos já criados com alvo em bpm ou ritmo fixo não mudam.';
 
+const AVISO_FC_MAXIMA = 'Treinos com alvo em bpm acima da FC máxima informada deixam de ser enviados ao relógio.';
+
 const ORIGENS: Record<FonteLimiar, string> = {
   TESTE_CAMPO: 'Teste de campo',
   PROVA: 'Prova recente',
@@ -94,6 +96,10 @@ function Conteudo({ onClose, atletaId, nomeAtleta, zonas, abaInicial = 'fc', onS
     </TextField>
   );
 
+  // A máxima real (informada agora ou já gravada) vira o teto do push ao relógio.
+  const temMaximaReal = ed.fc.maxima.trim() !== '' || (zonas != null && !zonas.fcMaxima.estimada);
+  const aviso = temMaximaReal ? `${AVISO_ALCANCE} ${AVISO_FC_MAXIMA}` : AVISO_ALCANCE;
+
   const maximaEstimada = zonas?.fcMaxima.estimada ? `estimada: ${zonas.fcMaxima.bpm}` : undefined;
 
   return (
@@ -104,7 +110,7 @@ function Conteudo({ onClose, atletaId, nomeAtleta, zonas, abaInicial = 'fc', onS
       title={primeiroNome ? `Zonas de ${primeiroNome}` : 'Zonas do atleta'}
       subtitle="Cadastre o limiar e veja as zonas que ele gera."
       disableClose={ed.saving}
-      actionsHint={AVISO_ALCANCE}
+      actionsHint={aviso}
       actions={
         <>
           <Button sx={{ ...GHOST_BTN_SX, minHeight: 44 }} onClick={onClose} disabled={ed.saving}>
