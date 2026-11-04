@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Box, Button, Grid, IconButton, Stack, Typography } from '@mui/material';
-import { CalendarToday as CalendarIcon, HourglassEmpty as HourglassIcon } from '@mui/icons-material';
+import { Alert, Box, Button, Grid, IconButton, Stack, Tooltip, Typography } from '@mui/material';
+import { CalendarToday as CalendarIcon, HourglassEmpty as HourglassIcon, Sync as SyncIcon } from '@mui/icons-material';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import type { PlanoVigenteDto, TreinoPlanejadoResumoDto } from '../../../types/AtletaPerfilCoach';
 import type { TreinoPlanejadoDto, TreinoPlanejadoPatch } from '../../../types/PlanoReview';
 import { resolveReviewStatus } from '../../../types/PlanoReview';
 import { TreinoEditDialog } from './TreinoEditDialog';
 import { useTreinoPlanejado } from '../../../hooks/useTreinoPlanejado';
+import { useReenviarSincronizacao } from '../../../hooks/useReenviarSincronizacao';
 import { surface, semantic, primary } from '../../../theme/tokens';
 import { SyncStatusChip } from './SyncStatusChip';
 import { TreinoPlanejadoCard } from './TreinoPlanejadoCard';
@@ -27,7 +28,13 @@ interface CurrentWeekPlanProps {
     atletaNome?: string;
     onGerarPlano: () => void;
     onRevisarPlano: () => void;
+    /** Recarrega o plano depois de editar um treino ou reenviar ao relógio. */
     onTreinoEditado?: () => void;
+}
+
+/** Canal conectado: o campo novo (Garmin ou intervals.icu) com fallback para perfil antigo. */
+function canalConectado(t: TreinoPlanejadoResumoDto): boolean | undefined {
+    return t.channelConnected ?? t.atletaConectadoIntervalsIcu;
 }
 
 function toDialogTreino(t: TreinoPlanejadoResumoDto): TreinoPlanejadoDto {
@@ -58,7 +65,7 @@ function TreinoCard({
     onEditar?: () => void;
 }) {
     const mostraSync = !isAguardando
-        && (treino.statusSincronizacao !== undefined || treino.atletaConectadoIntervalsIcu !== undefined);
+        && (treino.statusSincronizacao !== undefined || canalConectado(treino) !== undefined);
 
     return (
         <TreinoPlanejadoCard
@@ -85,7 +92,8 @@ function TreinoCard({
             rodape={mostraSync ? (
                 <SyncStatusChip
                     statusSincronizacao={treino.statusSincronizacao}
-                    atletaConectado={treino.atletaConectadoIntervalsIcu}
+                    atletaConectado={canalConectado(treino)}
+                    syncError={treino.syncError}
                 />
             ) : undefined}
         />
@@ -115,7 +123,7 @@ function TreinosGrid({
     const datasDaSemana = semanaInicio ? weekDatesFromInicio(semanaInicio) : [];
     return (
         // Sem breakpoint `lg` dedicado (herda 4 colunas do `md`) — um `lg: 12/7` anterior
-        // forçava 7 cards/linha (1 por dia da semana) e truncava "CONTÍNUO"/"No intervals.icu".
+        // forçava 7 cards/linha (1 por dia da semana) e truncava "CONTÍNUO" e o chip de envio.
         <Grid container spacing={1}>
             {treinos.map((t) => (
                 <Grid key={t.id ?? t.diaSemana} size={{ xs: 12, sm: 6 }}>
@@ -132,10 +140,69 @@ function TreinosGrid({
     );
 }
 
+function ReenvioRelogio({
+    treinos,
+    reenviando,
+    erro,
+    solicitado,
+    onReenviar,
+}: {
+    treinos: TreinoPlanejadoResumoDto[];
+    reenviando: boolean;
+    erro: string | null;
+    solicitado: boolean;
+    onReenviar: () => void;
+}) {
+    const semCanal = treinos.some((t) => canalConectado(t) === false);
+    const emAndamento = treinos.some((t) => t.syncInProgress);
+    const bloqueio = semCanal ? 'Atleta sem canal conectado' : emAndamento ? 'Envio em andamento' : '';
+
+    return (
+        <Stack spacing={1}>
+            <Stack direction="row" alignItems="center" justifyContent="space-between" gap={2}>
+                <Typography variant="body2" color="text.secondary">
+                    Há treinos que não chegaram ao relógio
+                </Typography>
+                <Tooltip title={bloqueio}>
+                    {/* span: o Tooltip precisa de um filho que receba eventos com o botão desabilitado */}
+                    <span>
+                        <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<SyncIcon />}
+                            disabled={reenviando || Boolean(bloqueio)}
+                            onClick={onReenviar}
+                        >
+                            {reenviando ? 'Reenviando…' : 'Reenviar ao relógio'}
+                        </Button>
+                    </span>
+                </Tooltip>
+            </Stack>
+            {solicitado && !erro && (
+                <Alert severity="success" variant="outlined">
+                    Reenvio solicitado — o status dos treinos atualiza em alguns segundos.
+                </Alert>
+            )}
+            {erro && <Alert severity="warning" variant="outlined">{erro}</Alert>}
+        </Stack>
+    );
+}
+
 export function CurrentWeekPlan({ plano, atletaId, atletaNome, onGerarPlano, onRevisarPlano, onTreinoEditado }: CurrentWeekPlanProps) {
     const { zones } = useAthleteTrainingZones(atletaId);
     const [editingTreino, setEditingTreino] = useState<TreinoPlanejadoDto | null>(null);
     const { isSaving, editarTreino } = useTreinoPlanejado();
+    const { reenviando, erro: erroReenvio, reenviar } = useReenviarSincronizacao();
+    const [reenvioSolicitado, setReenvioSolicitado] = useState(false);
+
+    const handleReenviar = async () => {
+        if (!plano) return;
+        setReenvioSolicitado(false);
+        const resent = await reenviar(plano.planoId);
+        if (resent === null) return;
+        setReenvioSolicitado(true);
+        onTreinoEditado?.();
+    };
 
     const handleSalvar = async (patch: TreinoPlanejadoPatch) => {
         if (!plano || !editingTreino?.id) return;
@@ -159,6 +226,8 @@ export function CurrentWeekPlan({ plano, atletaId, atletaNome, onGerarPlano, onR
     }
 
     const isAguardando = resolveReviewStatus(plano.reviewStatus) === 'AGUARDANDO_REVISAO';
+    const temErroDeEnvio = !isAguardando
+        && plano.treinos.some((t) => t.statusSincronizacao?.startsWith('ERRO_'));
 
     return (
         <Stack spacing={1.5}>
@@ -183,6 +252,16 @@ export function CurrentWeekPlan({ plano, atletaId, atletaNome, onGerarPlano, onR
                         Revisar
                     </Button>
                 </Box>
+            )}
+
+            {(temErroDeEnvio || reenvioSolicitado || erroReenvio) && !isAguardando && (
+                <ReenvioRelogio
+                    treinos={plano.treinos}
+                    reenviando={reenviando}
+                    erro={erroReenvio}
+                    solicitado={reenvioSolicitado}
+                    onReenviar={() => void handleReenviar()}
+                />
             )}
 
             <TreinosGrid
