@@ -25,3 +25,16 @@ describe('nenhum literal de Syne no app logado', () => {
     expect(achados).toEqual([]);
   });
 });
+
+// CA7: a Syne deixa de ser baixada; a Inter cobre do 300 (PlanoDetalhePanel) ao 800 (títulos).
+describe('fontes pedidas no index.html', () => {
+  const html = readFileSync(resolve(SRC, '..', 'index.html'), 'utf-8');
+
+  it('não pede a Syne ao Google Fonts', () => {
+    expect(html).not.toMatch(/family=Syne/);
+  });
+
+  it('pede a Inter nos pesos 300 a 800', () => {
+    expect(html).toMatch(/family=Inter:wght@300;400;500;600;700;800[&"]/);
+  });
+});
