@@ -47,7 +47,7 @@ describe('useReenviarSincronizacao', () => {
         expect(result.current.erro).toMatch(/Envio em andamento/);
     });
 
-    it('422: usa a mensagem do backend', async () => {
+    it('422: mensagem fixa, sem repassar o texto da API', async () => {
         vi.mocked(service.CoachPlanoReviewService.reenviarSincronizacao)
             .mockRejectedValue(apiError(422, 'O atleta não tem canal de treinos conectado.'));
         const { result } = renderHook(() => useReenviarSincronizacao());
@@ -56,7 +56,7 @@ describe('useReenviarSincronizacao', () => {
             await result.current.reenviar('plano-1');
         });
 
-        expect(result.current.erro).toBe('O atleta não tem canal de treinos conectado.');
+        expect(result.current.erro).toMatch(/Reenvio recusado/);
     });
 
     it('erro genérico: mensagem padrão', async () => {

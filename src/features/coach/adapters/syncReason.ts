@@ -32,11 +32,16 @@ const MOTIVOS: Record<string, Omit<SyncReason, 'detalhe'>> = {
     },
 };
 
+/** Status de erro de envio ao canal (`ERRO_*`). */
+export function isErroSync(status?: string | null): boolean {
+    return status?.startsWith('ERRO_') ?? false;
+}
+
 /** Traduz o status de sincronização do treino em motivo legível e ação sugerida ao treinador. */
 export function buildSyncReasonFromStatus(status?: string, syncError?: string | null): SyncReason | null {
     if (!status) return null;
     const base = MOTIVOS[status]
-        ?? (status.startsWith('ERRO_')
+        ?? (isErroSync(status)
             ? { motivo: 'Erro no envio ao relógio', acao: 'Reenvie ao relógio; se persistir, fale com o suporte.' }
             : null);
     if (!base) return null;

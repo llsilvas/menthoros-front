@@ -1,6 +1,6 @@
 import { Chip, Tooltip } from '@mui/material';
 import { semantic, surface } from '../../../theme/tokens';
-import { buildSyncReasonFromStatus } from '../adapters/syncReason';
+import { buildSyncReasonFromStatus, isErroSync } from '../adapters/syncReason';
 
 export interface SyncStatusChipProps {
     statusSincronizacao?: string;
@@ -42,7 +42,7 @@ function resolveVisual(statusSincronizacao?: string, atletaConectado?: boolean, 
         };
     }
 
-    if (statusSincronizacao?.startsWith('ERRO_')) {
+    if (statusSincronizacao && isErroSync(statusSincronizacao)) {
         return {
             label: 'Erro no envio',
             color: semantic.warning[500],

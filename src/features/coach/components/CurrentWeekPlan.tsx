@@ -18,6 +18,7 @@ import type { AthleteTrainingZonesDto } from '../../../types/AthleteTrainingZone
 import { estadoDeExecucao } from './treinoPlanejadoEstado';
 import { rotuloDiaComData, tipoTreinoLabel } from './tiposTreino';
 import { duracaoEmMinutos } from '../adapters/duracaoTreino';
+import { isErroSync } from '../adapters/syncReason';
 import { indiceDoDia, weekDatesFromInicio } from '../../../utils/semana';
 
 interface CurrentWeekPlanProps {
@@ -144,16 +145,17 @@ function ReenvioRelogio({
     treinos,
     reenviando,
     erro,
-    solicitado,
+    resent,
     onReenviar,
 }: {
     treinos: TreinoPlanejadoResumoDto[];
     reenviando: boolean;
     erro: string | null;
-    solicitado: boolean;
+    /** Treinos reenviados no último clique; `null` antes de reenviar. */
+    resent: number | null;
     onReenviar: () => void;
 }) {
-    const semCanal = treinos.some((t) => canalConectado(t) === false);
+    const semCanal = treinos.length > 0 && treinos.every((t) => canalConectado(t) === false);
     const emAndamento = treinos.some((t) => t.syncInProgress);
     const bloqueio = semCanal ? 'Atleta sem canal conectado' : emAndamento ? 'Envio em andamento' : '';
 
@@ -178,9 +180,11 @@ function ReenvioRelogio({
                     </span>
                 </Tooltip>
             </Stack>
-            {solicitado && !erro && (
-                <Alert severity="success" variant="outlined">
-                    Reenvio solicitado — o status dos treinos atualiza em alguns segundos.
+            {resent !== null && !erro && (
+                <Alert severity={resent > 0 ? 'success' : 'info'} variant="outlined">
+                    {resent > 0
+                        ? 'Reenvio solicitado — o status dos treinos atualiza em alguns segundos.'
+                        : 'Nenhum treino em erro para reenviar.'}
                 </Alert>
             )}
             {erro && <Alert severity="warning" variant="outlined">{erro}</Alert>}
@@ -193,15 +197,16 @@ export function CurrentWeekPlan({ plano, atletaId, atletaNome, onGerarPlano, onR
     const [editingTreino, setEditingTreino] = useState<TreinoPlanejadoDto | null>(null);
     const { isSaving, editarTreino } = useTreinoPlanejado();
     const { reenviando, erro: erroReenvio, reenviar } = useReenviarSincronizacao();
-    const [reenvioSolicitado, setReenvioSolicitado] = useState(false);
+    // Guardado com o planoId: trocar de plano/atleta descarta o aviso sem precisar de effect.
+    const [ultimoReenvio, setUltimoReenvio] = useState<{ planoId: string; resent: number } | null>(null);
 
     const handleReenviar = async () => {
         if (!plano) return;
-        setReenvioSolicitado(false);
+        setUltimoReenvio(null);
         const resent = await reenviar(plano.planoId);
         if (resent === null) return;
-        setReenvioSolicitado(true);
-        onTreinoEditado?.();
+        setUltimoReenvio({ planoId: plano.planoId, resent });
+        if (resent > 0) onTreinoEditado?.();
     };
 
     const handleSalvar = async (patch: TreinoPlanejadoPatch) => {
@@ -226,8 +231,8 @@ export function CurrentWeekPlan({ plano, atletaId, atletaNome, onGerarPlano, onR
     }
 
     const isAguardando = resolveReviewStatus(plano.reviewStatus) === 'AGUARDANDO_REVISAO';
-    const temErroDeEnvio = !isAguardando
-        && plano.treinos.some((t) => t.statusSincronizacao?.startsWith('ERRO_'));
+    const temErroDeEnvio = !isAguardando && plano.treinos.some((t) => isErroSync(t.statusSincronizacao));
+    const resentDestePlano = ultimoReenvio?.planoId === plano.planoId ? ultimoReenvio.resent : null;
 
     return (
         <Stack spacing={1.5}>
@@ -254,12 +259,12 @@ export function CurrentWeekPlan({ plano, atletaId, atletaNome, onGerarPlano, onR
                 </Box>
             )}
 
-            {(temErroDeEnvio || reenvioSolicitado || erroReenvio) && !isAguardando && (
+            {(temErroDeEnvio || resentDestePlano !== null || erroReenvio) && !isAguardando && (
                 <ReenvioRelogio
                     treinos={plano.treinos}
                     reenviando={reenviando}
                     erro={erroReenvio}
-                    solicitado={reenvioSolicitado}
+                    resent={resentDestePlano}
                     onReenviar={() => void handleReenviar()}
                 />
             )}

@@ -3,13 +3,13 @@ import { CoachPlanoReviewService } from '../api/services/CoachPlanoReviewService
 import { ApiError } from '../api/core/ApiError';
 
 const MSG_EM_ANDAMENTO = 'Envio em andamento. Aguarde alguns minutos e tente de novo.';
+const MSG_RECUSADO = 'Reenvio recusado: o plano precisa estar aprovado e o atleta com canal conectado.';
 const MSG_GENERICA = 'Não foi possível reenviar ao relógio. Tente de novo.';
 
 function mensagemDeErro(err: unknown): string {
     if (err instanceof ApiError) {
         if (err.status === 409) return MSG_EM_ANDAMENTO;
-        const mensagem = (err.body as { message?: unknown } | undefined)?.message;
-        if (err.status === 422 && typeof mensagem === 'string') return mensagem;
+        if (err.status === 422) return MSG_RECUSADO;
     }
     return MSG_GENERICA;
 }

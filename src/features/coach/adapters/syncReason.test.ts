@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildSyncReasonFromStatus } from './syncReason';
+import { buildSyncReasonFromStatus, isErroSync } from './syncReason';
 
 describe('buildSyncReasonFromStatus', () => {
     it.each([
@@ -32,5 +32,15 @@ describe('buildSyncReasonFromStatus', () => {
 
     it('erro desconhecido cai num motivo genérico', () => {
         expect(buildSyncReasonFromStatus('ERRO_NOVO')?.motivo).toBe('Erro no envio ao relógio');
+    });
+
+    it.each([
+        ['ERRO_PERMANENTE', true],
+        ['ERRO_VALIDACAO', true],
+        ['SINCRONIZADO', false],
+        [undefined, false],
+        [null, false],
+    ] as const)('isErroSync(%s) = %s', (status, esperado) => {
+        expect(isErroSync(status)).toBe(esperado);
     });
 });

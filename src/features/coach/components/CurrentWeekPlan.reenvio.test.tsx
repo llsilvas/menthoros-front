@@ -114,6 +114,16 @@ describe('CurrentWeekPlan — reenvio ao relógio', () => {
         await waitFor(() => expect(onTreinoEditado).toHaveBeenCalled());
     });
 
+    it('resent = 0: avisa que nada estava em erro e não recarrega', async () => {
+        mockReenviar.mockResolvedValue(0);
+        const { onTreinoEditado } = renderPlano(plano([treino('t1', { statusSincronizacao: 'ERRO_PERMANENTE' })]));
+
+        await userEvent.click(botao()!);
+
+        expect(await screen.findByText(/Nenhum treino em erro/)).toBeInTheDocument();
+        expect(onTreinoEditado).not.toHaveBeenCalled();
+    });
+
     it('falha no reenvio não recarrega o plano', async () => {
         mockReenviar.mockResolvedValue(null);
         const { onTreinoEditado } = renderPlano(plano([treino('t1', { statusSincronizacao: 'ERRO_PERMANENTE' })]));
