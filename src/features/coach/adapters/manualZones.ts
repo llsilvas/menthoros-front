@@ -91,6 +91,24 @@ export function validarFaixasManuais(linhasForm: LinhaManual[], eixo: EixoManual
     return erros;
 }
 
+/**
+ * Barra proporcional e referência (% do limiar digitado) das linhas em edição, como na prévia do
+ * modo limiar. Linha incompleta ou invertida ocupa peso 1 e referência "—".
+ */
+export function previaManual(linhasForm: LinhaManual[], eixo: EixoManual, limiar: number | null) {
+    const sufixo = eixo === 'fc' ? 'LTHR' : 'limiar';
+    const pct = (v: number) => Math.round((v / (limiar as number)) * 100);
+    const faixas = linhasForm.map((l) => {
+        const min = numero(l.de, eixo);
+        const max = numero(l.ate, eixo);
+        return min != null && max != null && min < max ? { min, max } : null;
+    });
+    return {
+        barra: faixas.map((f, i) => ({ numero: i + 1, peso: f ? f.max - f.min : 1 })),
+        referencias: faixas.map((f) => (f && limiar ? `${pct(f.min)}–${pct(f.max)}% ${sufixo}` : '—')),
+    };
+}
+
 /** Linhas já validadas -> faixas do `PUT .../zonas/manuais`. */
 export function corpoManual(linhasForm: LinhaManual[], eixo: EixoManual): FaixaZonaManual[] {
     return linhasForm.map((l, i) => ({ zona: i + 1, min: numero(l.de, eixo) as number, max: numero(l.ate, eixo) as number }));

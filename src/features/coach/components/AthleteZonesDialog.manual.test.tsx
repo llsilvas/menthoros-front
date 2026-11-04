@@ -70,6 +70,17 @@ describe('AthleteZonesDialog — modo manual', () => {
         expect(screen.queryByRole('textbox', { name: 'Z6 De' })).toBeNull();
     });
 
+    it('modo manual mostra a faixa de cada zona: barra, referência e Z6 de FC usando ritmo', async () => {
+        abre();
+        await userEvent.click(screen.getByRole('button', { name: /Informar manualmente/ }));
+
+        const tabela = within(screen.getByTestId('faixas-manuais'));
+        expect(tabela.getAllByTestId('faixa-barra')).toHaveLength(5);
+        expect(tabela.getByRole('columnheader', { name: 'Referência' })).toBeInTheDocument();
+        expect(tabela.getByText('85–89% LTHR')).toBeInTheDocument();
+        expect(tabela.getByText(/usar ritmo/)).toBeInTheDocument();
+    });
+
     it('CA3: faixa sobreposta marca a linha com aria-invalid e texto, e bloqueia salvar', async () => {
         abre();
         await userEvent.click(screen.getByRole('button', { name: /Informar manualmente/ }));
