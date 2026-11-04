@@ -5,9 +5,19 @@ import { invalidarZonasDoAtleta } from '../../../hooks/useAthleteTrainingZones';
 import type {
     AthleteTrainingZonesDto,
     AthleteZoneAnchorsInput,
+    AthleteZonesManualInput,
     FonteLimiar,
+    ModoZonas,
 } from '../../../types/AthleteTrainingZones';
 import { formatPace, parsePace, validarAncoraFc, validarAncoraPace } from '../adapters/zoneAnchors';
+import {
+    corpoManual,
+    faixasDoLimiar,
+    linhasDasZonas,
+    validarFaixasManuais,
+    type ErrosManuais,
+    type LinhaManual,
+} from '../adapters/manualZones';
 
 export type EixoZona = 'fc' | 'pace';
 
@@ -48,8 +58,15 @@ function formsIniciais(z: AthleteTrainingZonesDto | null, hoje: string) {
         dataTeste: a?.dataUltimoTestePace ?? hoje,
         origem: a?.fonteLimiarPace ?? '',
     };
-    return { fc, pace };
+    const modos = { fc: z?.modos?.fc ?? 'LIMIAR', pace: z?.modos?.pace ?? 'LIMIAR' } as Record<EixoZona, ModoZonas>;
+    const linhas: Record<EixoZona, LinhaManual[]> = {
+        fc: z ? linhasDasZonas(z.zonas, 'fc') : [],
+        pace: z ? linhasDasZonas(z.zonas, 'pace') : [],
+    };
+    return { fc, pace, modos, linhas };
 }
+
+const EIXOS: EixoZona[] = ['fc', 'pace'];
 
 /**
  * Texto seguro para o treinador: só os `fields` do 400 de validação do backend (mensagens de regra,
@@ -88,7 +105,11 @@ export function useAthleteZoneAnchorsEditor(
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [erroPrevia, setErroPrevia] = useState<string | null>(null);
+    const [modos, setModos] = useState(inicial.modos);
+    const [linhas, setLinhas] = useState(inicial.linhas);
     const seq = useRef(0);
+    // Corpo de âncoras já gravado nesta edição: no retry depois de falha só das faixas, não reenvia.
+    const ancorasGravadas = useRef<string | null>(null);
 
     // Só a troca de atleta zera o formulário. Reabrir o diálogo remonta o hook; um refetch de zonas
     // com o diálogo aberto muda `inicial` e não pode apagar o que o coach digitou.
@@ -97,6 +118,8 @@ export function useAthleteZoneAnchorsEditor(
         setAtletaAnterior(atletaId);
         setFc(inicial.fc);
         setPace(inicial.pace);
+        setModos(inicial.modos);
+        setLinhas(inicial.linhas);
         setTocados(new Set());
         setPrevia(null);
         setError(null);
@@ -172,28 +195,86 @@ export function useAthleteZoneAnchorsEditor(
                 return tocados.has(chave) || (CAMPOS_RELACIONADOS[chave] ?? []).some((c) => tocados.has(c));
             })) as Partial<T>;
 
+    // Modo manual: a faixa que o limiar daria vem da simulação das âncoras digitadas ou, sem ela, do GET.
+    const fonteLimiar = previa ?? zonasAtuais;
+    const linhasDoLimiar = useCallback(
+        (eixo: EixoZona) => (fonteLimiar ? faixasDoLimiar(fonteLimiar, eixo) : null),
+        [fonteLimiar],
+    );
+    const errosManuais: Record<EixoZona, ErrosManuais> = useMemo(() => ({
+        fc: modos.fc === 'MANUAL' ? validarFaixasManuais(linhas.fc, 'fc') : {},
+        pace: modos.pace === 'MANUAL' ? validarFaixasManuais(linhas.pace, 'pace') : {},
+    }), [modos, linhas]);
+    const manualAlterado = useCallback((eixo: EixoZona) =>
+        modos[eixo] !== inicial.modos[eixo]
+        || (modos[eixo] === 'MANUAL' && JSON.stringify(linhas[eixo]) !== JSON.stringify(inicial.linhas[eixo])),
+    [modos, linhas, inicial]);
+    const manualValido = (eixo: EixoZona) => Object.keys(errosManuais[eixo]).length === 0;
+    const algumManualAlterado = EIXOS.some(manualAlterado);
+
+    /** Entrar no manual com as linhas intocadas recarrega o cálculo vigente (âncoras digitadas, se válidas). */
+    const setModo = useCallback((eixo: EixoZona, modo: ModoZonas) => {
+        setModos((m) => ({ ...m, [eixo]: modo }));
+        if (modo === 'MANUAL' && inicial.modos[eixo] === 'LIMIAR') {
+            const doLimiar = linhasDoLimiar(eixo);
+            if (doLimiar) setLinhas((l) => ({ ...l, [eixo]: doLimiar }));
+        }
+    }, [inicial.modos, linhasDoLimiar]);
+    const setLinha = useCallback((eixo: EixoZona, indice: number, campo: keyof LinhaManual, valor: string) => {
+        setLinhas((l) => ({ ...l, [eixo]: l[eixo].map((x, i) => (i === indice ? { ...x, [campo]: valor } : x)) }));
+    }, []);
+    const recalcular = useCallback((eixo: EixoZona) => {
+        const doLimiar = linhasDoLimiar(eixo);
+        if (doLimiar) setLinhas((l) => ({ ...l, [eixo]: doLimiar }));
+    }, [linhasDoLimiar]);
+
     // Salvar envia os eixos alterados; eixo alterado e inválido bloqueia.
     const podeSalvar =
-        !saving && (fcAlterado || paceAlterado) && (!fcAlterado || fcValido) && (!paceAlterado || paceValido);
+        !saving && (fcAlterado || paceAlterado || algumManualAlterado)
+        && (!fcAlterado || fcValido) && (!paceAlterado || paceValido)
+        && EIXOS.every((e) => !manualAlterado(e) || manualValido(e));
 
     const salvar = useCallback(async (): Promise<boolean> => {
         if (!podeSalvar) return false;
-        const corpo: AthleteZoneAnchorsInput = {};
-        if (fcAlterado) corpo.fc = corpoFc();
-        if (paceAlterado) corpo.pace = corpoPace();
+        const ancoras: AthleteZoneAnchorsInput = {};
+        if (fcAlterado) ancoras.fc = corpoFc();
+        if (paceAlterado) ancoras.pace = corpoPace();
+        const manuais: AthleteZonesManualInput = {};
+        for (const e of EIXOS) {
+            if (manualAlterado(e)) {
+                manuais[e] = modos[e] === 'MANUAL' ? { modo: 'MANUAL', faixas: corpoManual(linhas[e], e) } : { modo: 'LIMIAR' };
+            }
+        }
+        const chaveAncoras = JSON.stringify(ancoras);
+        const enviarAncoras = Object.keys(ancoras).length > 0 && chaveAncoras !== ancorasGravadas.current;
         setSaving(true);
         setError(null);
+        let ancorasOk = false;
         try {
-            await CoachAthleteZonesService.salvarAncoras(atletaId, corpo);
+            // Âncoras primeiro: a faixa manual não depende delas, e cada PUT é idempotente por eixo.
+            if (enviarAncoras) {
+                await CoachAthleteZonesService.salvarAncoras(atletaId, ancoras);
+                ancorasGravadas.current = chaveAncoras;
+                ancorasOk = true;
+            }
+            if (Object.keys(manuais).length > 0) await CoachAthleteZonesService.salvarZonasManuais(atletaId, manuais);
             invalidarZonasDoAtleta(atletaId);
             return true;
         } catch (err) {
-            setError(mensagemDeErro(err, 'Erro ao salvar as zonas'));
+            const msg = mensagemDeErro(err, 'Erro ao salvar as zonas');
+            if (ancorasOk) {
+                invalidarZonasDoAtleta(atletaId);
+                setError(`Limiares salvos; faixas manuais não — tente de novo. ${msg}`);
+            } else {
+                setError(msg);
+            }
             return false;
         } finally {
             setSaving(false);
         }
-    }, [podeSalvar, fcAlterado, paceAlterado, corpoFc, corpoPace, atletaId]);
+    }, [podeSalvar, fcAlterado, paceAlterado, corpoFc, corpoPace, atletaId, modos, linhas, manualAlterado]);
+
+    const fcMaximaReal = zonasAtuais && !zonasAtuais.fcMaxima.estimada ? zonasAtuais.fcMaxima.bpm : null;
 
     return {
         fc,
@@ -209,5 +290,23 @@ export function useAthleteZoneAnchorsEditor(
         error,
         erroPrevia,
         salvar,
+        modos,
+        setModo,
+        /** O eixo está em MANUAL no backend: voltar ao limiar apaga as faixas ao salvar (Q1). */
+        manualGravado: inicial.modos,
+        linhas,
+        setLinha,
+        errosManuais,
+        recalcular,
+        recalcularDisponivel: (eixo: EixoZona) => linhasDoLimiar(eixo) != null,
+        /** Limiar alterado com o eixo em manual: as faixas manuais não acompanham. */
+        limiarMudouComManual: (eixo: EixoZona) =>
+            modos[eixo] === 'MANUAL' && (eixo === 'fc' ? fcAlterado : paceAlterado),
+        /** Zonas manuais de FC acima da máxima real não vão ao relógio (o push descarta). */
+        fcManualAcimaDaMaxima:
+            modos.fc === 'MANUAL' && fcMaximaReal != null
+            && linhas.fc.some((l) => /^\d+$/.test(l.ate.trim()) && Number(l.ate) > fcMaximaReal)
+                ? fcMaximaReal
+                : null,
     };
 }
