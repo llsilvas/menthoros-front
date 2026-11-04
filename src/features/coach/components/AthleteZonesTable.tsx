@@ -19,7 +19,7 @@ import {
 import { formatPace, formatPaceRange } from '../adapters/intensityFormat';
 import { activeTheme } from '../../../theme/activeTheme';
 import { content, semantic, text } from '../../../theme/tokens';
-import type { AthleteTrainingZoneDto, AthleteTrainingZonesDto, FonteLimiar } from '../../../types/AthleteTrainingZones';
+import type { AthleteTrainingZoneDto, AthleteTrainingZonesDto, FonteLimiar, ModoZonas } from '../../../types/AthleteTrainingZones';
 
 interface AthleteZonesTableProps {
   zones: AthleteTrainingZonesDto | null;
@@ -93,16 +93,27 @@ function origemDasAncoras({ ancoras }: AthleteTrainingZonesDto): string {
     .join(' · ');
 }
 
-/** Os dois chips do cabeçalho — ficam visíveis com a tabela recolhida. */
+const ORIGEM_MODO: Record<ModoZonas, string> = { LIMIAR: 'pelo limiar', MANUAL: 'manual' };
+
+/** Os chips do cabeçalho — ficam visíveis com a tabela recolhida. */
 function ChipsDoCabecalho({ zones, hoje }: { zones: AthleteTrainingZonesDto; hoje: Date }) {
   const limiar = limiarMaisAntigo(zones, hoje);
   const fadiga = zones.ajusteFadiga.segundosPorKm;
+  const modos = zones.modos;
   return (
     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, alignItems: 'center' }}>
       {fadiga > 0 && (
         <Tooltip title="Informativo: as faixas da tabela são as base. Ajuste o pace à mão se quiser.">
           <Chip size="small" variant="outlined" label={`Ajuste por fadiga +${fadiga} s/km`} sx={{ color: text.secondary }} />
         </Tooltip>
+      )}
+      {modos && (modos.fc === 'MANUAL' || modos.pace === 'MANUAL') && (
+        <Chip
+          size="small"
+          variant="outlined"
+          label={`FC: ${ORIGEM_MODO[modos.fc]} · Ritmo: ${ORIGEM_MODO[modos.pace]}`}
+          sx={{ color: text.secondary }}
+        />
       )}
       {limiar && (
         <Chip

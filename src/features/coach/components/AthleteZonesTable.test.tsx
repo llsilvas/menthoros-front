@@ -64,6 +64,18 @@ describe('AthleteZonesTable', () => {
         expect(cabecalho).toHaveTextContent('Limiar medido em 12 set · 45 dias');
     });
 
+    it('CA5: com um eixo manual, o cabeçalho mostra a origem de cada eixo', () => {
+        renderTabela(zonas({ modos: { fc: 'LIMIAR', pace: 'MANUAL' } }), { nome: 'Mariana Costa' });
+
+        expect(screen.getByRole('button', { name: /zonas de mariana/i })).toHaveTextContent('FC: pelo limiar · Ritmo: manual');
+    });
+
+    it('com os dois eixos pelo limiar, sem chip de modo', () => {
+        renderTabela(zonas({ modos: { fc: 'LIMIAR', pace: 'LIMIAR' } }));
+
+        expect(screen.queryByText(/Ritmo: /)).toBeNull();
+    });
+
     it('colunas com unidade no cabeçalho e células sem unidade, com travessão espaçado', () => {
         renderTabela(zonas());
 
