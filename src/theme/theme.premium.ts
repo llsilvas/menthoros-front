@@ -161,7 +161,8 @@ export const workoutZoneLabel = zoneLabel;
 // não eram token: os componentes escreviam `fontFamily: 'monospace'` cru, que
 // resolve para a mono do sistema — a fonte carregada nunca aparecia na tela.
 export const font = {
-  display: '"Space Grotesk", "Syne", "Inter", sans-serif',
+  // Títulos também em Inter (padronizar-tipografia-inter); o nome segue "família dos títulos".
+  display: '"Inter", system-ui, sans-serif',
   text:    '"Inter", system-ui, sans-serif',
   mono:    '"JetBrains Mono", ui-monospace, SFMono-Regular, monospace',
 } as const;

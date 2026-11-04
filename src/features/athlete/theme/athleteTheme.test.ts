@@ -19,10 +19,10 @@ describe('athleteTheme', () => {
       }
     });
 
-    it('títulos em font.display (Space Grotesk primeiro)', () => {
+    it('títulos em font.display, que agora é Inter (padronizar-tipografia-inter)', () => {
       for (const v of ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] as const) {
-        // Syne pode ficar como fallback da pilha de display; nunca como primeira família.
-        expect(familia(athleteTheme.typography[v].fontFamily), v).toMatch(/^"?Space Grotesk/);
+        expect(familia(athleteTheme.typography[v].fontFamily), v).toMatch(/^"?Inter/);
+        expect(familia(athleteTheme.typography[v].fontFamily), v).not.toMatch(/Syne|Space Grotesk/);
       }
     });
   });
@@ -46,6 +46,5 @@ describe('athleteTheme', () => {
   it('herda paleta, shape e overrides do appTheme (é aninhado, não global)', () => {
     expect(athleteTheme.palette.primary.main).toBe(appTheme.palette.primary.main);
     expect(athleteTheme.shape.borderRadius).toBe(appTheme.shape.borderRadius);
-    expect(appTheme.typography.fontFamily).toMatch(/Syne/); // o global não muda
   });
 });

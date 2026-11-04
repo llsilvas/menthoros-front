@@ -1,6 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { coachTheme, ESCALA_TIPOGRAFICA } from './coachTheme';
 import { appTheme } from '../../../theme/appTheme';
 
@@ -46,16 +44,7 @@ describe('coachTheme', () => {
     });
   });
 
-  /**
-   * O Non-Goal da change é explícito: não mexer nas telas do atleta. Como `App.tsx` envolve TODAS
-   * as rotas num único `ThemeProvider` e `AthleteLayout` não tem provider próprio, qualquer
-   * alteração de `typography` lá vazaria para o atleta. Este teste falha se alguém tentar.
-   */
-  it('não altera a tipografia global — o tema do app segue com Syne como família padrão', () => {
-    const global = readFileSync(resolve(__dirname, '../../../theme/appTheme.ts'), 'utf-8');
-
-    expect(global).toContain('fontFamily: \'"Syne", "Inter", "Helvetica", "Arial", sans-serif\'');
-    // E o tema do coach herda dele, em vez de recriar do zero — paleta e overrides seguem os mesmos.
+  it('herda do appTheme em vez de recriar do zero — paleta e overrides seguem os mesmos', () => {
     expect(coachTheme.palette.mode).toBe(appTheme.palette.mode);
     expect(coachTheme.shape.borderRadius).toBe(appTheme.shape.borderRadius);
   });
