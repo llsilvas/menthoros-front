@@ -157,4 +157,18 @@ describe('useAthleteTrainingZones', () => {
 
         expect(result.current.zones?.modelo).toBe('ATLETA2');
     });
+
+    it('invalidar recarrega sem voltar a loading e mantém as zonas à vista', async () => {
+        vi.mocked(CoachAthleteZonesService.getZonas).mockResolvedValue(ZONES);
+        const { result } = renderHook(() => useAthleteTrainingZones('atleta-1'));
+        await waitFor(() => expect(result.current.zones).toEqual(ZONES));
+        const nova = { ...ZONES, modelo: 'NOVA' };
+        vi.mocked(CoachAthleteZonesService.getZonas).mockResolvedValue(nova);
+
+        act(() => invalidarZonasDoAtleta('atleta-1'));
+
+        expect(result.current.loading).toBe(false);
+        expect(result.current.zones).toEqual(ZONES);
+        await waitFor(() => expect(result.current.zones?.modelo).toBe('NOVA'));
+    });
 });

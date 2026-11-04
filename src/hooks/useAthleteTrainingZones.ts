@@ -23,11 +23,13 @@ export const useAthleteTrainingZones = (atletaId: string | undefined) => {
     // Só a requisição mais recente vale: resposta atrasada (ou de outro atleta) é descartada.
     const ultimaRequisicao = useRef(0);
 
-    const fetchZones = useCallback(async () => {
+    // `silenciosa` recarrega sem voltar a `loading`: o card não pode virar skeleton (e fechar o
+    // acordeão do treinador) a cada salvamento de âncoras.
+    const carregar = useCallback(async (silenciosa: boolean) => {
         if (!atletaId) return;
         const minha = ++ultimaRequisicao.current;
         try {
-            setLoading(true);
+            if (!silenciosa) setLoading(true);
             setError(null);
             const resposta = await CoachAthleteZonesService.getZonas(atletaId);
             if (minha === ultimaRequisicao.current) setZones(resposta);
@@ -41,6 +43,8 @@ export const useAthleteTrainingZones = (atletaId: string | undefined) => {
         }
     }, [atletaId]);
 
+    const fetchZones = useCallback(() => carregar(false), [carregar]);
+
     useEffect(() => {
         setZones(null);
         void fetchZones();
@@ -48,7 +52,7 @@ export const useAthleteTrainingZones = (atletaId: string | undefined) => {
 
     useEffect(() => {
         if (!atletaId) return;
-        const recarregar = () => void fetchZones();
+        const recarregar = () => void carregar(true);
         const set = ouvintes.get(atletaId) ?? new Set();
         set.add(recarregar);
         ouvintes.set(atletaId, set);
@@ -56,7 +60,7 @@ export const useAthleteTrainingZones = (atletaId: string | undefined) => {
             set.delete(recarregar);
             if (set.size === 0) ouvintes.delete(atletaId);
         };
-    }, [atletaId, fetchZones]);
+    }, [atletaId, carregar]);
 
     return { zones, loading, error, fetchZones };
 };
