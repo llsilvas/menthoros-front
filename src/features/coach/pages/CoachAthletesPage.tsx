@@ -28,6 +28,7 @@ import {
   EditOutlined as EditIcon,
   DeleteOutline as DeleteIcon,
   MailOutline as MailOutlineIcon,
+  Speed as SpeedIcon,
   EventBusy as EventBusyIcon,
   AutoAwesome as AutoAwesomeIcon,
 } from '@mui/icons-material';
@@ -52,6 +53,7 @@ import type { Atleta, CreateAtleta, UpdateAtleta } from '../../../types/Atleta';
 import { content, primary, surface, semantic, glassSx } from '../../../theme/tokens';
 import { elevation } from '../../../shared/design-tokens';
 import { AthleteNameCell } from '../components/AthleteNameCell';
+import { AthleteZonesDialogHost } from '../components/AthleteZonesDialogHost';
 import { useRegisterPlanGenerationReload } from '../context/planGenerationContext';
 import { PhaseIndicator } from '../../../shared/components/PhaseIndicator';
 import type { TrainingPhase } from '../../../shared/components/PhaseIndicator';
@@ -180,7 +182,7 @@ function BulkBar({ count }: { count: number }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 /** Ação por-atleta acionada pelo menu da grade. */
-type RosterActionType = 'plano' | 'projecao' | 'strava' | 'atleta-new' | 'atleta-edit' | 'atleta-delete' | 'atleta-convite';
+type RosterActionType = 'plano' | 'projecao' | 'strava' | 'zonas' | 'atleta-new' | 'atleta-edit' | 'atleta-delete' | 'atleta-convite';
 
 export default function CoachAthletesPage() {
   const navigate = useNavigate();
@@ -524,6 +526,7 @@ export default function CoachAthletesPage() {
           <GridActionsCellItem key="plano" icon={<EventNoteIcon />} label="Plano" showInMenu onClick={open('plano')} />,
           <GridActionsCellItem key="strava" icon={<SyncIcon />} label="Sincronizar Strava" showInMenu onClick={open('strava')} />,
           <GridActionsCellItem key="projecao" icon={<TrendingUpIcon />} label="Projeção de prova" showInMenu onClick={open('projecao')} />,
+          <GridActionsCellItem key="zonas" icon={<SpeedIcon />} label="Zonas" showInMenu onClick={open('zonas')} />,
           <GridActionsCellItem key="editar" icon={<EditIcon />} label="Editar" showInMenu onClick={() => { void abrirEdicaoAtleta(target.atletaId, target.nome); }} />,
           <GridActionsCellItem key="convite" icon={<MailOutlineIcon />} label="Enviar convite" showInMenu onClick={open('atleta-convite')} />,
           <GridActionsCellItem key="excluir" icon={<DeleteIcon />} label="Excluir" showInMenu onClick={open('atleta-delete')} />,
@@ -810,6 +813,13 @@ export default function CoachAthletesPage() {
               />
             </Box>
           </CoachDialog>
+          <AthleteZonesDialogHost
+            open={action === 'zonas'}
+            atletaId={actionTarget.atletaId}
+            nomeAtleta={actionTarget.nome}
+            onClose={closeAction}
+            onSalvo={() => setAvisoAcao(`Zonas de ${actionTarget.nome} atualizadas.`)}
+          />
           <ConfirmDialog
             open={action === 'atleta-convite'}
             title="Enviar convite"
