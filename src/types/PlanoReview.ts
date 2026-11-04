@@ -178,3 +178,9 @@ export type PlannerComplianceStatusDto =
 export interface PlanoRejectionInput {
     motivo: string;
 }
+
+/** Resultado do reenvio manual dos treinos do plano ao relógio. */
+export interface WorkoutResendDto {
+    /** Treinos em erro reiniciados; 0 quando nada estava em erro. */
+    resent: number;
+}

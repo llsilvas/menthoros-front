@@ -1,4 +1,4 @@
-import type { PlanoReviewStatus, PlanoSemanalDto, TreinoPlanejadoDto, TreinoPlanejadoPatch, TreinoPlanejadoAddPayload } from '../../types/PlanoReview';
+import type { PlanoReviewStatus, PlanoSemanalDto, TreinoPlanejadoDto, TreinoPlanejadoPatch, TreinoPlanejadoAddPayload, WorkoutResendDto } from '../../types/PlanoReview';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -50,6 +50,27 @@ export class CoachPlanoReviewService {
             errors: {
                 404: 'Plano não encontrado no tenant',
                 422: 'Transição ilegal: plano não está AGUARDANDO_REVISAO',
+            },
+        });
+    }
+
+    /**
+     * Reenvia ao relógio (Garmin ou intervals.icu) os treinos em ERRO_* de um plano APROVADO.
+     * O push é assíncrono: a resposta só confirma o reenvio.
+     * @param id UUID do PlanoSemanal
+     * @returns quantidade de treinos reenviados
+     * @throws ApiError
+     */
+    public static reenviarSincronizacao(id: string): CancelablePromise<WorkoutResendDto> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/coach/planos/{id}/reenviar-sincronizacao',
+            path: { 'id': id },
+            errors: {
+                403: 'Sem permissão ou recurso de outro tenant',
+                404: 'Plano não encontrado no tenant',
+                409: 'Envio em andamento em algum treino do plano',
+                422: 'Plano não aprovado ou atleta sem canal conectado',
             },
         });
     }

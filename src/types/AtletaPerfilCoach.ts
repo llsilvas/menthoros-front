@@ -50,6 +50,12 @@ export interface TreinoPlanejadoResumoDto {
     statusSincronizacao?: string;
     /** Indica se o atleta conectou a conta ao intervals.icu. */
     atletaConectadoIntervalsIcu?: boolean;
+    /** Atleta tem canal de treinos conectado (Garmin ou intervals.icu). */
+    channelConnected?: boolean;
+    /** Motivo do erro ou do envio parcial; só em ERRO_VALIDACAO e SINCRONIZADO_PARCIAL. */
+    syncError?: string | null;
+    /** Envio ao canal em andamento — o reenvio responderia 409. */
+    syncInProgress?: boolean;
 }
 
 /** Plano semanal vigente do atleta. */

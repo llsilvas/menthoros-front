@@ -1,21 +1,16 @@
 import { Chip, Tooltip } from '@mui/material';
 import { semantic, surface } from '../../../theme/tokens';
+import { buildSyncReasonFromStatus, isErroSync } from '../adapters/syncReason';
 
 export interface SyncStatusChipProps {
     statusSincronizacao?: string;
+    /** Atleta tem canal de treinos conectado (Garmin ou intervals.icu). */
     atletaConectado?: boolean;
+    /** Motivo vindo do backend (ERRO_VALIDACAO e SINCRONIZADO_PARCIAL). */
+    syncError?: string | null;
 }
 
 const STATUS_SUCESSO = new Set(['SINCRONIZADO', 'SINCRONIZADO_PARCIAL']);
-
-/** Nomes legíveis para os status ERRO_* — usados no tooltip do chip. */
-const ERRO_TOOLTIP: Record<string, string> = {
-    ERRO_TEMPORARIO: 'Erro temporário no envio ao intervals.icu',
-    ERRO_AUTENTICACAO: 'Erro de autenticação com o intervals.icu',
-    ERRO_VALIDACAO: 'Erro de validação do treino no intervals.icu',
-    ERRO_LIMITE_RATE: 'Limite de requisições do intervals.icu excedido',
-    ERRO_PERMANENTE: 'Erro permanente no envio ao intervals.icu',
-};
 
 interface ChipVisual {
     label: string;
@@ -23,29 +18,35 @@ interface ChipVisual {
     tooltip: string;
 }
 
-function resolveVisual(statusSincronizacao?: string, atletaConectado?: boolean): ChipVisual {
+function tooltipDoMotivo(statusSincronizacao: string, syncError?: string | null): string | null {
+    const reason = buildSyncReasonFromStatus(statusSincronizacao, syncError);
+    if (!reason) return null;
+    return [reason.motivo, reason.detalhe, reason.acao].filter(Boolean).join(' — ');
+}
+
+function resolveVisual(statusSincronizacao?: string, atletaConectado?: boolean, syncError?: string | null): ChipVisual {
     // Precedência: atleta não conectado vence qualquer status de sincronização.
     if (atletaConectado === false) {
         return {
             label: 'Não conectado',
             color: surface[500],
-            tooltip: 'Atleta não conectou o intervals.icu',
+            tooltip: 'Atleta sem canal conectado',
         };
     }
 
     if (statusSincronizacao && STATUS_SUCESSO.has(statusSincronizacao)) {
         return {
-            label: 'No intervals.icu',
+            label: 'No relógio',
             color: semantic.success[500],
-            tooltip: 'Enviado ao intervals.icu',
+            tooltip: tooltipDoMotivo(statusSincronizacao, syncError) ?? 'Enviado ao relógio',
         };
     }
 
-    if (statusSincronizacao?.startsWith('ERRO_')) {
+    if (statusSincronizacao && isErroSync(statusSincronizacao)) {
         return {
             label: 'Erro no envio',
             color: semantic.warning[500],
-            tooltip: ERRO_TOOLTIP[statusSincronizacao] ?? 'Erro no envio ao intervals.icu',
+            tooltip: tooltipDoMotivo(statusSincronizacao, syncError) ?? 'Erro no envio ao relógio',
         };
     }
 
@@ -56,14 +57,14 @@ function resolveVisual(statusSincronizacao?: string, atletaConectado?: boolean):
     };
 }
 
-/** Chip compacto com o status de sincronização do treino com o intervals.icu/Garmin. */
-export function SyncStatusChip({ statusSincronizacao, atletaConectado }: SyncStatusChipProps) {
+/** Chip compacto com o status de envio do treino ao relógio (Garmin ou intervals.icu). */
+export function SyncStatusChip({ statusSincronizacao, atletaConectado, syncError }: SyncStatusChipProps) {
     // Dado antigo (perfil sem os campos novos do backend) — não renderiza nada.
     if (statusSincronizacao === undefined && atletaConectado === undefined) {
         return null;
     }
 
-    const { label, color, tooltip } = resolveVisual(statusSincronizacao, atletaConectado);
+    const { label, color, tooltip } = resolveVisual(statusSincronizacao, atletaConectado, syncError);
 
     return (
         <Tooltip title={tooltip} enterDelay={0}>
