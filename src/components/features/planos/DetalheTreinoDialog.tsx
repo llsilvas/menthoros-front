@@ -310,7 +310,6 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                 <Box>
                                     <Typography
                                         sx={{
-                                            fontFamily: 'Syne, sans-serif',
                                             fontSize: '1.1rem',
                                             fontWeight: 800,
                                             color: surface[50],

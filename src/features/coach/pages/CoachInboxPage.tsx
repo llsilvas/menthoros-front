@@ -706,7 +706,7 @@ function CoachInboxPage() {
                   <CoachAthleteAvatar athlete={{ id: selected.id, name: selected.name }} size="md" status={selected.segment === 'drop' ? 'alert' : selected.segment === 'attention' ? 'warning' : 'synced'} />
                   <Box sx={{ minWidth: 0 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                      <Typography data-testid="inbox-nome-atleta" sx={{ fontSize: { xs: '1.25rem', sm: '1.4rem', lg: '1.5rem', xl: '1.55rem' }, fontWeight: 800, color: surface[50], lineHeight: 1.05, fontFamily: 'Syne, sans-serif' }}>
+                      <Typography data-testid="inbox-nome-atleta" sx={{ fontSize: { xs: '1.25rem', sm: '1.4rem', lg: '1.5rem', xl: '1.55rem' }, fontWeight: 800, color: surface[50], lineHeight: 1.05 }}>
                         {selected.name}
                       </Typography>
                       <Chip

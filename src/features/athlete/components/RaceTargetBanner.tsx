@@ -21,8 +21,8 @@ export interface RaceTargetBannerProps {
  * design D7). Quatro estados: prova nesta semana (prioridade — prova-no-plano-semanal), alvo
  * definida, provas sem alvo, nenhuma prova.
  *
- * Os links levam `variant="body2"`: com `inherit` herdariam a fonte do `body` (Syne, do tema
- * global) em vez da fonte de texto do shell do atleta.
+ * Os links levam `variant="body2"`: com `inherit` herdariam o tamanho do `body` em vez da escala
+ * de texto do shell do atleta.
  */
 export function RaceTargetBanner({ provas, loading = false, error = null, hoje }: RaceTargetBannerProps) {
   if (loading || error) return null;

@@ -255,7 +255,7 @@ const AtletasList: React.FC = () => {
               <Typography
                 variant="h5"
                 component="h1"
-                sx={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, lineHeight: 1.1, color: surface[50] }}
+                sx={{ fontWeight: 800, lineHeight: 1.1, color: surface[50] }}
               >
                 Atletas
               </Typography>
