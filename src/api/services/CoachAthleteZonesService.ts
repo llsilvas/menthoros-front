@@ -1,4 +1,4 @@
-import type { AthleteTrainingZonesDto } from '../../types/AthleteTrainingZones';
+import type { AthleteTrainingZonesDto, AthleteZoneAnchorsInput } from '../../types/AthleteTrainingZones';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -17,6 +17,35 @@ export class CoachAthleteZonesService {
         return __request(OpenAPI, {
             method: 'GET',
             url: `/api/v1/coach/atletas/${atletaId}/zonas`,
+        });
+    }
+
+    /**
+     * Grava as âncoras (limiares) e devolve as zonas recalculadas.
+     * @throws ApiError 400 com o campo inválido; 404 atleta fora do tenant
+     */
+    public static salvarAncoras(
+        atletaId: string,
+        body: AthleteZoneAnchorsInput,
+    ): CancelablePromise<AthleteTrainingZonesDto> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: `/api/v1/coach/atletas/${atletaId}/zonas/ancoras`,
+            body,
+            mediaType: 'application/json',
+        });
+    }
+
+    /** Zonas que as âncoras gerariam, sem gravar. Mesmo corpo e mesmas regras do PUT. */
+    public static simular(
+        atletaId: string,
+        body: AthleteZoneAnchorsInput,
+    ): CancelablePromise<AthleteTrainingZonesDto> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: `/api/v1/coach/atletas/${atletaId}/zonas/simulacao`,
+            body,
+            mediaType: 'application/json',
         });
     }
 }
