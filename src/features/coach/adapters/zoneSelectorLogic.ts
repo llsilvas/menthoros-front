@@ -68,10 +68,15 @@ function eixoPara(preferido: 'PACE' | 'FC', i: Pick<IntensidadeEtapa, 'fcAlvoEta
     return eixoDisponivel(outro, i) ? outro : 'NENHUM';
 }
 
+/** FC de limiar medida, ou faixa de FC escrita pelo treinador — nunca a estimativa etária. */
+const fcConfiavel = (zones: AthleteTrainingZonesDto): boolean =>
+    !zones.ancoras.fcLimiarEstimada || zones.modos?.fc === 'MANUAL';
+
 /**
  * Escolher Zn preenche pace e FC do atleta com a faixa **base** (nenhum ajuste de fadiga é somado) e
  * aplica o default do eixo — a menos que o treinador já tenha mexido nele (`eixoFoiEscolhido`).
- * FC de limiar estimado nunca é copiada: um bpm literal furaria a regra "sem limiar medido, sem meta".
+ * FC de limiar estimado nunca é copiada: um bpm literal furaria a regra "sem limiar medido, sem meta" —
+ * exceto com FC em MANUAL, cuja faixa o treinador escreveu.
  */
 export function aplicarZona(
     atual: IntensidadeEtapa,
@@ -84,7 +89,7 @@ export function aplicarZona(
     const ritmoAlvo = zones.disponibilidade.pace && dados?.pace
         ? toCanonicalPace(dados.pace.minSegKm, dados.pace.maxSegKm)
         : '';
-    const fcAlvoEtapa = !zones.ancoras.fcLimiarEstimada && dados?.fc
+    const fcAlvoEtapa = fcConfiavel(zones) && dados?.fc
         ? toCanonicalFc(dados.fc.min, dados.fc.max)
         : '';
     const valores = { ritmoAlvo, fcAlvoEtapa };
@@ -198,7 +203,7 @@ export function avisosDaEtapa(i: IntensidadeEtapa, { zones, tipoEtapa, tipoTrein
     if (zonaEscolhida && !zones.disponibilidade.pace) {
         avisos.push({ id: 'sem-pace-limiar', texto: 'Sem pace de limiar: a zona grava só a FC. Cadastre o limiar para prescrever por ritmo.' });
     }
-    if (zonaEscolhida && zones.ancoras.fcLimiarEstimada && !fcTexto) {
+    if (zonaEscolhida && !fcConfiavel(zones) && !fcTexto) {
         avisos.push({ id: 'fc-limiar-estimada', texto: 'O limiar de FC é estimado: informe a FC à mão ou cadastre o limiar.' });
     }
 

@@ -1,4 +1,8 @@
-import type { AthleteTrainingZonesDto, AthleteZoneAnchorsInput } from '../../types/AthleteTrainingZones';
+import type {
+    AthleteTrainingZonesDto,
+    AthleteZoneAnchorsInput,
+    AthleteZonesManualInput,
+} from '../../types/AthleteTrainingZones';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -31,6 +35,22 @@ export class CoachAthleteZonesService {
         return __request(OpenAPI, {
             method: 'PUT',
             url: `/api/v1/coach/atletas/${atletaId}/zonas/ancoras`,
+            body,
+            mediaType: 'application/json',
+        });
+    }
+
+    /**
+     * Grava o modo das zonas por eixo e, em MANUAL, as faixas; LIMIAR apaga as faixas do eixo.
+     * @throws ApiError 400 com o caminho da faixa (`fc.faixas[2].min`); 404 atleta fora do tenant
+     */
+    public static salvarZonasManuais(
+        atletaId: string,
+        body: AthleteZonesManualInput,
+    ): CancelablePromise<AthleteTrainingZonesDto> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: `/api/v1/coach/atletas/${atletaId}/zonas/manuais`,
             body,
             mediaType: 'application/json',
         });
