@@ -256,7 +256,7 @@ function Conteudo({ onClose, atletaId, nomeAtleta, zonas, abaInicial = 'fc', onS
           </Button>
           <Button
             variant="contained"
-            sx={{ ...PRIMARY_BTN_SX, minHeight: 44 }}
+            sx={{ ...PRIMARY_BTN_SX, minHeight: 44, whiteSpace: 'nowrap', flexShrink: 0 }}
             onClick={() => void salvar()}
             disabled={!ed.podeSalvar}
             startIcon={ed.saving ? <CircularProgress size={16} color="inherit" /> : undefined}
