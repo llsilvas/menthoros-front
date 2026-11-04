@@ -105,6 +105,8 @@ export function useAthleteZoneAnchorsEditor(
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [erroPrevia, setErroPrevia] = useState<string | null>(null);
+    // Corpo simulado que gerou `previa`: prévia de âncoras antigas não serve de base para "Recalcular".
+    const [previaDe, setPreviaDe] = useState<string | null>(null);
     const [modos, setModos] = useState(inicial.modos);
     const [linhas, setLinhas] = useState(inicial.linhas);
     const seq = useRef(0);
@@ -177,7 +179,9 @@ export function useAthleteZoneAnchorsEditor(
         const t = setTimeout(() => {
             CoachAthleteZonesService.simular(atletaId, corpo)
                 .then((z) => {
-                    if (minha === seq.current) setPrevia(z);
+                    if (minha !== seq.current) return;
+                    setPrevia(z);
+                    setPreviaDe(JSON.stringify(corpo));
                 })
                 .catch((err) => {
                     if (minha !== seq.current) return;
@@ -195,12 +199,15 @@ export function useAthleteZoneAnchorsEditor(
                 return tocados.has(chave) || (CAMPOS_RELACIONADOS[chave] ?? []).some((c) => tocados.has(c));
             })) as Partial<T>;
 
-    // Modo manual: a faixa que o limiar daria vem da simulação das âncoras digitadas ou, sem ela, do GET.
-    const fonteLimiar = previa ?? zonasAtuais;
-    const linhasDoLimiar = useCallback(
-        (eixo: EixoZona) => (fonteLimiar ? faixasDoLimiar(fonteLimiar, eixo) : null),
-        [fonteLimiar],
-    );
+    // Modo manual: a faixa que o limiar daria. Eixo com âncora alterada só usa a prévia das âncoras
+    // atuais (a prévia simula o eixo ativo); eixo intocado usa o GET.
+    const chaveAtiva = ativoValido ? JSON.stringify(eixoAtivo === 'fc' ? { fc: corpoFc() } : { pace: corpoPace() }) : null;
+    const previaFresca = previa != null && previaDe === chaveAtiva ? previa : null;
+    const ancoraAlterada = useCallback((eixo: EixoZona) => (eixo === 'fc' ? fcAlterado : paceAlterado), [fcAlterado, paceAlterado]);
+    const linhasDoLimiar = useCallback((eixo: EixoZona) => {
+        const fonte = ancoraAlterada(eixo) ? (eixo === eixoAtivo ? previaFresca : null) : zonasAtuais;
+        return fonte ? faixasDoLimiar(fonte, eixo) : null;
+    }, [ancoraAlterada, eixoAtivo, previaFresca, zonasAtuais]);
     const errosManuais: Record<EixoZona, ErrosManuais> = useMemo(() => ({
         fc: modos.fc === 'MANUAL' ? validarFaixasManuais(linhas.fc, 'fc') : {},
         pace: modos.pace === 'MANUAL' ? validarFaixasManuais(linhas.pace, 'pace') : {},
@@ -245,7 +252,7 @@ export function useAthleteZoneAnchorsEditor(
                 manuais[e] = modos[e] === 'MANUAL' ? { modo: 'MANUAL', faixas: corpoManual(linhas[e], e) } : { modo: 'LIMIAR' };
             }
         }
-        const chaveAncoras = JSON.stringify(ancoras);
+        const chaveAncoras = JSON.stringify([atletaId, ancoras]);
         const enviarAncoras = Object.keys(ancoras).length > 0 && chaveAncoras !== ancorasGravadas.current;
         setSaving(true);
         setError(null);
@@ -274,7 +281,8 @@ export function useAthleteZoneAnchorsEditor(
         }
     }, [podeSalvar, fcAlterado, paceAlterado, corpoFc, corpoPace, atletaId, modos, linhas, manualAlterado]);
 
-    const fcMaximaReal = zonasAtuais && !zonasAtuais.fcMaxima.estimada ? zonasAtuais.fcMaxima.bpm : null;
+    // O push descarta faixa acima de fcMaximaComFallback: a máxima digitada, senão a do GET (real ou estimada).
+    const fcMaximaEfetiva = inteiro(fc.maxima) ?? zonasAtuais?.fcMaxima.bpm ?? null;
 
     return {
         fc,
@@ -299,14 +307,16 @@ export function useAthleteZoneAnchorsEditor(
         errosManuais,
         recalcular,
         recalcularDisponivel: (eixo: EixoZona) => linhasDoLimiar(eixo) != null,
+        /** Âncora do eixo ativo alterada e válida, simulação ainda não chegou. */
+        previaPendente: ancoraAlterada(eixoAtivo) && ativoValido && previaFresca == null && erroPrevia == null,
         /** Limiar alterado com o eixo em manual: as faixas manuais não acompanham. */
         limiarMudouComManual: (eixo: EixoZona) =>
             modos[eixo] === 'MANUAL' && (eixo === 'fc' ? fcAlterado : paceAlterado),
-        /** Zonas manuais de FC acima da máxima real não vão ao relógio (o push descarta). */
+        /** Zonas manuais de FC acima da máxima efetiva não vão ao relógio (o push descarta). */
         fcManualAcimaDaMaxima:
-            modos.fc === 'MANUAL' && fcMaximaReal != null
-            && linhas.fc.some((l) => /^\d+$/.test(l.ate.trim()) && Number(l.ate) > fcMaximaReal)
-                ? fcMaximaReal
+            modos.fc === 'MANUAL' && fcMaximaEfetiva != null
+            && linhas.fc.some((l) => (inteiro(l.ate) ?? 0) > fcMaximaEfetiva)
+                ? fcMaximaEfetiva
                 : null,
     };
 }

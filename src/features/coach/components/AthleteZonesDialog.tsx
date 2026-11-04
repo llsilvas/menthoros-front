@@ -388,7 +388,9 @@ function Conteudo({ onClose, atletaId, nomeAtleta, zonas, abaInicial = 'fc', onS
                   Recalcular a partir do limiar
                 </Button>
                 {!recalcularDisponivel && (
-                  <Typography sx={NOTA_SX}>{eixo === 'pace' ? 'Sem pace de limiar' : 'Sem limiar de FC'}</Typography>
+                  <Typography sx={NOTA_SX}>
+                    {ed.previaPendente ? 'Calculando a prévia…' : eixo === 'pace' ? 'Sem pace de limiar' : 'Sem limiar de FC'}
+                  </Typography>
                 )}
               </Box>
             </Box>

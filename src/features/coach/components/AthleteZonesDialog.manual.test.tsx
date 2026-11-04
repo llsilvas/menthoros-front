@@ -174,4 +174,54 @@ describe('AthleteZonesDialog — modo manual', () => {
 
         expect(screen.getByText(/acima da FC máxima \(186 bpm\)/)).toBeInTheDocument();
     });
+
+    it('FC manual acima da máxima estimada também avisa: o push usa a máxima com fallback', async () => {
+        abre({ zonas: { ...LIMIAR, fcMaxima: { bpm: 188, estimada: true } } });
+        await userEvent.click(screen.getByRole('button', { name: /Informar manualmente/ }));
+        const z5Ate = screen.getByRole('textbox', { name: 'Z5 Até' });
+        await userEvent.clear(z5Ate);
+        await userEvent.type(z5Ate, '195');
+
+        expect(screen.getByText(/acima da FC máxima \(188 bpm\)/)).toBeInTheDocument();
+    });
+
+    it('máxima digitada no formulário vale para o aviso', async () => {
+        abre({ zonas: { ...LIMIAR, fcMaxima: { bpm: 188, estimada: true } } });
+        const maxima = screen.getByLabelText('FC máxima (bpm)');
+        await userEvent.clear(maxima);
+        await userEvent.type(maxima, '200');
+        await userEvent.click(screen.getByRole('button', { name: /Informar manualmente/ }));
+        const z5Ate = screen.getByRole('textbox', { name: 'Z5 Até' });
+        await userEvent.clear(z5Ate);
+        await userEvent.type(z5Ate, '195');
+
+        expect(screen.queryByText(/Faixas acima da FC máxima/)).toBeNull();
+    });
+
+    it('limiar alterado: Recalcular espera a prévia do limiar novo e usa ela, não a faixa antiga', async () => {
+        let resolver: (z: AthleteTrainingZonesDto) => void = () => undefined;
+        vi.mocked(CoachAthleteZonesService.simular).mockReturnValue(
+            new Promise<AthleteTrainingZonesDto>((r) => { resolver = r; }) as ReturnType<typeof CoachAthleteZonesService.simular>,
+        );
+        abre({ zonas: PACE_MANUAL, abaInicial: 'pace' });
+        const limiar = screen.getByLabelText('Ritmo de limiar (m:ss /km)');
+        await userEvent.clear(limiar);
+        await userEvent.type(limiar, '4:50');
+
+        const recalcular = screen.getByRole('button', { name: 'Recalcular a partir do limiar' });
+        expect(recalcular).toBeDisabled();
+        expect(screen.getByText('Calculando a prévia…')).toBeInTheDocument();
+
+        await waitFor(() => expect(CoachAthleteZonesService.simular).toHaveBeenCalled());
+        resolver({
+            ...PACE_MANUAL,
+            zonas: PACE_MANUAL.zonas.map((z) => ({ ...z, pacePeloLimiar: { minSegKm: 300, maxSegKm: 330 } })),
+        });
+        await waitFor(() => expect(recalcular).toBeEnabled());
+        await userEvent.click(recalcular);
+        const confirma = await screen.findByRole('dialog', { name: /Recalcular/ });
+        await userEvent.click(within(confirma).getByRole('button', { name: 'Recalcular' }));
+
+        expect(await screen.findByRole('textbox', { name: 'Z2 De' })).toHaveValue('5:00');
+    });
 });
