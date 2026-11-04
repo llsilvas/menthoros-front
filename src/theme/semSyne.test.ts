@@ -16,11 +16,12 @@ function arquivos(dir: string): string[] {
 
 // CA4: Syne não aparece como valor em código do app logado; comentário pode citar a história.
 describe('nenhum literal de Syne no app logado', () => {
-  it('não há string começando por Syne fora da landing e da waitlist', () => {
+  it('não há string com Syne fora da landing e da waitlist', () => {
     const achados = arquivos(SRC)
       .map((f) => relative(SRC, f))
       .filter((f) => !FORA.some((r) => r.test(f)))
-      .filter((f) => /['"`]\s*"?Syne/.test(readFileSync(join(SRC, f), 'utf-8')));
+      // Syne em qualquer posição de uma string, inclusive como fallback ('Inter, Syne').
+      .filter((f) => /['"`][^'"`\n]*\bSyne\b/.test(readFileSync(join(SRC, f), 'utf-8')));
 
     expect(achados).toEqual([]);
   });

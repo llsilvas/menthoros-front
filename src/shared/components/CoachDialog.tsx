@@ -51,7 +51,8 @@ const HEADER_BG = `linear-gradient(135deg, ${elevation.base} 0%, ${elevation.pan
 
 /**
  * Shell único dos dialogs do coach: superfície dark-first (`elevation.highest`), header com gradiente e
- * título em Inter (variante h4 do tema), botão de fechar e rodapé padronizados, `fullScreen` responsivo e `<form>` opcional.
+ * título em Inter (variante h4 do tema), botão de fechar e rodapé padronizados, `fullScreen` responsivo
+ * e `<form>` opcional.
  * Centraliza a linguagem visual e o tratamento do clipping de ações em formulários.
  *
  * Padrões de uso (montar os nós fora do JSX de retorno e passá-los via prop):

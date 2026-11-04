@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { autenticarComPkce } from '../../fixtures/pkceAuth'
+import { foraDaFamilia } from '../../fixtures/fontes'
 
 /**
  * Smoke do tema do shell (task 6.2 de `athlete-home-restructure`): as telas que a change NÃO
@@ -44,19 +45,7 @@ for (const tela of TELAS) {
     const estoura = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
     expect(estoura, 'scroll horizontal').toBe(false)
 
-    const foraDaFamilia = await page.evaluate(() => {
-      const achados: string[] = []
-      for (const el of Array.from(document.querySelectorAll('body *'))) {
-        const texto = Array.from(el.childNodes).filter((n) => n.nodeType === Node.TEXT_NODE).map((n) => n.textContent?.trim() ?? '').join('')
-        if (!texto) continue
-        const estilo = getComputedStyle(el)
-        if (estilo.display === 'none' || estilo.visibility === 'hidden') continue
-        // padronizar-tipografia-inter: Inter, ou JetBrains Mono nos dados de treino; nada mais.
-        const primeira = estilo.fontFamily.split(',')[0].trim().replace(/["']/g, '')
-        if (primeira !== 'Inter' && primeira !== 'JetBrains Mono') achados.push(`${primeira}: ${texto.slice(0, 40)}`)
-      }
-      return achados
-    })
-    expect(foraDaFamilia, `textos fora de Inter/JetBrains Mono: ${JSON.stringify(foraDaFamilia)}`).toEqual([])
+    const fora = await foraDaFamilia(page)
+    expect(fora, `textos fora de Inter/JetBrains Mono: ${JSON.stringify(fora)}`).toEqual([])
   })
 }

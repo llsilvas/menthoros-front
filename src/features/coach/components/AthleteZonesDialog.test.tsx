@@ -76,7 +76,7 @@ describe('AthleteZonesDialog', () => {
     it('na prévia, referência, De e Até usam tabular-nums (CA5)', async () => {
         abre();
 
-        const z1 = within(await screen.findByTestId('previa-zonas')).getAllByRole('row')[1];
+        const z1 = within(await screen.findByTestId('previa-zonas')).getByRole('row', { name: /Z1/ });
         for (const celula of within(z1).getAllByRole('cell')) {
             expect(celula).toHaveStyle({ fontVariantNumeric: 'tabular-nums' });
         }

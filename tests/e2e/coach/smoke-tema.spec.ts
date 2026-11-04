@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { autenticarComPkce } from '../../fixtures/pkceAuth'
+import { foraDaFamilia, pesosInterCarregados } from '../../fixtures/fontes'
 
 /**
  * Smoke de tipografia do coach e do shell legado (padronizar-tipografia-inter, CA1).
@@ -84,35 +85,8 @@ async function mockarApis(page: Page, roles: string[]) {
   await page.route('**/api/v1/coach/atletas/*/zonas/simulacao', (route) => route.fulfill({ json: ZONAS }))
 }
 
-/** Textos visíveis cuja primeira família não é Inter nem JetBrains Mono. */
-async function foraDaFamilia(page: Page) {
-  return page.evaluate(() => {
-    const achados: string[] = []
-    for (const el of Array.from(document.querySelectorAll('body *'))) {
-      const texto = Array.from(el.childNodes)
-        .filter((n) => n.nodeType === Node.TEXT_NODE)
-        .map((n) => n.textContent?.trim() ?? '')
-        .join('')
-      if (!texto) continue
-      const estilo = getComputedStyle(el)
-      if (estilo.display === 'none' || estilo.visibility === 'hidden') continue
-      const primeira = estilo.fontFamily.split(',')[0].trim().replace(/["']/g, '')
-      if (primeira !== 'Inter' && primeira !== 'JetBrains Mono') achados.push(`${primeira}: ${texto.slice(0, 40)}`)
-    }
-    return achados
-  })
-}
-
-/** `document.fonts.load` devolve as faces que casaram: vazio quando a Inter nem foi declarada. */
-async function interCarregada(page: Page) {
-  return page.evaluate(async () => ({
-    peso400: (await document.fonts.load('400 16px Inter')).length,
-    peso800: (await document.fonts.load('800 16px Inter')).length,
-  }))
-}
-
 async function verificar(page: Page, nome: string, { scroll = true } = {}) {
-  await page.waitForTimeout(800)
+  await page.evaluate(() => document.fonts.ready)
   await page.screenshot({ path: `test-results/smoke-tema-${nome}.png`, fullPage: true })
 
   const estoura = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
@@ -121,9 +95,7 @@ async function verificar(page: Page, nome: string, { scroll = true } = {}) {
   const fora = await foraDaFamilia(page)
   expect(fora, `textos fora de Inter/JetBrains Mono: ${JSON.stringify(fora)}`).toEqual([])
 
-  const carga = await interCarregada(page)
-  expect(carga.peso400, 'Inter 400 carregada').toBeGreaterThan(0)
-  expect(carga.peso800, 'Inter 800 carregada').toBeGreaterThan(0)
+  expect(await pesosInterCarregados(page, [400, 800]), 'pesos da Inter baixados').toEqual([400, 800])
 }
 
 test.describe('tipografia do shell do coach', () => {
