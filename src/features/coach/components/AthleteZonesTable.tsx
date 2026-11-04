@@ -130,7 +130,7 @@ function ChipsDoCabecalho({ zones, hoje }: { zones: AthleteTrainingZonesDto; hoj
 const zoneColor = (numero: number): string =>
   activeTheme.zones[`Z${numero}` as keyof typeof activeTheme.zones].color;
 
-const celula = { color: text.primary, borderColor: content.divider, fontSize: '0.8125rem', py: 0.75 } as const;
+const celula = { color: text.primary, borderColor: content.divider, fontSize: '0.8125rem', py: 0.75, fontVariantNumeric: 'tabular-nums' } as const;
 const cabecalho = { color: text.secondary, borderColor: content.divider, fontSize: '0.6875rem', py: 0.5 } as const;
 
 function ZonaRow({ zona }: { zona: AthleteTrainingZoneDto }) {

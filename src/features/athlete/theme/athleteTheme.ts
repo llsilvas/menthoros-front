@@ -11,10 +11,9 @@ const rem = (px: string) => `${Number.parseInt(px, 10) / 16}rem`;
  * Tema do shell do atleta — **aninhado** no `AthleteLayout`, nunca global (precedente:
  * `features/coach/theme/coachTheme.ts`).
  *
- * `appTheme` declara Syne como família padrão e o `index.html` só carrega Syne 700/800: todo texto
- * do shell saía em display bold, enquanto `font.text` (Inter) existia como token sem consumidor.
- * Aqui texto e dados usam `font.text`; títulos, `font.display`. Os tamanhos são só os sete níveis
- * de `shared/design-tokens/typography` — nada de `0.82rem`.
+ * Texto e dados usam `font.text`; títulos, `font.display` (ambos Inter desde
+ * padronizar-tipografia-inter). Os tamanhos são só os sete níveis de
+ * `shared/design-tokens/typography` — nada de `0.82rem`.
  */
 export const athleteTheme = createTheme(appTheme, {
   typography: {

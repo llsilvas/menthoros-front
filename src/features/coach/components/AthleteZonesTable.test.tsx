@@ -90,6 +90,15 @@ describe('AthleteZonesTable', () => {
         expect(within(z6).getByText(/usar pace/i)).toBeInTheDocument();
     });
 
+    // padronizar-tipografia-inter (CA5): dígitos alinhados entre as linhas de pace e de FC.
+    it('as células de pace e de FC usam tabular-nums', () => {
+        renderTabela(zonas());
+
+        const z2 = screen.getByRole('row', { name: /Z2/ });
+        expect(within(z2).getByText('5:15 – 5:45')).toHaveStyle({ fontVariantNumeric: 'tabular-nums' });
+        expect(within(z2).getByText('143 – 150')).toHaveStyle({ fontVariantNumeric: 'tabular-nums' });
+    });
+
     it('RPE típico e uso típico seguem o protótipo', () => {
         renderTabela(zonas());
 

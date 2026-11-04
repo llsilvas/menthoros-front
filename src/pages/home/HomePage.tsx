@@ -139,7 +139,6 @@ export default function HomePage() {
           variant="h4"
           component="h1"
           sx={{
-            fontFamily: 'Syne, sans-serif',
             fontWeight: 800,
             lineHeight: 1.1,
             mb: 0.5,

@@ -21,8 +21,7 @@ export default function AthleteLayout() {
     navigate(route);
   }
 
-  // Tema ANINHADO: o provider de `App.tsx` declara Syne como família padrão para todas as rotas;
-  // aqui o shell do atleta resolve para `font.text`/`font.display` sem tocar coach nem landing.
+  // Tema ANINHADO: herda do provider de `App.tsx` e aplica a escala de tamanhos do atleta.
   return (
     <ThemeProvider theme={athleteTheme}>
       <Box

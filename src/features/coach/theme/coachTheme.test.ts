@@ -1,6 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { coachTheme, ESCALA_TIPOGRAFICA } from './coachTheme';
 import { appTheme } from '../../../theme/appTheme';
 
@@ -8,7 +6,6 @@ const familia = (valor: unknown) => String(valor ?? '');
 
 describe('coachTheme', () => {
   describe('famílias', () => {
-    /** Syne é display: boa em título curto, ruim em label e número, que é o grosso desta tela. */
     it('usa Inter em texto de leitura e dados', () => {
       expect(familia(coachTheme.typography.body1.fontFamily)).toMatch(/Inter/);
       expect(familia(coachTheme.typography.body2.fontFamily)).toMatch(/Inter/);
@@ -16,9 +13,18 @@ describe('coachTheme', () => {
       expect(familia(coachTheme.typography.button.fontFamily)).toMatch(/Inter/);
     });
 
-    it('mantém Syne nos títulos', () => {
-      expect(familia(coachTheme.typography.h3.fontFamily)).toMatch(/Syne/);
-      expect(familia(coachTheme.typography.h4.fontFamily)).toMatch(/Syne/);
+    // padronizar-tipografia-inter (CA3): títulos em Inter, mesmo tamanho de antes, peso ≥ 700.
+    it.each([
+      ['h1', 28],
+      ['h2', 28],
+      ['h3', 20],
+      ['h4', 20],
+    ] as const)('%s em Inter, %ipx, peso ≥ 700', (variante, tamanhoPx) => {
+      const v = coachTheme.typography[variante];
+      expect(familia(v.fontFamily)).toMatch(/^"?Inter/);
+      expect(familia(v.fontFamily)).not.toMatch(/Syne/);
+      expect(Number.parseFloat(String(v.fontSize)) * 16).toBe(tamanhoPx);
+      expect(Number(v.fontWeight)).toBeGreaterThanOrEqual(700);
     });
 
     it('o default do tema não é mais Syne', () => {
@@ -46,16 +52,7 @@ describe('coachTheme', () => {
     });
   });
 
-  /**
-   * O Non-Goal da change é explícito: não mexer nas telas do atleta. Como `App.tsx` envolve TODAS
-   * as rotas num único `ThemeProvider` e `AthleteLayout` não tem provider próprio, qualquer
-   * alteração de `typography` lá vazaria para o atleta. Este teste falha se alguém tentar.
-   */
-  it('não altera a tipografia global — o tema do app segue com Syne como família padrão', () => {
-    const global = readFileSync(resolve(__dirname, '../../../theme/appTheme.ts'), 'utf-8');
-
-    expect(global).toContain('fontFamily: \'"Syne", "Inter", "Helvetica", "Arial", sans-serif\'');
-    // E o tema do coach herda dele, em vez de recriar do zero — paleta e overrides seguem os mesmos.
+  it('herda do appTheme em vez de recriar do zero — paleta e overrides seguem os mesmos', () => {
     expect(coachTheme.palette.mode).toBe(appTheme.palette.mode);
     expect(coachTheme.shape.borderRadius).toBe(appTheme.shape.borderRadius);
   });
