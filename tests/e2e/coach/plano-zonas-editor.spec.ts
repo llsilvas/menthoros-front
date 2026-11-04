@@ -190,9 +190,10 @@ test.describe('revisão do plano — zonas do atleta no editor', () => {
     const patches = await mockarApis(page, ZONAS_SEM_PACE)
     await abrirEdicaoDoTreino(page)
 
-    // A tabela do atleta sem pace renderiza (datas e pace null) e diz o que falta, sem link
+    // A tabela do atleta sem pace renderiza (datas e pace null) e diz o que falta; o cadastro é
+    // uma ação (botão que abre o diálogo), não navegação — daí nenhum link
     await page.getByRole('button', { name: /zonas de atleta/i }).click()
-    await expect(page.getByText(/pace indisponível — cadastre o pace de limiar/i)).toBeVisible()
+    await expect(page.getByText('Ritmo não cadastrado.')).toBeVisible()
     await expect(page.getByRole('link', { name: /limiar/i })).toHaveCount(0)
 
     await page.getByRole('button', { name: 'Editar treino' }).first().click()
