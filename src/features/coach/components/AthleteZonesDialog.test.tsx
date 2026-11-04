@@ -49,6 +49,35 @@ describe('AthleteZonesDialog', () => {
         expect(screen.getByRole('button', { name: 'Salvar zonas' })).toBeDisabled();
     });
 
+    it('subtítulo e nota de unidade explicam o modelo e a Z6 sem FC', () => {
+        abre();
+        expect(screen.getByText(/alimentam os treinos enviados ao relógio/)).toBeInTheDocument();
+        expect(screen.getByText(/Zonas pelo modelo LTHR \(Friel\)/)).toBeInTheDocument();
+    });
+
+    it('prévia de FC tem Referência, De e Até, e a Z6 indica usar ritmo', async () => {
+        vi.mocked(CoachAthleteZonesService.simular).mockResolvedValue({
+            ...ZONAS,
+            zonas: [
+                { numero: 1, nome: 'Recuperação', fc: { min: 126, max: 143 } },
+                { numero: 6, nome: 'Sprint', fc: null, motivoFc: 'FC_NAO_ESTABILIZA' },
+            ],
+        });
+        abre();
+
+        const previa = await screen.findByTestId('previa-zonas');
+        expect(previa).toHaveTextContent('Referência');
+        expect(screen.getByRole('columnheader', { name: 'De' })).toBeInTheDocument();
+        expect(screen.getByRole('columnheader', { name: 'Até' })).toBeInTheDocument();
+        expect(screen.getByRole('row', { name: /Z1 Recuperação/ })).toHaveTextContent('75–85% LTHR126143');
+        expect(screen.getByRole('row', { name: /Z6 Sprint/ })).toHaveTextContent('usar ritmo (FC não estabiliza)');
+    });
+
+    it('aba Ritmo mostra a nota do formato m:ss', () => {
+        abre({ abaInicial: 'pace' });
+        expect(screen.getByText(/Zona mais rápida = pace menor/)).toBeInTheDocument();
+    });
+
     it('com FC máxima real mostra a ressalva do envio ao relógio', () => {
         abre();
         expect(screen.getByText(/deixam de ser enviados ao relógio/)).toBeInTheDocument();

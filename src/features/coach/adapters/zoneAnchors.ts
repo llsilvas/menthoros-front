@@ -1,3 +1,5 @@
+import type { AthleteTrainingZonesDto } from '../../../types/AthleteTrainingZones';
+
 // Limites = CHECKs de V6 no backend (ck_atleta_fc_limiar, ck_atleta_fc_maxima, ck_atleta_pace_limiar).
 // A autoridade é o backend; aqui é só dica antes da simulação (design.md D6).
 export const FC_LIMIAR_MIN = 100;
@@ -92,4 +94,53 @@ export function validarAncoraPace(
   const erroData = validarDataTeste(f.dataTeste, hoje);
   if (erroData) erros.dataTeste = erroData;
   return erros;
+}
+
+export type EixoPrevia = 'fc' | 'pace';
+
+export interface ZonePreviewRow {
+  numero: number;
+  nome: string;
+  /** "75–85% LTHR" / "129–145% limiar"; "—" sem faixa ou sem âncora. */
+  referencia: string;
+  de: string;
+  ate: string;
+  /** Z6 de FC: o backend não calcula faixa porque a FC não estabiliza em esforço curto. */
+  semFc: boolean;
+}
+
+export interface ZonePreview {
+  linhas: ZonePreviewRow[];
+  /** Largura de cada zona na barra, proporcional à faixa; zonas sem faixa ficam de fora. */
+  barra: { numero: number; peso: number }[];
+}
+
+/**
+ * Prévia das zonas devolvidas pela simulação. A referência é derivada das faixas do backend sobre a
+ * âncora (não reimplementa o cálculo): mostra ao treinador de onde cada faixa veio.
+ */
+export function buildZonePreviewFromZones(zonas: AthleteTrainingZonesDto, eixo: EixoPrevia): ZonePreview {
+  const limiar = eixo === 'fc'
+    ? zonas.ancoras.fcLimiar
+    : zonas.ancoras.paceLimiarMinKm != null ? Math.round(zonas.ancoras.paceLimiarMinKm * 60) : null;
+  const sufixo = eixo === 'fc' ? 'LTHR' : 'limiar';
+  const pct = (v: number) => Math.round((v / (limiar as number)) * 100);
+
+  const linhas: ZonePreviewRow[] = [];
+  const barra: ZonePreview['barra'] = [];
+  for (const z of zonas.zonas) {
+    const faixa = eixo === 'fc' ? (z.fc ? { min: z.fc.min, max: z.fc.max } : null)
+      : z.pace ? { min: z.pace.minSegKm, max: z.pace.maxSegKm } : null;
+    const fmt = (v: number) => (eixo === 'fc' ? String(v) : formatPace(v));
+    linhas.push({
+      numero: z.numero,
+      nome: z.nome,
+      referencia: faixa && limiar ? `${pct(faixa.min)}–${pct(faixa.max)}% ${sufixo}` : '—',
+      de: faixa ? fmt(faixa.min) : '—',
+      ate: faixa ? fmt(faixa.max) : '—',
+      semFc: eixo === 'fc' && !z.fc && z.motivoFc === 'FC_NAO_ESTABILIZA',
+    });
+    if (faixa) barra.push({ numero: z.numero, peso: Math.max(1, faixa.max - faixa.min) });
+  }
+  return { linhas, barra };
 }
