@@ -5,7 +5,7 @@ import { GHOST_BTN_SX, PRIMARY_BTN_SX } from '../../../shared/components/actionB
 import { activeTheme } from '../../../theme/activeTheme';
 import { content, text } from '../../../theme/tokens';
 import type { AthleteTrainingZonesDto, FonteLimiar } from '../../../types/AthleteTrainingZones';
-import { formatPaceRange } from '../adapters/intensityFormat';
+import { buildZonePreviewFromZones } from '../adapters/zoneAnchors';
 import { fieldSx } from './etapas/etapasStyles';
 import { useAthleteZoneAnchorsEditor, type EixoZona } from '../hooks/useAthleteZoneAnchorsEditor';
 
@@ -25,6 +25,9 @@ const ORIGENS_FC: FonteLimiar[] = ['TESTE_CAMPO', 'PROVA', 'LABORATORIO', 'RELOG
 const ORIGENS_PACE: FonteLimiar[] = ['TESTE_CAMPO', 'PROVA', 'RELOGIO_PLATAFORMA'];
 
 const FIELD = fieldSx(activeTheme.primary[500]);
+const NOTA_SX = { fontSize: '0.75rem', color: text.secondary } as const;
+const GRUPO_SX = { display: 'grid', gap: 1.5, m: 0, p: 2, border: `1px solid ${content.divider}`, borderRadius: 2, minWidth: 0 } as const;
+const LEGENDA_SX = { px: 0.75, fontSize: '0.8125rem', fontWeight: 600, color: text.primary } as const;
 const zoneColor = (n: number): string => activeTheme.zones[`Z${n}` as keyof typeof activeTheme.zones].color;
 
 export interface AthleteZonesDialogProps {
@@ -40,31 +43,47 @@ export interface AthleteZonesDialogProps {
 }
 
 function Previa({ zonas, eixo }: { zonas: AthleteTrainingZonesDto; eixo: EixoZona }) {
-  const faixa = (z: AthleteTrainingZonesDto['zonas'][number]): string => {
-    if (eixo === 'fc') return z.fc ? `${z.fc.min} – ${z.fc.max} bpm` : '—';
-    return z.pace ? `${formatPaceRange(z.pace.minSegKm, z.pace.maxSegKm).replace('–', ' – ')} /km` : '—';
-  };
+  const { linhas, barra } = buildZonePreviewFromZones(zonas, eixo);
+  const celula = { color: text.primary, borderColor: content.divider } as const;
+  const cabecalho = { color: text.secondary, borderColor: content.divider } as const;
+  const numero = { ...celula, fontVariantNumeric: 'tabular-nums' } as const;
   return (
     <Box data-testid="previa-zonas">
-      <Box aria-hidden sx={{ display: 'flex', height: 10, borderRadius: 1, overflow: 'hidden', mb: 1 }}>
-        {zonas.zonas.map((z) => (
-          <Box key={z.numero} sx={{ flex: 1, bgcolor: zoneColor(z.numero) }} />
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 1 }}>
+        <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: text.secondary, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          Prévia das zonas
+        </Typography>
+        <Typography sx={{ fontSize: '0.75rem', color: text.secondary }}>{eixo === 'fc' ? 'bpm' : 'min/km'}</Typography>
+      </Box>
+      <Box aria-hidden sx={{ display: 'flex', gap: '2px', height: 10, borderRadius: 1, overflow: 'hidden', mb: 1 }}>
+        {barra.map((b) => (
+          <Box key={b.numero} sx={{ flex: `${b.peso} 1 0`, bgcolor: zoneColor(b.numero) }} />
         ))}
       </Box>
       <Table size="small" aria-label="Prévia das zonas">
         <TableHead>
           <TableRow>
-            <TableCell sx={{ color: text.secondary, borderColor: content.divider }}>Zona</TableCell>
-            <TableCell sx={{ color: text.secondary, borderColor: content.divider }}>
-              {eixo === 'fc' ? 'FC' : 'Ritmo'}
-            </TableCell>
+            <TableCell sx={cabecalho}>Zona</TableCell>
+            <TableCell sx={cabecalho}>Referência</TableCell>
+            <TableCell sx={cabecalho}>De</TableCell>
+            <TableCell sx={cabecalho}>Até</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {zonas.zonas.map((z) => (
+          {linhas.map((z) => (
             <TableRow key={z.numero}>
-              <TableCell sx={{ color: text.primary, borderColor: content.divider }}>{`Z${z.numero} ${z.nome}`}</TableCell>
-              <TableCell sx={{ color: text.primary, borderColor: content.divider }}>{faixa(z)}</TableCell>
+              <TableCell component="th" scope="row" sx={celula}>{`Z${z.numero} ${z.nome}`}</TableCell>
+              <TableCell sx={{ ...cabecalho }}>{z.referencia}</TableCell>
+              {z.semFc ? (
+                <TableCell colSpan={2} sx={cabecalho}>
+                  — usar ritmo (FC não estabiliza)
+                </TableCell>
+              ) : (
+                <>
+                  <TableCell sx={numero}>{z.de}</TableCell>
+                  <TableCell sx={numero}>{z.ate}</TableCell>
+                </>
+              )}
             </TableRow>
           ))}
         </TableBody>
@@ -108,7 +127,7 @@ function Conteudo({ onClose, atletaId, nomeAtleta, zonas, abaInicial = 'fc', onS
       onClose={ed.saving ? () => undefined : onClose}
       maxWidth="md"
       title={primeiroNome ? `Zonas de ${primeiroNome}` : 'Zonas do atleta'}
-      subtitle="Cadastre o limiar e veja as zonas que ele gera."
+      subtitle="Cadastre as zonas de FC e de ritmo. Elas aparecem no card Zonas do Atleta e alimentam os treinos enviados ao relógio."
       disableClose={ed.saving}
       actionsHint={aviso}
       actions={
@@ -143,10 +162,11 @@ function Conteudo({ onClose, atletaId, nomeAtleta, zonas, abaInicial = 'fc', onS
         role="tabpanel"
         id={`painel-zonas-${eixo}`}
         aria-labelledby={`tab-zonas-${eixo}`}
-        sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', md: '1fr 1.2fr' } }}
+        sx={{ display: 'grid', gap: 3 }}
       >
         {eixo === 'fc' ? (
-          <Box sx={{ display: 'grid', gap: 2, alignContent: 'start' }}>
+          <Box component="fieldset" sx={{ ...GRUPO_SX, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' } }}>
+            <Box component="legend" sx={LEGENDA_SX}>Âncoras de FC</Box>
             <TextField
               size="small"
               label="FC de limiar (bpm)"
@@ -182,9 +202,13 @@ function Conteudo({ onClose, atletaId, nomeAtleta, zonas, abaInicial = 'fc', onS
               sx={FIELD}
             />
             {origem(ed.fc.origem, ORIGENS_FC, (v) => ed.setFc((f) => ({ ...f, origem: v })))}
+            <Typography sx={{ ...NOTA_SX, gridColumn: '1 / -1' }}>
+              Valores em bpm. Zonas pelo modelo LTHR (Friel). Z6 não tem faixa de FC: em esforço curto a FC não estabiliza.
+            </Typography>
           </Box>
         ) : (
-          <Box sx={{ display: 'grid', gap: 2, alignContent: 'start' }}>
+          <Box component="fieldset" sx={{ ...GRUPO_SX, gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' } }}>
+            <Box component="legend" sx={LEGENDA_SX}>Âncora de ritmo</Box>
             <TextField
               size="small"
               label="Ritmo de limiar (m:ss /km)"
@@ -209,6 +233,7 @@ function Conteudo({ onClose, atletaId, nomeAtleta, zonas, abaInicial = 'fc', onS
               sx={FIELD}
             />
             {origem(ed.pace.origem, ORIGENS_PACE, (v) => ed.setPace((p) => ({ ...p, origem: v })))}
+            <Typography sx={{ ...NOTA_SX, gridColumn: '1 / -1' }}>Formato m:ss. Zona mais rápida = pace menor.</Typography>
           </Box>
         )}
 

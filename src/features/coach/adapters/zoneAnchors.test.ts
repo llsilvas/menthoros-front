@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import type { AthleteTrainingZonesDto } from '../../../types/AthleteTrainingZones';
 import {
+  buildZonePreviewFromZones,
   formatPace,
   parsePace,
   validarAncoraFc,
@@ -91,5 +93,49 @@ describe('validarAncoraPace', () => {
 
   it('data futura rejeitada', () => {
     expect(validarAncoraPace(p(290, '2026-12-01'), HOJE).dataTeste).toBeDefined();
+  });
+});
+
+describe('buildZonePreviewFromZones', () => {
+  const zonas: AthleteTrainingZonesDto = {
+    modelo: 'LTHR_FRIEL',
+    ancoras: { fcLimiar: 168, fcLimiarEstimada: false, paceLimiarMinKm: 290 / 60 },
+    ajusteFadiga: { segundosPorKm: 0 },
+    fcMaxima: { bpm: 186, estimada: false },
+    disponibilidade: { pace: true, fc: true },
+    zonas: [
+      { numero: 1, nome: 'Recuperação', fc: { min: 126, max: 143 }, pace: { minSegKm: 374, maxSegKm: 421 } },
+      { numero: 2, nome: 'Base', fc: { min: 143, max: 150 }, pace: { minSegKm: 331, maxSegKm: 371 } },
+      { numero: 6, nome: 'Sprint', fc: null, motivoFc: 'FC_NAO_ESTABILIZA', pace: { minSegKm: 232, maxSegKm: 261 } },
+    ],
+  };
+
+  it('FC: referência em % do limiar, De/Até em bpm e Z6 marcada sem FC', () => {
+    const { linhas, barra } = buildZonePreviewFromZones(zonas, 'fc');
+    expect(linhas[0]).toMatchObject({ numero: 1, referencia: '75–85% LTHR', de: '126', ate: '143', semFc: false });
+    expect(linhas[2]).toMatchObject({ numero: 6, referencia: '—', semFc: true });
+    // Z6 fica fora da barra de FC; largura proporcional à faixa
+    expect(barra).toEqual([
+      { numero: 1, peso: 17 },
+      { numero: 2, peso: 7 },
+    ]);
+  });
+
+  it('ritmo: referência em % do limiar, De/Até em m:ss e todas as zonas na barra', () => {
+    const { linhas, barra } = buildZonePreviewFromZones(zonas, 'pace');
+    expect(linhas[0]).toMatchObject({ referencia: '129–145% limiar', de: '6:14', ate: '7:01', semFc: false });
+    expect(barra.map((b) => b.numero)).toEqual([1, 2, 6]);
+    expect(barra[0].peso).toBe(47);
+  });
+
+  it('sem pace de limiar: referência vazia e faixa ausente vira traço', () => {
+    const semPace = {
+      ...zonas,
+      ancoras: { ...zonas.ancoras, paceLimiarMinKm: null },
+      zonas: [{ numero: 1 as const, nome: 'Recuperação', fc: { min: 126, max: 143 }, pace: null }],
+    };
+    const { linhas, barra } = buildZonePreviewFromZones(semPace, 'pace');
+    expect(linhas[0]).toMatchObject({ referencia: '—', de: '—', ate: '—' });
+    expect(barra).toEqual([]);
   });
 });
