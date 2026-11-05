@@ -43,7 +43,8 @@ function toDialogTreino(t: TreinoPlanejadoResumoDto): TreinoPlanejadoDto {
         id: t.id,
         diaSemana: t.diaSemana,
         tipoTreino: t.tipoTreino,
-        distanciaKm: t.distanciaKm,
+        // O dialog de edição exige número; 0 é o que o resumo mandava antes de a distância virar opcional.
+        distanciaKm: t.distanciaKm ?? 0,
         duracaoMin: t.duracaoMin,
         zonaAlvo: t.zonaAlvo,
         percepcaoEsforcoEsperada: t.percepcaoEsforcoEsperada,

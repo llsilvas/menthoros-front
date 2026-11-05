@@ -38,7 +38,8 @@ export interface TreinoPlanejadoResumoDto {
     id?: string;
     diaSemana: string;
     tipoTreino: string;
-    distanciaKm: number;
+    /** Ausente quando o treino não prescreve distância. */
+    distanciaKm?: number;
     statusExecucao: 'PENDENTE' | 'REALIZADO' | 'PERDIDO' | 'CANCELADO';
     duracaoMin?: string;   // ISO-8601, ex: "PT60M" ou "PT1H30M"
     zonaAlvo?: string;
@@ -56,6 +57,9 @@ export interface TreinoPlanejadoResumoDto {
     syncError?: string | null;
     /** Envio ao canal em andamento — o reenvio responderia 409. */
     syncInProgress?: boolean;
+    /** Treino realizado vinculado; ausente sem vínculo. */
+    treinoRealizadoId?: string;
+    ritmoAlvo?: string;
 }
 
 /** Plano semanal vigente do atleta. */

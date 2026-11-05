@@ -263,7 +263,7 @@ export function buildSelectedAthleteFromDashboard(
       when: proximo?.when ?? 'Sem data',
       zone: firstWorkout?.zonaAlvo ?? '—',
       duration: formatDuration(firstWorkout?.duracaoMin),
-      distance: firstWorkout ? `${firstWorkout.distanciaKm} km` : '—',
+      distance: firstWorkout?.distanciaKm != null ? `${firstWorkout.distanciaKm} km` : '—',
       objective: firstWorkout
         ? 'Treino vindo do backend.'
         : profile?.planoVigente?.treinos.length
