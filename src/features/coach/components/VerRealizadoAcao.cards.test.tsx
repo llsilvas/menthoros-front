@@ -63,7 +63,7 @@ describe('Ver realizado nos cards do coach', () => {
         expect(await screen.findByRole('columnheader', { name: 'Diferença' })).toBeInTheDocument();
         expect(TreinoService.obterRealizado).toHaveBeenCalledWith('tr-1');
         // Sem estado do card, o dialog busca a análise uma vez, depois do detalhe
-        expect(await screen.findByText('Análise da IA indisponível para este treino no momento')).toBeInTheDocument();
+        expect(await screen.findByText('Análise da IA em andamento')).toBeInTheDocument();
         expect(AnaliseService.getAnaliseTreino).toHaveBeenCalledTimes(1);
     });
 

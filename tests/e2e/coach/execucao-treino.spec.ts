@@ -148,14 +148,14 @@ test.describe('Coach — execução do treino realizado', () => {
     expect(rotas.chamadasAnalise).toBe(1)
   })
 
-  test('análise 204 com RPE: faixa de indisponível', async ({ page }) => {
+  test('análise 204 com RPE: faixa de em andamento', async ({ page }) => {
     const rotas: Rotas = { analise: null, chamadasAnalise: 0 }
     await mockarComum(page, rotas)
     await abrirPlanosPeloRoster(page, 7)
 
     await page.getByRole('button', { name: 'Ver realizado' }).click()
 
-    await expect(dialog(page).getByText('Análise da IA indisponível para este treino no momento')).toBeVisible()
+    await expect(dialog(page).getByText('Análise da IA em andamento')).toBeVisible()
     await expect(dialog(page).getByRole('row', { name: /Distância/ })).toBeVisible()
   })
 

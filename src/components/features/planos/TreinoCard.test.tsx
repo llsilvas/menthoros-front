@@ -144,14 +144,14 @@ describe('TreinoCard — Ver realizado', () => {
         expect(getAnalise).toHaveBeenCalledTimes(1);
     });
 
-    it('depois de 204: o dialog mostra indisponível, sem nova chamada', async () => {
+    it('depois de 204: o dialog mostra em andamento, sem nova chamada', async () => {
         getAnalise.mockResolvedValue(undefined as never);
         renderCard();
         await screen.findByText('Análise AI em andamento…');
 
         await userEvent.click(screen.getByRole('button', { name: 'Ver realizado' }));
 
-        expect(await screen.findByText('Análise da IA indisponível para este treino no momento')).toBeInTheDocument();
+        expect(await screen.findByText('Análise da IA em andamento')).toBeInTheDocument();
         expect(getAnalise).toHaveBeenCalledTimes(1);
     });
 
