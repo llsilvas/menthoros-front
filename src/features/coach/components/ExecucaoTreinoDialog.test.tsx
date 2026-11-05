@@ -31,7 +31,7 @@ const DETALHE: TreinoRealizadoDetalhe = {
 };
 const ANALISE: AnaliseWorkout = {
     id: 'a1', treinoRealizadoId: 'tr-1', status: 'COMPLETED', primaryCause: 'PACING_ERROR',
-    executionScore: 72, summary: 'Saiu forte demais', recommendation: 'Segurar o início',
+    executionScore: 7, summary: 'Saiu forte demais', recommendation: 'Segurar o início',
 };
 const PLANEJADO = { distanciaKm: 14, duracaoMin: 'PT90M', zonaAlvo: 'Z2', percepcaoEsforcoEsperada: 6 };
 
@@ -75,7 +75,7 @@ describe('ExecucaoTreinoDialog', () => {
 
         const banner = await screen.findByTestId('execucao-analise-banner');
         expect(within(banner).getByText('Erro de Ritmo')).toBeInTheDocument();
-        expect(within(banner).getByText('72/100')).toBeInTheDocument();
+        expect(within(banner).getByText('7/10')).toBeInTheDocument();
         expect(within(banner).getByText('Saiu forte demais')).toBeInTheDocument();
         expect(within(banner).getByText(/Segurar o início/)).toBeInTheDocument();
         expect(AnaliseService.getAnaliseTreino).toHaveBeenCalledTimes(1);

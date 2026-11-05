@@ -10,6 +10,7 @@ export function useTreinoRealizadoDetalhe(treinoRealizadoId: string | undefined)
     const [tentativa, setTentativa] = useState(0);
 
     useEffect(() => {
+        setData(null);
         if (!treinoRealizadoId) return;
         let ativo = true;
         setLoading(true);

@@ -93,20 +93,22 @@ function TreinoCard({
                 </IconButton>
             ) : undefined}
             rodape={mostraSync || treino.treinoRealizadoId ? (
-                <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', rowGap: 1 }}>
-                    {mostraSync ? (
+                <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', rowGap: 1 }}>
+                    {mostraSync && (
                         <SyncStatusChip
                             statusSincronizacao={treino.statusSincronizacao}
                             atletaConectado={canalConectado(treino)}
                             syncError={treino.syncError}
                         />
-                    ) : <span />}
+                    )}
                     {treino.treinoRealizadoId && (
-                        <VerRealizadoAcao
-                            treinoRealizadoId={treino.treinoRealizadoId}
-                            planejado={treino}
-                            titulo={tipoTreinoLabel(treino.tipoTreino)}
-                        />
+                        <Box sx={{ ml: 'auto' }}>
+                            <VerRealizadoAcao
+                                treinoRealizadoId={treino.treinoRealizadoId}
+                                planejado={treino}
+                                titulo={tipoTreinoLabel(treino.tipoTreino)}
+                            />
+                        </Box>
                     )}
                 </Stack>
             ) : undefined}

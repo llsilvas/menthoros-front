@@ -23,11 +23,7 @@ export function VerRealizadoAcao({ treinoRealizadoId, planejado, titulo, analise
                 variant="outlined"
                 size="small"
                 startIcon={<RunIcon />}
-                onClick={(e) => {
-                    // O card inteiro pode ser clicável (abre o editor); este botão não deve disparar isso.
-                    e.stopPropagation();
-                    setAberto(true);
-                }}
+                onClick={() => setAberto(true)}
                 sx={{ ...SECONDARY_OUTLINE_SX, textTransform: 'none' }}
             >
                 Ver realizado

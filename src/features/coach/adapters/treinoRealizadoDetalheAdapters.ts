@@ -19,6 +19,9 @@ export const TOLERANCIA_RPE = 1;
 
 const AUSENTE = '--';
 
+/** Folga de ponto flutuante na fronteira inclusiva: 8 → 8,8 km é exatamente +10 %. */
+const EPSILON = 1e-9;
+
 const temValor = (v: number | null | undefined): v is number => v != null && Number.isFinite(v);
 
 /** `HH:MM:SS`, `MM:SS` ou ISO-8601 (`PT1H30M`) em segundos; `null` se ilegível. */
@@ -87,7 +90,11 @@ function buildZonas(detalhe: TreinoRealizadoDetalhe, zonaAlvo: string | null | u
         alvo: alvo.has(numeroDaZona(z.zona)),
     }));
     const noAlvo = faixas.filter((f) => f.alvo).reduce((soma, f) => soma + f.segundos, 0);
-    return { faixas, percentualNoAlvo: alvo.size ? Math.round((noAlvo / total) * 100) : null };
+    return {
+        faixas,
+        percentualNoAlvo: alvo.size ? Math.round((noAlvo / total) * 100) : null,
+        fracaoNoAlvo: alvo.size ? noAlvo / total : null,
+    };
 }
 
 function linhaDistancia(planejado: PlanejadoComparavel, detalhe: TreinoRealizadoDetalhe): LinhaComparativo {
@@ -96,7 +103,7 @@ function linhaDistancia(planejado: PlanejadoComparavel, detalhe: TreinoRealizado
     const base = { rotulo: 'Distância', planejado: km(p), realizado: km(r) };
     if (p == null || !temValor(r)) return { ...base, diferenca: AUSENTE, tom: 'neutro' };
     const diff = r - p;
-    const tom: TomDiferenca = Math.abs(diff) / p <= TOLERANCIA_DISTANCIA_PCT ? 'ok' : 'atencao';
+    const tom: TomDiferenca = Math.abs(diff) / p <= TOLERANCIA_DISTANCIA_PCT + EPSILON ? 'ok' : 'atencao';
     return { ...base, diferenca: `${signed(diff, 2)} km`, tom };
 }
 
@@ -110,11 +117,13 @@ function linhaDuracao(planejado: PlanejadoComparavel, detalhe: TreinoRealizadoDe
         realizado: formatarTempo(rSeg),
     };
     if (pMin == null || rSeg == null) return { ...base, diferenca: AUSENTE, tom: 'neutro' };
-    const diffMin = Math.round(rSeg / 60 - pMin);
+    // Compara o valor exato; só a exibição arredonda (70min29s contra 60 é +10 na tela, mas fora).
+    const diffExato = rSeg / 60 - pMin;
+    const diffMin = Math.round(diffExato);
     return {
         ...base,
         diferenca: `${diffMin > 0 ? '+' : ''}${diffMin} min`,
-        tom: Math.abs(diffMin) <= TOLERANCIA_DURACAO_MIN ? 'ok' : 'atencao',
+        tom: Math.abs(diffExato) <= TOLERANCIA_DURACAO_MIN + EPSILON ? 'ok' : 'atencao',
     };
 }
 
@@ -129,7 +138,8 @@ function linhaZona(planejado: PlanejadoComparavel, zonas: ZonasExecucao | null):
     return {
         ...base,
         diferenca: `${zonas.percentualNoAlvo}% no alvo`,
-        tom: zonas.percentualNoAlvo >= MINIMO_NO_ALVO_PCT ? 'ok' : 'atencao',
+        // Fração exata: 59,5 % aparece "60%", mas está fora.
+        tom: (zonas.fracaoNoAlvo ?? 0) * 100 >= MINIMO_NO_ALVO_PCT - EPSILON ? 'ok' : 'atencao',
     };
 }
 
@@ -148,7 +158,7 @@ function linhaRpe(planejado: PlanejadoComparavel, detalhe: TreinoRealizadoDetalh
 
 function elevacao(ganho?: number, perda?: number): string {
     if (!temValor(ganho) && !temValor(perda)) return AUSENTE;
-    return `+${ganho ?? 0} / −${perda ?? 0} m`;
+    return `${temValor(ganho) ? `+${ganho} m` : AUSENTE} / ${temValor(perda) ? `−${perda} m` : AUSENTE}`;
 }
 
 function linhaEtapa(e: EtapaRealizadaDetalhe, indice: number): LinhaEtapa {
@@ -167,12 +177,7 @@ function linhaEtapa(e: EtapaRealizadaDetalhe, indice: number): LinhaEtapa {
 
 function buildGrupos(d: TreinoRealizadoDetalhe): GrupoDadosRelogio[] {
     const rd = d.runningDynamics;
-    const temperatura = temValor(rd?.temperaturaMediaC)
-        ? `${decimal(rd.temperaturaMediaC, 1)} °C`
-            + (temValor(d.temperaturaMinC) && temValor(d.temperaturaMaxC)
-                ? ` (${decimal(d.temperaturaMinC, 0)}–${decimal(d.temperaturaMaxC, 0)} °C)`
-                : '')
-        : AUSENTE;
+    const grau = (v: number | null | undefined, casas: number) => (temValor(v) ? `${decimal(v, casas)} °C` : AUSENTE);
     return [
         {
             titulo: 'Distância e tempo',
@@ -224,7 +229,9 @@ function buildGrupos(d: TreinoRealizadoDetalhe): GrupoDadosRelogio[] {
         {
             titulo: 'Ambiente e corpo',
             itens: [
-                { rotulo: 'Temperatura', valor: temperatura },
+                { rotulo: 'Temperatura média', valor: grau(rd?.temperaturaMediaC, 1) },
+                { rotulo: 'Temperatura mínima', valor: grau(d.temperaturaMinC, 0) },
+                { rotulo: 'Temperatura máxima', valor: grau(d.temperaturaMaxC, 0) },
                 { rotulo: 'Calorias', valor: unidade(rd?.calorias, 'kcal') },
             ],
         },

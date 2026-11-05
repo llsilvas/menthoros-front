@@ -32,8 +32,9 @@ export function ExecucaoEtapas({ etapas, total }: ExecucaoEtapasProps) {
             {etapas.length === 0 ? (
                 <Typography sx={{ fontSize: '0.8125rem', color: surface[400] }}>Sem voltas registradas para este treino</Typography>
             ) : (
-                <Box sx={{ overflow: 'auto', maxHeight: 360, border: BORDA, borderRadius: 1 }}>
-                    <Box component="table" sx={{ borderCollapse: 'collapse', minWidth: '100%' }}>
+                // Região rolável focável: sem foco, quem navega por teclado não alcança voltas e colunas escondidas.
+                <Box role="region" aria-label="Voltas do treino" tabIndex={0} sx={{ overflow: 'auto', maxHeight: 360, border: BORDA, borderRadius: 1 }}>
+                    <Box component="table" aria-label="Voltas do treino" sx={{ borderCollapse: 'collapse', minWidth: '100%' }}>
                         <thead>
                             <tr>
                                 {COLUNAS.map((c) => (

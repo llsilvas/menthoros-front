@@ -24,8 +24,10 @@ export interface FaixaZona {
 
 export interface ZonasExecucao {
     faixas: FaixaZona[];
-    /** `null` quando o planejado não tem zona alvo reconhecida. */
+    /** Para exibir, arredondado; `null` quando o planejado não tem zona alvo reconhecida. */
     percentualNoAlvo: number | null;
+    /** 0–1 sem arredondar — é o que decide o tom (≥ 60 %). */
+    fracaoNoAlvo: number | null;
 }
 
 export interface LinhaEtapa {

@@ -48,7 +48,7 @@ const DETALHE = {
 
 const ANALISE = {
   id: 'a1', treinoRealizadoId: REALIZADO_ID, status: 'COMPLETED', primaryCause: 'PACING_ERROR',
-  executionScore: 72, summary: 'Saiu forte demais no início', recommendation: 'Segurar os 3 primeiros km',
+  executionScore: 7, summary: 'Saiu forte demais no início', recommendation: 'Segurar os 3 primeiros km',
 }
 
 type Rotas = { detalhe?: Record<string, unknown>; analise?: unknown | null; chamadasAnalise: number }
@@ -114,7 +114,7 @@ test.describe('Coach — execução do treino realizado', () => {
     await expect(acordeao).toHaveAttribute('aria-expanded', 'false')
     await acordeao.click()
     await expect(d.getByText('Pernas pesadas no fim')).toBeVisible()
-    await expect(d.getByText('22,0 °C (19–27 °C)')).toBeVisible()
+    await expect(d.getByText('22,0 °C')).toBeVisible()
 
     // O card já buscou a análise; o dialog reaproveita (CA3).
     expect(rotas.chamadasAnalise).toBe(1)

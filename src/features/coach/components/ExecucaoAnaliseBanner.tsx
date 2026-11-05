@@ -46,7 +46,7 @@ export function ExecucaoAnaliseBanner({ analise }: ExecucaoAnaliseBannerProps) {
                 {executionScore != null && (
                     <Typography sx={{ fontSize: '0.75rem', color: surface[400] }}>
                         Nota de execução{' '}
-                        <Box component="span" sx={{ fontFamily: MONO, fontWeight: 700, color: surface[50] }}>{executionScore}/100</Box>
+                        <Box component="span" sx={{ fontFamily: MONO, fontWeight: 700, color: surface[50] }}>{executionScore}/10</Box>
                     </Typography>
                 )}
             </Box>

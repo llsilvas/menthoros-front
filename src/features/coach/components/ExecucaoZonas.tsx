@@ -2,6 +2,7 @@ import { Box, Typography } from '@mui/material';
 import { semantic, surface } from '../../../theme/tokens';
 import { activeTheme } from '../../../theme/activeTheme';
 import type { ZonasExecucao } from '../types/ExecucaoTreino';
+import { MINIMO_NO_ALVO_PCT } from '../adapters/treinoRealizadoDetalheAdapters';
 import { EYEBROW_SX, MONO } from './execucaoEstilos';
 
 interface ExecucaoZonasProps {
@@ -22,13 +23,14 @@ export function ExecucaoZonas({ zonas }: ExecucaoZonasProps) {
         );
     }
     const noAlvo = zonas.percentualNoAlvo;
+    const dentro = (zonas.fracaoNoAlvo ?? 0) * 100 >= MINIMO_NO_ALVO_PCT;
     const ordem = [...zonas.faixas].reverse();
     return (
         <Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 1 }}>
                 <Typography sx={EYEBROW_SX}>Distribuição de zonas</Typography>
                 {noAlvo != null && (
-                    <Typography sx={{ fontFamily: MONO, fontSize: '0.75rem', fontWeight: 700, color: noAlvo >= 60 ? semantic.success[500] : semantic.warning[500] }}>
+                    <Typography sx={{ fontFamily: MONO, fontSize: '0.75rem', fontWeight: 700, color: dentro ? semantic.success[500] : semantic.warning[500] }}>
                         {noAlvo}% no alvo
                     </Typography>
                 )}

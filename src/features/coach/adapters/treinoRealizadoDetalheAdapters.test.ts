@@ -112,6 +112,29 @@ describe('buildExecucaoFromDetalhe — comparativo (D5)', () => {
         expect(linha('Distância', DETALHE_FIT, { ...PLANEJADO, distanciaKm: 13 }).tom).toBe('atencao');
     });
 
+    it('distância exatamente +10 % fica ok, apesar do ponto flutuante', () => {
+        expect(linha('Distância', { ...DETALHE_FIT, distanciaKm: 8.8 }, { ...PLANEJADO, distanciaKm: 8 }).tom).toBe('ok');
+    });
+
+    it('duração decide pelo valor exato, não pelo arredondado da tela', () => {
+        // 70min29s contra 60: a tela mostra +10, mas passa da tolerância
+        const passou = { ...DETALHE_FIT, runningDynamics: { tempoMovimento: '01:10:29' } };
+        expect(linha('Duração', passou, { ...PLANEJADO, duracaoMin: 'PT60M' })).toMatchObject({ diferenca: '+10 min', tom: 'atencao' });
+        const noLimite = { ...DETALHE_FIT, runningDynamics: { tempoMovimento: '01:10:00' } };
+        expect(linha('Duração', noLimite, { ...PLANEJADO, duracaoMin: 'PT60M' }).tom).toBe('ok');
+    });
+
+    it('zona: 59,5 % no alvo aparece "60%", mas fica em atenção', () => {
+        const detalhe = {
+            ...DETALHE_FIT,
+            tempoEmZonas: { fonte: 'FIT_RECORDS', zonas: [
+                { zona: 'Z2', bpmMin: 112, bpmMax: 129, segundos: 595 },
+                { zona: 'Z3', bpmMin: 130, segundos: 405 },
+            ] },
+        };
+        expect(linha('Zona', detalhe, { ...PLANEJADO, zonaAlvo: 'Z2' })).toMatchObject({ diferenca: '60% no alvo', tom: 'atencao' });
+    });
+
     it('duração compara com o tempo em movimento, não com o elapsed', () => {
         // 93,5 min em movimento contra 90 planejados: +4 (elapsed daria +11, fora da tolerância)
         expect(linha('Duração')).toMatchObject({ planejado: '1:30:00', realizado: '1:33:33', diferenca: '+4 min', tom: 'ok' });
@@ -182,7 +205,10 @@ describe('buildExecucaoFromDetalhe — zonas, etapas e acordeão', () => {
     it('etapas em ordem; ritmo da volta sai do texto ou da velocidade; Total vem da sessão', () => {
         const { etapas, total } = buildExecucaoFromDetalhe(DETALHE_FIT, PLANEJADO);
         expect(etapas.map((e) => e.rotulo)).toEqual(['Volta 1', 'Volta 2']);
-        expect(etapas[0]).toMatchObject({ ritmo: '6:12 /km', cadencia: '161 ppm', potencia: '351 W', elevacao: '+4 / −0 m' });
+        expect(etapas[0]).toMatchObject({ ritmo: '6:12 /km', cadencia: '161 ppm', potencia: '351 W', elevacao: '+4 m / −0 m' });
+        // Lado ausente não vira zero
+        expect(buildExecucaoFromDetalhe({ id: 'x', etapasRealizadas: [{ ordem: 1, elevacaoGanhoMetros: 12 }] }, {}).etapas[0].elevacao)
+            .toBe('+12 m / --');
         expect(etapas[1]).toMatchObject({ ritmo: '6:05 /km', cadencia: '--', potencia: '--' });
         // Soma das duas voltas daria 2 km; a sessão tem 15 (CA11)
         expect(total).toMatchObject({ rotulo: 'Total', distancia: '15,00 km', tempo: '1:40:32', fcMax: '171 bpm' });
@@ -206,7 +232,13 @@ describe('buildExecucaoFromDetalhe — zonas, etapas e acordeão', () => {
             grupos.find((g) => g.titulo === titulo)!.itens.find((i) => i.rotulo === rotulo)!.valor;
         expect(valor('Distância e tempo', 'Tempo decorrido')).toBe('1:40:32');
         expect(valor('Ritmo', 'Melhor ritmo')).toBe('4:55 /km');
-        expect(valor('Ambiente e corpo', 'Temperatura')).toBe('22,0 °C (19–27 °C)');
+        expect(valor('Ambiente e corpo', 'Temperatura média')).toBe('22,0 °C');
+        expect(valor('Ambiente e corpo', 'Temperatura mínima')).toBe('19 °C');
+        expect(valor('Ambiente e corpo', 'Temperatura máxima')).toBe('27 °C');
+        // Extremos independentes da média
+        const soExtremos = buildExecucaoFromDetalhe({ id: 'x', temperaturaMaxC: 30 }, {}).grupos
+            .find((g) => g.titulo === 'Ambiente e corpo')!.itens.map((i) => i.valor);
+        expect(soExtremos).toEqual(['--', '--', '30 °C', '--']);
         expect(valor('Dinâmica de corrida', 'Equilíbrio de GCT')).toBe('49,3% E / 50,7% D');
 
         const vazio = buildExecucaoFromDetalhe({ id: 'x' }, {}).grupos.flatMap((g) => g.itens.map((i) => i.valor));

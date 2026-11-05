@@ -12,7 +12,7 @@ export function ExecucaoComparativo({ linhas }: ExecucaoComparativoProps) {
     const cel = { py: 1, px: 1.5, borderBottom: BORDA } as const;
     return (
         <Box sx={{ border: BORDA, borderRadius: 2, overflow: 'auto' }}>
-            <Box component="table" sx={{ borderCollapse: 'collapse', width: '100%' }}>
+            <Box component="table" aria-label="Planejado e realizado" sx={{ borderCollapse: 'collapse', width: '100%' }}>
                 <thead>
                     <tr>
                         {['Métrica', 'Planejado', 'Realizado', 'Diferença'].map((h) => (
