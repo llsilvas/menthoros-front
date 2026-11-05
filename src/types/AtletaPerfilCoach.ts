@@ -56,6 +56,13 @@ export interface TreinoPlanejadoResumoDto {
     syncError?: string | null;
     /** Envio ao canal em andamento — o reenvio responderia 409. */
     syncInProgress?: boolean;
+    /** Quando o treinador editou o treino depois da aprovação; ausente se nunca editado. */
+    editedAfterApprovalAt?: string | null;
+    /**
+     * Calculado no backend com a regra do PATCH (fuso do atleta, relógio). Ausente em backend
+     * anterior ao campo: o front cai na regra antiga (só edita em revisão).
+     */
+    editable?: boolean;
 }
 
 /** Plano semanal vigente do atleta. */
