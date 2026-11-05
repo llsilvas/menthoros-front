@@ -8,7 +8,8 @@ import { alpha } from '@mui/material/styles';
 import type { PlanoVigenteDto, TreinoPlanejadoResumoDto } from '../../../types/AtletaPerfilCoach';
 import type { TreinoPlanejadoDto, TreinoPlanejadoPatch } from '../../../types/PlanoReview';
 import { resolveReviewStatus } from '../../../types/PlanoReview';
-import { TreinoEditDialog, type WatchChannel } from './TreinoEditDialog';
+import { TreinoEditDialog } from './TreinoEditDialog';
+import { NOME_CANAL, buildLockLabelFromRejection, type WatchChannel } from '../adapters/watchChannel';
 import { ApiError } from '../../../api/core/ApiError';
 import { useTreinoPlanejado } from '../../../hooks/useTreinoPlanejado';
 import { useReenviarSincronizacao } from '../../../hooks/useReenviarSincronizacao';
@@ -39,7 +40,6 @@ interface CurrentWeekPlanProps {
     canal?: WatchChannel | null;
 }
 
-const NOME_CANAL: Record<WatchChannel, string> = { GARMIN: 'Garmin Connect', INTERVALS_ICU: 'intervals.icu' };
 const MSG_ERRO_SALVAR = 'Não foi possível salvar o treino. Tente de novo.';
 
 /** 409/422 trazem a mensagem do backend, escrita para o treinador; o resto vira genérica. */
@@ -49,21 +49,6 @@ function mensagemDeErroAoSalvar(err: unknown): string {
         if (typeof message === 'string' && message.trim()) return message;
     }
     return MSG_ERRO_SALVAR;
-}
-
-/**
- * Rótulo do cadeado de treino travado em plano aprovado. A regra é do backend (`editable`); aqui só
- * se escolhe o texto. Pendente travado é de dia passado ou o de hoje com relógio (D1).
- */
-function rotuloTravado(t: TreinoPlanejadoResumoDto, data: Date | undefined): string {
-    if (t.statusExecucao === 'REALIZADO') return 'Treino realizado — não editável';
-    if (t.statusExecucao === 'PERDIDO') return 'Treino perdido — não editável';
-    if (t.statusExecucao === 'CANCELADO') return 'Treino cancelado — não editável';
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    return data && data.getTime() < hoje.getTime()
-        ? 'Treino de dia passado — não editável'
-        : 'Treino de hoje já está no relógio';
 }
 
 /** Canal conectado: o campo novo (Garmin ou intervals.icu) com fallback para perfil antigo. */
@@ -104,7 +89,7 @@ function TreinoCard({
     const mostraSync = !isAguardando
         && (treino.statusSincronizacao !== undefined || canalConectado(treino) !== undefined);
     const dia = rotuloDiaComData(treino.diaSemana, data);
-    const rotuloCadeado = travado ? rotuloTravado(treino, data) : '';
+    const rotuloCadeado = travado ? buildLockLabelFromRejection(treino.editRejection, treino.statusExecucao) : '';
 
     return (
         <TreinoPlanejadoCard
@@ -182,7 +167,8 @@ function TreinosGrid({
                         zones={zones}
                         data={indiceDoDia(t.diaSemana) >= 0 ? datasDaSemana[indiceDoDia(t.diaSemana)] : undefined}
                         isAguardando={isAguardando}
-                        travado={podeEditar !== undefined && !isAguardando && !podeEditar(t)}
+                        // cadeado só onde o backend disse "não"; perfil antigo (sem `editable`) fica sem os dois
+                        travado={!isAguardando && t.editable === false}
                         onEditar={onEditar && podeEditar?.(t) ? () => onEditar(t) : undefined}
                     />
                 </Grid>
@@ -251,6 +237,7 @@ export function CurrentWeekPlan({ plano, atletaId, atletaNome, onGerarPlano, onR
     const [ultimoReenvio, setUltimoReenvio] = useState<{ planoId: string; resent: number } | null>(null);
     const [erroAoSalvar, setErroAoSalvar] = useState<string | null>(null);
     const [aviso, setAviso] = useState<string | null>(null);
+    const isAprovado = plano !== null && resolveReviewStatus(plano.reviewStatus) === 'APROVADO';
 
     const handleReenviar = async () => {
         if (!plano) return;
@@ -268,7 +255,7 @@ export function CurrentWeekPlan({ plano, atletaId, atletaNome, onGerarPlano, onR
 
     const handleSalvar = async (patch: TreinoPlanejadoPatch) => {
         if (!plano || !editingTreino?.id) return;
-        const aprovado = resolveReviewStatus(plano.reviewStatus) === 'APROVADO';
+        setErroAoSalvar(null);
         try {
             await editarTreino(plano.planoId, editingTreino.id, patch);
         } catch (err) {
@@ -278,7 +265,7 @@ export function CurrentWeekPlan({ plano, atletaId, atletaNome, onGerarPlano, onR
         }
         const dia = rotuloDiaComData(editingTreino.diaSemana as string, undefined);
         setEditingTreino(null);
-        if (aprovado) {
+        if (isAprovado) {
             setAviso(canal ? `Treino de ${dia} atualizado. Reenviando ao ${NOME_CANAL[canal]}.` : `Treino de ${dia} atualizado.`);
         }
         onTreinoEditado?.();
@@ -299,7 +286,6 @@ export function CurrentWeekPlan({ plano, atletaId, atletaNome, onGerarPlano, onR
     }
 
     const isAguardando = resolveReviewStatus(plano.reviewStatus) === 'AGUARDANDO_REVISAO';
-    const isAprovado = resolveReviewStatus(plano.reviewStatus) === 'APROVADO';
     // `editable` vem do backend (fuso do atleta, relógio); ausente = backend antigo, que só aceita revisão.
     const podeEditar = isAguardando
         ? () => true
@@ -388,7 +374,7 @@ export function CurrentWeekPlan({ plano, atletaId, atletaNome, onGerarPlano, onR
             <Snackbar
                 open={Boolean(aviso)}
                 autoHideDuration={4000}
-                onClose={() => setAviso(null)}
+                onClose={(_, reason) => { if (reason !== 'clickaway') setAviso(null); }}
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
             >
                 <Alert severity="success" variant="filled" onClose={() => setAviso(null)}>

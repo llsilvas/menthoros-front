@@ -32,6 +32,7 @@ import { EtapasEditor } from './etapas/EtapasEditor';
 import { detalheDaZonaPredominante, minutosNaZonaAlvo, zonaPredominante } from '../adapters/zonaPredominante';
 import { useAthleteTrainingZones } from '../../../hooks/useAthleteTrainingZones';
 import { AthleteZonesTable } from './AthleteZonesTable';
+import { NOME_CANAL, type WatchChannel } from '../adapters/watchChannel';
 import { WorkoutProfile, selectWorkoutProfile, fromEtapaItens } from '../../workout/profile';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -85,14 +86,6 @@ function parseDuracaoMinutos(iso: string | undefined): string {
     const total = horas * 60 + min;
     return total > 0 ? String(total) : '';
 }
-
-/** Canal de treinos do atleta, como o backend serializa a plataforma. */
-export type WatchChannel = 'GARMIN' | 'INTERVALS_ICU';
-
-const NOME_CANAL: Record<WatchChannel, string> = {
-    GARMIN: 'Garmin Connect',
-    INTERVALS_ICU: 'intervals.icu',
-};
 
 const MOTIVOS: { value: WorkoutEditReason; label: string }[] = [
     { value: 'PAIN_INJURY', label: 'Dor/lesão' },

@@ -6,7 +6,7 @@ import { useTreinoPlanejado } from '../../../hooks/useTreinoPlanejado';
 import { useReenviarSincronizacao } from '../../../hooks/useReenviarSincronizacao';
 import { ApiError } from '../../../api/core/ApiError';
 import type { PlanoVigenteDto, TreinoPlanejadoResumoDto } from '../../../types/AtletaPerfilCoach';
-import type { WatchChannel } from './TreinoEditDialog';
+import type { WatchChannel } from '../adapters/watchChannel';
 
 vi.mock('../../../hooks/useTreinoPlanejado');
 vi.mock('../../../hooks/useReenviarSincronizacao');
@@ -57,34 +57,28 @@ describe('CurrentWeekPlan — plano aprovado (coach-editar-treino-aprovado)', ()
         expect(screen.getByText(/treinos pendentes podem ser editados/i)).toBeInTheDocument();
     });
 
-    it('lápis só em treino editable; realizado, perdido, hoje com relógio e dia passado mostram cadeado com rótulo (CA10)', () => {
-        // 04/11/2026 é quarta; o rótulo do pendente travado distingue hoje de dia passado
-        vi.useFakeTimers({ toFake: ['Date'] });
-        vi.setSystemTime(new Date(2026, 10, 4, 12, 0));
-        try {
-            renderPlano(plano([
-                treino('t1', 'SEGUNDA', { statusExecucao: 'REALIZADO', editable: false }),
-                treino('t2', 'TERCA', { statusExecucao: 'PERDIDO', editable: false }),
-                treino('t3', 'QUARTA', { editable: false }),
-                treino('t0', 'TERCA', { editable: false }),
-                treino('t4', 'QUINTA', { editable: true }),
-            ]));
+    it('lápis só em treino editable; o cadeado traz o motivo do backend (CA10)', () => {
+        renderPlano(plano([
+            treino('t1', 'SEGUNDA', { statusExecucao: 'REALIZADO', editable: false, editRejection: 'NOT_PENDING' }),
+            treino('t2', 'TERCA', { statusExecucao: 'PERDIDO', editable: false, editRejection: 'NOT_PENDING' }),
+            treino('t3', 'QUARTA', { editable: false, editRejection: 'TODAY_ON_WATCH' }),
+            treino('t0', 'TERCA', { editable: false, editRejection: 'PAST_DAY' }),
+            treino('t4', 'QUINTA', { editable: true }),
+        ]));
 
-            expect(screen.getAllByRole('button', { name: /editar treino/i })).toHaveLength(1);
-            expect(screen.getByRole('button', { name: /editar treino de qui/i })).toBeInTheDocument();
-            expect(screen.getByLabelText('Treino realizado — não editável')).toBeInTheDocument();
-            expect(screen.getByLabelText('Treino perdido — não editável')).toBeInTheDocument();
-            expect(screen.getByLabelText('Treino de hoje já está no relógio')).toBeInTheDocument();
-            expect(screen.getByLabelText('Treino de dia passado — não editável')).toBeInTheDocument();
-        } finally {
-            vi.useRealTimers();
-        }
+        expect(screen.getAllByRole('button', { name: /editar treino/i })).toHaveLength(1);
+        expect(screen.getByRole('button', { name: /editar treino de qui/i })).toBeInTheDocument();
+        expect(screen.getByLabelText('Treino realizado — não editável')).toBeInTheDocument();
+        expect(screen.getByLabelText('Treino perdido — não editável')).toBeInTheDocument();
+        expect(screen.getByLabelText('Treino de hoje já está no relógio')).toBeInTheDocument();
+        expect(screen.getByLabelText('Treino de dia passado — não editável')).toBeInTheDocument();
     });
 
-    it('backend anterior ao campo editable: plano aprovado não mostra lápis', () => {
+    it('backend anterior ao campo editable: plano aprovado não mostra lápis nem cadeado', () => {
         renderPlano(plano([treino('t1', 'QUINTA', { editable: undefined })]));
 
         expect(screen.queryByRole('button', { name: /editar treino/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole('img', { name: /não editável|relógio/i })).not.toBeInTheDocument();
     });
 
     it('abre o dialog com o aviso do canal e "Salvar e reenviar" (CA11)', async () => {

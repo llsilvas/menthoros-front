@@ -63,6 +63,8 @@ export interface TreinoPlanejadoResumoDto {
      * anterior ao campo: o front cai na regra antiga (só edita em revisão).
      */
     editable?: boolean;
+    /** Por que não é editável em plano aprovado (`NOT_PENDING`, `PAST_DAY`, `TODAY_ON_WATCH`); ausente se editável. */
+    editRejection?: string | null;
 }
 
 /** Plano semanal vigente do atleta. */
