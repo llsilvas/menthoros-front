@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CoachWatchLine } from './CoachWatchLine';
 
 describe('CoachWatchLine', () => {
@@ -60,6 +60,56 @@ describe('CoachWatchLine', () => {
       workoutImport: true,
       activityExport: true,
       ...extra,
+    });
+
+    describe('última atividade e permissão de exportar (watch-connection-guide)', () => {
+      beforeEach(() => {
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(new Date('2026-11-05T15:00:00'));
+      });
+      afterEach(() => {
+        vi.useRealTimers();
+      });
+
+      it('ativa com atividade ontem: Garmin, canal direto, conexão ativa e "última atividade: ontem"', () => {
+        render(
+          <CoachWatchLine relogio={{ marca: 'GARMIN' }} conexaoCanal={garmin({ ultimaSincronizacao: '2026-11-04T10:00:00' })} />,
+        );
+
+        const linha = screen.getByText(/^Canal:/);
+        expect(linha).toHaveTextContent('Garmin (canal direto)');
+        expect(linha).toHaveTextContent('conexão ativa');
+        expect(linha).toHaveTextContent('última atividade: ontem');
+      });
+
+      it('atividade antiga mostra a data; sem atividade, não inventa "última atividade"', () => {
+        const { rerender } = render(
+          <CoachWatchLine relogio={{ marca: 'GARMIN' }} conexaoCanal={garmin({ ultimaSincronizacao: '2026-10-20T10:00:00' })} />,
+        );
+        expect(screen.getByText(/^Canal:/)).toHaveTextContent('última atividade: 20/10/2026');
+
+        rerender(<CoachWatchLine relogio={{ marca: 'GARMIN' }} conexaoCanal={garmin()} />);
+        expect(screen.getByText(/^Canal:/)).not.toHaveTextContent('última atividade');
+      });
+
+      it('sem permissão de exportar: pede ao atleta autorizar no Garmin Connect', () => {
+        render(<CoachWatchLine relogio={{ marca: 'GARMIN' }} conexaoCanal={garmin({ activityExport: false })} />);
+
+        expect(screen.getByText(/^Canal:/)).toHaveTextContent(
+          'o atleta precisa autorizar o envio de atividades no Garmin Connect',
+        );
+      });
+
+      it('intervals.icu sem leitura não recebe a instrução do Garmin Connect', () => {
+        render(
+          <CoachWatchLine
+            relogio={{ marca: 'GARMIN' }}
+            conexaoCanal={garmin({ plataforma: { value: 'INTERVALS_ICU', label: 'intervals.icu' }, activityExport: false })}
+          />,
+        );
+
+        expect(screen.getByText(/^Canal:/)).not.toHaveTextContent('Garmin Connect');
+      });
     });
 
     it('Garmin ativo: canal direto, conexão ativa e as permissões concedidas', () => {

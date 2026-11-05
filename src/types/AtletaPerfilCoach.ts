@@ -172,6 +172,8 @@ export interface ConexaoCanalDto {
     workoutImport: boolean;
     activityExport: boolean;
     lastSyncError?: string | null;
+    /** ISO-8601: última atividade recebida pelo canal; ausente = nenhuma chegou ainda. */
+    ultimaSincronizacao?: string | null;
 }
 
 /** Treino realizado recente, com feedback do atleta quando registrado (athlete-training-loop, D3). */

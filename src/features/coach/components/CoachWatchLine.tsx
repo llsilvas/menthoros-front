@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { differenceInCalendarDays, format, parseISO } from 'date-fns';
 import { Alert, Box, Button, Chip, Dialog, DialogContent, DialogTitle, Typography } from '@mui/material';
 import { DISPOSITIVO_MARCA_LABELS, type DispositivoMarca } from '../../../types/Onboarding';
 import type { AtletaPerfilCoachDto } from '../../../types/AtletaPerfilCoach';
@@ -30,7 +31,29 @@ function descreverCanal(conexao: AtletaPerfilCoachDto['conexaoCanal']): string {
         return `Canal: ${nome} · conexão revogada${conexao.lastSyncError ? ` (${conexao.lastSyncError.slice(0, MAX_MOTIVO)})` : ''}`;
     }
     const sim = (v: boolean) => (v ? 'sim' : 'não');
-    return `Canal: ${nome} · conexão ativa · envio de treinos: ${sim(conexao.workoutImport)} · leitura de atividades: ${sim(conexao.activityExport)}`;
+    const partes = [
+        `Canal: ${nome}`,
+        'conexão ativa',
+        `envio de treinos: ${sim(conexao.workoutImport)}`,
+        `leitura de atividades: ${sim(conexao.activityExport)}`,
+    ];
+    if (conexao.plataforma?.value === 'GARMIN' && !conexao.activityExport) {
+        partes.push('o atleta precisa autorizar o envio de atividades no Garmin Connect');
+    }
+    if (conexao.ultimaSincronizacao) {
+        partes.push(`última atividade: ${quandoFoi(conexao.ultimaSincronizacao)}`);
+    }
+    return partes.join(' · ');
+}
+
+/** Dias de calendário no fuso do navegador: "ontem" é o que o treinador lê, não "há 22 h". */
+function quandoFoi(iso: string): string {
+    const data = parseISO(iso);
+    const dias = differenceInCalendarDays(new Date(), data);
+    if (dias <= 0) return 'hoje';
+    if (dias === 1) return 'ontem';
+    if (dias < 7) return `há ${dias} dias`;
+    return format(data, 'dd/MM/yyyy');
 }
 
 /** Posicionamentos em que o treino não chega direto ao relógio: viram Alert, não texto corrido. */
