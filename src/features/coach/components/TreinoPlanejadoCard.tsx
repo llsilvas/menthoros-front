@@ -20,7 +20,8 @@ interface TreinoPlanejadoCardProps {
     tipoTreino: string;
     /** Nome mostrado ao lado do quadradinho (rótulo do tipo, ou o nome da prova). */
     rotulo: string;
-    distanciaKm: number;
+    /** Km; ausente mostra "—". */
+    distanciaKm?: number | null;
     /** Minutos; `null` mostra "—". */
     duracaoMin?: number | null;
     rpeEsperado?: number | null;
@@ -149,7 +150,7 @@ export function TreinoPlanejadoCard({
             </Box>
 
             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 1 }}>
-                <Metrica rotulo="Distância" valor={`${distanciaKm} km`} />
+                <Metrica rotulo="Distância" valor={distanciaKm != null ? `${distanciaKm} km` : '—'} />
                 <Metrica rotulo="Duração" valor={duracaoMin != null ? `${duracaoMin} min` : '—'} />
                 <Metrica rotulo="Esforço" valor={rpeEsperado != null ? `${rpeEsperado}/10` : '—'} />
             </Box>

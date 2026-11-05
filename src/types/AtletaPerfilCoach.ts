@@ -38,7 +38,8 @@ export interface TreinoPlanejadoResumoDto {
     id?: string;
     diaSemana: string;
     tipoTreino: string;
-    distanciaKm: number;
+    /** Ausente quando o treino não prescreve distância. */
+    distanciaKm?: number;
     statusExecucao: 'PENDENTE' | 'REALIZADO' | 'PERDIDO' | 'CANCELADO';
     duracaoMin?: string;   // ISO-8601, ex: "PT60M" ou "PT1H30M"
     zonaAlvo?: string;
@@ -56,6 +57,9 @@ export interface TreinoPlanejadoResumoDto {
     syncError?: string | null;
     /** Envio ao canal em andamento — o reenvio responderia 409. */
     syncInProgress?: boolean;
+    /** Treino realizado vinculado; ausente sem vínculo. */
+    treinoRealizadoId?: string;
+    ritmoAlvo?: string;
     /** Quando o treinador editou o treino depois da aprovação; ausente se nunca editado. */
     editedAfterApprovalAt?: string | null;
     /**
@@ -181,6 +185,8 @@ export interface ConexaoCanalDto {
     workoutImport: boolean;
     activityExport: boolean;
     lastSyncError?: string | null;
+    /** ISO-8601: última atividade recebida pelo canal; ausente = nenhuma chegou ainda. */
+    ultimaSincronizacao?: string | null;
 }
 
 /** Treino realizado recente, com feedback do atleta quando registrado (athlete-training-loop, D3). */
@@ -189,6 +195,8 @@ export interface RealizadoRecenteDto {
     dataTreino: string;
     tipoTreino?: string;
     fonteDados?: { value: string; label: string };
+    /** Modelo do dispositivo (Garmin); ausente quando desconhecido. */
+    deviceName?: string | null;
     duracaoMin?: number;
     distanciaKm?: number;
     percepcaoEsforco?: number;

@@ -1,5 +1,5 @@
 import type { TreinoPlanejado } from "../../types/TreinoPlanejado";
-import type { TreinoRealizado } from "../../types/TreinoRealizado";
+import type { TreinoRealizado, TreinoRealizadoDetalhe } from "../../types/TreinoRealizado";
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -132,7 +132,7 @@ export class TreinoService {
      */
     public static obterRealizado(
         id: string,
-    ): CancelablePromise<TreinoRealizado> {
+    ): CancelablePromise<TreinoRealizadoDetalhe> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/treinos/realizados/{id}',

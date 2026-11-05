@@ -6,6 +6,7 @@ import { Card } from '../../../shared/components/Card';
 import { SENSACAO_LABELS, type Sensacao } from '../../../types/AthleteFeedback';
 import type { AthleteRealizadoHoje } from '../../../types/AthleteHome';
 import { tipoTreinoLabel } from '../adapters/homeAdapter';
+import { rotuloGarmin } from '../../../utils/rotuloGarmin';
 
 const FONTE_LABELS: Record<string, string> = {
   INTERVALS_ICU: 'intervals.icu', STRAVA: 'Strava', GARMIN: 'Garmin', MANUAL: 'registro manual',
@@ -35,7 +36,9 @@ export function TodayFeedbackCard({ realizado, onSubmit, submitting = false, err
     await onSubmit({ percepcaoEsforco: rpe, sensacoes, comentario: comentario.trim() || undefined });
   };
 
-  const fonte = realizado.fonteDados ? FONTE_LABELS[realizado.fonteDados] ?? realizado.fonteDados : null;
+  const fonte = realizado.fonteDados === 'GARMIN'
+    ? rotuloGarmin(realizado.deviceName)
+    : realizado.fonteDados ? FONTE_LABELS[realizado.fonteDados] ?? realizado.fonteDados : null;
 
   return (
     <Card

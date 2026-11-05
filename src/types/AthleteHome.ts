@@ -34,6 +34,8 @@ export interface AthleteMetricasChave {
 export interface AthleteRealizadoHoje {
   id: string;
   fonteDados?: string;
+  /** Modelo do dispositivo (Garmin); ausente quando desconhecido. */
+  deviceName?: string;
   tipoTreino?: string;
   duracaoMin?: number;
   distanciaKm?: number;

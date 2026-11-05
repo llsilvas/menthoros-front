@@ -36,6 +36,13 @@ describe('TreinoPlanejadoCard', () => {
         expect(screen.getAllByText('—')).toHaveLength(2);
     });
 
+    it('distância ausente vira "—", não "0 km" nem "undefined km"', () => {
+        renderCard({ distanciaKm: undefined });
+
+        expect(screen.getByText('—')).toBeInTheDocument();
+        expect(screen.queryByText(/km/)).not.toBeInTheDocument();
+    });
+
     it('zona e TSS só aparecem quando existem', () => {
         const { rerender } = renderCard();
         expect(screen.queryByText('Zona')).not.toBeInTheDocument();

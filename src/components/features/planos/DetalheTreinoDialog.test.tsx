@@ -90,3 +90,21 @@ describe('DetalheTreinoDialog — treino sem etapas', () => {
     expect(screen.queryByTestId('workout-profile')).toBeNull();
   });
 });
+
+describe('DetalheTreinoDialog — atribuição do realizado (garmin-activity-ingestion, CA8)', () => {
+  it('realizado do Garmin: mostra o modelo, separado da fonte do plano', () => {
+    renderizar({
+      ...TREINO,
+      fonteDados: { value: 'IA_GERADO', label: 'Gerado por IA' },
+      completedSource: { value: 'GARMIN', label: 'Garmin Connect' },
+      completedDeviceName: 'Forerunner 970',
+    });
+    expect(screen.getByText('Garmin Forerunner 970')).toBeInTheDocument();
+    expect(screen.getByText('Gerado por IA')).toBeInTheDocument();
+  });
+
+  it('sem realizado do Garmin, nenhuma atribuição', () => {
+    renderizar({ ...TREINO, completedSource: { value: 'STRAVA', label: 'Strava' } });
+    expect(screen.queryByText(/^Garmin/)).toBeNull();
+  });
+});

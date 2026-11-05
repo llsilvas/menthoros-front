@@ -4,6 +4,7 @@ import { ptBR } from 'date-fns/locale';
 import type { TreinoRealizadoDto } from '../../../types/TreinoManual';
 import { TIPO_TREINO_LABELS } from '../../../types/TreinoManual';
 import { glassSx, surface, primary } from '../../../theme/tokens';
+import { rotuloGarmin } from '../../../utils/rotuloGarmin';
 
 interface RecentTrainingsListProps {
     treinos: TreinoRealizadoDto[];
@@ -60,7 +61,7 @@ export function RecentTrainingsList({ treinos }: RecentTrainingsListProps) {
                         </Typography>
                         {t.fonteDados && (
                             <Chip
-                                label={t.fonteDados.label}
+                                label={t.fonteDados.value === 'GARMIN' ? rotuloGarmin(t.deviceName) : t.fonteDados.label}
                                 size="small"
                                 sx={{
                                     bgcolor: `${primary[500]}1F`,

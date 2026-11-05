@@ -62,6 +62,8 @@ export interface TreinoPlanejadoDto {
     etapas?: EtapaTreinoDto[];
     /** ID da prova vinculada, quando `tipoTreino = PROVA` (prova-no-plano-semanal). */
     provaId?: string;
+    /** Treino realizado vinculado; ausente sem vínculo. */
+    treinoRealizadoId?: string;
 }
 
 /** Payload para adicionar treino via POST /coach/planos/{planoId}/treinos. */

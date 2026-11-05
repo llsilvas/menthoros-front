@@ -15,6 +15,21 @@ const completa: AthleteWorkoutAnalysis = {
 };
 
 describe('buildWorkoutAnalysisView', () => {
+    it('treino do Garmin traz a atribuição com o modelo; outras fontes, nenhuma (CA8)', () => {
+        const garmin = buildWorkoutAnalysisView({
+            ...completa,
+            executado: { ...completa.executado, fonteDados: { value: 'GARMIN', label: 'Garmin Connect' }, deviceName: 'Forerunner 970' },
+        });
+        const icu = buildWorkoutAnalysisView({
+            ...completa,
+            executado: { ...completa.executado, fonteDados: { value: 'INTERVALS_ICU', label: 'intervals.icu' } },
+        });
+
+        expect(garmin.attribution).toBe('Garmin Forerunner 970');
+        expect(icu.attribution).toBeUndefined();
+        expect(buildWorkoutAnalysisView(completa).attribution).toBeUndefined();
+    });
+
     it('done: quatro textos e chip do RPE', () => {
         const view = buildWorkoutAnalysisView(completa);
 
