@@ -42,7 +42,7 @@ describe('WorkoutAnalysisCard', () => {
         expect(screen.queryByText('Saiu como planejado.')).not.toBeInTheDocument();
         expect(screen.queryByText('Capriche no sono hoje.')).not.toBeInTheDocument();
         expect(screen.queryByText('Pesou um pouco mais que o esperado.')).not.toBeInTheDocument();
-        expect(screen.getByText(/Seu coach vê a mesma análise/)).toBeInTheDocument();
+        expect(screen.getByText(/Não substitui o feedback do seu coach/)).toBeInTheDocument();
     });
 
     it('done: resumo fica dentro do contêiner ai-highlight', () => {
@@ -103,7 +103,7 @@ describe('WorkoutAnalysisCard', () => {
         expect(screen.getByText(/Analisando o seu treino/)).toBeInTheDocument();
         expect(screen.getByText('58 min')).toBeInTheDocument();
         expect(screen.queryByTestId('ai-highlight')).not.toBeInTheDocument();
-        expect(screen.queryByText(/Seu coach vê a mesma análise/)).not.toBeInTheDocument();
+        expect(screen.queryByText(/Não substitui o feedback do seu coach/)).not.toBeInTheDocument();
     });
 
     it('done sem reconhecimento: o botão continua oferecendo os demais textos ao expandir', async () => {

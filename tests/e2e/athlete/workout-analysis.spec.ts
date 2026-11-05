@@ -98,7 +98,7 @@ test.describe('Atleta — análise do treino no Plano', () => {
     await expect(card).toContainText('58 min · 11,2 km · RPE 7/10')
     await expect(card).toContainText('plano 61 min')
     await expect(card).toContainText('Você segurou o ritmo nos dois blocos de tempo.')
-    await expect(card).toContainText('Seu coach vê a mesma análise')
+    await expect(card).toContainText('Não substitui o feedback do seu coach')
 
     // Fechado, só o resumo (reconhecimento) aparece — comoFoi/proximoTreino/esforco ficam
     // atrás do toque, para o card caber em poucas linhas.
