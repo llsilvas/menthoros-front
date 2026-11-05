@@ -190,3 +190,18 @@ describe('estadoDeExecucao', () => {
         });
     });
 });
+
+describe('TreinoPlanejadoCard — selo de edição pós-aprovação (coach-editar-treino-aprovado, CA12)', () => {
+    it('mostra o selo quando o treino foi editado depois da aprovação, junto do rodapé', () => {
+        renderCard({ editadoAposAprovacao: true, rodape: <span>chip de envio</span> });
+
+        expect(screen.getByText('Editado após aprovação')).toBeInTheDocument();
+        expect(screen.getByText('chip de envio')).toBeInTheDocument();
+    });
+
+    it('sem a marca, não mostra o selo', () => {
+        renderCard();
+
+        expect(screen.queryByText('Editado após aprovação')).not.toBeInTheDocument();
+    });
+});

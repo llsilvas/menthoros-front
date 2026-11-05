@@ -1,11 +1,16 @@
 import { useState } from 'react';
-import { Alert, Box, Button, Grid, IconButton, Stack, Tooltip, Typography } from '@mui/material';
+import { Alert, Box, Button, Chip, Grid, IconButton, Snackbar, Stack, Tooltip, Typography } from '@mui/material';
 import { CalendarToday as CalendarIcon, HourglassEmpty as HourglassIcon, Sync as SyncIcon } from '@mui/icons-material';
+import CheckIcon from '@mui/icons-material/Check';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import { alpha } from '@mui/material/styles';
 import type { PlanoVigenteDto, TreinoPlanejadoResumoDto } from '../../../types/AtletaPerfilCoach';
 import type { TreinoPlanejadoDto, TreinoPlanejadoPatch } from '../../../types/PlanoReview';
 import { resolveReviewStatus } from '../../../types/PlanoReview';
 import { TreinoEditDialog } from './TreinoEditDialog';
+import { NOME_CANAL, buildLockLabelFromRejection, type WatchChannel } from '../adapters/watchChannel';
+import { ApiError } from '../../../api/core/ApiError';
 import { useTreinoPlanejado } from '../../../hooks/useTreinoPlanejado';
 import { useReenviarSincronizacao } from '../../../hooks/useReenviarSincronizacao';
 import { surface, semantic, primary } from '../../../theme/tokens';
@@ -32,6 +37,19 @@ interface CurrentWeekPlanProps {
     onRevisarPlano: () => void;
     /** Recarrega o plano depois de editar um treino ou reenviar ao relógio. */
     onTreinoEditado?: () => void;
+    /** Canal ativo do atleta (de `conexaoCanal`); `null` = sem relógio conectado. Usado no aviso de plano aprovado. */
+    canal?: WatchChannel | null;
+}
+
+const MSG_ERRO_SALVAR = 'Não foi possível salvar o treino. Tente de novo.';
+
+/** 409/422 trazem a mensagem do backend, escrita para o treinador; o resto vira genérica. */
+function mensagemDeErroAoSalvar(err: unknown): string {
+    if (err instanceof ApiError && (err.status === 409 || err.status === 422)) {
+        const message = (err.body as { message?: unknown } | undefined)?.message;
+        if (typeof message === 'string' && message.trim()) return message;
+    }
+    return MSG_ERRO_SALVAR;
 }
 
 /** Canal conectado: o campo novo (Garmin ou intervals.icu) com fallback para perfil antigo. */
@@ -58,6 +76,7 @@ function TreinoCard({
     data,
     zones,
     isAguardando,
+    travado,
     onEditar,
 }: {
     treino: TreinoPlanejadoResumoDto;
@@ -65,14 +84,18 @@ function TreinoCard({
     /** Data do dia na semana do plano; `undefined` quando o dia não é reconhecido. */
     data?: Date;
     isAguardando?: boolean;
+    /** Plano aprovado e treino não editável: cadeado com rótulo no lugar do lápis. */
+    travado?: boolean;
     onEditar?: () => void;
 }) {
     const mostraSync = !isAguardando
         && (treino.statusSincronizacao !== undefined || canalConectado(treino) !== undefined);
+    const dia = rotuloDiaComData(treino.diaSemana, data);
+    const rotuloCadeado = travado ? buildLockLabelFromRejection(treino.editRejection, treino.statusExecucao) : '';
 
     return (
         <TreinoPlanejadoCard
-            dia={rotuloDiaComData(treino.diaSemana, data)}
+            dia={dia}
             tipoTreino={treino.tipoTreino}
             rotulo={[tipoTreinoLabel(treino.tipoTreino), resumoDaSerie(treino.etapas)].filter(Boolean).join(' · ')}
             distanciaKm={treino.distanciaKm}
@@ -82,15 +105,23 @@ function TreinoCard({
             intensidade={buildIntensityLineFromTreino(treino.etapas, zones)}
             tssPlanejado={treino.tssPlanejado}
             estado={estadoDeExecucao(treino.statusExecucao)}
-            actions={isAguardando && treino.id && onEditar ? (
+            editadoAposAprovacao={Boolean(treino.editedAfterApprovalAt)}
+            actions={treino.id && onEditar ? (
                 <IconButton
                     size="small"
                     onClick={onEditar}
-                    aria-label="Editar treino"
-                    sx={{ p: 0.5, color: surface[400], '&:hover': { color: primary[400] } }}
+                    aria-label={`Editar treino de ${dia}`}
+                    sx={{ p: 0.5, minWidth: 44, minHeight: 44, color: surface[400], '&:hover': { color: primary[400] } }}
                 >
                     <EditOutlinedIcon sx={{ fontSize: 18 }} />
                 </IconButton>
+            ) : travado ? (
+                <Tooltip title={rotuloCadeado}>
+                    <Box role="img" aria-label={rotuloCadeado} tabIndex={0}
+                        sx={{ display: 'inline-flex', p: 0.5, color: surface[500] }}>
+                        <LockOutlinedIcon sx={{ fontSize: 16 }} />
+                    </Box>
+                </Tooltip>
             ) : undefined}
             rodape={mostraSync || treino.treinoRealizadoId ? (
                 <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', rowGap: 1 }}>
@@ -121,12 +152,15 @@ function TreinosGrid({
     semanaInicio,
     zones,
     isAguardando,
+    podeEditar,
     onEditar,
 }: {
     treinos: TreinoPlanejadoResumoDto[];
     zones: AthleteTrainingZonesDto | null;
     semanaInicio: string;
     isAguardando?: boolean;
+    /** `undefined` = ninguém edita (plano em outro status); senão decide por treino. */
+    podeEditar?: (t: TreinoPlanejadoResumoDto) => boolean;
     onEditar?: (t: TreinoPlanejadoResumoDto) => void;
 }) {
     if (treinos.length === 0) {
@@ -148,7 +182,9 @@ function TreinosGrid({
                         zones={zones}
                         data={indiceDoDia(t.diaSemana) >= 0 ? datasDaSemana[indiceDoDia(t.diaSemana)] : undefined}
                         isAguardando={isAguardando}
-                        onEditar={onEditar ? () => onEditar(t) : undefined}
+                        // cadeado só onde o backend disse "não"; perfil antigo (sem `editable`) fica sem os dois
+                        travado={!isAguardando && t.editable === false}
+                        onEditar={onEditar && podeEditar?.(t) ? () => onEditar(t) : undefined}
                     />
                 </Grid>
             ))}
@@ -207,13 +243,16 @@ function ReenvioRelogio({
     );
 }
 
-export function CurrentWeekPlan({ plano, atletaId, atletaNome, onGerarPlano, onRevisarPlano, onTreinoEditado }: CurrentWeekPlanProps) {
+export function CurrentWeekPlan({ plano, atletaId, atletaNome, onGerarPlano, onRevisarPlano, onTreinoEditado, canal = null }: CurrentWeekPlanProps) {
     const { zones } = useAthleteTrainingZones(atletaId);
     const [editingTreino, setEditingTreino] = useState<TreinoPlanejadoDto | null>(null);
     const { isSaving, editarTreino } = useTreinoPlanejado();
     const { reenviando, erro: erroReenvio, reenviar } = useReenviarSincronizacao();
     // Guardado com o planoId: trocar de plano/atleta descarta o aviso sem precisar de effect.
     const [ultimoReenvio, setUltimoReenvio] = useState<{ planoId: string; resent: number } | null>(null);
+    const [erroAoSalvar, setErroAoSalvar] = useState<string | null>(null);
+    const [aviso, setAviso] = useState<string | null>(null);
+    const isAprovado = plano !== null && resolveReviewStatus(plano.reviewStatus) === 'APROVADO';
 
     const handleReenviar = async () => {
         if (!plano) return;
@@ -224,10 +263,26 @@ export function CurrentWeekPlan({ plano, atletaId, atletaNome, onGerarPlano, onR
         if (resent > 0) onTreinoEditado?.();
     };
 
+    const abrirEdicao = (t: TreinoPlanejadoResumoDto) => {
+        setErroAoSalvar(null);
+        setEditingTreino(toDialogTreino(t));
+    };
+
     const handleSalvar = async (patch: TreinoPlanejadoPatch) => {
         if (!plano || !editingTreino?.id) return;
-        await editarTreino(plano.planoId, editingTreino.id, patch);
+        setErroAoSalvar(null);
+        try {
+            await editarTreino(plano.planoId, editingTreino.id, patch);
+        } catch (err) {
+            // O dialog continua aberto com as edições (D5).
+            setErroAoSalvar(mensagemDeErroAoSalvar(err));
+            return;
+        }
+        const dia = rotuloDiaComData(editingTreino.diaSemana as string, undefined);
         setEditingTreino(null);
+        if (isAprovado) {
+            setAviso(canal ? `Treino de ${dia} atualizado. Reenviando ao ${NOME_CANAL[canal]}.` : `Treino de ${dia} atualizado.`);
+        }
         onTreinoEditado?.();
     };
 
@@ -246,6 +301,10 @@ export function CurrentWeekPlan({ plano, atletaId, atletaNome, onGerarPlano, onR
     }
 
     const isAguardando = resolveReviewStatus(plano.reviewStatus) === 'AGUARDANDO_REVISAO';
+    // `editable` vem do backend (fuso do atleta, relógio); ausente = backend antigo, que só aceita revisão.
+    const podeEditar = isAguardando
+        ? () => true
+        : isAprovado ? (t: TreinoPlanejadoResumoDto) => t.editable === true : undefined;
     const temErroDeEnvio = !isAguardando && plano.treinos.some((t) => isErroSync(t.statusSincronizacao));
     const resentDestePlano = ultimoReenvio?.planoId === plano.planoId ? ultimoReenvio.resent : null;
 
@@ -274,6 +333,26 @@ export function CurrentWeekPlan({ plano, atletaId, atletaNome, onGerarPlano, onR
                 </Box>
             )}
 
+            {isAprovado && (
+                <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" gap={1}>
+                    <Chip
+                        icon={<CheckIcon sx={{ fontSize: 16 }} />}
+                        label="Aprovado"
+                        size="small"
+                        sx={{
+                            alignSelf: 'flex-start',
+                            color: surface[200],
+                            bgcolor: alpha(semantic.success[500], 0.12),
+                            border: `1px solid ${alpha(semantic.success[500], 0.5)}`,
+                            '& .MuiChip-icon': { color: semantic.success[500] },
+                        }}
+                    />
+                    <Typography variant="caption" sx={{ color: surface[400] }}>
+                        Treinos pendentes podem ser editados. Realizados ficam travados.
+                    </Typography>
+                </Stack>
+            )}
+
             {(temErroDeEnvio || resentDestePlano !== null || erroReenvio) && !isAguardando && (
                 <ReenvioRelogio
                     treinos={plano.treinos}
@@ -289,7 +368,8 @@ export function CurrentWeekPlan({ plano, atletaId, atletaNome, onGerarPlano, onR
                 semanaInicio={plano.semanaInicio}
                 zones={zones}
                 isAguardando={isAguardando}
-                onEditar={isAguardando ? (t) => setEditingTreino(toDialogTreino(t)) : undefined}
+                podeEditar={podeEditar}
+                onEditar={podeEditar ? abrirEdicao : undefined}
             />
 
             {editingTreino && (
@@ -299,10 +379,23 @@ export function CurrentWeekPlan({ plano, atletaId, atletaNome, onGerarPlano, onR
                     atletaId={atletaId}
                     atletaNome={atletaNome}
                     isSaving={isSaving}
+                    aviso={isAprovado ? { canal } : undefined}
+                    saveErrorMessage={erroAoSalvar}
                     onClose={() => setEditingTreino(null)}
                     onSave={handleSalvar}
                 />
             )}
+
+            <Snackbar
+                open={Boolean(aviso)}
+                autoHideDuration={4000}
+                onClose={(_, reason) => { if (reason !== 'clickaway') setAviso(null); }}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert severity="success" variant="filled" onClose={() => setAviso(null)}>
+                    {aviso}
+                </Alert>
+            </Snackbar>
         </Stack>
     );
 }
