@@ -1,8 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import TreinoCard from './TreinoCard';
 import { AnaliseService } from '../../../api/services/AnaliseService';
+import { TreinoService } from '../../../api/services/TreinoService';
 import type { AnaliseWorkout } from '../../../types/AnaliseWorkout';
 import type { TreinoPlanejado } from '../../../types/TreinoPlanejado';
 
@@ -10,7 +11,7 @@ vi.mock('../../../api/services/AnaliseService', () => ({
     AnaliseService: { getAnaliseTreino: vi.fn() },
 }));
 vi.mock('../../../api/services/TreinoService', () => ({
-    TreinoService: { atualizarTreino: vi.fn() },
+    TreinoService: { atualizarTreino: vi.fn(), obterRealizado: vi.fn() },
 }));
 
 const getAnalise = vi.mocked(AnaliseService.getAnaliseTreino);
@@ -108,5 +109,62 @@ describe('TreinoCard — insight', () => {
 
         expect(screen.getByText('Manter a carga atual')).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /o que o atleta leu/i })).toBeNull();
+    });
+});
+
+describe('TreinoCard — Ver realizado', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        vi.mocked(TreinoService.obterRealizado).mockResolvedValue({ id: 'tr1', distanciaKm: 10, percepcaoEsforco: 7 });
+    });
+
+    it('só aparece em treino realizado com vínculo', () => {
+        getAnalise.mockResolvedValue(analise());
+        const { rerender } = renderCard();
+        expect(screen.getByRole('button', { name: 'Ver realizado' })).toBeInTheDocument();
+
+        rerender(
+            <TreinoCard treino={{ ...treinoRealizado(), treinoRealizadoId: undefined }} onDetalhes={vi.fn()} onMarcarRealizado={vi.fn()} />,
+        );
+        expect(screen.queryByRole('button', { name: 'Ver realizado' })).toBeNull();
+    });
+
+    it('aberto antes da resposta da análise: uma chamada só, e o banner aparece quando ela chega', async () => {
+        let responder: (a: AnaliseWorkout) => void = () => {};
+        getAnalise.mockReturnValue(new Promise<AnaliseWorkout>((r) => { responder = r; }) as never);
+        renderCard();
+
+        await userEvent.click(screen.getByRole('button', { name: 'Ver realizado' }));
+        await screen.findByRole('columnheader', { name: 'Diferença' });
+        expect(screen.queryByTestId('execucao-analise-banner')).toBeNull();
+
+        responder(analise());
+
+        expect(await screen.findByTestId('execucao-analise-banner')).toBeInTheDocument();
+        expect(getAnalise).toHaveBeenCalledTimes(1);
+    });
+
+    it('depois de 204: o dialog mostra indisponível, sem nova chamada', async () => {
+        getAnalise.mockResolvedValue(undefined as never);
+        renderCard();
+        await screen.findByText('Análise AI em andamento…');
+
+        await userEvent.click(screen.getByRole('button', { name: 'Ver realizado' }));
+
+        expect(await screen.findByText('Análise da IA indisponível para este treino no momento')).toBeInTheDocument();
+        expect(getAnalise).toHaveBeenCalledTimes(1);
+    });
+
+    it('depois de falha: dialog sem banner, sem nova chamada', async () => {
+        getAnalise.mockRejectedValue(new Error('boom'));
+        renderCard();
+        await waitFor(() => expect(getAnalise).toHaveBeenCalledTimes(1));
+
+        await userEvent.click(screen.getByRole('button', { name: 'Ver realizado' }));
+
+        await screen.findByRole('columnheader', { name: 'Diferença' });
+        expect(screen.queryByTestId('execucao-analise-banner')).toBeNull();
+        expect(screen.queryByText(/Análise da IA/)).toBeNull();
+        expect(getAnalise).toHaveBeenCalledTimes(1);
     });
 });
