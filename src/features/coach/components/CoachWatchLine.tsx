@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { differenceInCalendarDays, format, parseISO } from 'date-fns';
+import { differenceInCalendarDays, format, isValid, parseISO } from 'date-fns';
 import { Alert, Box, Button, Chip, Dialog, DialogContent, DialogTitle, Typography } from '@mui/material';
 import { DISPOSITIVO_MARCA_LABELS, type DispositivoMarca } from '../../../types/Onboarding';
 import type { AtletaPerfilCoachDto } from '../../../types/AtletaPerfilCoach';
@@ -40,15 +40,18 @@ function descreverCanal(conexao: AtletaPerfilCoachDto['conexaoCanal']): string {
     if (conexao.plataforma?.value === 'GARMIN' && !conexao.activityExport) {
         partes.push('o atleta precisa autorizar o envio de atividades no Garmin Connect');
     }
-    if (conexao.ultimaSincronizacao) {
-        partes.push(`última atividade: ${quandoFoi(conexao.ultimaSincronizacao)}`);
+    const ultima = conexao.ultimaSincronizacao ? quandoFoi(conexao.ultimaSincronizacao) : null;
+    if (ultima) {
+        partes.push(`última atividade: ${ultima}`);
     }
     return partes.join(' · ');
 }
 
 /** Dias de calendário no fuso do navegador: "ontem" é o que o treinador lê, não "há 22 h". */
-function quandoFoi(iso: string): string {
+/** Data inválida devolve null: o `format` lançaria RangeError e derrubaria o perfil inteiro. */
+function quandoFoi(iso: string): string | null {
     const data = parseISO(iso);
+    if (!isValid(data)) return null;
     const dias = differenceInCalendarDays(new Date(), data);
     if (dias <= 0) return 'hoje';
     if (dias === 1) return 'ontem';

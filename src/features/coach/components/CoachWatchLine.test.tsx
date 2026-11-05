@@ -92,6 +92,11 @@ describe('CoachWatchLine', () => {
         expect(screen.getByText(/^Canal:/)).not.toHaveTextContent('última atividade');
       });
 
+      it('data inválida não derruba a tela: só omite "última atividade"', () => {
+        render(<CoachWatchLine relogio={{ marca: 'GARMIN' }} conexaoCanal={garmin({ ultimaSincronizacao: 'lixo' })} />);
+        expect(screen.getByText(/^Canal:/)).not.toHaveTextContent('última atividade');
+      });
+
       it('sem permissão de exportar: pede ao atleta autorizar no Garmin Connect', () => {
         render(<CoachWatchLine relogio={{ marca: 'GARMIN' }} conexaoCanal={garmin({ activityExport: false })} />);
 
