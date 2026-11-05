@@ -208,10 +208,8 @@ export default function CoachLayout() {
 
   return (
     /*
-      Tipografia do coach vive num ThemeProvider ANINHADO. O provider de `App.tsx` envolve todas as
-      rotas e declara Syne como família padrão; `AthleteLayout` não tem provider próprio, então
-      mexer no tema global mudaria as telas do atleta — o que o Non-Goal da change proíbe. Aninhar
-      herda paleta, shape e overrides, e sobrepõe só a tipografia.
+      Tipografia do coach vive num ThemeProvider ANINHADO: herda paleta, shape e overrides do tema
+      de `App.tsx` e sobrepõe só a escala de tamanhos do coach.
     */
     <ThemeProvider theme={coachTheme}>
       <Box

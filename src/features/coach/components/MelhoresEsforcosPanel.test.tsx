@@ -34,4 +34,11 @@ describe('MelhoresEsforcosPanel', () => {
     expect(screen.getByText('1:00:19')).toBeInTheDocument();
     expect(screen.getByText('6:02/km')).toBeInTheDocument();
   });
+
+  it('canal Garmin: "indisponível", nem CTA de conexão nem "nenhum esforço" (CA9)', () => {
+    render(<MelhoresEsforcosPanel marcas={[]} integracaoConectada={false} canalGarmin />);
+    expect(screen.getByText('Indisponível para o canal Garmin por enquanto.')).toBeInTheDocument();
+    expect(screen.queryByText(/conectou/i)).toBeNull();
+    expect(screen.queryByText(/nenhum esforço/i)).toBeNull();
+  });
 });

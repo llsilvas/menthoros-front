@@ -21,6 +21,14 @@ const done: WorkoutAnalysisView = {
 };
 
 describe('WorkoutAnalysisCard', () => {
+    it('mostra a atribuição do Garmin no card completo; embutido (Home) não repete (CA8)', () => {
+        const { rerender } = render(<WorkoutAnalysisCard view={{ ...done, attribution: 'Garmin Forerunner 970' }} />);
+        expect(screen.getByText('Garmin Forerunner 970')).toBeInTheDocument();
+
+        rerender(<WorkoutAnalysisCard view={{ ...done, attribution: 'Garmin Forerunner 970' }} embedded />);
+        expect(screen.queryByText('Garmin Forerunner 970')).toBeNull();
+    });
+
     it('done, fechado: métricas em uma linha, linha de plano e só o reconhecimento (resumo) visíveis', () => {
         render(<WorkoutAnalysisCard view={done} />);
 

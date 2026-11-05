@@ -16,6 +16,14 @@ const SEM_FEEDBACK: RealizadoRecenteDto = {
 };
 
 describe('RecentTrainingsPanel', () => {
+  it('treino do Garmin mostra o modelo do dispositivo (CA8)', () => {
+    render(<RecentTrainingsPanel realizados={[{
+      ...SEM_FEEDBACK, fonteDados: { value: 'GARMIN', label: 'Garmin Connect' }, deviceName: 'Forerunner 970',
+    }]} />);
+    expect(screen.getByText(/Garmin Forerunner 970/)).toBeInTheDocument();
+    expect(screen.queryByText(/Garmin Connect/)).toBeNull();
+  });
+
   it('estado vazio quando não há realizados', () => {
     render(<RecentTrainingsPanel realizados={[]} />);
     expect(screen.getByText(/nenhum treino/i)).toBeInTheDocument();

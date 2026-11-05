@@ -38,6 +38,7 @@ import { useDecouplingRealizado } from './useDecouplingRealizado';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { PRIMARY_BTN_SX } from '../../../shared/components/actionButtonSx';
 import { effortColor } from '../../../shared/theme/workoutColors';
+import { FonteAttribution } from '../../common/FonteAttribution';
 
 interface DetalheTreinoDialogProps {
     open: boolean;
@@ -310,7 +311,6 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                 <Box>
                                     <Typography
                                         sx={{
-                                            fontFamily: 'Syne, sans-serif',
                                             fontSize: '1.1rem',
                                             fontWeight: 800,
                                             color: surface[50],
@@ -380,6 +380,8 @@ const DetalheTreinoDialog: React.FC<DetalheTreinoDialogProps> = ({ open, onClose
                                         }}
                                     />
                                 )}
+                                {/* Fonte do REALIZADO vinculado: o chip acima é a do plano. */}
+                                <FonteAttribution fonteDados={dados.completedSource} deviceName={dados.completedDeviceName} />
                                 {isStrava && dados.treinoRealizadoId && (
                                     <Button
                                         size="small"

@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import {
+    Alert,
     Box,
     Button,
     CircularProgress,
     IconButton,
+    Snackbar,
     TextField,
     Typography,
 } from '@mui/material';
@@ -22,6 +24,8 @@ import { rotuloDiaComData, tipoTreinoLabel } from './tiposTreino';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { TreinoPlanejadoCard } from './TreinoPlanejadoCard';
 import { AthleteZonesTable } from './AthleteZonesTable';
+import { AthleteZonesDialog } from './AthleteZonesDialog';
+import type { EixoZona } from '../hooks/useAthleteZoneAnchorsEditor';
 import { useAthleteTrainingZones } from '../../../hooks/useAthleteTrainingZones';
 import { buildIntensityLineFromTreino } from '../adapters/buildIntensityLine';
 import { resumoDaSerie } from '../adapters/resumoSerie';
@@ -382,6 +386,9 @@ export function PlanoDetalhePanel({
 }: PlanoDetalhePanelProps) {
     const [modalAberto, setModalAberto] = useState(false);
     const { zones, loading: zonesLoading, error: zonesError } = useAthleteTrainingZones(plano?.atletaId);
+    // Só este painel edita zonas; TreinoEdit/AddDialog ficam só leitura (sem diálogo sobre diálogo).
+    const [abaZonas, setAbaZonas] = useState<EixoZona | null>(null);
+    const [zonasSalvas, setZonasSalvas] = useState(false);
 
     if (!plano) return <EstadoVazio />;
 
@@ -553,7 +560,13 @@ export function PlanoDetalhePanel({
             {/* ── Zonas do atleta (referência para revisar os alvos) ─────── */}
             {(zonesLoading || zonesError || zones) && (
                 <Box sx={{ px: 3, py: 1.25, borderBottom: `1px solid ${content.divider}`, flexShrink: 0 }}>
-                    <AthleteZonesTable zones={zones} loading={zonesLoading} error={zonesError} nomeAtleta={plano.atletaNome} />
+                    <AthleteZonesTable
+                        zones={zones}
+                        loading={zonesLoading}
+                        error={zonesError}
+                        nomeAtleta={plano.atletaNome}
+                        onEditar={setAbaZonas}
+                    />
                 </Box>
             )}
 
@@ -720,6 +733,28 @@ export function PlanoDetalhePanel({
                 onClose={() => setModalAberto(false)}
                 onConfirmar={handleRejeitar}
             />
+
+            {plano.atletaId && (
+                <AthleteZonesDialog
+                    open={abaZonas !== null}
+                    onClose={() => setAbaZonas(null)}
+                    atletaId={plano.atletaId}
+                    nomeAtleta={plano.atletaNome}
+                    zonas={zones}
+                    abaInicial={abaZonas ?? 'fc'}
+                    onSalvo={() => setZonasSalvas(true)}
+                />
+            )}
+            <Snackbar
+                open={zonasSalvas}
+                autoHideDuration={3500}
+                onClose={() => setZonasSalvas(false)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert severity="success" variant="filled" sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+                    Zonas atualizadas
+                </Alert>
+            </Snackbar>
         </Box>
     );
 }

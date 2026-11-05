@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { autenticarComPkce } from '../../fixtures/pkceAuth'
+import { foraDaFamilia } from '../../fixtures/fontes'
 
 /**
  * Smoke do tema do shell (task 6.2 de `athlete-home-restructure`): as telas que a change NÃO
@@ -32,7 +33,7 @@ async function mockarVazio(page: Page) {
 test.use({ viewport: { width: 390, height: 844 } })
 
 for (const tela of TELAS) {
-  test(`smoke ${tela.nome}: sem scroll horizontal e sem Syne em 390px`, async ({ page }) => {
+  test(`smoke ${tela.nome}: sem scroll horizontal e só Inter em 390px`, async ({ page }) => {
     await autenticarComPkce(page, { roles: ['ATLETA'] })
     await mockarVazio(page)
     await page.goto(tela.url)
@@ -44,17 +45,7 @@ for (const tela of TELAS) {
     const estoura = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
     expect(estoura, 'scroll horizontal').toBe(false)
 
-    const emSyne = await page.evaluate(() => {
-      const achados: string[] = []
-      for (const el of Array.from(document.querySelectorAll('body *'))) {
-        const texto = Array.from(el.childNodes).filter((n) => n.nodeType === Node.TEXT_NODE).map((n) => n.textContent?.trim() ?? '').join('')
-        if (!texto) continue
-        const estilo = getComputedStyle(el)
-        if (estilo.display === 'none' || estilo.visibility === 'hidden') continue
-        if (/syne/i.test(estilo.fontFamily.split(',')[0])) achados.push(texto.slice(0, 40))
-      }
-      return achados
-    })
-    expect(emSyne, `textos em Syne: ${JSON.stringify(emSyne)}`).toEqual([])
+    const fora = await foraDaFamilia(page)
+    expect(fora, `textos fora de Inter/JetBrains Mono: ${JSON.stringify(fora)}`).toEqual([])
   })
 }

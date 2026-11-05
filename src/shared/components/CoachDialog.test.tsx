@@ -1,6 +1,8 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import { ThemeProvider } from '@mui/material';
 import { describe, expect, it, vi } from 'vitest';
 import { CoachDialog } from './CoachDialog';
+import { coachTheme } from '../../features/coach/theme/coachTheme';
 
 describe('CoachDialog', () => {
   it('renderiza título e conteúdo quando aberto', () => {
@@ -11,6 +13,19 @@ describe('CoachDialog', () => {
     );
     expect(screen.getByText('Planos')).toBeInTheDocument();
     expect(screen.getByText('conteúdo')).toBeInTheDocument();
+  });
+
+  // padronizar-tipografia-inter (CA6): título em Inter no shell do coach, ainda heading nível 2.
+  it('no tema do coach, o título é heading nível 2 em Inter', () => {
+    render(
+      <ThemeProvider theme={coachTheme}>
+        <CoachDialog open onClose={vi.fn()} title="Zonas de Mariana">
+          <div>c</div>
+        </CoachDialog>
+      </ThemeProvider>,
+    );
+    const titulo = screen.getByRole('heading', { level: 2, name: 'Zonas de Mariana' });
+    expect(getComputedStyle(titulo).fontFamily).toMatch(/^"?Inter/);
   });
 
   it('não renderiza nada quando fechado', () => {

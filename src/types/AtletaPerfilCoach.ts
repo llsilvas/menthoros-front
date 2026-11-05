@@ -50,6 +50,12 @@ export interface TreinoPlanejadoResumoDto {
     statusSincronizacao?: string;
     /** Indica se o atleta conectou a conta ao intervals.icu. */
     atletaConectadoIntervalsIcu?: boolean;
+    /** Atleta tem canal de treinos conectado (Garmin ou intervals.icu). */
+    channelConnected?: boolean;
+    /** Motivo do erro ou do envio parcial; só em ERRO_VALIDACAO e SINCRONIZADO_PARCIAL. */
+    syncError?: string | null;
+    /** Envio ao canal em andamento — o reenvio responderia 409. */
+    syncInProgress?: boolean;
 }
 
 /** Plano semanal vigente do atleta. */
@@ -166,6 +172,8 @@ export interface ConexaoCanalDto {
     workoutImport: boolean;
     activityExport: boolean;
     lastSyncError?: string | null;
+    /** ISO-8601: última atividade recebida pelo canal; ausente = nenhuma chegou ainda. */
+    ultimaSincronizacao?: string | null;
 }
 
 /** Treino realizado recente, com feedback do atleta quando registrado (athlete-training-loop, D3). */
@@ -174,6 +182,8 @@ export interface RealizadoRecenteDto {
     dataTreino: string;
     tipoTreino?: string;
     fonteDados?: { value: string; label: string };
+    /** Modelo do dispositivo (Garmin); ausente quando desconhecido. */
+    deviceName?: string | null;
     duracaoMin?: number;
     distanciaKm?: number;
     percepcaoEsforco?: number;

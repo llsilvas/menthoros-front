@@ -3,13 +3,13 @@ import { activeTheme } from './activeTheme';
 import { overlayWhite } from './overlays';
 
 const { colors, text, content, backgrounds, semantic } = activeTheme;
+const INTER = activeTheme.font.text;
 
 /**
  * Tema global da aplicação — envolve TODAS as rotas (coach, atleta, landing) via `App.tsx`.
  *
- * Extraído de `App.tsx` para poder ser **estendido** por temas de shell (ver
- * `features/coach/theme/coachTheme.ts`). Os valores são os mesmos de antes, sem alteração: mudar
- * `typography` aqui atinge as telas do atleta, que não têm `ThemeProvider` próprio.
+ * Extraído de `App.tsx` para poder ser **estendido** pelos temas de shell (`coachTheme`,
+ * `athleteTheme`), que sobrepõem só a escala de tamanhos. A landing tem tema próprio.
  */
 export const appTheme = createTheme({
   palette: {
@@ -41,8 +41,15 @@ export const appTheme = createTheme({
     },
     divider: content.divider,
   },
+  // Hierarquia por tamanho e peso, não por família: o app logado inteiro em Inter.
   typography: {
-    fontFamily: '"Syne", "Inter", "Helvetica", "Arial", sans-serif',
+    fontFamily: INTER,
+    h1: { fontFamily: INTER, fontWeight: 800 },
+    h2: { fontFamily: INTER, fontWeight: 800 },
+    h3: { fontFamily: INTER, fontWeight: 800 },
+    h4: { fontFamily: INTER, fontWeight: 700 },
+    h5: { fontFamily: INTER, fontWeight: 600 },
+    h6: { fontFamily: INTER, fontWeight: 600 },
   },
   shape: {
     borderRadius: 8,

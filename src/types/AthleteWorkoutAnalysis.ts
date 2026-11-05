@@ -22,6 +22,10 @@ export interface AthleteAnalysisExecutado {
     duracaoMin?: number;
     distanciaKm?: number;
     rpe?: number;
+    /** FonteDados em OBJECT (`{ value, label }`); base da atribuição do Garmin. */
+    fonteDados?: { value: string; label: string } | string | null;
+    /** Modelo do dispositivo; ausente quando desconhecido. */
+    deviceName?: string | null;
 }
 
 export interface AthleteAnalysisPlanejado {

@@ -1,5 +1,6 @@
+import userEvent from '@testing-library/user-event';
 import { render, screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { AthleteZonesTable } from './AthleteZonesTable';
 import type { AthleteTrainingZonesDto } from '../../../types/AthleteTrainingZones';
 
@@ -63,6 +64,18 @@ describe('AthleteZonesTable', () => {
         expect(cabecalho).toHaveTextContent('Limiar medido em 12 set · 45 dias');
     });
 
+    it('CA5: com um eixo manual, o cabeçalho mostra a origem de cada eixo', () => {
+        renderTabela(zonas({ modos: { fc: 'LIMIAR', pace: 'MANUAL' } }), { nome: 'Mariana Costa' });
+
+        expect(screen.getByRole('button', { name: /zonas de mariana/i })).toHaveTextContent('FC: pelo limiar · Ritmo: manual');
+    });
+
+    it('com os dois eixos pelo limiar, sem chip de modo', () => {
+        renderTabela(zonas({ modos: { fc: 'LIMIAR', pace: 'LIMIAR' } }));
+
+        expect(screen.queryByText(/Ritmo: /)).toBeNull();
+    });
+
     it('colunas com unidade no cabeçalho e células sem unidade, com travessão espaçado', () => {
         renderTabela(zonas());
 
@@ -75,6 +88,15 @@ describe('AthleteZonesTable', () => {
         const z6 = screen.getByRole('row', { name: /Z6/ });
         expect(within(z6).getByText('4:06 – 4:30')).toBeInTheDocument();
         expect(within(z6).getByText(/usar pace/i)).toBeInTheDocument();
+    });
+
+    // padronizar-tipografia-inter (CA5): dígitos alinhados entre as linhas de pace e de FC.
+    it('as células de pace e de FC usam tabular-nums', () => {
+        renderTabela(zonas());
+
+        const z2 = screen.getByRole('row', { name: /Z2/ });
+        expect(within(z2).getByText('5:15 – 5:45')).toHaveStyle({ fontVariantNumeric: 'tabular-nums' });
+        expect(within(z2).getByText('143 – 150')).toHaveStyle({ fontVariantNumeric: 'tabular-nums' });
     });
 
     it('RPE típico e uso típico seguem o protótipo', () => {
@@ -157,5 +179,68 @@ describe('AthleteZonesTable', () => {
         renderTabela(null);
 
         expect(screen.queryByRole('button', { name: /zonas do atleta/i })).not.toBeInTheDocument();
+    });
+
+    describe('onEditar', () => {
+        const comEditar = (z: AthleteTrainingZonesDto) => {
+            const onEditar = vi.fn();
+            render(<AthleteZonesTable zones={z} loading={false} error={null} hoje={HOJE} onEditar={onEditar} defaultExpanded />);
+            return onEditar;
+        };
+
+        it('sem a prop não há botão nem CTA e o aviso antigo permanece', () => {
+            renderTabela(zonas({ disponibilidade: { pace: false, fc: true, motivoPace: 'SEM_PACE_LIMIAR' } }));
+            expect(screen.queryByRole('button', { name: /editar zonas|cadastrar/i })).toBeNull();
+            expect(screen.getByText(/Pace indisponível/)).toBeInTheDocument();
+        });
+
+        it('mostra "Editar zonas" e abre na aba FC (CA8)', async () => {
+            const onEditar = comEditar(zonas());
+            await userEvent.click(screen.getByRole('button', { name: 'Editar zonas' }));
+            expect(onEditar).toHaveBeenCalledWith('fc');
+        });
+
+        it('FC estimada mantém a tabela, com selo e CTA "Cadastrar limiar de FC" (CA9)', async () => {
+            const onEditar = comEditar(zonas({ ancoras: { fcLimiar: 160, fcLimiarEstimada: true } }));
+            expect(screen.getByRole('table', { name: /zonas de treino/i })).toBeInTheDocument();
+            expect(screen.getByText('estimada')).toBeInTheDocument();
+            await userEvent.click(screen.getByRole('button', { name: 'Cadastrar limiar de FC' }));
+            expect(onEditar).toHaveBeenCalledWith('fc');
+        });
+
+        it('FC estimada e sem ritmo: cabeçalho vira "Cadastrar zonas" (CA9)', () => {
+            comEditar(
+                zonas({
+                    ancoras: { fcLimiar: 160, fcLimiarEstimada: true },
+                    disponibilidade: { pace: false, fc: true, motivoPace: 'SEM_PACE_LIMIAR' },
+                }),
+            );
+            expect(screen.getByRole('button', { name: 'Cadastrar zonas' })).toBeInTheDocument();
+            expect(screen.queryByRole('button', { name: 'Editar zonas' })).toBeNull();
+        });
+
+        it('sem ritmo e com FC cadastrada: aviso com ação que abre a aba Ritmo (CA10)', async () => {
+            const onEditar = comEditar(zonas({ disponibilidade: { pace: false, fc: true, motivoPace: 'SEM_PACE_LIMIAR' } }));
+            expect(screen.getByText('Ritmo não cadastrado.')).toBeInTheDocument();
+            await userEvent.click(screen.getByRole('button', { name: 'Cadastrar ritmo de limiar' }));
+            expect(onEditar).toHaveBeenCalledWith('pace');
+        });
+
+        it('mostra a origem junto da data do teste', () => {
+            comEditar(
+                zonas({
+                    ancoras: {
+                        paceLimiarMinKm: 5,
+                        dataUltimoTestePace: '2026-10-05',
+                        fonteLimiarPace: 'PROVA',
+                        fcLimiar: 168,
+                        dataUltimoTesteFc: '2026-10-12',
+                        fonteLimiarFc: 'TESTE_CAMPO',
+                        fcLimiarEstimada: false,
+                    },
+                }),
+            );
+            expect(screen.getByText('FC: Teste de campo · 12 out · Ritmo: Prova recente · 5 out')).toBeInTheDocument();
+        });
     });
 });

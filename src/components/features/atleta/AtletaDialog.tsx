@@ -243,7 +243,6 @@ const AtletaDialog: React.FC<AtletaDialogProps> = ({ open, onClose, onSave, atle
                         <Box sx={{ mb: 2 }}>
                             <Typography
                                 sx={{
-                                    fontFamily: 'Syne, sans-serif',
                                     fontSize: '1.1rem',
                                     fontWeight: 800,
                                     color: surface[50],

@@ -1,11 +1,14 @@
-import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { CoachAthleteZonesService } from '../../../api/services/CoachAthleteZonesService';
 import { PlanoDetalhePanel } from './PlanoDetalhePanel';
 import { useAthleteTrainingZones } from '../../../hooks/useAthleteTrainingZones';
 import type { AthleteTrainingZonesDto } from '../../../types/AthleteTrainingZones';
 import type { PlanoSemanalDto } from '../../../types/PlanoReview';
 
 vi.mock('../../../hooks/useAthleteTrainingZones');
+vi.mock('../../../api/services/CoachAthleteZonesService');
 
 const ZONES: AthleteTrainingZonesDto = {
     modelo: 'LTHR_FRIEL',
@@ -90,5 +93,38 @@ describe('PlanoDetalhePanel — zonas do atleta', () => {
 
         expect(screen.getByTestId('linha-intensidade').textContent).toMatch(/5:15–5:45.*143–150 bpm/);
         expect(screen.queryByTestId('chip-zona')).not.toBeInTheDocument();
+    });
+
+    it('"Editar zonas" abre o diálogo na aba FC; salvar fecha e confirma (CA8, CA12)', async () => {
+        vi.mocked(CoachAthleteZonesService.simular).mockResolvedValue(ZONES);
+        vi.mocked(CoachAthleteZonesService.salvarAncoras).mockResolvedValue(ZONES);
+        mockHook({});
+        renderPanel();
+
+        await userEvent.click(screen.getByRole('button', { name: 'Editar zonas' }));
+        const dialogo = await screen.findByRole('dialog');
+        expect(within(dialogo).getByRole('tab', { name: 'Zonas de FC', selected: true })).toBeInTheDocument();
+
+        const limiar = within(dialogo).getByLabelText('FC de limiar (bpm)');
+        await userEvent.clear(limiar);
+        await userEvent.type(limiar, '170');
+        await userEvent.click(within(dialogo).getByRole('button', { name: 'Salvar zonas' }));
+
+        expect(await screen.findByText('Zonas atualizadas')).toBeInTheDocument();
+        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+        expect(CoachAthleteZonesService.salvarAncoras).toHaveBeenCalledWith(
+            'atleta-1',
+            expect.objectContaining({ fc: expect.objectContaining({ limiar: 170 }) }),
+        );
+    });
+
+    it('aviso "Ritmo não cadastrado" abre o diálogo na aba Ritmo (CA10)', async () => {
+        mockHook({ zones: { ...ZONES, disponibilidade: { pace: false, fc: true, motivoPace: 'SEM_PACE_LIMIAR' } } });
+        renderPanel();
+
+        await userEvent.click(screen.getByRole('button', { name: /zonas do atleta/i }));
+        await userEvent.click(screen.getByRole('button', { name: 'Cadastrar ritmo de limiar' }));
+
+        expect(await screen.findByRole('tab', { name: 'Zonas de Ritmo', selected: true })).toBeInTheDocument();
     });
 });

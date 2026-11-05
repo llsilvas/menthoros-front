@@ -62,6 +62,10 @@ vi.mock('../../../components/features/atleta/AtletaDialog', () => ({
   default: ({ open, atleta }: { open: boolean; atleta?: { id: string } }) =>
     open ? <div>stub-atleta-dialog {atleta ? 'edit' : 'new'}</div> : null,
 }));
+vi.mock('../components/AthleteZonesDialogHost', () => ({
+  AthleteZonesDialogHost: ({ open, nomeAtleta, onSalvo }: { open: boolean; nomeAtleta?: string; onSalvo?: () => void }) =>
+    open ? <button onClick={onSalvo}>stub-zonas {nomeAtleta}</button> : null,
+}));
 vi.mock('../../../shared/components/ConfirmDialog', () => ({
   ConfirmDialog: ({ open, onConfirm }: { open: boolean; onConfirm: () => void }) =>
     open ? <button onClick={onConfirm}>stub-confirm</button> : null,
@@ -119,6 +123,16 @@ describe('CoachAthletesPage — ações por atleta', () => {
     expect(screen.getByText('Plano')).toBeInTheDocument();
     expect(screen.getByText('Sincronizar Strava')).toBeInTheDocument();
     expect(screen.getByText('Projeção de prova')).toBeInTheDocument();
+  });
+
+  it('"Zonas" abre o cadastro de zonas do atleta e salvar avisa o coach', async () => {
+    renderPage();
+    expect(screen.queryByText(/stub-zonas/)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Zonas' }));
+    await userEvent.click(await screen.findByText('stub-zonas Ana Silva'));
+
+    expect(await screen.findByText('Zonas de Ana Silva atualizadas.')).toBeInTheDocument();
   });
 
   it('nenhum dialog aparece antes de interação', () => {

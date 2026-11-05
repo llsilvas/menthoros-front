@@ -5,6 +5,7 @@ import {
   AccordionDetails,
   AccordionSummary,
   Box,
+  Button,
   Chip,
   Skeleton,
   Table,
@@ -18,7 +19,7 @@ import {
 import { formatPace, formatPaceRange } from '../adapters/intensityFormat';
 import { activeTheme } from '../../../theme/activeTheme';
 import { content, semantic, text } from '../../../theme/tokens';
-import type { AthleteTrainingZoneDto, AthleteTrainingZonesDto } from '../../../types/AthleteTrainingZones';
+import type { AthleteTrainingZoneDto, AthleteTrainingZonesDto, FonteLimiar, ModoZonas } from '../../../types/AthleteTrainingZones';
 
 interface AthleteZonesTableProps {
   zones: AthleteTrainingZonesDto | null;
@@ -29,7 +30,19 @@ interface AthleteZonesTableProps {
   /** Referência para a idade do teste de limiar; injetável para teste. */
   hoje?: Date;
   defaultExpanded?: boolean;
+  /**
+   * Abre o cadastro de zonas na aba indicada. Sem a prop o card é só leitura: sem botão, sem CTA e
+   * com o texto antigo do aviso de pace (TreinoEditDialog/TreinoAddDialog não empilham diálogo).
+   */
+  onEditar?: (aba: 'fc' | 'pace') => void;
 }
+
+const ROTULO_FONTE: Record<FonteLimiar, string> = {
+  TESTE_CAMPO: 'Teste de campo',
+  PROVA: 'Prova recente',
+  LABORATORIO: 'Laboratório',
+  RELOGIO_PLATAFORMA: 'Relógio/plataforma',
+};
 
 const DIAS_LIMIAR_DESATUALIZADO = 90;
 const MS_POR_DIA = 86_400_000;
@@ -68,16 +81,39 @@ function limiarMaisAntigo(zones: AthleteTrainingZonesDto, hoje: Date): { dias: n
   return { dias: diasDesde(maisAntiga, hoje), data: maisAntiga };
 }
 
-/** Os dois chips do cabeçalho — ficam visíveis com a tabela recolhida. */
+/** "FC: Teste de campo · 12 out · Ritmo: Prova recente · 5 out"; vazio se nenhum eixo tem origem. */
+function origemDasAncoras({ ancoras }: AthleteTrainingZonesDto): string {
+  const parte = (eixo: string, fonte?: FonteLimiar | null, data?: string | null) =>
+    fonte ? `${eixo}: ${ROTULO_FONTE[fonte]}${data ? ` · ${formatarDiaMes(data)}` : ''}` : null;
+  return [
+    parte('FC', ancoras.fonteLimiarFc, ancoras.dataUltimoTesteFc),
+    parte('Ritmo', ancoras.fonteLimiarPace, ancoras.dataUltimoTestePace),
+  ]
+    .filter(Boolean)
+    .join(' · ');
+}
+
+const ORIGEM_MODO: Record<ModoZonas, string> = { LIMIAR: 'pelo limiar', MANUAL: 'manual' };
+
+/** Os chips do cabeçalho — ficam visíveis com a tabela recolhida. */
 function ChipsDoCabecalho({ zones, hoje }: { zones: AthleteTrainingZonesDto; hoje: Date }) {
   const limiar = limiarMaisAntigo(zones, hoje);
   const fadiga = zones.ajusteFadiga.segundosPorKm;
+  const modos = zones.modos;
   return (
     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, alignItems: 'center' }}>
       {fadiga > 0 && (
         <Tooltip title="Informativo: as faixas da tabela são as base. Ajuste o pace à mão se quiser.">
           <Chip size="small" variant="outlined" label={`Ajuste por fadiga +${fadiga} s/km`} sx={{ color: text.secondary }} />
         </Tooltip>
+      )}
+      {modos && (modos.fc === 'MANUAL' || modos.pace === 'MANUAL') && (
+        <Chip
+          size="small"
+          variant="outlined"
+          label={`FC: ${ORIGEM_MODO[modos.fc]} · Ritmo: ${ORIGEM_MODO[modos.pace]}`}
+          sx={{ color: text.secondary }}
+        />
       )}
       {limiar && (
         <Chip
@@ -94,7 +130,7 @@ function ChipsDoCabecalho({ zones, hoje }: { zones: AthleteTrainingZonesDto; hoj
 const zoneColor = (numero: number): string =>
   activeTheme.zones[`Z${numero}` as keyof typeof activeTheme.zones].color;
 
-const celula = { color: text.primary, borderColor: content.divider, fontSize: '0.8125rem', py: 0.75 } as const;
+const celula = { color: text.primary, borderColor: content.divider, fontSize: '0.8125rem', py: 0.75, fontVariantNumeric: 'tabular-nums' } as const;
 const cabecalho = { color: text.secondary, borderColor: content.divider, fontSize: '0.6875rem', py: 0.5 } as const;
 
 function ZonaRow({ zona }: { zona: AthleteTrainingZoneDto }) {
@@ -124,7 +160,7 @@ function ZonaRow({ zona }: { zona: AthleteTrainingZoneDto }) {
   );
 }
 
-function Corpo({ zones, hoje }: { zones: AthleteTrainingZonesDto; hoje: Date }) {
+function Corpo({ zones, hoje, onEditar }: { zones: AthleteTrainingZonesDto; hoje: Date; onEditar?: (aba: 'fc' | 'pace') => void }) {
   const { ancoras, disponibilidade } = zones;
   const limiar = limiarMaisAntigo(zones, hoje);
   const desatualizado = limiar !== null && limiar.dias > DIAS_LIMIAR_DESATUALIZADO;
@@ -140,11 +176,19 @@ function Corpo({ zones, hoje }: { zones: AthleteTrainingZonesDto; hoje: Date }) 
         </Box>
       )}
 
-      {!disponibilidade.pace && (
-        <Typography sx={{ fontSize: '0.75rem', color: text.primary, mb: 1 }}>
-          Pace indisponível — cadastre o pace de limiar do atleta.
-        </Typography>
-      )}
+      {!disponibilidade.pace &&
+        (onEditar ? (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+            <Typography sx={{ fontSize: '0.75rem', color: text.primary }}>Ritmo não cadastrado.</Typography>
+            <Button size="small" sx={{ textTransform: 'none', minHeight: 44 }} onClick={() => onEditar('pace')}>
+              Cadastrar ritmo de limiar
+            </Button>
+          </Box>
+        ) : (
+          <Typography sx={{ fontSize: '0.75rem', color: text.primary, mb: 1 }}>
+            Pace indisponível — cadastre o pace de limiar do atleta.
+          </Typography>
+        ))}
 
       <Table size="small" aria-label="Zonas de treino do atleta">
         <TableHead>
@@ -170,12 +214,20 @@ function Corpo({ zones, hoje }: { zones: AthleteTrainingZonesDto; hoje: Date }) 
           {` LTHR ${ancoras.fcLimiar} bpm · modelo LTHR (Friel)`}
         </Typography>
         {ancoras.fcLimiarEstimada && <Chip size="small" variant="outlined" label="estimada" sx={{ color: text.secondary }} />}
+        {ancoras.fcLimiarEstimada && onEditar && (
+          <Button size="small" sx={{ textTransform: 'none', minHeight: 44 }} onClick={() => onEditar('fc')}>
+            Cadastrar limiar de FC
+          </Button>
+        )}
       </Box>
+      {origemDasAncoras(zones) && (
+        <Typography sx={{ fontSize: '0.75rem', color: text.secondary, mt: 0.5 }}>{origemDasAncoras(zones)}</Typography>
+      )}
     </Box>
   );
 }
 
-export function AthleteZonesTable({ zones, loading, error, nomeAtleta, hoje = new Date(), defaultExpanded = false }: AthleteZonesTableProps) {
+export function AthleteZonesTable({ zones, loading, error, nomeAtleta, hoje = new Date(), defaultExpanded = false, onEditar }: AthleteZonesTableProps) {
   if (loading) {
     return <Skeleton role="status" aria-label="Carregando zonas do atleta" variant="rounded" height={44} />;
   }
@@ -189,7 +241,11 @@ export function AthleteZonesTable({ zones, loading, error, nomeAtleta, hoje = ne
   }
   if (!zones) return null;
 
+  // Sem zonas úteis (FC estimada e sem ritmo) o botão do cabeçalho vira o convite principal (CA9).
+  const semAncoras = zones.ancoras.fcLimiarEstimada && !zones.disponibilidade.pace;
+
   return (
+    <Box sx={{ position: 'relative' }}>
     <Accordion
       defaultExpanded={defaultExpanded}
       disableGutters
@@ -204,8 +260,20 @@ export function AthleteZonesTable({ zones, loading, error, nomeAtleta, hoje = ne
         </Box>
       </AccordionSummary>
       <AccordionDetails>
-        <Corpo zones={zones} hoje={hoje} />
+        <Corpo zones={zones} hoje={hoje} onEditar={onEditar} />
       </AccordionDetails>
     </Accordion>
+    {onEditar && (
+      // Fora do AccordionSummary: botão dentro de botão é inválido e o clique alternaria o acordeão.
+      <Button
+        size="small"
+        variant={semAncoras ? 'contained' : 'outlined'}
+        onClick={() => onEditar('fc')}
+        sx={{ position: 'absolute', top: 6, right: 52, zIndex: 1, textTransform: 'none', minHeight: 44 }}
+      >
+        {semAncoras ? 'Cadastrar zonas' : 'Editar zonas'}
+      </Button>
+    )}
+    </Box>
   );
 }
