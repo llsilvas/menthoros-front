@@ -11,6 +11,7 @@ import { useReenviarSincronizacao } from '../../../hooks/useReenviarSincronizaca
 import { surface, semantic, primary } from '../../../theme/tokens';
 import { SyncStatusChip } from './SyncStatusChip';
 import { TreinoPlanejadoCard } from './TreinoPlanejadoCard';
+import { VerRealizadoAcao } from './VerRealizadoAcao';
 import { useAthleteTrainingZones } from '../../../hooks/useAthleteTrainingZones';
 import { buildIntensityLineFromTreino } from '../adapters/buildIntensityLine';
 import { resumoDaSerie } from '../adapters/resumoSerie';
@@ -91,12 +92,23 @@ function TreinoCard({
                     <EditOutlinedIcon sx={{ fontSize: 18 }} />
                 </IconButton>
             ) : undefined}
-            rodape={mostraSync ? (
-                <SyncStatusChip
-                    statusSincronizacao={treino.statusSincronizacao}
-                    atletaConectado={canalConectado(treino)}
-                    syncError={treino.syncError}
-                />
+            rodape={mostraSync || treino.treinoRealizadoId ? (
+                <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', rowGap: 1 }}>
+                    {mostraSync ? (
+                        <SyncStatusChip
+                            statusSincronizacao={treino.statusSincronizacao}
+                            atletaConectado={canalConectado(treino)}
+                            syncError={treino.syncError}
+                        />
+                    ) : <span />}
+                    {treino.treinoRealizadoId && (
+                        <VerRealizadoAcao
+                            treinoRealizadoId={treino.treinoRealizadoId}
+                            planejado={treino}
+                            titulo={tipoTreinoLabel(treino.tipoTreino)}
+                        />
+                    )}
+                </Stack>
             ) : undefined}
         />
     );

@@ -23,6 +23,7 @@ import { indiceDoDia, isoDoDiaNaSemana, weekDatesFromInicio } from '../../../uti
 import { rotuloDiaComData, tipoTreinoLabel } from './tiposTreino';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { TreinoPlanejadoCard } from './TreinoPlanejadoCard';
+import { VerRealizadoAcao } from './VerRealizadoAcao';
 import { AthleteZonesTable } from './AthleteZonesTable';
 import { AthleteZonesDialog } from './AthleteZonesDialog';
 import type { EixoZona } from '../hooks/useAthleteZoneAnchorsEditor';
@@ -178,6 +179,13 @@ function TreinoTag({
                     )}
                 </Box>
             )}
+            rodape={treino.treinoRealizadoId ? (
+                <VerRealizadoAcao
+                    treinoRealizadoId={treino.treinoRealizadoId}
+                    planejado={treino}
+                    titulo={tipoTreinoLabel(treino.tipoTreino)}
+                />
+            ) : undefined}
         />
     );
 }
