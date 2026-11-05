@@ -3,6 +3,7 @@ import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { RealizadoRecenteDto } from '../../../types/AtletaPerfilCoach';
 import { surface, primary } from '../../../theme/tokens';
+import { rotuloGarmin } from '../../../utils/rotuloGarmin';
 
 const SENSACAO_LABELS: Record<string, string> = {
   PERNAS_PESADAS: 'Pernas pesadas', RITMO_TRANQUILO: 'Ritmo tranquilo',
@@ -35,7 +36,7 @@ export function RecentTrainingsPanel({ realizados }: RecentTrainingsPanelProps) 
               {[
                 r.duracaoMin != null ? `${r.duracaoMin} min` : null,
                 r.tssCalculado != null ? `TSS ${r.tssCalculado}` : null,
-                r.fonteDados?.label,
+                r.fonteDados?.value === 'GARMIN' ? rotuloGarmin(r.deviceName) : r.fonteDados?.label,
               ].filter(Boolean).join(' · ')}
             </Typography>
           </Box>

@@ -6,9 +6,21 @@ interface MelhoresEsforcosPanelProps {
     marcas: MelhorEsforcoDto[];
     /** Distingue "atleta sem PRs ainda" (true, marcas vazias) de "nunca conectou" (false). */
     integracaoConectada: boolean;
+    /** Canal Garmin ativo: o perfil devolve lista vazia (sem curve de pace) e o painel diz por quê. */
+    canalGarmin?: boolean;
 }
 
-export function MelhoresEsforcosPanel({ marcas, integracaoConectada }: MelhoresEsforcosPanelProps) {
+export function MelhoresEsforcosPanel({ marcas, integracaoConectada, canalGarmin = false }: MelhoresEsforcosPanelProps) {
+    if (canalGarmin) {
+        return (
+            <Box sx={{ py: 2, textAlign: 'center' }}>
+                <Typography variant="body2" color="text.secondary">
+                    Indisponível para o canal Garmin por enquanto.
+                </Typography>
+            </Box>
+        );
+    }
+
     if (!integracaoConectada) {
         return (
             <Box sx={{ py: 2, textAlign: 'center' }}>

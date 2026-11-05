@@ -182,6 +182,8 @@ export interface RealizadoRecenteDto {
     dataTreino: string;
     tipoTreino?: string;
     fonteDados?: { value: string; label: string };
+    /** Modelo do dispositivo (Garmin); ausente quando desconhecido. */
+    deviceName?: string | null;
     duracaoMin?: number;
     distanciaKm?: number;
     percepcaoEsforco?: number;
