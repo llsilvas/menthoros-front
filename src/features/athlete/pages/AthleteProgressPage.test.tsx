@@ -34,7 +34,7 @@ function mockAllReady() {
   vi.mocked(useAthleteProvas).mockReturnValue({ provas: [{ id: '1', nomeProva: 'Maratona de SP', dataProva: '2026-10-10', tipoProva: 'MARATONA', distancia: 'KM_42', diasFaltando: 45 }] as never, loading: false, error: null, fetchProvas: noop });
   vi.mocked(useAthleteMelhoresEsforcos).mockReturnValue({
     marcas: [{ distanciaLabel: '5k', distanciaMetros: 5000, tempoSegundos: 1796, paceLabel: '5:59/km' }],
-    integracaoConectada: true, loading: false, error: null, fetchMelhoresEsforcos: noop,
+    integracaoConectada: true, indisponivelCanalGarmin: false, loading: false, error: null, fetchMelhoresEsforcos: noop,
   });
 }
 
@@ -51,6 +51,17 @@ describe('AthleteProgressPage', () => {
     mockAllReady();
   });
   afterEach(() => vi.useRealTimers());
+
+  it('canal Garmin (409): bloco de esforços diz "indisponível", sem CTA de conexão nem erro (CA9)', () => {
+    vi.mocked(useAthleteMelhoresEsforcos).mockReturnValue({
+      marcas: [], integracaoConectada: true, indisponivelCanalGarmin: true, loading: false, error: null, fetchMelhoresEsforcos: noop,
+    });
+    renderPage();
+    const bloco = screen.getByTestId('progress-efforts');
+    expect(bloco).toHaveTextContent('Indisponível para o canal Garmin por enquanto');
+    expect(bloco).not.toHaveTextContent(/Conectar intervals\.icu/);
+    expect(screen.queryByText(/Não foi possível carregar seus melhores esforços/)).toBeNull();
+  });
 
   it('cinco blocos no fluxo, sem abas, sem jargão fora do gráfico, com "Falar com o coach" em cada um', () => {
     renderPage();
@@ -117,7 +128,7 @@ describe('AthleteProgressPage', () => {
 
   it('sem integração intervals.icu: CTA de conexão no bloco de esforços', () => {
     vi.mocked(useAthleteMelhoresEsforcos).mockReturnValue({
-      marcas: [], integracaoConectada: false, loading: false, error: null, fetchMelhoresEsforcos: noop,
+      marcas: [], integracaoConectada: false, indisponivelCanalGarmin: false, loading: false, error: null, fetchMelhoresEsforcos: noop,
     });
     renderPage();
     expect(screen.getByRole('link', { name: /conectar intervals\.icu/i })).toBeInTheDocument();
@@ -127,7 +138,7 @@ describe('AthleteProgressPage', () => {
     const fetchMelhoresEsforcos = vi.fn();
     vi.mocked(useAthleteMelhoresEsforcos).mockReturnValue({
       marcas: [{ distanciaLabel: '5k', distanciaMetros: 5000, tempoSegundos: 1796, paceLabel: '5:59/km' }],
-      integracaoConectada: true, loading: false, error: null, fetchMelhoresEsforcos,
+      integracaoConectada: true, indisponivelCanalGarmin: false, loading: false, error: null, fetchMelhoresEsforcos,
     });
     renderPage();
     await userEvent.click(screen.getByRole('button', { name: '1 ano' }));

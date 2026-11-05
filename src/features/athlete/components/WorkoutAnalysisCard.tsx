@@ -188,6 +188,12 @@ export function WorkoutAnalysisCard({ view, embedded = false }: WorkoutAnalysisC
                 title="Análise do treino"
                 action={view.verdict ? <WorkoutVerdictChip verdict={view.verdict} /> : undefined}
             />
+            {/* Embutido (Home), a atribuição já está no card do treino em volta. */}
+            {view.attribution && (
+                <Typography variant="caption" sx={{ color: surface[400], mt: -1 }}>
+                    {view.attribution}
+                </Typography>
+            )}
             {corpo}
         </Card>
     );

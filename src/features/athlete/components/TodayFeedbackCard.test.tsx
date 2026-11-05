@@ -15,6 +15,11 @@ function renderCard(props: Partial<React.ComponentProps<typeof TodayFeedbackCard
 }
 
 describe('TodayFeedbackCard', () => {
+  it('treino do Garmin mostra o modelo do dispositivo (CA8)', () => {
+    renderCard({ realizado: { ...REALIZADO, fonteDados: 'GARMIN', deviceName: 'Forerunner 970' } });
+    expect(screen.getByText(/Garmin Forerunner 970/)).toBeInTheDocument();
+  });
+
   it('mostra os dados do feito com origem', () => {
     renderCard();
     expect(screen.getByText(/intervalado/i)).toBeInTheDocument();

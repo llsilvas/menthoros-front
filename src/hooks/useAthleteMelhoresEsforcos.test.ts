@@ -2,6 +2,7 @@ import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAthleteMelhoresEsforcos } from './useAthleteMelhoresEsforcos';
 import { AthleteProgressService } from '../api/services/AthleteProgressService';
+import { ApiError } from '../api/core/ApiError';
 import type { AthleteMelhorEsforco } from '../types/AthleteProgress';
 
 vi.mock('../api/services/AthleteProgressService');
@@ -68,6 +69,22 @@ describe('useAthleteMelhoresEsforcos', () => {
         });
 
         expect(result.current.error).toBeInstanceOf(Error);
+        expect(result.current.marcas).toEqual([]);
+        expect(result.current.loading).toBe(false);
+    });
+
+    it('409 (canal Garmin) vira indisponível, não erro (CA9)', async () => {
+        vi.mocked(AthleteProgressService.getMelhoresEsforcos).mockRejectedValue(
+            new ApiError({ method: 'GET', url: '/x' }, { url: '/x', ok: false, status: 409, statusText: 'Conflict', body: {} }, 'Conflict'),
+        );
+
+        const { result } = renderHook(() => useAthleteMelhoresEsforcos());
+        await act(async () => {
+            await result.current.fetchMelhoresEsforcos();
+        });
+
+        expect(result.current.indisponivelCanalGarmin).toBe(true);
+        expect(result.current.error).toBeNull();
         expect(result.current.marcas).toEqual([]);
         expect(result.current.loading).toBe(false);
     });

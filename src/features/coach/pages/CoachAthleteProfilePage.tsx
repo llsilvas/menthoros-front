@@ -322,6 +322,7 @@ export default function CoachAthleteProfilePage() {
                             <MelhoresEsforcosPanel
                                 marcas={profile.melhoresEsforcos}
                                 integracaoConectada={profile.melhoresEsforcosIntegracaoConectada}
+                                canalGarmin={profile.conexaoCanal?.plataforma?.value === 'GARMIN' && profile.conexaoCanal.ativo}
                             />
                         </SectionCard>
                     </Grid>

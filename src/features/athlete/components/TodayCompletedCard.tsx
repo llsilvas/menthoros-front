@@ -7,6 +7,7 @@ import { tipoTreinoLabel } from '../adapters/homeAdapter';
 import type { WorkoutAnalysisView } from '../adapters/buildWorkoutAnalysisView';
 import { WorkoutAnalysisCard } from './WorkoutAnalysisCard';
 import { WorkoutVerdictChip } from './WorkoutVerdictChip';
+import { FonteAttribution } from '../../../components/common/FonteAttribution';
 
 export interface TodayCompletedCardProps {
   realizado: AthleteRealizadoHoje;
@@ -30,6 +31,7 @@ export function TodayCompletedCard({ realizado, sensacoes = [], comentario, anal
         {analysisView?.verdict && <WorkoutVerdictChip verdict={analysisView.verdict} />}
       </Box>
       <Typography variant="h4">{tipoTreinoLabel(realizado.tipoTreino)}</Typography>
+      <FonteAttribution fonteDados={realizado.fonteDados} deviceName={realizado.deviceName} />
       {!analysisView && (
         <Typography variant="body2" sx={{ color: surface[400] }}>
           {[

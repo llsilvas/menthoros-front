@@ -10,12 +10,15 @@ export interface EffortRow {
 export interface EffortsReading {
   rows: EffortRow[];
   integracaoConectada: boolean;
+  /** Canal Garmin: sem curve de pace, mostra "indisponível" em vez do CTA de conexão. */
+  indisponivelCanalGarmin?: boolean;
 }
 
 /** Mapeia `AthleteMelhorEsforco[]` para linhas de exibição com o tempo já formatado. */
 export function buildEffortsReading(
   marcas: AthleteMelhorEsforco[],
   integracaoConectada: boolean,
+  indisponivelCanalGarmin = false,
 ): EffortsReading {
   return {
     rows: marcas.map((m) => ({
@@ -24,5 +27,6 @@ export function buildEffortsReading(
       paceLabel: m.paceLabel,
     })),
     integracaoConectada,
+    indisponivelCanalGarmin,
   };
 }
