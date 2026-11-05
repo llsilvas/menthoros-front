@@ -40,6 +40,7 @@ import { useCoachAthleteRaces } from '../hooks/useCoachAthleteRaces';
 import { AthleteRacesPanel } from '../components/AthleteRacesPanel';
 import { CobrancaAtletaSection } from '../components/CobrancaAtletaSection';
 import { CoachWatchLine } from '../components/CoachWatchLine';
+import { buildWatchChannelFromConexao } from '../adapters/watchChannel';
 import { useUserInfo } from '../../../hooks/useUserInfo';
 import { buildCoachRaceList } from '../adapters/coachRaceAdapters';
 import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
@@ -280,6 +281,7 @@ export default function CoachAthleteProfilePage() {
                                 onGerarPlano={() => navigate('/coach/inbox')}
                                 onRevisarPlano={() => navigate('/coach/planos/revisao')}
                                 onTreinoEditado={fetchProfile}
+                                canal={buildWatchChannelFromConexao(profile.conexaoCanal)}
                             />
                         </SectionCard>
                     </Grid>
