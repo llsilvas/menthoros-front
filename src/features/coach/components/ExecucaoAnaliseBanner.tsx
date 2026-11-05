@@ -19,13 +19,22 @@ function Nota({ texto }: { texto: string }) {
     );
 }
 
-/** Banner da análise da IA (CA5–CA7). Falha ou carregando não ocupam espaço: o resto da tela segue. */
+/**
+ * Banner da análise da IA (CA5–CA7). Falha ou carregando não ocupam espaço: o resto da tela segue.
+ * Mostra as duas leituras abertas: a técnica (só o treinador vê) e o retorno que o atleta recebeu.
+ */
 export function ExecucaoAnaliseBanner({ analise }: ExecucaoAnaliseBannerProps) {
     if (analise.status === 'indisponivel') return <Nota texto="Análise da IA indisponível para este treino no momento" />;
     if (analise.status === 'semRpe') return <Nota texto="A análise da IA depende do RPE do atleta" />;
     if (analise.status !== 'pronta' || !analise.data) return null;
 
     const { primaryCause: causa, executionScore, summary, recommendation } = analise.data;
+    const textosAtleta = [
+        analise.data.atletaReconhecimento,
+        analise.data.atletaComoFoi,
+        analise.data.atletaEsforco,
+        analise.data.atletaProximoTreino,
+    ].filter((texto): texto is string => Boolean(texto));
     const corCausa = causa === 'NORMAL' ? semantic.success[500] : semantic.warning[500];
     return (
         <Box
@@ -50,12 +59,32 @@ export function ExecucaoAnaliseBanner({ analise }: ExecucaoAnaliseBannerProps) {
                     </Typography>
                 )}
             </Box>
-            {summary && <Typography sx={{ fontSize: '0.875rem', lineHeight: 1.43, fontWeight: 600, color: surface[50] }}>{summary}</Typography>}
-            {recommendation && (
-                <Typography sx={{ fontSize: '0.75rem', lineHeight: 1.4, color: surface[200] }}>
-                    <Box component="strong" sx={{ color: primary[500], fontWeight: 600 }}>Recomendação:</Box> {recommendation}
-                </Typography>
-            )}
+            <Box data-testid="execucao-analise-treinador" sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                <Typography sx={EYEBROW_SX}>Para o treinador</Typography>
+                {summary && <Typography sx={{ fontSize: '0.875rem', lineHeight: 1.43, fontWeight: 600, color: surface[50] }}>{summary}</Typography>}
+                {recommendation && (
+                    <Typography sx={{ fontSize: '0.75rem', lineHeight: 1.4, color: surface[200] }}>
+                        <Box component="strong" sx={{ color: primary[500], fontWeight: 600 }}>Recomendação:</Box> {recommendation}
+                    </Typography>
+                )}
+            </Box>
+            <Box
+                data-testid="execucao-analise-atleta"
+                sx={{ pt: 1.25, borderTop: `1px dashed ${aiHighlight.border}`, display: 'flex', flexDirection: 'column', gap: 0.75 }}
+            >
+                <Typography sx={EYEBROW_SX}>Enviado ao atleta</Typography>
+                {textosAtleta.length > 0 ? (
+                    textosAtleta.map((texto, idx) => (
+                        <Typography key={`atleta-${idx}`} sx={{ fontSize: '0.8125rem', lineHeight: 1.5, color: surface[200] }}>
+                            {texto}
+                        </Typography>
+                    ))
+                ) : (
+                    <Typography sx={{ fontSize: '0.8125rem', color: surface[400] }}>
+                        Nenhum retorno foi enviado ao atleta neste treino
+                    </Typography>
+                )}
+            </Box>
         </Box>
     );
 }
