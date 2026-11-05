@@ -21,6 +21,10 @@ export interface TreinoPlanejado {
   fonteDados?: string | { value: string; label: string; description?: string; color?: string };
   treinoRealizadoId?: string;
   percepcaoEsforcoRealizado?: number;
+  /** Fonte do realizado vinculado — `fonteDados` acima é a do plano (IA_GERADO/MANUAL). */
+  completedSource?: string | { value: string; label: string } | null;
+  /** Modelo do dispositivo do realizado vinculado; ausente quando desconhecido. */
+  completedDeviceName?: string | null;
   /** Há análise pós-treino pronta para o atleta neste treino (analise-ia-treino-atleta). */
   analiseAtletaDisponivel?: boolean;
   /** ID da prova vinculada, quando `tipoTreino = PROVA` (prova-no-plano-semanal). */

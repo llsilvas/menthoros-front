@@ -52,7 +52,17 @@ function JanelaSelector({ janela, onJanelaChange }: Pick<EffortsBlockProps, 'jan
 
 /** Bloco 5: melhores esforços por distância (400m-10k), lidos do intervals.icu. */
 export function EffortsBlock({ reading, janela, onJanelaChange }: EffortsBlockProps) {
-  const { rows, integracaoConectada } = reading;
+  const { rows, integracaoConectada, indisponivelCanalGarmin } = reading;
+
+  if (indisponivelCanalGarmin) {
+    return (
+      <ProgressBlockCard pergunta="Quais são meus melhores tempos?" testId="progress-efforts">
+        <Typography variant="body2" sx={{ color: surface[400] }}>
+          Indisponível para o canal Garmin por enquanto.
+        </Typography>
+      </ProgressBlockCard>
+    );
+  }
 
   if (!integracaoConectada) {
     return (

@@ -2,6 +2,7 @@ import type { AthleteWorkoutAnalysis, WorkoutPlanVerdict } from '../../../types/
 import { rpeLabel } from '../../../types/Rpe';
 import { effortColor } from '../../../shared/theme/workoutColors';
 import { formatKm } from '../../../utils/formatKm';
+import { rotuloGarmin } from '../../../utils/rotuloGarmin';
 
 export type WorkoutAnalysisViewStatus = 'pending' | 'done';
 
@@ -39,6 +40,8 @@ export interface WorkoutAnalysisView {
     planLine?: string;
     /** Veredito de aderência ao plano para o chip; `null` sem planejado ou dimensão comparável. */
     verdict: WorkoutVerdictView | null;
+    /** "Garmin Forerunner 970" quando o treino veio do Garmin (licença, D6); ausente nas demais fontes. */
+    attribution?: string;
 }
 
 /**
@@ -95,5 +98,10 @@ export function buildWorkoutAnalysisView(dto: AthleteWorkoutAnalysis): WorkoutAn
         metrics,
         planLine: algumDifere && planParts.length > 0 ? `plano ${planParts.join(' · ')}` : undefined,
         verdict: dto.veredito != null ? VERDICT_VIEW[dto.veredito] : null,
+        attribution: fonteDe(executado.fonteDados) === 'GARMIN' ? rotuloGarmin(executado.deviceName) : undefined,
     };
+}
+
+function fonteDe(fonte: AthleteWorkoutAnalysis['executado']['fonteDados']): string | undefined {
+    return typeof fonte === 'string' ? fonte : fonte?.value;
 }

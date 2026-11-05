@@ -66,6 +66,8 @@ export interface TreinoRealizadoDto {
     percepcaoEsforco?: number;
     tssCalculado?: number;
     fonteDados: { value: string; label: string };
+    /** Modelo do dispositivo (Garmin); ausente quando desconhecido. */
+    deviceName?: string | null;
     status: { value: string; label: string };
     observacao?: string;
     fcMedia?: number;

@@ -9,6 +9,14 @@ const REALIZADO: AthleteRealizadoHoje = {
 };
 
 describe('TodayCompletedCard', () => {
+  it('treino do Garmin mostra o modelo do dispositivo; outra fonte não mostra nada (CA8)', () => {
+    const { rerender } = render(<TodayCompletedCard realizado={{ ...REALIZADO, fonteDados: 'GARMIN', deviceName: 'Garmin Fenix 8' }} />);
+    expect(screen.getByText('Garmin Fenix 8')).toBeInTheDocument();
+
+    rerender(<TodayCompletedCard realizado={REALIZADO} />);
+    expect(screen.queryByText(/Garmin/)).toBeNull();
+  });
+
   it('mostra o resumo do feito e o RPE', () => {
     render(<TodayCompletedCard realizado={REALIZADO} sensacoes={['PERNAS_PESADAS']} comentario="Difícil" />);
     expect(screen.getByText(/corrida fácil/i)).toBeInTheDocument();

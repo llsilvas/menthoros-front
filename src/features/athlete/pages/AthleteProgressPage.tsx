@@ -80,7 +80,7 @@ export default function AthleteProgressPage() {
   const { aderencia, loading: aderenciaLoading, error: aderenciaError, fetchAderencia } = useAthleteAderencia();
   const { provas, loading: provasLoading, error: provasError, fetchProvas } = useAthleteProvas();
   const {
-    marcas, integracaoConectada, loading: esforcosLoading, error: esforcosError, fetchMelhoresEsforcos,
+    marcas, integracaoConectada, indisponivelCanalGarmin, loading: esforcosLoading, error: esforcosError, fetchMelhoresEsforcos,
   } = useAthleteMelhoresEsforcos();
   const [janela, setJanela] = useState<MelhoresEsforcosJanela>('42d');
 
@@ -115,7 +115,10 @@ export default function AthleteProgressPage() {
   const zonesReading = useMemo(() => buildZonesReading(zones), [zones]);
   const adherence = useMemo(() => buildAdherenceReading(aderencia), [aderencia]);
   const records = useMemo(() => buildRecordsReading(recordes, provasLoading || provasError ? [] : provas), [recordes, provas, provasLoading, provasError]);
-  const efforts = useMemo(() => buildEffortsReading(marcas, integracaoConectada), [marcas, integracaoConectada]);
+  const efforts = useMemo(
+    () => buildEffortsReading(marcas, integracaoConectada, indisponivelCanalGarmin),
+    [marcas, integracaoConectada, indisponivelCanalGarmin],
+  );
 
   return (
     <Box sx={{ minHeight: '100%', bgcolor: elevation.base, p: 2, pt: 2.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
