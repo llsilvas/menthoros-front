@@ -88,6 +88,11 @@ describe('ExecucaoTreinoDialog', () => {
         expect(AnaliseService.getAnaliseTreino).not.toHaveBeenCalled();
     });
 
+    it('processando mostra que a análise está em andamento', async () => {
+        renderDialog(estado('processando'));
+        expect(await screen.findByText('Análise da IA em andamento')).toBeInTheDocument();
+    });
+
     it('indisponível com RPE mostra a faixa neutra', async () => {
         renderDialog(estado('indisponivel'));
         expect(await screen.findByText('Análise da IA indisponível para este treino no momento')).toBeInTheDocument();

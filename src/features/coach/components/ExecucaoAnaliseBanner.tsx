@@ -24,6 +24,7 @@ function Nota({ texto }: { texto: string }) {
  * Mostra as duas leituras abertas: a técnica (só o treinador vê) e o retorno que o atleta recebeu.
  */
 export function ExecucaoAnaliseBanner({ analise }: ExecucaoAnaliseBannerProps) {
+    if (analise.status === 'processando') return <Nota texto="Análise da IA em andamento" />;
     if (analise.status === 'indisponivel') return <Nota texto="Análise da IA indisponível para este treino no momento" />;
     if (analise.status === 'semRpe') return <Nota texto="A análise da IA depende do RPE do atleta" />;
     if (analise.status !== 'pronta' || !analise.data) return null;

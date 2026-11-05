@@ -83,7 +83,7 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
     const analise = analiseState.data;
     const analiseStatus = analiseState.status;
 
-    const mostrarInsight = isRealizado && (analiseStatus === 'pronta' || analiseStatus === 'indisponivel' || analiseStatus === 'loading');
+    const mostrarInsight = isRealizado && (analiseStatus === 'pronta' || analiseStatus === 'processando' || analiseStatus === 'loading');
     // Estado: borda 1px + tinta suave. O texto do estado vai no cabeçalho — cor nunca é o único sinal.
     const estadoCor = isRealizado ? semantic.success[500] : isPerdido ? semantic.danger[500] : null;
     const estadoLabel = isRealizado ? 'Realizado' : isPerdido ? 'Perdido' : 'Pendente';
@@ -176,7 +176,7 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
 
             {mostrarInsight && (
                 <Box sx={{ pt: 1.25, borderTop: `1px solid ${content.divider}` }}>
-                    {(analiseStatus === 'loading' || analiseStatus === 'indisponivel') && (
+                    {(analiseStatus === 'loading' || analiseStatus === 'processando') && (
                         <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', fontStyle: 'italic' }}>
                             {analiseStatus === 'loading' ? 'Carregando análise…' : 'Análise AI em andamento…'}
                         </Typography>
