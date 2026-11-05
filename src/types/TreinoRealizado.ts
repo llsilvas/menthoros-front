@@ -97,6 +97,88 @@ export interface TreinoRealizado {
     decouplingPercentual?: number;
 }
 
+/** Tempo em uma zona de FC, com os limites vigentes no import. `bpmMax` ausente na zona do topo. */
+export interface TempoEmZonaDto {
+    zona: string;
+    bpmMin: number;
+    bpmMax?: number;
+    segundos: number;
+}
+
+export interface TempoEmZonasDto {
+    fonte: string;
+    zonas: TempoEmZonaDto[];
+}
+
+/** Running dynamics da sessão ou da volta (`RunningDynamicsOutputDto`). */
+export interface RunningDynamicsDto {
+    tempoMovimento?: string;
+    calorias?: number;
+    gctMedioMs?: number;
+    gctEquilibrioPct?: number;
+    passadaMediaM?: number;
+    oscilacaoVerticalCm?: number;
+    proporcaoVerticalPct?: number;
+    temperaturaMediaC?: number;
+}
+
+/** Volta do treino realizado como o detalhe devolve (`EtapaRealizadaOutputDto`). */
+export interface EtapaRealizadaDetalhe {
+    id?: string;
+    ordem?: number;
+    tipoEtapa?: string;
+    descricao?: string;
+    duracao?: string;
+    distanciaKm?: number;
+    fcMedia?: number;
+    fcMax?: number;
+    paceMedia?: string;
+    velocidadeMedia?: number;
+    cadenciaMedia?: number;
+    potenciaMedia?: number;
+    elevacaoGanhoMetros?: number;
+    elevacaoPerdaMetros?: number;
+    runningDynamics?: RunningDynamicsDto;
+}
+
+/**
+ * Leitura do `GET /api/v1/treinos/realizados/{id}` (`TreinoRealizadoOutputDto`). Separado do tipo de
+ * escrita: o backend omite campos nulos (`NON_NULL`), então quase tudo é opcional.
+ */
+export interface TreinoRealizadoDetalhe {
+    id: string;
+    dataTreino?: string;
+    tipoTreino?: string;
+    descricao?: string;
+    zonaAlvo?: string;
+    /** `HH:MM:SS` ou `MM:SS`. No `.fit` inclui pausas; nas integrações é tempo em movimento. */
+    duracaoMin?: string;
+    distanciaKm?: number;
+    ritmoAlvo?: string;
+    paceMedia?: string;
+    elevacaoGanhoMetros?: number;
+    elevacaoPerdaMetros?: number;
+    fcMedia?: number;
+    fcMax?: number;
+    cadenciaMedia?: number;
+    potenciaMedia?: number;
+    /** km/h */
+    velocidadeMedia?: number;
+    percepcaoEsforco?: number;
+    tssCalculado?: number;
+    runningDynamics?: RunningDynamicsDto;
+    decouplingPercentual?: number;
+    feedbackAtleta?: string;
+    status?: string;
+    etapasRealizadas?: EtapaRealizadaDetalhe[];
+    /** km/h */
+    velocidadeMaxKmh?: number;
+    temperaturaMinC?: number;
+    temperaturaMaxC?: number;
+    elapsedTimeSeg?: number;
+    tempoEmZonas?: TempoEmZonasDto;
+}
+
 export interface CreateTreinoRealizado {
     atletaId: string;
     planoSemanalId: string;

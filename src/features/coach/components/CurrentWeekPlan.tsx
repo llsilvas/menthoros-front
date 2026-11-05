@@ -11,6 +11,7 @@ import { useReenviarSincronizacao } from '../../../hooks/useReenviarSincronizaca
 import { surface, semantic, primary } from '../../../theme/tokens';
 import { SyncStatusChip } from './SyncStatusChip';
 import { TreinoPlanejadoCard } from './TreinoPlanejadoCard';
+import { VerRealizadoAcao } from './VerRealizadoAcao';
 import { useAthleteTrainingZones } from '../../../hooks/useAthleteTrainingZones';
 import { buildIntensityLineFromTreino } from '../adapters/buildIntensityLine';
 import { resumoDaSerie } from '../adapters/resumoSerie';
@@ -43,7 +44,8 @@ function toDialogTreino(t: TreinoPlanejadoResumoDto): TreinoPlanejadoDto {
         id: t.id,
         diaSemana: t.diaSemana,
         tipoTreino: t.tipoTreino,
-        distanciaKm: t.distanciaKm,
+        // O dialog de edição exige número; 0 é o que o resumo mandava antes de a distância virar opcional.
+        distanciaKm: t.distanciaKm ?? 0,
         duracaoMin: t.duracaoMin,
         zonaAlvo: t.zonaAlvo,
         percepcaoEsforcoEsperada: t.percepcaoEsforcoEsperada,
@@ -90,12 +92,25 @@ function TreinoCard({
                     <EditOutlinedIcon sx={{ fontSize: 18 }} />
                 </IconButton>
             ) : undefined}
-            rodape={mostraSync ? (
-                <SyncStatusChip
-                    statusSincronizacao={treino.statusSincronizacao}
-                    atletaConectado={canalConectado(treino)}
-                    syncError={treino.syncError}
-                />
+            rodape={mostraSync || treino.treinoRealizadoId ? (
+                <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', rowGap: 1 }}>
+                    {mostraSync && (
+                        <SyncStatusChip
+                            statusSincronizacao={treino.statusSincronizacao}
+                            atletaConectado={canalConectado(treino)}
+                            syncError={treino.syncError}
+                        />
+                    )}
+                    {treino.treinoRealizadoId && (
+                        <Box sx={{ ml: 'auto' }}>
+                            <VerRealizadoAcao
+                                treinoRealizadoId={treino.treinoRealizadoId}
+                                planejado={treino}
+                                titulo={tipoTreinoLabel(treino.tipoTreino)}
+                            />
+                        </Box>
+                    )}
+                </Stack>
             ) : undefined}
         />
     );

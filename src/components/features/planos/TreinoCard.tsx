@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
     Button,
     Typography,
@@ -18,9 +18,7 @@ import {
     Add as AddIcon,
 } from '@mui/icons-material';
 import { TreinoService } from '../../../api/services/TreinoService';
-import { AnaliseService } from '../../../api/services/AnaliseService';
 import type { TreinoPlanejado } from '../../../types/TreinoPlanejado';
-import type { AnaliseWorkout } from '../../../types/AnaliseWorkout';
 import { getSafeValue, getSafeNumber } from '../../../utils/safeValues';
 import { content, semantic, surface } from '../../../theme/tokens';
 import { Card } from '../../../shared/components/Card';
@@ -30,6 +28,9 @@ import { effortColor } from '../../../shared/theme/workoutColors';
 import { activeTheme, workoutTypeColor } from '../../../theme/activeTheme';
 import InsightTreinoDialog, { CausaTexto, NotaExecucao } from './InsightTreinoDialog';
 import { formatarDataCurta, formatarDiaCurto, formatarKm, rotuloTipoTreino } from './planoSemanaUtils';
+// O alias `@/features` aponta para components/features (ver CLAUDE.md do front); caminho relativo de propósito.
+import { useAnaliseTreinoRealizado } from '../../../features/coach/hooks/useAnaliseTreinoRealizado';
+import { VerRealizadoAcao } from '../../../features/coach/components/VerRealizadoAcao';
 
 interface TreinoCardProps {
     treino: TreinoPlanejado;
@@ -61,8 +62,6 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
     const [rpeValue, setRpeValue] = useState<number>(treino.percepcaoEsforcoRealizado ?? 5);
     const [currentRpe, setCurrentRpe] = useState<number | undefined>(treino.percepcaoEsforcoRealizado);
     const [savingRpe, setSavingRpe] = useState(false);
-    const [analise, setAnalise] = useState<AnaliseWorkout | null>(null);
-    const [analiseStatus, setAnaliseStatus] = useState<'idle' | 'loading' | 'pending' | 'done' | 'error'>('idle');
 
     const statusValue = typeof treino.statusTreino === 'object'
         ? treino.statusTreino?.value
@@ -76,29 +75,15 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
     const ritmoAlvo = getSafeValue(treino.ritmoAlvo);
     const rpeEsperado = treino.percepcaoEsforcoEsperada;
 
-    // Busca análise AI quando treino realizado tem RPE definido
-    useEffect(() => {
-        if (!isRealizado || !treino.treinoRealizadoId || currentRpe == null) return;
-        setAnaliseStatus('loading');
-        AnaliseService.getAnaliseTreino(treino.treinoRealizadoId)
-            .then((data) => {
-                if (!data) {
-                    setAnaliseStatus('pending');
-                    return;
-                }
-                if (data.status === 'COMPLETED') {
-                    setAnalise(data);
-                    setAnaliseStatus('done');
-                } else if (data.status === 'PENDING') {
-                    setAnaliseStatus('pending');
-                } else {
-                    setAnaliseStatus('error');
-                }
-            })
-            .catch(() => setAnaliseStatus('idle'));
-    }, [isRealizado, treino.treinoRealizadoId, currentRpe]);
+    // Um único dono da requisição da análise: o card, que repassa o estado ao dialog de execução (D4).
+    const analiseState = useAnaliseTreinoRealizado(
+        isRealizado ? treino.treinoRealizadoId : undefined,
+        currentRpe != null,
+    );
+    const analise = analiseState.data;
+    const analiseStatus = analiseState.status;
 
-    const mostrarInsight = isRealizado && (analiseStatus === 'done' || analiseStatus === 'pending' || analiseStatus === 'loading');
+    const mostrarInsight = isRealizado && (analiseStatus === 'pronta' || analiseStatus === 'indisponivel' || analiseStatus === 'loading');
     // Estado: borda 1px + tinta suave. O texto do estado vai no cabeçalho — cor nunca é o único sinal.
     const estadoCor = isRealizado ? semantic.success[500] : isPerdido ? semantic.danger[500] : null;
     const estadoLabel = isRealizado ? 'Realizado' : isPerdido ? 'Perdido' : 'Pendente';
@@ -191,13 +176,13 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
 
             {mostrarInsight && (
                 <Box sx={{ pt: 1.25, borderTop: `1px solid ${content.divider}` }}>
-                    {(analiseStatus === 'loading' || analiseStatus === 'pending') && (
+                    {(analiseStatus === 'loading' || analiseStatus === 'indisponivel') && (
                         <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', fontStyle: 'italic' }}>
                             {analiseStatus === 'loading' ? 'Carregando análise…' : 'Análise AI em andamento…'}
                         </Typography>
                     )}
 
-                    {analiseStatus === 'done' && analise && (
+                    {analiseStatus === 'pronta' && analise && (
                         <>
                             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.75 }}>
                                 {analise.primaryCause ? (
@@ -247,6 +232,21 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                         </>
                     )}
                 </Box>
+            )}
+
+            {isRealizado && treino.treinoRealizadoId && (
+                <VerRealizadoAcao
+                    treinoRealizadoId={treino.treinoRealizadoId}
+                    planejado={{
+                        distanciaKm: getSafeNumber(treino.distanciaKm),
+                        duracaoMin: treino.duracaoMin,
+                        ritmoAlvo: ritmoAlvo ? String(ritmoAlvo) : null,
+                        zonaAlvo: treino.zonaAlvo ? String(getSafeValue(treino.zonaAlvo)) : null,
+                        percepcaoEsforcoEsperada: rpeEsperado,
+                    }}
+                    titulo={rotuloTipoTreino(tipoCodigo)}
+                    analise={analiseState}
+                />
             )}
 
             <Stack direction="row" spacing={1} sx={{ width: '100%' }}>
