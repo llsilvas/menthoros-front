@@ -12,15 +12,16 @@ import {
 import { alpha } from '@mui/material/styles';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { TIPOS_TREINO } from './tiposTreino';
-import { primary, surface } from '../../../theme/tokens';
+import { primary, semantic, surface } from '../../../theme/tokens';
 import { activeTheme } from '../../../theme/activeTheme';
 import { overlayWhite } from '../../../theme/overlays';
 import { elevation } from '../../../shared/design-tokens';
 import { GHOST_BTN_SX, PRIMARY_BTN_SX } from '../../../shared/components/actionButtonSx';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
-import type { TreinoPlanejadoDto, TreinoPlanejadoPatch } from '../../../types/PlanoReview';
+import type { TreinoPlanejadoDto, TreinoPlanejadoPatch, WorkoutEditReason } from '../../../types/PlanoReview';
 import {
     itensFromEtapas,
     serializarItens,
@@ -85,6 +86,21 @@ function parseDuracaoMinutos(iso: string | undefined): string {
     return total > 0 ? String(total) : '';
 }
 
+/** Canal de treinos do atleta, como o backend serializa a plataforma. */
+export type WatchChannel = 'GARMIN' | 'INTERVALS_ICU';
+
+const NOME_CANAL: Record<WatchChannel, string> = {
+    GARMIN: 'Garmin Connect',
+    INTERVALS_ICU: 'intervals.icu',
+};
+
+const MOTIVOS: { value: WorkoutEditReason; label: string }[] = [
+    { value: 'PAIN_INJURY', label: 'Dor/lesão' },
+    { value: 'SCHEDULE', label: 'Agenda' },
+    { value: 'LOAD', label: 'Carga' },
+    { value: 'OTHER', label: 'Outro' },
+];
+
 // ── TreinoEditDialog ──────────────────────────────────────────────────────────
 
 export interface TreinoEditDialogProps {
@@ -97,11 +113,19 @@ export interface TreinoEditDialogProps {
     atletaId?: string;
     /** Nome do atleta, no título da tabela de zonas. */
     atletaNome?: string;
+    /**
+     * Edição de treino em plano já aprovado (coach-editar-treino-aprovado, D4): mostra o aviso com o
+     * canal do atleta (`null` = sem relógio conectado) e o motivo opcional. Sem a prop, o dialog
+     * fica como na revisão.
+     */
+    aviso?: { canal: WatchChannel | null };
+    /** Mensagem do backend em 409/422: o dialog mostra e continua aberto com as edições (D5). */
+    saveErrorMessage?: string | null;
     onClose: () => void;
     onSave: (patch: TreinoPlanejadoPatch) => void;
 }
 
-export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, atletaNome, onClose, onSave }: TreinoEditDialogProps) {
+export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, atletaNome, aviso, saveErrorMessage, onClose, onSave }: TreinoEditDialogProps) {
     const { zones, loading: zonesLoading, error: zonesError } = useAthleteTrainingZones(atletaId);
     const [tipoTreino, setTipoTreino]         = useState(treino.tipoTreino ?? '');
     const [tss, setTss]                       = useState(treino.tssPlanejado != null ? String(treino.tssPlanejado) : '');
@@ -126,6 +150,7 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
     // O gráfico nasce recolhido em altura baixa; o treinador abre quando quiser.
     const telaBaixa = useMediaQuery(TELA_BAIXA_QUERY);
     const [graficoAberto, setGraficoAberto]   = useState(!telaBaixa);
+    const [motivo, setMotivo]                 = useState<WorkoutEditReason | null>(null);
 
     useEffect(() => {
         setItens(itensIniciais(treino));
@@ -236,6 +261,8 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
             onClose();
             return;
         }
+        // O motivo acompanha uma edição; sozinho não é edição (o patch vazio fecha acima).
+        if (aviso && motivo) patch.editReason = motivo;
 
         // Aviso, não bloqueio: o treinador decide a estrutura. O que se evita é a remoção acidental
         // durante uma edição rápida — um intervalado sem aquecimento manda o atleta direto para Z5.
@@ -378,6 +405,68 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
         </Box>
     ) : null;
 
+    const rotuloSalvar = aviso?.canal ? 'Salvar e reenviar' : 'Salvar';
+    const nomeAtleta = atletaNome ?? 'o atleta';
+
+    const avisoAprovado = aviso ? (
+        <Box
+            sx={{
+                display: 'flex',
+                gap: 1.25,
+                p: '12px 14px',
+                borderRadius: '8px',
+                border: `1px solid ${alpha(semantic.info[500], 0.55)}`,
+                bgcolor: alpha(semantic.info[500], 0.1),
+            }}
+        >
+            <InfoOutlinedIcon sx={{ fontSize: 18, color: semantic.info[500], mt: '1px' }} aria-hidden />
+            <Box>
+                <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: surface[100] }}>
+                    Este treino faz parte de um plano já aprovado
+                </Typography>
+                <Typography sx={{ fontSize: '0.8125rem', lineHeight: '18px', color: surface[300] }}>
+                    {aviso.canal
+                        ? `O treino já está no ${NOME_CANAL[aviso.canal]} de ${nomeAtleta}. Ao salvar, a versão anterior é substituída no relógio.`
+                        : `${nomeAtleta} não conectou relógio. A mudança aparece só no app.`}
+                </Typography>
+            </Box>
+        </Box>
+    ) : null;
+
+    const seletorMotivo = aviso ? (
+        <Box>
+            <Typography id="motivo-ajuste-label" sx={{ fontSize: '0.75rem', color: surface[400], mb: 0.75 }}>
+                Motivo do ajuste (opcional)
+            </Typography>
+            <Box role="group" aria-labelledby="motivo-ajuste-label" sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                {MOTIVOS.map(m => {
+                    const ativo = motivo === m.value;
+                    return (
+                        <Button
+                            key={m.value}
+                            size="small"
+                            aria-pressed={ativo}
+                            disabled={isSaving}
+                            onClick={() => setMotivo(ativo ? null : m.value)}
+                            sx={{
+                                height: 32,
+                                px: 1.5,
+                                fontSize: '0.78rem',
+                                textTransform: 'none',
+                                color: ativo ? surface[50] : surface[300],
+                                border: `1px solid ${ativo ? primary[500] : overlayWhite[10]}`,
+                                bgcolor: ativo ? alpha(primary[500], 0.12) : 'transparent',
+                                '&:hover': { borderColor: ativo ? primary[500] : overlayWhite[22] },
+                            }}
+                        >
+                            {m.label}
+                        </Button>
+                    );
+                })}
+            </Box>
+        </Box>
+    ) : null;
+
     return (
         <CoachDialog
             open={open}
@@ -404,7 +493,7 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
                         variant="contained"
                         onClick={handleSalvar}
                         disabled={isSaving}
-                        aria-label="Salvar"
+                        aria-label={rotuloSalvar}
                         sx={{
                             ...PRIMARY_BTN_SX,
                             fontSize: '0.8rem',
@@ -412,7 +501,7 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
                             '&.Mui-disabled': { bgcolor: surface[700], color: surface[500] },
                         }}
                     >
-                        {isSaving ? <CircularProgress size={14} sx={{ color: surface[900] }} /> : 'Salvar'}
+                        {isSaving ? <CircularProgress size={14} sx={{ color: surface[900] }} /> : rotuloSalvar}
                     </Button>
                 </>
             }
@@ -430,6 +519,24 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
                     onClose={() => setConfirmarDescarte(false)}
                     onConfirm={onClose}
                 />
+
+                {saveErrorMessage && (
+                    <Box
+                        role="alert"
+                        sx={{
+                            p: '10px 14px',
+                            borderRadius: '8px',
+                            border: `1px solid ${alpha(semantic.danger[500], 0.55)}`,
+                            bgcolor: alpha(semantic.danger[500], 0.1),
+                            fontSize: '0.8125rem',
+                            color: surface[100],
+                        }}
+                    >
+                        {saveErrorMessage}
+                    </Box>
+                )}
+
+                {avisoAprovado}
 
                 {/* Zonas do atleta: a referência para escolher o alvo de cada etapa */}
                 {(zonesLoading || zonesError || zones) && (
@@ -506,6 +613,7 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
                     <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: surface[400], letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                         Treino inteiro
                     </Typography>
+                    {seletorMotivo}
                     <Box sx={{ display: 'flex', gap: 1.25 }}>
                         <Box sx={{ flex: 1, minWidth: 0 }}>
                             <Typography sx={{ fontSize: '0.75rem', color: surface[400] }}>Zona predominante</Typography>
