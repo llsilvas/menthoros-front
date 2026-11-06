@@ -261,6 +261,8 @@ describe('TreinoEditDialog — série', () => {
         expect(screen.getByTestId('repeticoes-display-1')).toHaveTextContent('4×');
         // Resumo do bloco já multiplicado: 4 × (3 + 2) min, sem distância prescrita
         expect(screen.getByTestId('resumo-serie-1')).toHaveTextContent('4× · 20 min');
+        // 13 min Z1 + 5 min Z2 (vizinhas, uma faixa) e 12 min Z4, sobre 30 min
+        expect(screen.getByTestId('distribuicao-zonas')).toHaveTextContent('60% Z1–Z2 · 40% Z4');
         expect(screen.getByLabelText('Tipo da etapa 1')).toHaveValue('AQUECIMENTO');
         expect(screen.getByLabelText('Tipo da etapa 3')).toHaveValue('DESAQUECIMENTO');
     });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { detalheDaZonaPredominante, minutosNaZonaAlvo, zonaPredominante } from './zonaPredominante';
+import { detalheDaZonaPredominante, distribuicaoDeZonas, minutosNaZonaAlvo, zonaPredominante } from './zonaPredominante';
 import type { ProfileBlock, ZoneKey } from '../../workout/profile/types';
 
 const bloco = (zone: ZoneKey, minutos: number, confidence: ProfileBlock['confidence'] = 'prescribed'): ProfileBlock =>
@@ -52,5 +52,30 @@ describe('detalheDaZonaPredominante / minutosNaZonaAlvo', () => {
     it('sem predominante, null', () => {
         expect(detalheDaZonaPredominante(null)).toBeNull();
         expect(minutosNaZonaAlvo(null)).toBeNull();
+    });
+});
+
+describe('distribuicaoDeZonas', () => {
+    it('percentual do tempo total por zona, em ordem crescente', () => {
+        expect(distribuicaoDeZonas([bloco('Z5', 10), bloco('Z2', 20)])).toBe('67% Z2 · 33% Z5');
+    });
+
+    it('zonas vizinhas contíguas viram uma faixa', () => {
+        expect(distribuicaoDeZonas([bloco('Z1', 10), bloco('Z2', 10), bloco('Z5', 10)])).toBe('67% Z1–Z2 · 33% Z5');
+        expect(distribuicaoDeZonas([bloco('Z1', 10), bloco('Z2', 10), bloco('Z3', 10)])).toBe('100% Z1–Z3');
+    });
+
+    it('tempo sem zona escolhida entra no denominador e aparece como "sem zona"', () => {
+        expect(distribuicaoDeZonas([bloco('Z2', 20), bloco('Z1', 10, 'derived')])).toBe('67% Z2 · 33% sem zona');
+        expect(distribuicaoDeZonas([bloco('Z2', 5), bloco('Z1', 55, 'unknown')])).toBe('8% Z2 · 92% sem zona');
+    });
+
+    it('inteiros fecham 100 pelo maior resto', () => {
+        expect(distribuicaoDeZonas([bloco('Z1', 10), bloco('Z3', 10), bloco('Z5', 10)])).toBe('34% Z1 · 33% Z3 · 33% Z5');
+    });
+
+    it('sem zona escolhida ou sem tempo, null', () => {
+        expect(distribuicaoDeZonas([bloco('Z2', 30, 'derived')])).toBeNull();
+        expect(distribuicaoDeZonas([])).toBeNull();
     });
 });

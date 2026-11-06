@@ -29,7 +29,7 @@ import {
     type EtapaItem,
 } from './etapas/etapaItem';
 import { EtapasEditor } from './etapas/EtapasEditor';
-import { detalheDaZonaPredominante, minutosNaZonaAlvo, zonaPredominante } from '../adapters/zonaPredominante';
+import { detalheDaZonaPredominante, distribuicaoDeZonas, minutosNaZonaAlvo, zonaPredominante } from '../adapters/zonaPredominante';
 import { useAthleteTrainingZones } from '../../../hooks/useAthleteTrainingZones';
 import { AthleteZonesTable } from './AthleteZonesTable';
 import { NOME_CANAL, type WatchChannel } from '../adapters/watchChannel';
@@ -185,6 +185,7 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
         [itens, zones, treino.tssPlanejado, treino.zonaAlvo],
     );
     const predominante = useMemo(() => zonaPredominante(profile.blocks), [profile]);
+    const distribuicao = useMemo(() => distribuicaoDeZonas(profile.blocks), [profile]);
 
     /** Tipos que o treino tinha e deixou de ter — base do aviso antes de salvar. */
     const etapasRemovidas = (): string[] => {
@@ -393,6 +394,11 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
             {predominante && (
                 <Typography data-testid="total-na-zona-alvo" sx={{ fontSize: '0.68rem', color: surface[200], fontFamily: 'monospace' }}>
                     {minutosNaZonaAlvo(predominante)} min {predominante.zona}
+                </Typography>
+            )}
+            {distribuicao && (
+                <Typography data-testid="distribuicao-zonas" sx={{ fontSize: '0.68rem', color: surface[300], fontFamily: 'monospace' }}>
+                    {distribuicao}
                 </Typography>
             )}
         </Box>
