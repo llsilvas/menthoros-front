@@ -10,7 +10,7 @@ import type { TreinoPlanejadoDto, TreinoPlanejadoPatch } from '../../../types/Pl
 import { resolveReviewStatus } from '../../../types/PlanoReview';
 import { TreinoEditDialog } from './TreinoEditDialog';
 import { NOME_CANAL, buildLockLabelFromRejection, type WatchChannel } from '../adapters/watchChannel';
-import { ApiError } from '../../../api/core/ApiError';
+import { mensagemDeErroAoSalvar } from '../adapters/mensagemDeErroAoSalvar';
 import { useTreinoPlanejado } from '../../../hooks/useTreinoPlanejado';
 import { useReenviarSincronizacao } from '../../../hooks/useReenviarSincronizacao';
 import { surface, semantic, primary } from '../../../theme/tokens';
@@ -39,17 +39,6 @@ interface CurrentWeekPlanProps {
     onTreinoEditado?: () => void;
     /** Canal ativo do atleta (de `conexaoCanal`); `null` = sem relógio conectado. Usado no aviso de plano aprovado. */
     canal?: WatchChannel | null;
-}
-
-const MSG_ERRO_SALVAR = 'Não foi possível salvar o treino. Tente de novo.';
-
-/** 409/422 trazem a mensagem do backend, escrita para o treinador; o resto vira genérica. */
-function mensagemDeErroAoSalvar(err: unknown): string {
-    if (err instanceof ApiError && (err.status === 409 || err.status === 422)) {
-        const message = (err.body as { message?: unknown } | undefined)?.message;
-        if (typeof message === 'string' && message.trim()) return message;
-    }
-    return MSG_ERRO_SALVAR;
 }
 
 /** Canal conectado: o campo novo (Garmin ou intervals.icu) com fallback para perfil antigo. */

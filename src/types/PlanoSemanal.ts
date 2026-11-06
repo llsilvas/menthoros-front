@@ -1,4 +1,5 @@
 import type { TreinoPlanejado, CreateTreinoPlanejado } from './TreinoPlanejado';
+import type { ConexaoCanalDto } from './AtletaPerfilCoach';
 import { surface, semantic } from '../theme/tokens';
 
 // Enums e tipos base — espelha PlanoStatus.java no backend
@@ -27,6 +28,11 @@ export interface PlanoSemanal {
    * plano anterior à feature.
    */
   restDays?: RestDayDto[] | null;
+  /**
+   * Canal de relógio do atleta, mesma resolução do perfil (revogada vem com `ativo: false`); ausente
+   * quando o atleta nunca conectou. Só na listagem do coach (editar-treino-aprovado-planos-dialog).
+   */
+  conexaoCanal?: ConexaoCanalDto | null;
 }
 
 /** Espelha `RestDayOutputDto` do backend. */

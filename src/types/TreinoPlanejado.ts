@@ -1,3 +1,5 @@
+import type { AlvoPrimario } from './AthleteTrainingZones';
+
 export interface TreinoPlanejado {
   id?: string;
   tipoTreino: string;
@@ -29,6 +31,15 @@ export interface TreinoPlanejado {
   analiseAtletaDisponivel?: boolean;
   /** ID da prova vinculada, quando `tipoTreino = PROVA` (prova-no-plano-semanal). */
   provaId?: string;
+  /**
+   * Só na listagem do coach, em plano APROVADO não CONCLUIDO; ausente fora disso
+   * (editar-treino-aprovado-planos-dialog, D3). O PATCH continua sendo a autoridade.
+   */
+  editable?: boolean;
+  /** Motivo da recusa quando `editable === false`: `NOT_PENDING`, `PAST_DAY` ou `TODAY_ON_WATCH`. */
+  editRejection?: string;
+  /** ISO-8601: treino editado após a aprovação; vem também em plano concluído (selo histórico). */
+  editedAfterApprovalAt?: string;
 }
 
 
@@ -60,4 +71,6 @@ export interface EtapaTreino {
   blocoId?: string;
   /** Total de repetições do bloco. Não há índice de repetição no contrato — ver `indexarRepeticoes`. */
   blocoRepeticoes?: number;
+  /** Eixo que o relógio controla; ausente em etapa legada. */
+  alvoPrimario?: AlvoPrimario;
 }
