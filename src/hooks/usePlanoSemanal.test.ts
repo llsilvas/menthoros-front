@@ -96,4 +96,18 @@ describe('usePlanoSemanal.fetchPlanosPorAtleta', () => {
         expect(result.current.error).toBeNull();
         expect(result.current.planos).toEqual([plano('p2', 'a2')]);
     });
+
+    it('clearPlanos com reload em voo não deixa loading preso em true', async () => {
+        const lenta = adiado<PlanoSemanal[]>();
+        listar.mockReturnValueOnce(lenta.promise as never);
+        const { result } = renderHook(() => usePlanoSemanal());
+
+        let primeira: Promise<string> | undefined;
+        act(() => { primeira = result.current.fetchPlanosPorAtleta('a1'); });
+        act(() => { result.current.clearPlanos(); });
+        await act(async () => { lenta.resolve([plano('p1', 'a1')]); await primeira; });
+
+        expect(result.current.loading).toBe(false);
+        expect(result.current.planos).toEqual([]);
+    });
 });

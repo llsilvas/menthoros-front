@@ -72,6 +72,7 @@ export const usePlanoSemanal = () => {
         // Fechar o dialog invalida o reload em voo: ele não repovoa a lista do atleta anterior.
         ultimaRequisicao.current++;
         setPlanos([]);
+        setLoading(false);
     }, []);
 
     return {
