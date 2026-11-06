@@ -59,8 +59,14 @@ vi.mock('../../../components/features/strava/SyncStravaButton', () => ({
 }));
 vi.mock('../../../components/features/atleta/AtletaDialog', () => ({
   // distingue criar (sem atleta) de editar (com atleta) pelo texto renderizado
-  default: ({ open, atleta }: { open: boolean; atleta?: { id: string } }) =>
-    open ? <div>stub-atleta-dialog {atleta ? 'edit' : 'new'}</div> : null,
+  default: ({ open, atleta, onSave }: { open: boolean; atleta?: { id: string }; onSave: (d: object) => Promise<void> }) =>
+    open ? (
+      <div>
+        stub-atleta-dialog {atleta ? 'edit' : 'new'}
+        {/* o dialog real devolve só o que o form tem; o merge com o atleta carregado é da página */}
+        <button onClick={() => onSave({ objetivo: 'Meia maratona' })}>stub-salvar</button>
+      </div>
+    ) : null,
 }));
 vi.mock('../components/AthleteZonesDialogHost', () => ({
   AthleteZonesDialogHost: ({ open, nomeAtleta, onSalvo }: { open: boolean; nomeAtleta?: string; onSalvo?: () => void }) =>
@@ -179,6 +185,24 @@ describe('CoachAthletesPage — ações por atleta', () => {
     fireEvent.click(screen.getByText('Editar'));
     expect(await screen.findByText(/stub-atleta-dialog\s+edit/)).toBeInTheDocument();
     expect(AtletasService.buscarAtletaPorId).toHaveBeenCalledWith('a1');
+  });
+
+  it('salvar a edição leva a data de nascimento original no PUT, sem ela ter sido digitada', async () => {
+    vi.mocked(AtletasService.buscarAtletaPorId).mockResolvedValueOnce(
+      { id: 'a1', nome: 'Ana Silva', dataNascimento: '1993-05-15', objetivo: 'Correr 10K' } as never,
+    );
+    vi.mocked(AtletasService.atualizarAtleta).mockResolvedValue(undefined as never);
+    renderPage();
+
+    fireEvent.click(screen.getByText('Editar'));
+    fireEvent.click(await screen.findByText('stub-salvar'));
+
+    await waitFor(() =>
+      expect(AtletasService.atualizarAtleta).toHaveBeenCalledWith(
+        'a1',
+        expect.objectContaining({ dataNascimento: '1993-05-15', objetivo: 'Meia maratona' }),
+      ),
+    );
   });
 
   it('"Excluir" pede confirmação e chama deletarAtleta ao confirmar', async () => {

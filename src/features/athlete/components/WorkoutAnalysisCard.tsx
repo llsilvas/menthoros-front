@@ -162,7 +162,7 @@ export function WorkoutAnalysisCard({ view, embedded = false }: WorkoutAnalysisC
                     </Box>
 
                     <Typography variant="caption" sx={{ color: surface[500], textWrap: 'pretty' }}>
-                        Gerada automaticamente a partir do treino que você registrou. Seu coach vê a mesma análise.
+                        Resumo automático do treino que você registrou. Não substitui o feedback do seu coach.
                     </Typography>
                 </>
             )}

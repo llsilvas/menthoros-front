@@ -7,6 +7,7 @@ import type { ZoneKey } from '../../../workout/profile/types';
 import {
     aplicarZona,
     avisosDaEtapa,
+    sugestaoDeZona,
     editarValor,
     eixoFoiEscolhido,
     escolherEixo,
@@ -74,6 +75,7 @@ export function ZoneSelector({ value, zones, tipoEtapa, tipoTreino, descricao, d
     const temFc = value.fcAlvoEtapa.trim() !== '';
     const zonaEscolhida = zones && value.zona && value.zona !== 'PERSONALIZADO' ? value.zona : null;
     const semPaceLimiar = zones ? !zones.disponibilidade.pace : false;
+    const sugestao = sugestaoDeZona(value, zones);
 
     const dica = (() => {
         if (!temPace || !temFc) return null;
@@ -201,6 +203,12 @@ export function ZoneSelector({ value, zones, tipoEtapa, tipoTreino, descricao, d
             )}
 
             {dica && <Typography sx={{ fontSize: '0.75rem', color: text.secondary }}>{dica}</Typography>}
+
+            {sugestao && (
+                <Typography data-testid="zona-sugerida" sx={{ fontSize: '0.75rem', color: text.secondary }}>
+                    {sugestao.eixo} cai em {sugestao.zona} para este atleta
+                </Typography>
+            )}
 
             {zonaEscolhida === 'Z6' && (
                 <Typography sx={{ fontSize: '0.75rem', color: text.secondary }}>

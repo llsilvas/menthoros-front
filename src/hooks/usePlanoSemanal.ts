@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { PlanoSemanalService } from '../api/services/PlanoSemanalService';
 import { PlanoSemanasService } from '../services/PlanoSemanasService';
 import type { PlanoSemanal } from '../types/PlanoSemanal';
@@ -7,30 +7,42 @@ export const usePlanoSemanal = () => {
     const [planos, setPlanos] = useState<PlanoSemanal[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<Error | null>(null);
+    // Só a requisição mais recente grava estado: um reload lento do atleta anterior (ou de antes de
+    // um salvamento) não sobrescreve a lista nova (editar-treino-aprovado-planos-dialog, D5).
+    const ultimaRequisicao = useRef(0);
+
+    /** Resultado do reload: `obsoleta` não é falha — uma requisição mais nova grava a lista. */
+    type ResultadoFetch = 'ok' | 'falha' | 'obsoleta';
 
     /**
      * Carrega, numa chamada, os planos em andamento do atleta e as 4 últimas semanas concluídas
      * (o limite é do backend). Antes usava `GET /planos/{atletaId}`, que devolve um único plano e
      * nunca um concluído — por isso o histórico não aparecia.
      */
-    const fetchPlanosPorAtleta = useCallback(async (atletaId: string) => {
+    const fetchPlanosPorAtleta = useCallback(async (atletaId: string): Promise<ResultadoFetch> => {
         if (!atletaId) {
             console.error('atletaId é obrigatório');
             setError(new Error('ID do atleta é obrigatório'));
-            return;
+            return 'falha';
         }
 
+        const requisicao = ++ultimaRequisicao.current;
+        const vigente = () => requisicao === ultimaRequisicao.current;
         try {
             setLoading(true);
             setError(null);
             const response = await PlanoSemanasService.listarSemanasDoAtleta(atletaId);
+            if (!vigente()) return 'obsoleta';
             setPlanos(Array.isArray(response) ? response : []);
+            return 'ok';
         } catch (err) {
+            if (!vigente()) return 'obsoleta';
             console.error('Erro no fetchPlanosPorAtleta:', err);
             setError(err instanceof Error ? err : new Error('Erro ao buscar planos semanais'));
             setPlanos([]);
+            return 'falha';
         } finally {
-            setLoading(false);
+            if (vigente()) setLoading(false);
         }
     }, []);
 
@@ -57,7 +69,10 @@ export const usePlanoSemanal = () => {
     }, []);
 
     const clearPlanos = useCallback(() => {
+        // Fechar o dialog invalida o reload em voo: ele não repovoa a lista do atleta anterior.
+        ultimaRequisicao.current++;
         setPlanos([]);
+        setLoading(false);
     }, []);
 
     return {

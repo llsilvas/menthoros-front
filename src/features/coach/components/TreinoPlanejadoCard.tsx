@@ -6,6 +6,7 @@ import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import FlagIcon from '@mui/icons-material/Flag';
 import { Card } from '../../../shared/components/Card';
 import { content, primary, semantic, surface, text } from '../../../theme/tokens';
+import { overlayWhite } from '../../../theme/overlays';
 import { activeTheme, workoutTypeColor } from '../../../theme/activeTheme';
 import { COR_ICONE_PENDENTE, type EstadoTreinoVisual } from './treinoPlanejadoEstado';
 import type { IntensityLine } from '../adapters/buildIntensityLine';
@@ -41,6 +42,8 @@ interface TreinoPlanejadoCardProps {
     actions?: ReactNode;
     /** Linha de rodapé (ex.: chip de sincronização). */
     rodape?: ReactNode;
+    /** Treino editado pelo treinador depois da aprovação do plano: selo no rodapé (coach-editar-treino-aprovado). */
+    editadoAposAprovacao?: boolean;
 }
 
 function Metrica({ rotulo, valor }: { rotulo: string; valor: string }) {
@@ -125,7 +128,7 @@ function IconeEstado({ icone, cor }: Pick<EstadoTreinoVisual, 'icone' | 'cor'>) 
  */
 export function TreinoPlanejadoCard({
     testId, dia, tipoTreino, rotulo, distanciaKm, duracaoMin, rpeEsperado, zonaAlvo, intensidade, tssPlanejado,
-    porQue, isProva, editado, adicionado, estado, onAbrir, actions, rodape,
+    porQue, isProva, editado, adicionado, estado, onAbrir, actions, rodape, editadoAposAprovacao,
 }: TreinoPlanejadoCardProps) {
     const corTipo = workoutTypeColor(tipoTreino);
     const corEstado = estado?.cor ?? null;
@@ -258,7 +261,30 @@ export function TreinoPlanejadoCard({
                 <Box sx={corpoSx}>{corpo}</Box>
             )}
 
-            {rodape ? <Box sx={{ px: 1.5, pb: 1.25 }}>{rodape}</Box> : null}
+            {rodape || editadoAposAprovacao ? (
+                <Box sx={{ px: 1.5, pb: 1.25, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0.75 }}>
+                    {rodape}
+                    {editadoAposAprovacao && (
+                        <Box
+                            component="span"
+                            sx={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                height: 22,
+                                px: 0.75,
+                                borderRadius: '4px',
+                                border: `1px solid ${overlayWhite[22]}`,
+                                color: surface[300],
+                                fontSize: '0.6875rem',
+                                fontWeight: 600,
+                                whiteSpace: 'nowrap',
+                            }}
+                        >
+                            Editado após aprovação
+                        </Box>
+                    )}
+                </Box>
+            ) : null}
         </Card>
     );
 }

@@ -5,6 +5,8 @@ import {
     Box,
     Stack,
     Slider,
+    IconButton,
+    Tooltip,
 } from '@mui/material';
 import {
     CheckCircle as CheckCircleIcon,
@@ -16,11 +18,14 @@ import {
     ChevronRight as ChevronRightIcon,
     Edit as EditIcon,
     Add as AddIcon,
+    EditOutlined as EditOutlinedIcon,
+    LockOutlined as LockOutlinedIcon,
 } from '@mui/icons-material';
 import { TreinoService } from '../../../api/services/TreinoService';
 import type { TreinoPlanejado } from '../../../types/TreinoPlanejado';
 import { getSafeValue, getSafeNumber } from '../../../utils/safeValues';
-import { content, semantic, surface } from '../../../theme/tokens';
+import { content, primary, semantic, surface } from '../../../theme/tokens';
+import { overlayWhite } from '../../../theme/overlays';
 import { Card } from '../../../shared/components/Card';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { GHOST_BTN_SX, SECONDARY_OUTLINE_SX, SUCCESS_BTN_SX, WARNING_OUTLINE_SX } from '../../../shared/components/actionButtonSx';
@@ -31,6 +36,7 @@ import { formatarDataCurta, formatarDiaCurto, formatarKm, rotuloTipoTreino } fro
 // O alias `@/features` aponta para components/features (ver CLAUDE.md do front); caminho relativo de propósito.
 import { useAnaliseTreinoRealizado } from '../../../features/coach/hooks/useAnaliseTreinoRealizado';
 import { VerRealizadoAcao } from '../../../features/coach/components/VerRealizadoAcao';
+import { buildLockLabelFromRejection } from '../../../features/coach/adapters/watchChannel';
 
 interface TreinoCardProps {
     treino: TreinoPlanejado;
@@ -40,6 +46,8 @@ interface TreinoCardProps {
     /** Chamado após salvar o RPE: o card só guarda o valor em estado local, então quem monta a
      * lista precisa recarregar os dados — senão trocar de semana e voltar mostra o RPE antigo. */
     onRpeSalvo?: () => void;
+    /** Abre o editor de treino de plano aprovado; o lápis só aparece com `editable === true`. */
+    onEditar?: () => void;
 }
 
 const MONO = activeTheme.font.mono;
@@ -56,7 +64,7 @@ const MetricRow: React.FC<{ label: string; value: string; color?: string }> = ({
 
 const RPE_MARKS = [1,2,3,4,5,6,7,8,9,10].map(v => ({ value: v, label: String(v) }));
 
-const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRealizado, onMarcarPerdido, onRpeSalvo }) => {
+const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRealizado, onMarcarPerdido, onRpeSalvo, onEditar }) => {
     const [insightOpen, setInsightOpen] = useState(false);
     const [rpeDialogOpen, setRpeDialogOpen] = useState(false);
     const [rpeValue, setRpeValue] = useState<number>(treino.percepcaoEsforcoRealizado ?? 5);
@@ -83,13 +91,17 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
     const analise = analiseState.data;
     const analiseStatus = analiseState.status;
 
-    const mostrarInsight = isRealizado && (analiseStatus === 'pronta' || analiseStatus === 'indisponivel' || analiseStatus === 'loading');
+    const mostrarInsight = isRealizado && (analiseStatus === 'pronta' || analiseStatus === 'processando' || analiseStatus === 'loading');
     // Estado: borda 1px + tinta suave. O texto do estado vai no cabeçalho — cor nunca é o único sinal.
     const estadoCor = isRealizado ? semantic.success[500] : isPerdido ? semantic.danger[500] : null;
     const estadoLabel = isRealizado ? 'Realizado' : isPerdido ? 'Perdido' : 'Pendente';
     const tipoCodigo = String(getSafeValue(treino.tipoTreino));
     const diaCurto = formatarDiaCurto(String(getSafeValue(treino.diaSemana)));
     const dataCurta = treino.dataTreino ? formatarDataCurta(treino.dataTreino) : null;
+    // `editable` ausente (plano em revisão, concluído ou backend antigo) = nem lápis nem cadeado.
+    const rotuloCadeado = treino.editable === false
+        ? buildLockLabelFromRejection(treino.editRejection, String(statusValue ?? ''))
+        : '';
     const metricas = [
         { label: 'Distância', value: formatarKm(getSafeNumber(treino.distanciaKm)) },
         { label: 'Duração', value: duracaoDisplay ?? '—' },
@@ -136,6 +148,23 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                             <PendingIcon sx={{ fontSize: 16, color: surface[500] }} />
                         )}
                         {estadoLabel}
+                        {treino.editable === true && onEditar ? (
+                            <IconButton
+                                size="small"
+                                onClick={onEditar}
+                                aria-label={`Editar treino de ${dataCurta ? `${diaCurto} · ${dataCurta}` : diaCurto}`}
+                                sx={{ p: 0.5, color: surface[400], '&:hover': { color: primary[400] } }}
+                            >
+                                <EditOutlinedIcon sx={{ fontSize: 18 }} />
+                            </IconButton>
+                        ) : rotuloCadeado ? (
+                            <Tooltip title={rotuloCadeado}>
+                                <Box role="img" aria-label={rotuloCadeado} tabIndex={0}
+                                    sx={{ display: 'inline-flex', p: 0.5, color: surface[500] }}>
+                                    <LockOutlinedIcon sx={{ fontSize: 16 }} />
+                                </Box>
+                            </Tooltip>
+                        ) : null}
                     </Box>
                 </Box>
 
@@ -145,6 +174,26 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
                     <Typography sx={{ fontSize: '0.9375rem', lineHeight: 1.3, fontWeight: 600, color: surface[50] }}>
                         {rotuloTipoTreino(tipoCodigo)}
                     </Typography>
+                    {treino.editedAfterApprovalAt && (
+                        <Box
+                            component="span"
+                            sx={{
+                                ml: 'auto',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                height: 22,
+                                px: 0.75,
+                                borderRadius: '4px',
+                                border: `1px solid ${overlayWhite[22]}`,
+                                color: surface[300],
+                                fontSize: '0.6875rem',
+                                fontWeight: 600,
+                                whiteSpace: 'nowrap',
+                            }}
+                        >
+                            Editado após aprovação
+                        </Box>
+                    )}
                 </Box>
 
                 {/* Métricas principais: 3 colunas, números em mono */}
@@ -176,7 +225,7 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onDetalhes, onMarcarRea
 
             {mostrarInsight && (
                 <Box sx={{ pt: 1.25, borderTop: `1px solid ${content.divider}` }}>
-                    {(analiseStatus === 'loading' || analiseStatus === 'indisponivel') && (
+                    {(analiseStatus === 'loading' || analiseStatus === 'processando') && (
                         <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', fontStyle: 'italic' }}>
                             {analiseStatus === 'loading' ? 'Carregando análise…' : 'Análise AI em andamento…'}
                         </Typography>

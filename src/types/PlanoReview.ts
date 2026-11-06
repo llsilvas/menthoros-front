@@ -111,7 +111,12 @@ export interface TreinoPlanejadoPatch {
      * `expandirBloco`). Resquício do cliente curado à mão, não limitação da API.
      */
     etapas?: EtapaInputPayload[];
+    /** Motivo opcional da edição de treino em plano já aprovado; o backend ignora em revisão. */
+    editReason?: WorkoutEditReason;
 }
+
+/** Motivo de um toque da edição pós-aprovação (coach-editar-treino-aprovado, D7). */
+export type WorkoutEditReason = 'PAIN_INJURY' | 'SCHEDULE' | 'LOAD' | 'OTHER';
 
 /**
  * Plano semanal retornado pelos endpoints de revisão.

@@ -40,6 +40,8 @@ interface PlanoSemanaPanelProps {
     /** Plano salvo o RPE: a lista precisa recarregar, senão o card volta a mostrar o valor antigo
      * ao trocar de aba/semana e voltar (o RPE só fica no estado local do card). */
     onRpeSalvo: () => void;
+    /** Lápis do treino editável de plano aprovado; o estado do editor vive no PlanosDialog (D5). */
+    onEditar?: (treino: TreinoPlanejado, planoId: string) => void;
 }
 
 /**
@@ -78,6 +80,7 @@ export function PlanoSemanaPanel({
     onMarcarRealizado,
     onMarcarPerdido,
     onRpeSalvo,
+    onEditar,
 }: PlanoSemanaPanelProps) {
     const treinos = plano.treinosPlanejados ?? [];
     const status = getSafeValue(plano.status) as PlanoStatus;
@@ -198,6 +201,7 @@ export function PlanoSemanaPanel({
                                     onMarcarRealizado={() => onMarcarRealizado(treino, plano.id || '')}
                                     onMarcarPerdido={treino.id ? () => onMarcarPerdido(treino.id!) : undefined}
                                     onRpeSalvo={onRpeSalvo}
+                                    onEditar={onEditar && plano.id ? () => onEditar(treino, plano.id!) : undefined}
                                 />
                             </Grid>
                         ))}

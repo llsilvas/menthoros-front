@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     Alert,
     Box,
@@ -19,6 +19,13 @@ import { AtletasService } from '../../../api/services/AtletasService';
 import { TreinoService } from '../../../api/services/TreinoService';
 import type { MetodoGeracaoPlano } from '../../../types/PlanoSemanal';
 import type { TreinoPlanejado } from '../../../types/TreinoPlanejado';
+import type { PlanoSemanal } from '../../../types/PlanoSemanal';
+import type { TreinoPlanejadoDto, TreinoPlanejadoPatch } from '../../../types/PlanoReview';
+import { useTreinoPlanejado } from '../../../hooks/useTreinoPlanejado';
+import { TreinoEditDialog } from '../../../features/coach/components/TreinoEditDialog';
+import { buildWatchChannelFromConexao, type WatchChannel } from '../../../features/coach/adapters/watchChannel';
+import { mensagemDeErroAoSalvar } from '../../../features/coach/adapters/mensagemDeErroAoSalvar';
+import { toEditorTreino } from './toEditorTreino';
 import TreinoRealizadoDialog from './TreinoRealizadoDialog';
 import DetalheTreinoDialog from './DetalheTreinoDialog';
 import { PlanoSemanaPanel } from './PlanoSemanaPanel';
@@ -42,6 +49,16 @@ interface PlanosDialogProps {
      * pode ter estado derivado dos planos (ex.: badge de revisões pendentes) que ficaria defasado.
      */
     onPlanoGerado?: () => void;
+}
+
+/** Alvo capturado ao abrir o editor: reload da lista ou troca de semana não o mudam (D5). */
+interface EdicaoTreino {
+    sessao: number;
+    atletaId: string;
+    planoId: string;
+    treinoId: string;
+    treino: TreinoPlanejadoDto;
+    canal: WatchChannel | null;
 }
 
 const PlanosDialog: React.FC<PlanosDialogProps> = ({
@@ -105,6 +122,22 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
     // Estados para o modal de detalhes do treino
     const [detalheModalOpen, setDetalheModalOpen] = useState(false);
     const [treinoDetalhe, setTreinoDetalhe] = useState<TreinoPlanejado | null>(null);
+
+    // Editor de treino de plano aprovado (editar-treino-aprovado-planos-dialog). Fica aqui, fora do
+    // painel que recarrega. `sessao` muda ao fechar o dialog ou trocar de atleta: PATCH em voo de
+    // uma sessão anterior é ignorado ao voltar (D7).
+    const { isSaving, editarTreino } = useTreinoPlanejado();
+    const [edicao, setEdicao] = useState<EdicaoTreino | null>(null);
+    const [erroAoSalvar, setErroAoSalvar] = useState<string | null>(null);
+    const [avisoEdicao, setAvisoEdicao] = useState<string | null>(null);
+    const sessaoRef = useRef(0);
+
+    useEffect(() => {
+        sessaoRef.current++;
+        setEdicao(null);
+        setErroAoSalvar(null);
+        setAvisoEdicao(null);
+    }, [open, atletaId]);
 
     // Carrega os planos quando o dialog abre e atletaId está disponível.
     // O PlanosDialog é UMA instância reusada para todos os atletas (AtletasList não usa key), e o
@@ -237,6 +270,40 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
     const handleCloseDetalheModal = () => {
         setDetalheModalOpen(false);
         setTreinoDetalhe(null);
+    };
+
+    const handleAbrirEdicao = (treino: TreinoPlanejado, plano: PlanoSemanal) => {
+        if (!treino.id || !plano.id) return;
+        setErroAoSalvar(null);
+        setAvisoEdicao(null);
+        setEdicao({
+            sessao: sessaoRef.current,
+            atletaId,
+            planoId: plano.id,
+            treinoId: treino.id,
+            treino: toEditorTreino(treino),
+            canal: buildWatchChannelFromConexao(plano.conexaoCanal),
+        });
+    };
+
+    const handleSalvarEdicao = async (patch: TreinoPlanejadoPatch) => {
+        const alvo = edicao;
+        if (!alvo) return;
+        const vigente = () => alvo.sessao === sessaoRef.current;
+        setErroAoSalvar(null);
+        try {
+            await editarTreino(alvo.planoId, alvo.treinoId, patch);
+        } catch (err) {
+            // O editor continua aberto com as edições; nada aparece se o dialog já mudou de atleta.
+            if (vigente()) setErroAoSalvar(mensagemDeErroAoSalvar(err));
+            return;
+        }
+        if (!vigente()) return;
+        setEdicao(null);
+        const resultado = await fetchPlanosPorAtleta(alvo.atletaId);
+        if (resultado === 'falha' && vigente()) {
+            setAvisoEdicao('Treino salvo; não foi possível atualizar a lista');
+        }
     };
 
     const handleRecalcularMetricas = async () => {
@@ -377,6 +444,12 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                     </Alert>
                 )}
 
+                {avisoEdicao && (
+                    <Alert severity="warning" onClose={() => setAvisoEdicao(null)} sx={alertSx(semantic.warning[500])}>
+                        {avisoEdicao}
+                    </Alert>
+                )}
+
                 {acaoErro && (
                     <Alert severity="error" onClose={() => setAcaoErro(null)} sx={alertSx(semantic.danger[500])}>
                         {acaoErro}
@@ -415,6 +488,7 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                         onMarcarRealizado={handleOpenConclusaoModal}
                         onMarcarPerdido={(treinoId) => void handleMarcarPerdido(treinoId)}
                         onRpeSalvo={recarregar}
+                        onEditar={(treino) => handleAbrirEdicao(treino, planoSelecionado)}
                     />
                 )}
             </Box>
@@ -446,6 +520,22 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
             onClose={handleCloseDetalheModal}
             treino={treinoDetalhe}
         />
+
+        {edicao && (
+            <TreinoEditDialog
+                key={edicao.treinoId}
+                open
+                treino={edicao.treino}
+                atletaId={edicao.atletaId}
+                atletaNome={atletaNome}
+                isSaving={isSaving}
+                // Sem canal ativo o destino é desconhecido: texto neutro, nunca "só no app" (D6).
+                aviso={edicao.canal ? { canal: edicao.canal } : { canal: null, neutro: true }}
+                saveErrorMessage={erroAoSalvar}
+                onClose={() => { setEdicao(null); setErroAoSalvar(null); }}
+                onSave={(patch) => void handleSalvarEdicao(patch)}
+            />
+        )}
         </>
     );
 };

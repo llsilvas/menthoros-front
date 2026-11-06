@@ -60,6 +60,15 @@ export interface TreinoPlanejadoResumoDto {
     /** Treino realizado vinculado; ausente sem vínculo. */
     treinoRealizadoId?: string;
     ritmoAlvo?: string;
+    /** Quando o treinador editou o treino depois da aprovação; ausente se nunca editado. */
+    editedAfterApprovalAt?: string | null;
+    /**
+     * Calculado no backend com a regra do PATCH (fuso do atleta, relógio). Ausente em backend
+     * anterior ao campo: o front cai na regra antiga (só edita em revisão).
+     */
+    editable?: boolean;
+    /** Por que não é editável em plano aprovado (`NOT_PENDING`, `PAST_DAY`, `TODAY_ON_WATCH`); ausente se editável. */
+    editRejection?: string | null;
 }
 
 /** Plano semanal vigente do atleta. */
