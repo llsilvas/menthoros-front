@@ -63,6 +63,23 @@ describe('TreinoEditDialog — plano já aprovado (coach-editar-treino-aprovado)
         expect(screen.getByRole('button', { name: 'Salvar' })).toBeInTheDocument();
     });
 
+    it('neutro (canal desconhecido ou revogado): texto neutro e botão "Salvar", nunca "só no app"', () => {
+        abrir({ aviso: { canal: null, neutro: true } });
+
+        expect(screen.getByText(/este treino faz parte de um plano já aprovado/i)).toBeInTheDocument();
+        expect(screen.getByText('Se o atleta usa relógio, a versão nova será reenviada.')).toBeInTheDocument();
+        expect(screen.queryByText(/só no app/i)).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Salvar' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Carga' })).toBeInTheDocument();
+    });
+
+    it('neutro ignora o canal', () => {
+        abrir({ aviso: { canal: 'GARMIN', neutro: true } });
+
+        expect(screen.getByText('Se o atleta usa relógio, a versão nova será reenviada.')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Salvar' })).toBeInTheDocument();
+    });
+
     it('motivo é um toque: um selecionado por vez, com aria-pressed, e vai no patch como editReason', () => {
         abrir({ aviso: { canal: 'GARMIN' } });
         const carga = screen.getByRole('button', { name: 'Carga' });

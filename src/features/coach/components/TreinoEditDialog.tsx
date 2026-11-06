@@ -109,9 +109,10 @@ export interface TreinoEditDialogProps {
     /**
      * Edição de treino em plano já aprovado (coach-editar-treino-aprovado, D4): mostra o aviso com o
      * canal do atleta (`null` = sem relógio conectado) e o motivo opcional. Sem a prop, o dialog
-     * fica como na revisão.
+     * fica como na revisão. `neutro` (canal desconhecido ou revogado, PlanosDialog) ignora `canal`:
+     * texto neutro e botão "Salvar", sem prometer "só no app" (editar-treino-aprovado-planos-dialog, D6).
      */
-    aviso?: { canal: WatchChannel | null };
+    aviso?: { canal: WatchChannel | null; neutro?: boolean };
     /** Mensagem do backend em 409/422: o dialog mostra e continua aberto com as edições (D5). */
     saveErrorMessage?: string | null;
     onClose: () => void;
@@ -404,7 +405,8 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
         </Box>
     ) : null;
 
-    const rotuloSalvar = aviso?.canal ? 'Salvar e reenviar' : 'Salvar';
+    const canalAviso = aviso?.neutro ? null : aviso?.canal ?? null;
+    const rotuloSalvar = canalAviso ? 'Salvar e reenviar' : 'Salvar';
     const nomeAtleta = atletaNome ?? 'o atleta';
 
     const avisoAprovado = aviso ? (
@@ -424,9 +426,11 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
                     Este treino faz parte de um plano já aprovado
                 </Typography>
                 <Typography sx={{ fontSize: '0.8125rem', lineHeight: '18px', color: surface[300] }}>
-                    {aviso.canal
-                        ? `O treino já está no ${NOME_CANAL[aviso.canal]} de ${nomeAtleta}. Ao salvar, a versão anterior é substituída no relógio.`
-                        : `${nomeAtleta} não conectou relógio. A mudança aparece só no app.`}
+                    {aviso.neutro
+                        ? 'Se o atleta usa relógio, a versão nova será reenviada.'
+                        : canalAviso
+                            ? `O treino já está no ${NOME_CANAL[canalAviso]} de ${nomeAtleta}. Ao salvar, a versão anterior é substituída no relógio.`
+                            : `${nomeAtleta} não conectou relógio. A mudança aparece só no app.`}
                 </Typography>
             </Box>
         </Box>
