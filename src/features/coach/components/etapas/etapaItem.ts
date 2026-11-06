@@ -105,7 +105,7 @@ function subEtapaPayload(s: SubStep): EtapaInputPayload {
         distanciaKm:    s.distanciaKm && !s.distanciaAuto ? parseFloat(s.distanciaKm) : undefined,
         fcAlvoEtapa:    s.fcAlvoEtapa || undefined,
         ritmoAlvo:      s.ritmoAlvo || undefined,
-        descricaoEtapa: s.descricaoEtapa || undefined,
+        descricaoEtapa: s.descricaoEtapa?.trim() || undefined,
         alvoPrimario:   s.alvoPrimario,
     };
 }

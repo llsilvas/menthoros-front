@@ -274,6 +274,14 @@ describe('etapaItem — a descrição sobrevive ao round-trip', () => {
         expect(bloco.subEtapas?.map(s => s.descricaoEtapa)).toEqual(['Tiro forte', 'Trote']);
     });
 
+    it('apara a descrição só na serialização — espaço nas pontas não vai ao backend', () => {
+        const itens = itensFromEtapas([
+            { ordem: 1, tipoEtapa: 'PRINCIPAL', duracaoMin: 30, fcAlvoEtapa: 'Z2', descricaoEtapa: '  Tiro forte  ' },
+            { ordem: 2, tipoEtapa: 'RECUPERACAO', duracaoMin: 5, fcAlvoEtapa: 'Z1', descricaoEtapa: '   ' },
+        ]);
+        expect(serializarItens(itens).map(p => p.descricaoEtapa)).toEqual(['Tiro forte', undefined]);
+    });
+
     it('etapa sem descrição continua sem descrição — não inventa texto', () => {
         const payload = serializarItens(itensFromEtapas([
             { ordem: 1, tipoEtapa: 'PRINCIPAL', duracaoMin: 30, fcAlvoEtapa: 'Z2' },
