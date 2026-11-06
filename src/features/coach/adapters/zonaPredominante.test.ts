@@ -74,6 +74,10 @@ describe('distribuicaoDeZonas', () => {
         expect(distribuicaoDeZonas([bloco('Z1', 10), bloco('Z3', 10), bloco('Z5', 10)])).toBe('34% Z1 · 33% Z3 · 33% Z5');
     });
 
+    it('faixa abaixo de 1% aparece como "<1%", nunca como "0%"', () => {
+        expect(distribuicaoDeZonas([bloco('Z2', 200), bloco('Z5', 1)])).toBe('100% Z2 · <1% Z5');
+    });
+
     it('sem zona escolhida ou sem tempo, null', () => {
         expect(distribuicaoDeZonas([bloco('Z2', 30, 'derived')])).toBeNull();
         expect(distribuicaoDeZonas([])).toBeNull();

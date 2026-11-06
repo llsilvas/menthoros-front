@@ -391,6 +391,11 @@ describe('recalcularDistancia', () => {
         expect(recalcularDistancia(medidas('0.83', '4', '4:50/km', true), medidas('0.83', '4', '  ')).distanciaKm).toBe('');
     });
 
+    it('distância apagada à mão volta a ser derivável: vazio é "sem valor", não "não quero"', () => {
+        expect(recalcularDistancia(medidas('', '4', '4:50/km', false), medidas('', '8', '4:50/km')))
+            .toEqual({ distanciaKm: '1.66', distanciaAuto: true });
+    });
+
     it('duração fracionária deriva pelo inteiro, como o serializador envia', () => {
         expect(recalcularDistancia(medidas('', '', '5:00/km'), medidas('', '4.9', '5:00/km')).distanciaKm).toBe('0.8');
     });

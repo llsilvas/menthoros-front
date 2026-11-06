@@ -180,7 +180,8 @@ function BlocoCard({
     const temDetalhes = Boolean(bloco.descricao);
     const [detalhesAbertos, setDetalhesAbertos] = useState(false);
     const mostraDetalhes = detalhesAbertos || temDetalhes;
-    const medidasDe = (b: BlocoState): MedidasEtapa => ({ ...b, ritmoAlvo: b.intensidade.ritmoAlvo });
+    const medidasDe = (b: BlocoState): MedidasEtapa =>
+        ({ distanciaKm: b.distanciaKm, duracaoMin: b.duracaoMin, ritmoAlvo: b.intensidade.ritmoAlvo, distanciaAuto: b.distanciaAuto });
     const comDistancia = (novo: BlocoState) => onChange({ ...novo, ...recalcularDistancia(medidasDe(bloco), medidasDe(novo)) });
     return (
         <Card

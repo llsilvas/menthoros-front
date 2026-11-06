@@ -219,48 +219,47 @@ export function avisosDaEtapa(i: IntensidadeEtapa, { zones, tipoEtapa, tipoTrein
 }
 
 /**
- * Zona de uma etapa para o **perfil do treino** (zona predominante, gráfico), olhando onde os valores
- * *caem*: faixa de IA ou digitada à mão raramente casa a zona inteira, mas está dentro dela. Isso não
- * muda o que o seletor mostra (Personalizado) — só deixa a etapa contar para a zona do treino.
- * FC e pace em zonas diferentes: vale o eixo que o relógio controla; sem eixo definido, a etapa fica sem zona.
+ * Em que zona do atleta os valores *caem*, e por qual eixo — faixa de IA ou digitada à mão raramente
+ * casa a zona inteira, mas está dentro dela. FC e pace em zonas diferentes: vale o eixo que o
+ * relógio controla; sem eixo definido, nenhuma. Base de `zonaPorValor` (perfil do treino) e de
+ * `sugestaoDeZona` (texto do seletor), para o gráfico e o texto nunca discordarem.
  */
+export function eixoEZonaPorValor(
+    fcAlvoEtapa: string | undefined,
+    ritmoAlvo: string | undefined,
+    alvoPrimario: AlvoPrimario | undefined,
+    zones: AthleteTrainingZonesDto | null,
+): { eixo: 'Pace' | 'FC'; zona: ZoneKey } | null {
+    if (!zones) return null;
+    const fc = parseCanonicalFc(fcAlvoEtapa) ?? undefined;
+    const pace = parseCanonicalPace(ritmoAlvo) ?? undefined;
+    if (!fc && !pace) return null;
+    const { fc: zf, pace: zp } = zonaDoPonto(fc, pace, zones.zonas);
+    if (zf && zp && zf !== zp) {
+        if (alvoPrimario === 'PACE') return { eixo: 'Pace', zona: zp };
+        if (alvoPrimario === 'FC') return { eixo: 'FC', zona: zf };
+        return null;
+    }
+    if (zp && zf) return alvoPrimario === 'FC' ? { eixo: 'FC', zona: zf } : { eixo: 'Pace', zona: zp };
+    if (zp) return { eixo: 'Pace', zona: zp };
+    return zf ? { eixo: 'FC', zona: zf } : null;
+}
+
+/** Zona de uma etapa para o **perfil do treino** (zona predominante, gráfico). Não muda o que o seletor mostra (Personalizado). */
 export function zonaPorValor(
     fcAlvoEtapa: string | undefined,
     ritmoAlvo: string | undefined,
     alvoPrimario: AlvoPrimario | undefined,
     zones: AthleteTrainingZonesDto | null,
 ): ZoneKey | null {
-    if (!zones) return null;
-    const fc = parseCanonicalFc(fcAlvoEtapa) ?? undefined;
-    const pace = parseCanonicalPace(ritmoAlvo) ?? undefined;
-    if (!fc && !pace) return null;
-    const { fc: zf, pace: zp } = zonaDoPonto(fc, pace, zones.zonas);
-    if (zf && zp && zf !== zp) return alvoPrimario === 'PACE' ? zp : alvoPrimario === 'FC' ? zf : null;
-    return zf ?? zp;
+    return eixoEZonaPorValor(fcAlvoEtapa, ritmoAlvo, alvoPrimario, zones)?.zona ?? null;
 }
 
-/**
- * Em "Personalizado", em que zona do atleta o valor digitado cai e por qual eixo — mesma leitura de
- * `zonaPorValor`, só que nomeando o eixo, porque "cai em Z5" sem dizer se é o pace ou a FC engana
- * quando os dois estão preenchidos. Nada com zona escolhida, valor fora de zona ou eixos divergentes
- * sem `alvoPrimario`.
- */
+/** Texto do seletor em "Personalizado": só informa; escolher a zona continua sendo o clique no rádio. */
 export function sugestaoDeZona(
     i: IntensidadeEtapa,
     zones: AthleteTrainingZonesDto | null,
 ): { eixo: 'Pace' | 'FC'; zona: ZoneKey } | null {
-    if (!zones || i.zona !== 'PERSONALIZADO') return null;
-    const fc = parseCanonicalFc(i.fcAlvoEtapa) ?? undefined;
-    const pace = parseCanonicalPace(i.ritmoAlvo) ?? undefined;
-    if (!fc && !pace) return null;
-    const { fc: zf, pace: zp } = zonaDoPonto(fc, pace, zones.zonas);
-    if (zf && zp && zf !== zp) {
-        if (i.alvoPrimario === 'PACE') return { eixo: 'Pace', zona: zp };
-        if (i.alvoPrimario === 'FC') return { eixo: 'FC', zona: zf };
-        return null;
-    }
-    if (zf && zp) return i.alvoPrimario === 'FC' ? { eixo: 'FC', zona: zf } : { eixo: 'Pace', zona: zp };
-    if (zp) return { eixo: 'Pace', zona: zp };
-    if (zf) return { eixo: 'FC', zona: zf };
-    return null;
+    if (i.zona !== 'PERSONALIZADO') return null;
+    return eixoEZonaPorValor(i.fcAlvoEtapa, i.ritmoAlvo, i.alvoPrimario, zones);
 }

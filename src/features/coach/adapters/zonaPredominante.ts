@@ -70,30 +70,38 @@ export function distribuicaoDeZonas(blocks: ProfileBlock[]): string | null {
     }
     if (total <= 0 || porZona.size === 0) return null;
 
-    const faixas: Array<{ rotulo: string; segundos: number }> = [];
+    const faixas: Array<{ de: ZoneKey; ate: ZoneKey; segundos: number }> = [];
     for (const zona of ORDEM) {
         const segundos = porZona.get(zona);
         if (!segundos) continue;
         const anterior = faixas[faixas.length - 1];
-        const vizinha = anterior && ORDEM.indexOf(zona) === ORDEM.indexOf(anterior.rotulo.slice(-2) as ZoneKey) + 1;
-        if (vizinha) {
-            anterior.rotulo = `${anterior.rotulo.slice(0, 2)}–${zona}`;
+        if (anterior && ORDEM.indexOf(zona) === ORDEM.indexOf(anterior.ate) + 1) {
+            anterior.ate = zona;
             anterior.segundos += segundos;
         } else {
-            faixas.push({ rotulo: zona, segundos });
+            faixas.push({ de: zona, ate: zona, segundos });
         }
     }
-    const semZona = total - faixas.reduce((soma, f) => soma + f.segundos, 0);
-    if (semZona > 0) faixas.push({ rotulo: 'sem zona', segundos: semZona });
+    const rotulos = faixas.map((f) => (f.de === f.ate ? f.de : `${f.de}–${f.ate}`));
+    const segundos = faixas.map((f) => f.segundos);
+    const semZona = total - segundos.reduce((a, b) => a + b, 0);
+    if (semZona > 0) {
+        rotulos.push('sem zona');
+        segundos.push(semZona);
+    }
+    return percentuaisInteiros(segundos, total)
+        .map((pct, i) => `${pct === 0 ? '<1' : pct}% ${rotulos[i]}`)
+        .join(' · ');
+}
 
-    // Maior resto: os inteiros somam 100 mesmo quando cada parte arredonda para baixo.
-    const exatos = faixas.map((f) => (f.segundos / total) * 100);
+/** Maior resto: os inteiros somam 100 mesmo quando cada parte arredonda para baixo. */
+export function percentuaisInteiros(partes: number[], total: number): number[] {
+    const exatos = partes.map((p) => (p / total) * 100);
     const inteiros = exatos.map(Math.floor);
     let falta = 100 - inteiros.reduce((a, b) => a + b, 0);
     exatos
         .map((v, i) => ({ i, resto: v - inteiros[i] }))
         .sort((a, b) => b.resto - a.resto)
         .forEach(({ i }) => { if (falta > 0) { inteiros[i] += 1; falta -= 1; } });
-
-    return faixas.map((f, i) => `${inteiros[i]}% ${f.rotulo}`).join(' · ');
+    return inteiros;
 }
