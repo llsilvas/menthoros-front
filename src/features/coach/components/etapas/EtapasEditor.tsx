@@ -105,7 +105,9 @@ function camposDe(b: BlocoState): CamposEtapa {
         fcAlvoEtapa: b.intensidade.fcAlvoEtapa,
         // Vazio vira `undefined` para o serializador omitir o campo.
         ritmoAlvo: b.intensidade.ritmoAlvo.trim() || undefined,
-        descricaoEtapa: b.descricao.trim() || undefined,
+        // Sem `trim` aqui: o estado volta ao campo a cada tecla, e aparar o espaço
+        // final impedia digitar "800m forte". A serialização apara.
+        descricaoEtapa: b.descricao || undefined,
         alvoPrimario: b.intensidade.alvoPrimario,
         zonaEtapa: b.intensidade.zona ?? undefined,
         eixoTocado: b.intensidade.eixoTocado,
