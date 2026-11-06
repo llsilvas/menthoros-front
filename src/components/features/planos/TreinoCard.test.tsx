@@ -168,3 +168,81 @@ describe('TreinoCard — Ver realizado', () => {
         expect(getAnalise).toHaveBeenCalledTimes(1);
     });
 });
+
+describe('TreinoCard — edição pós-aprovação (editar-treino-aprovado-planos-dialog)', () => {
+    function treinoPendente(over: Partial<TreinoPlanejado> = {}): TreinoPlanejado {
+        return {
+            id: 'tp2',
+            tipoTreino: 'CONTINUO',
+            dataTreino: '2026-11-06',
+            diaSemana: 'QUINTA',
+            distanciaKm: 8,
+            statusTreino: 'PENDENTE',
+            ...over,
+        };
+    }
+
+    const renderPendente = (over: Partial<TreinoPlanejado> = {}, onEditar = vi.fn()) => render(
+        <TreinoCard treino={treinoPendente(over)} onDetalhes={vi.fn()} onMarcarRealizado={vi.fn()} onEditar={onEditar} />,
+    );
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it('editable: true mostra o lápis "Editar" e chama onEditar', async () => {
+        const onEditar = vi.fn();
+        renderPendente({ editable: true }, onEditar);
+
+        await userEvent.click(screen.getByRole('button', { name: /editar treino/i }));
+
+        expect(onEditar).toHaveBeenCalledTimes(1);
+        expect(screen.queryByRole('img', { name: /não editável|relógio/i })).toBeNull();
+    });
+
+    it('editable: false com TODAY_ON_WATCH mostra o cadeado com o texto da aba Plano', () => {
+        renderPendente({ editable: false, editRejection: 'TODAY_ON_WATCH' });
+
+        expect(screen.getByRole('img', { name: 'Treino de hoje já está no relógio' })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /editar treino/i })).toBeNull();
+    });
+
+    it('editable: false com PAST_DAY mostra "Treino de dia passado — não editável"', () => {
+        renderPendente({ editable: false, editRejection: 'PAST_DAY' });
+
+        expect(screen.getByRole('img', { name: 'Treino de dia passado — não editável' })).toBeInTheDocument();
+    });
+
+    it('NOT_PENDING em treino realizado detalha pela execução', () => {
+        getAnalise.mockResolvedValue(analise());
+        render(
+            <TreinoCard
+                treino={{ ...treinoRealizado(), editable: false, editRejection: 'NOT_PENDING' }}
+                onDetalhes={vi.fn()} onMarcarRealizado={vi.fn()} onEditar={vi.fn()}
+            />,
+        );
+
+        expect(screen.getByRole('img', { name: 'Treino realizado — não editável' })).toBeInTheDocument();
+    });
+
+    it('sem editable no payload não mostra lápis nem cadeado', () => {
+        renderPendente();
+
+        expect(screen.queryByRole('button', { name: /editar treino/i })).toBeNull();
+        expect(screen.queryByRole('img', { name: /não editável|relógio/i })).toBeNull();
+    });
+
+    it('editedAfterApprovalAt mostra o selo "Editado após aprovação", também sem editable (plano concluído)', () => {
+        renderPendente({ editedAfterApprovalAt: '2026-11-04T12:00:00Z' });
+
+        expect(screen.getByText('Editado após aprovação')).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /editar treino/i })).toBeNull();
+        expect(screen.queryByRole('img', { name: /não editável|relógio/i })).toBeNull();
+    });
+
+    it('sem editedAfterApprovalAt não mostra o selo', () => {
+        renderPendente({ editable: true });
+
+        expect(screen.queryByText('Editado após aprovação')).toBeNull();
+    });
+});
