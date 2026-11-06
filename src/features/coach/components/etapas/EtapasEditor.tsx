@@ -22,7 +22,10 @@ import { Card } from '../../../../shared/components/Card';
 import { GHOST_BTN_SX } from '../../../../shared/components/actionButtonSx';
 import { TIPOS_ETAPA, TIPO_ETAPA_LABEL, tipoEtapaLabel } from '../tiposTreino';
 import { EYEBROW_SX, fieldSx } from './etapasStyles';
-import { emptyBlock, emptyStep, emptySubStep, recalcularDistancia, resumoDaSerie, type EtapaItem, type MedidasEtapa } from './etapaItem';
+import {
+    duracaoInvalida, emptyBlock, emptyStep, emptySubStep, normalizarDuracao, recalcularMedidas, resumoDaSerie,
+    type CampoEditado, type EtapaItem, type MedidasEtapa,
+} from './etapaItem';
 import { ZoneSelector } from './ZoneSelector';
 import { StepSummaryRow } from './StepSummaryRow';
 import { comEixoPadrao, zonaDaEtapa, type IntensidadeEtapa } from '../../adapters/zoneSelectorLogic';
@@ -63,13 +66,16 @@ function accentDe(tipoEtapa: string): string {
 interface BlocoState {
     distanciaKm: string;
     distanciaAuto?: boolean;
-    duracaoMin: string;
+    /** `m:ss`; ver `StepRow.duracao`. */
+    duracao: string;
+    duracaoAuto?: boolean;
     intensidade: IntensidadeEtapa;
     descricao: string;
 }
 
 type CamposEtapa = {
-    duracaoMin: string;
+    duracao: string;
+    duracaoAuto?: boolean;
     distanciaKm: string;
     fcAlvoEtapa: string;
     ritmoAlvo?: string;
@@ -84,7 +90,8 @@ function blocoStateDe(e: CamposEtapa & { tipoEtapa: string }, zones: AthleteTrai
     return {
         distanciaKm: e.distanciaKm,
         distanciaAuto: e.distanciaAuto,
-        duracaoMin: e.duracaoMin,
+        duracao: e.duracao,
+        duracaoAuto: e.duracaoAuto,
         intensidade: comEixoPadrao({
             // Etapa vinda do backend não traz a zona: reconhece pelos valores contra as zonas do atleta.
             zona: e.zonaEtapa ?? zonaDaEtapa(e.fcAlvoEtapa, e.ritmoAlvo, zones),
@@ -99,7 +106,8 @@ function blocoStateDe(e: CamposEtapa & { tipoEtapa: string }, zones: AthleteTrai
 
 function camposDe(b: BlocoState): CamposEtapa {
     return {
-        duracaoMin: b.duracaoMin,
+        duracao: b.duracao,
+        duracaoAuto: b.duracaoAuto,
         distanciaKm: b.distanciaKm,
         distanciaAuto: b.distanciaAuto,
         fcAlvoEtapa: b.intensidade.fcAlvoEtapa,
@@ -182,9 +190,14 @@ function BlocoCard({
     const temDetalhes = Boolean(bloco.descricao);
     const [detalhesAbertos, setDetalhesAbertos] = useState(false);
     const mostraDetalhes = detalhesAbertos || temDetalhes;
-    const medidasDe = (b: BlocoState): MedidasEtapa =>
-        ({ distanciaKm: b.distanciaKm, duracaoMin: b.duracaoMin, ritmoAlvo: b.intensidade.ritmoAlvo, distanciaAuto: b.distanciaAuto });
-    const comDistancia = (novo: BlocoState) => onChange({ ...novo, ...recalcularDistancia(medidasDe(bloco), medidasDe(novo)) });
+    const medidasDe = (b: BlocoState): MedidasEtapa => ({
+        distanciaKm: b.distanciaKm, duracao: b.duracao, ritmoAlvo: b.intensidade.ritmoAlvo,
+        distanciaAuto: b.distanciaAuto, duracaoAuto: b.duracaoAuto,
+    });
+    // Último editado manda: só o campo derivado (ou vazio) muda — regra em `recalcularMedidas`.
+    const comMedidas = (editado: CampoEditado, novo: BlocoState) =>
+        onChange({ ...novo, ...recalcularMedidas(medidasDe(bloco), medidasDe(novo), editado) });
+    const duracaoErrada = duracaoInvalida(bloco.duracao);
     return (
         <Card
             variant="flat"
@@ -235,7 +248,7 @@ function BlocoCard({
                         label="Distância (km)"
                         type="number"
                         value={bloco.distanciaKm}
-                        onChange={e => onChange({ ...bloco, distanciaKm: e.target.value, distanciaAuto: false })}
+                        onChange={e => comMedidas('distancia', { ...bloco, distanciaKm: e.target.value })}
                         helperText={bloco.distanciaAuto ? 'calculado de pace × duração' : undefined}
                         disabled={disabled}
                         size="small"
@@ -243,13 +256,19 @@ function BlocoCard({
                         sx={sx}
                     />
                     <TextField
-                        label="Duração (min)"
-                        type="number"
-                        value={bloco.duracaoMin}
-                        onChange={e => comDistancia({ ...bloco, duracaoMin: e.target.value })}
+                        label="Duração (m:ss)"
+                        placeholder="4:10"
+                        value={bloco.duracao}
+                        onChange={e => comMedidas('duracao', { ...bloco, duracao: e.target.value })}
+                        onBlur={() => {
+                            const normalizada = normalizarDuracao(bloco.duracao);
+                            if (normalizada !== bloco.duracao) onChange({ ...bloco, duracao: normalizada });
+                        }}
+                        error={duracaoErrada}
+                        helperText={duracaoErrada ? 'use m:ss, ex.: 4:10' : bloco.duracaoAuto ? 'calculado de distância × pace' : undefined}
                         disabled={disabled}
                         size="small"
-                        inputProps={{ min: 1, step: 1 }}
+                        inputProps={{ inputMode: 'numeric' }}
                         sx={sx}
                     />
                 </Box>
@@ -263,7 +282,7 @@ function BlocoCard({
                         tipoTreino={tipoTreino}
                         descricao={bloco.descricao}
                         disabled={disabled}
-                        onChange={intensidade => comDistancia({ ...bloco, intensidade })}
+                        onChange={intensidade => comMedidas('pace', { ...bloco, intensidade })}
                     />
                 ) : (
                     <StepSummaryRow

@@ -33,7 +33,8 @@ export interface EtapaTreinoDto {
     ordem?: number;
     tipoEtapa: string;      // "AQUECIMENTO" | "PRINCIPAL" | "INTERVALADO" | "RECUPERACAO" | "DESAQUECIMENTO"
     descricaoEtapa?: string;
-    duracaoMin?: number;    // inteiro em minutos
+    duracaoMin?: number;    // inteiro em minutos, derivado de duracaoSeg quando ele existe
+    duracaoSeg?: number;    // segundos exatos; fonte da verdade quando presente
     distanciaKm?: number;
     fcAlvoEtapa?: string;   // meta de FC, e.g. "140-150 bpm"
     ritmoAlvo?: string;     // meta de ritmo, e.g. "5:00-5:15/km"
@@ -85,6 +86,7 @@ export interface EtapaInputPayload {
     tipoEtapa: string;           // "BLOCO" para blocos repetidos; tipo normal para etapas avulsas
     descricaoEtapa?: string;
     duracaoMin?: number;
+    duracaoSeg?: number;         // o backend deriva duracaoMin dele (round, sem piso)
     distanciaKm?: number;
     fcAlvoEtapa?: string;
     ritmoAlvo?: string;

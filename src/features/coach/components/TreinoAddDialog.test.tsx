@@ -144,7 +144,7 @@ describe('TreinoAddDialog', () => {
         expect(screen.queryByTestId('workout-profile')).not.toBeInTheDocument();
 
         fireEvent.change(screen.getByLabelText('Tipo da etapa 1'), { target: { value: 'PRINCIPAL' } });
-        fireEvent.change(screen.getByLabelText('Duração (min)'), { target: { value: '40' } });
+        fireEvent.change(screen.getByLabelText('Duração (m:ss)'), { target: { value: '40' } });
 
         expect(screen.getByTestId('workout-profile')).toBeInTheDocument();
     });
@@ -171,7 +171,7 @@ describe('TreinoAddDialog', () => {
         // 3× por padrão → 4× com um clique; só a etapa com tipo é persistida (a segunda fica vazia).
         fireEvent.click(screen.getByLabelText(/aumentar repetições da série 1/i));
         fireEvent.change(screen.getByLabelText('Tipo da etapa 1 da série 1'), { target: { value: 'INTERVALADO' } });
-        fireEvent.change(screen.getAllByLabelText('Duração (min)')[0], { target: { value: '3' } });
+        fireEvent.change(screen.getAllByLabelText('Duração (m:ss)')[0], { target: { value: '3' } });
 
         fireEvent.click(screen.getByRole('button', { name: /salvar treino/i }));
 
@@ -214,7 +214,7 @@ describe('TreinoAddDialog', () => {
         fireEvent.click(screen.getByRole('button', { name: /^série$/i }));
 
         fireEvent.change(screen.getByLabelText('Tipo da etapa 1 da série 1'), { target: { value: 'INTERVALADO' } });
-        fireEvent.change(screen.getAllByLabelText('Duração (min)')[0], { target: { value: '4' } });
+        fireEvent.change(screen.getAllByLabelText('Duração (m:ss)')[0], { target: { value: '4' } });
 
         // 3 reps × 4 min = 12 min — o total aparece no rodapé
         expect(screen.getByTestId('totais-treino')).toHaveTextContent('12 min');
@@ -233,7 +233,7 @@ describe('TreinoAddDialog', () => {
         fireEvent.click(screen.getByRole('button', { name: /^etapa$/i }));
 
         fireEvent.change(screen.getByLabelText('Tipo da etapa 1'), { target: { value: 'AQUECIMENTO' } });
-        fireEvent.change(screen.getByLabelText('Duração (min)'), { target: { value: '15' } });
+        fireEvent.change(screen.getByLabelText('Duração (m:ss)'), { target: { value: '15' } });
 
         fireEvent.click(screen.getByRole('button', { name: /salvar treino/i }));
 
@@ -300,7 +300,7 @@ describe('TreinoAddDialog', () => {
         fireEvent.change(screen.getByLabelText(/data do treino/i), { target: { value: '2026-07-03' } });
         fireEvent.click(screen.getByRole('button', { name: /^etapa$/i }));
         fireEvent.change(screen.getByLabelText('Tipo da etapa 1'), { target: { value: 'PRINCIPAL' } });
-        fireEvent.change(screen.getByLabelText('Duração (min)'), { target: { value: '40' } });
+        fireEvent.change(screen.getByLabelText('Duração (m:ss)'), { target: { value: '40' } });
         fireEvent.change(screen.getByLabelText('FC alvo (bpm)'), { target: { value: '144-148 bpm' } });
 
         expect(screen.getByTestId('zona-predominante')).toHaveTextContent('Z2');
@@ -319,7 +319,7 @@ describe('TreinoAddDialog', () => {
         fireEvent.change(screen.getByLabelText(/data do treino/i), { target: { value: '2026-07-03' } });
         fireEvent.click(screen.getByRole('button', { name: /^etapa$/i }));
         fireEvent.change(screen.getByLabelText('Tipo da etapa 1'), { target: { value: 'PRINCIPAL' } });
-        fireEvent.change(screen.getByLabelText('Duração (min)'), { target: { value: '40' } });
+        fireEvent.change(screen.getByLabelText('Duração (m:ss)'), { target: { value: '40' } });
         fireEvent.change(screen.getByLabelText(/esforço esperado/i), { target: { value: '5' } });
         expect(screen.queryByRole('textbox', { name: /zona predominante/i })).not.toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: /salvar treino/i }));
@@ -342,7 +342,7 @@ describe('TreinoAddDialog', () => {
         fireEvent.change(screen.getByLabelText(/data do treino/i), { target: { value: '2026-07-03' } });
         fireEvent.click(screen.getByRole('button', { name: /^etapa$/i }));
         fireEvent.change(screen.getByLabelText('Tipo da etapa 1'), { target: { value: 'PRINCIPAL' } });
-        fireEvent.change(screen.getByLabelText('Duração (min)'), { target: { value: '40' } });
+        fireEvent.change(screen.getByLabelText('Duração (m:ss)'), { target: { value: '40' } });
         fireEvent.click(screen.getByRole('radio', { name: 'Z2' }));
         fireEvent.click(screen.getByRole('button', { name: /salvar treino/i }));
 

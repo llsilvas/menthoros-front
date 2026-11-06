@@ -17,7 +17,7 @@ import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { GHOST_BTN_SX, PRIMARY_BTN_SX } from '../../../shared/components/actionButtonSx';
 import type { TreinoPlanejadoDto, TreinoPlanejadoAddPayload } from '../../../types/PlanoReview';
-import { serializarItens, totaisDeItens, type EtapaItem } from './etapas/etapaItem';
+import { itensInvalidos, serializarItens, totaisDeItens, type EtapaItem } from './etapas/etapaItem';
 import { EtapasEditor } from './etapas/EtapasEditor';
 import { detalheDaZonaPredominante, distribuicaoDeZonas, minutosNaZonaAlvo, zonaPredominante } from '../adapters/zonaPredominante';
 import { useAthleteTrainingZones } from '../../../hooks/useAthleteTrainingZones';
@@ -25,6 +25,7 @@ import { AthleteZonesTable } from './AthleteZonesTable';
 import { EYEBROW_SX, fieldSx } from './etapas/etapasStyles';
 import { TIPOS_TREINO } from './tiposTreino';
 import { WorkoutProfile, selectWorkoutProfile, fromEtapaItens } from '../../workout/profile';
+import { formatDuration } from '../../workout/profile/format';
 
 /*
   Adicionar treino usa o MESMO editor de etapas do Editar treino (`EtapasEditor`) e mostra o mesmo
@@ -107,13 +108,14 @@ export function TreinoAddDialog({
         ...(tipoTreino.trim() ? [] : ['o tipo de treino']),
         ...(dataTreino ? [] : ['o dia']),
     ];
-    const canSave = faltando.length === 0;
+    // Duração inválida numa etapa bloqueia o salvar: omiti-la do payload apagaria a gravada.
+    const canSave = faltando.length === 0 && !itensInvalidos(itens);
 
     const etapasValidas = useMemo(() => serializarItens(itens), [itens]);
     const temEtapas = etapasValidas.length > 0;
     const totais = useMemo(() => {
         const t = totaisDeItens(itens);
-        return { min: t.min, km: Math.round(t.km * 100) / 100 };
+        return { seg: t.seg, km: Math.round(t.km * 100) / 100 };
     }, [itens]);
 
     // O gráfico desenha o que o coach está montando (estado vivo, não o salvo) — mesmo critério do
@@ -159,7 +161,7 @@ export function TreinoAddDialog({
         const payload: TreinoPlanejadoAddPayload = { tipoTreino, dataTreino };
 
         if (temEtapas) {
-            if (totais.min > 0) payload.duracaoMin  = totais.min;
+            if (totais.seg > 0) payload.duracaoMin  = Math.round(totais.seg / 60) || undefined;
             if (totais.km  > 0) payload.distanciaKm = totais.km;
             payload.etapas = etapasValidas;
         } else {
@@ -195,11 +197,11 @@ export function TreinoAddDialog({
     );
 
     const resumoRodape = canSave ? (
-        temEtapas && (totais.min > 0 || totais.km > 0) ? (
+        temEtapas && (totais.seg > 0 || totais.km > 0) ? (
             <Box data-testid="totais-treino" sx={{ display: 'flex', gap: 2, fontSize: '0.78rem', color: surface[200], fontFamily: activeTheme.font.mono }}>
                 <Box component="span" sx={EYEBROW_SX}>Total</Box>
                 {totais.km > 0 && <span>{totais.km} km</span>}
-                {totais.min > 0 && <span>{totais.min} min</span>}
+                {totais.seg > 0 && <span>{formatDuration(totais.seg)}</span>}
                 {predominante && (
                     <span data-testid="total-na-zona-alvo">{minutosNaZonaAlvo(predominante)} min {predominante.zona}</span>
                 )}

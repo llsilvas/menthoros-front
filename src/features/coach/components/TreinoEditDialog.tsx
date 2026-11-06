@@ -24,6 +24,7 @@ import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import type { TreinoPlanejadoDto, TreinoPlanejadoPatch, WorkoutEditReason } from '../../../types/PlanoReview';
 import {
     itensFromEtapas,
+    itensInvalidos,
     serializarItens,
     totaisDeItens,
     type EtapaItem,
@@ -34,6 +35,7 @@ import { useAthleteTrainingZones } from '../../../hooks/useAthleteTrainingZones'
 import { AthleteZonesTable } from './AthleteZonesTable';
 import { NOME_CANAL, type WatchChannel } from '../adapters/watchChannel';
 import { WorkoutProfile, selectWorkoutProfile, fromEtapaItens } from '../../workout/profile';
+import { formatDuration } from '../../workout/profile/format';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -70,7 +72,7 @@ function itensIniciais(treino: TreinoPlanejadoDto): EtapaItem[] {
         id: crypto.randomUUID(),
         kind: 'step',
         tipoEtapa: 'PRINCIPAL',
-        duracaoMin,
+        duracao: duracaoMin ? `${duracaoMin}:00` : '',
         distanciaKm,
         fcAlvoEtapa: treino.zonaAlvo ?? '',
     }];
@@ -160,13 +162,15 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
 
 
     // Totais em tempo real: soma o treino inteiro já expandido (mesma conta do Adicionar treino)
-    const { totalKm, totalMin } = useMemo(() => {
-        const { km, min } = totaisDeItens(itens);
+    const { totalKm, totalSeg } = useMemo(() => {
+        const { km, seg } = totaisDeItens(itens);
         return {
             totalKm:  km  > 0 ? km.toFixed(1) : null,
-            totalMin: min > 0 ? String(min)   : null,
+            totalSeg: seg > 0 ? seg : null,
         };
     }, [itens]);
+    // Duração inválida numa etapa bloqueia o salvar: omiti-la do PATCH apagaria a gravada.
+    const etapasInvalidas = itensInvalidos(itens);
 
     /** Bloco destacado no gráfico — segue o campo em foco, ou o hover no próprio plot. */
     const [blocoDestacado, setBlocoDestacado] = useState<string | null>(null);
@@ -216,7 +220,7 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
         // existirem) teria os dois campos reescritos ao mudar apenas o TSS.
         if (blocosMudados) {
             const distNum = totalKm ? parseFloat(totalKm) : NaN;
-            const durMin  = totalMin ? parseInt(totalMin, 10) : NaN;
+            const durMin  = totalSeg ? Math.round(totalSeg / 60) : NaN;
 
             if (!isNaN(distNum) && distNum !== treino.distanciaKm) patch.distanciaKm = distNum;
 
@@ -250,6 +254,7 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
     };
 
     const handleSalvar = () => {
+        if (etapasInvalidas) return;
         const patch = montarPatch();
 
         if (Object.keys(patch).length === 0) {
@@ -358,7 +363,7 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
         </Select>
     );
 
-    const totalHint = (totalKm || totalMin) ? (
+    const totalHint = (totalKm || totalSeg) ? (
         <Box
             sx={{
                 px: 1.5,
@@ -387,9 +392,9 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
                     {totalKm} km
                 </Typography>
             )}
-            {totalMin && (
+            {totalSeg && (
                 <Typography sx={{ fontSize: '0.68rem', color: surface[200], fontFamily: 'monospace' }}>
-                    {totalMin} min
+                    {formatDuration(totalSeg)}
                 </Typography>
             )}
             {predominante && (
@@ -495,7 +500,7 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
                     <Button
                         variant="contained"
                         onClick={handleSalvar}
-                        disabled={isSaving}
+                        disabled={isSaving || etapasInvalidas}
                         aria-label={rotuloSalvar}
                         sx={{
                             ...PRIMARY_BTN_SX,
