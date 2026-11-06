@@ -51,7 +51,9 @@ const ZONAS_SEM_PACE = {
 type EtapaApi = {
   ordem: number
   tipoEtapa: string
-  duracaoMin: number
+  duracaoMin?: number
+  duracaoSeg?: number
+  distanciaKm?: number
   fcAlvoEtapa?: string
   ritmoAlvo?: string
   alvoPrimario?: string
@@ -213,12 +215,76 @@ test.describe('revisão do plano — zonas do atleta no editor', () => {
 
     // Valor digitado vence, não é recalculado e vai ao PATCH
     await distancia2.fill('7')
-    await page.getByLabel('Duração (min)').nth(1).fill('35')
+    await page.getByLabel('Duração (m:ss)').nth(1).fill('35')
     await expect(distancia2).toHaveValue('7')
     await page.getByRole('button', { name: /^salvar$/i }).click()
     await expect.poll(() => patches.length).toBe(2)
     expect((patches[1] as { etapas?: Array<EtapaApi & { distanciaKm?: number }> }).etapas?.find(e => e.tipoEtapa === 'INTERVALADO'))
-      .toMatchObject({ distanciaKm: 7, duracaoMin: 35 })
+      .toMatchObject({ distanciaKm: 7, duracaoMin: 35, duracaoSeg: 2100 })
+  })
+
+  test('duração em m:ss: 4:10 leva duracaoSeg 250 e duracaoMin 4; 0:10 só o segundo; a etapa reabre em 4:10', async ({ page }) => {
+    const patches = await mockarApis(page, ZONAS_COMPLETAS)
+    await abrirEdicaoDoTreino(page)
+
+    await page.getByRole('button', { name: 'Editar treino' }).first().click()
+    const duracao = page.getByLabel('Duração (m:ss)').nth(1)
+    await expect(duracao).toHaveValue('30:00')
+    await duracao.fill('4:10')
+    await page.getByRole('button', { name: /^salvar$/i }).click()
+    await expect.poll(() => patches.length).toBe(1)
+    const tiro = (patches[0] as { etapas?: EtapaApi[] }).etapas?.find(e => e.tipoEtapa === 'INTERVALADO')
+    expect(tiro).toMatchObject({ duracaoSeg: 250, duracaoMin: 4 })
+
+    // Reaberta, a etapa gravada com duracaoSeg mostra o segundo exato, não o minuto arredondado
+    await page.getByRole('button', { name: 'Editar treino' }).first().click()
+    const duracao2 = page.getByLabel('Duração (m:ss)').nth(1)
+    await expect(duracao2).toHaveValue('4:10')
+
+    // Abaixo de 30 s o minuto derivado dá 0 e fica fora: o backend deriva de duracaoSeg
+    await duracao2.fill('0:10')
+    await page.getByRole('button', { name: /^salvar$/i }).click()
+    await expect.poll(() => patches.length).toBe(2)
+    const curto = (patches[1] as { etapas?: EtapaApi[] }).etapas?.find(e => e.tipoEtapa === 'INTERVALADO')
+    expect(curto?.duracaoSeg).toBe(10)
+    expect(curto).not.toHaveProperty('duracaoMin')
+  })
+
+  test('duração inválida mostra erro e bloqueia o salvar: nenhum PATCH sai', async ({ page }) => {
+    const patches = await mockarApis(page, ZONAS_COMPLETAS)
+    await abrirEdicaoDoTreino(page)
+
+    await page.getByRole('button', { name: 'Editar treino' }).first().click()
+    await page.getByLabel('Duração (m:ss)').nth(1).fill('abc')
+    await expect(page.getByText('use m:ss, ex.: 4:10')).toBeVisible()
+    await expect(page.getByRole('button', { name: /^salvar$/i })).toBeDisabled()
+    expect(patches).toHaveLength(0)
+  })
+
+  test('distância digitada e zona preenchem a duração; a derivada fica fora do PATCH e volta ao reabrir', async ({ page }) => {
+    const patches = await mockarApis(page, ZONAS_COMPLETAS)
+    await abrirEdicaoDoTreino(page)
+
+    await page.getByRole('button', { name: 'Editar treino' }).first().click()
+    await page.getByRole('button', { name: /editar intensidade — tipo da etapa 2/i }).click()
+    await page.getByRole('radio', { name: 'Z5' }).click()
+
+    // Sem duração, 1 km no ponto médio de 4:30-4:45/km dá 4:38, marcada como calculada
+    const duracao = page.getByLabel('Duração (m:ss)').nth(1)
+    await duracao.fill('')
+    await page.getByLabel('Distância (km)').nth(1).fill('1')
+    await expect(duracao).toHaveValue('4:38')
+    await expect(page.getByText('calculado de distância × pace')).toBeVisible()
+
+    await page.getByRole('button', { name: /^salvar$/i }).click()
+    await expect.poll(() => patches.length).toBe(1)
+    const tiro = (patches[0] as { etapas?: EtapaApi[] }).etapas?.find(e => e.tipoEtapa === 'INTERVALADO')
+    expect(tiro).toMatchObject({ distanciaKm: 1, ritmoAlvo: '4:30-4:45/km' })
+    expect(tiro).not.toHaveProperty('duracaoSeg')
+    expect(tiro).not.toHaveProperty('duracaoMin')
+
+    await page.getByRole('button', { name: 'Editar treino' }).first().click()
+    await expect(page.getByLabel('Duração (m:ss)').nth(1)).toHaveValue('4:38')
   })
 
   test('atleta sem pace de limiar: o seletor preenche só a FC, avisa, e o PATCH não leva ritmoAlvo', async ({ page }) => {

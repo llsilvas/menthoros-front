@@ -62,6 +62,14 @@ describe('toEditorTreino', () => {
         });
     });
 
+    it('etapa com duracaoSeg leva o segundo ao editor — sem isso 4:10 reabriria como 4:00 e regravaria 240 s', () => {
+        const etapas = toEditorTreino({
+            ...LISTAGEM,
+            etapas: [{ ordem: 1, tipoEtapa: 'INTERVALADO', duracaoMin: 4, duracaoSeg: 250 }],
+        }).etapas!;
+        expect(etapas[0]).toMatchObject({ duracaoMin: 4, duracaoSeg: 250 });
+    });
+
     it.each([
         ['01:05:00', 'PT65M'],
         ['45:00', 'PT45M'],

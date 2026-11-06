@@ -1,5 +1,5 @@
 import type { EtapaTreinoDto } from '../../../types/PlanoReview';
-import { itensFromEtapas } from '../components/etapas/etapaItem';
+import { duracaoLegivel, itensFromEtapas, segundosDe } from '../components/etapas/etapaItem';
 
 const fmtKm = (km: number): string => `${km}`.replace('.', ',');
 
@@ -19,7 +19,7 @@ export function resumoDaSerie(etapas: EtapaTreinoDto[] | undefined): string | nu
 
     const esforco = bloco.steps.find((s) => s.tipoEtapa?.toUpperCase() === 'INTERVALADO') ?? bloco.steps[0];
     const km = parseFloat(esforco?.distanciaKm ?? '');
-    const min = parseInt(esforco?.duracaoMin ?? '', 10);
-    const medida = km > 0 ? distancia(km) : min > 0 ? `${min} min` : null;
+    const seg = segundosDe(esforco?.duracao ?? '') ?? 0;
+    const medida = km > 0 ? distancia(km) : seg > 0 ? duracaoLegivel(seg) : null;
     return medida ? `${bloco.repeticoes} × ${medida}` : null;
 }

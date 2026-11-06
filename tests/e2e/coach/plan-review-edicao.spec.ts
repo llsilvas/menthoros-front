@@ -283,7 +283,7 @@ test.describe('revisão do plano — adição de treino com o editor unificado',
     await expect(page.getByTestId('repeticoes-display-0')).toHaveText('3×')
     await page.getByLabel(/Aumentar repetições da série 1/i).click()
     await page.getByLabel('Tipo da etapa 1 da série 1').selectOption('INTERVALADO')
-    await page.getByLabel('Duração (min)').first().fill('3')
+    await page.getByLabel('Duração (m:ss)').first().fill('3')
 
     await expect(page.getByTestId('workout-profile')).toBeVisible()
     await expect(page.getByTestId('totais-treino')).toContainText('12 min')

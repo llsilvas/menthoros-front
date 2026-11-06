@@ -24,3 +24,39 @@ describe('EtapasEditor — descrição para o atleta', () => {
         expect(campo).toHaveValue('800m forte, trote entre os tiros');
     });
 });
+
+describe('EtapasEditor — duração em m:ss', () => {
+    it('normaliza no blur: 4 vira 4:00 e 4:7 vira 4:07', async () => {
+        const user = userEvent.setup();
+        render(<Harness inicial={[emptyStep()]} />);
+        const campo = screen.getByLabelText('Duração (m:ss)');
+
+        await user.type(campo, '4');
+        await user.tab();
+        expect(campo).toHaveValue('4:00');
+
+        await user.clear(campo);
+        await user.type(campo, '4:7');
+        await user.tab();
+        expect(campo).toHaveValue('4:07');
+    });
+
+    it('texto inválido mostra o erro e não é normalizado', async () => {
+        const user = userEvent.setup();
+        render(<Harness inicial={[emptyStep()]} />);
+        const campo = screen.getByLabelText('Duração (m:ss)');
+
+        await user.type(campo, 'abc');
+        await user.tab();
+        expect(campo).toHaveValue('abc');
+        expect(campo).toHaveAttribute('aria-invalid', 'true');
+        expect(screen.getByText('use m:ss, ex.: 4:10')).toBeInTheDocument();
+    });
+
+    it('duração derivada mostra a indicação visual', () => {
+        render(<Harness inicial={[{ ...emptyStep(), distanciaKm: '1', ritmoAlvo: '4:10/km', duracao: '4:10', duracaoAuto: true }]} />);
+        expect(screen.getByLabelText('Duração (m:ss)')).toHaveValue('4:10');
+        expect(screen.getByText('calculado de distância × pace')).toBeInTheDocument();
+    });
+});
+

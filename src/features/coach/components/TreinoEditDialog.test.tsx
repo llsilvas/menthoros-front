@@ -45,7 +45,7 @@ describe('TreinoEditDialog', () => {
         renderDialog();
 
         expect(screen.getByDisplayValue('10')).toBeInTheDocument(); // distanciaKm
-        expect(screen.getByDisplayValue('60')).toBeInTheDocument(); // duracaoMin em minutos
+        expect(screen.getByDisplayValue('60:00')).toBeInTheDocument(); // duração em m:ss
         // o tipo aparece no badge e como opção do select — basta existir o seletor com o valor
         expect(screen.getByLabelText('Tipo da etapa 1')).toHaveValue('PRINCIPAL');
     });
@@ -54,13 +54,34 @@ describe('TreinoEditDialog', () => {
         renderDialog();
 
         fireEvent.change(screen.getByDisplayValue('10'), { target: { value: '15' } });
-        fireEvent.change(screen.getByDisplayValue('60'), { target: { value: '90' } });
+        fireEvent.change(screen.getByDisplayValue('60:00'), { target: { value: '90' } });
         fireEvent.click(screen.getByRole('button', { name: /salvar/i }));
 
         expect(onSave).toHaveBeenCalledOnce();
         const patch: TreinoPlanejadoPatch = onSave.mock.calls[0][0];
         expect(patch.distanciaKm).toBe(15);
         expect(patch.duracaoMin).toBe('PT90M');
+    });
+
+    it('duração inválida numa etapa bloqueia o salvar: nenhum patch sai', () => {
+        // Omitir a etapa do PATCH apagaria a duração gravada — `aplicarEtapasPatch` substitui todas.
+        renderDialog();
+
+        fireEvent.change(screen.getByLabelText('Duração (m:ss)'), { target: { value: 'abc' } });
+        const salvar = screen.getByRole('button', { name: /^salvar$/i });
+        expect(salvar).toBeDisabled();
+        fireEvent.click(salvar);
+        expect(onSave).not.toHaveBeenCalled();
+    });
+
+    it('duração em m:ss sai no patch como duracaoSeg com o minuto derivado', () => {
+        renderDialog();
+
+        fireEvent.change(screen.getByLabelText('Duração (m:ss)'), { target: { value: '4:10' } });
+        fireEvent.click(screen.getByRole('button', { name: /^salvar$/i }));
+
+        const patch: TreinoPlanejadoPatch = onSave.mock.calls[0][0];
+        expect(patch.etapas?.[0]).toMatchObject({ duracaoSeg: 250, duracaoMin: 4 });
     });
 
     it('botão Cancelar chama onClose sem chamar onSave', () => {
@@ -103,7 +124,7 @@ describe('TreinoEditDialog', () => {
         fireEvent.click(screen.getByRole('button', { name: /^etapa$/i }));
 
         fireEvent.change(screen.getByLabelText('Tipo da etapa 2'), { target: { value: 'RECUPERACAO' } });
-        const duracoes = screen.getAllByLabelText(/Duração \(min\)/i);
+        const duracoes = screen.getAllByLabelText(/Duração \(m:ss\)/i);
         fireEvent.change(duracoes[duracoes.length - 1], { target: { value: '7' } });
 
         fireEvent.click(screen.getByRole('button', { name: /salvar/i }));
@@ -183,7 +204,7 @@ describe('TreinoEditDialog', () => {
         renderDialog();
 
         expect(screen.queryByText(/TSS não é recalculado/i)).not.toBeInTheDocument();
-        fireEvent.change(screen.getByDisplayValue('60'), { target: { value: '70' } });
+        fireEvent.change(screen.getByDisplayValue('60:00'), { target: { value: '70' } });
 
         expect(screen.getByText(/TSS não é recalculado/i)).toBeInTheDocument();
     });
