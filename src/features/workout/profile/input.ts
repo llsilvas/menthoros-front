@@ -56,7 +56,7 @@ export function fromEtapaTreino(e: EtapaTreino): ProfileEtapaInput {
     ordem:           e.ordem,
     tipo:            tipoDe(e.tipoEtapa),
     descricao:       e.descricaoEtapa,
-    duracaoMin:      minutosExatos(e),
+    duracaoMin:      minutosDoDto(e),
     fcAlvo:          e.fcAlvoEtapa,
     ritmoAlvo:       e.ritmoAlvo,
     intensidade:     e.intensidade,
@@ -77,7 +77,7 @@ export function fromEtapaTreinoDto(e: EtapaTreinoDto, zones: AthleteTrainingZone
     ordem:           e.ordem,
     tipo:            e.tipoEtapa,
     descricao:       e.descricaoEtapa,
-    duracaoMin:      minutosExatos(e),
+    duracaoMin:      minutosDoDto(e),
     distanciaKm:     e.distanciaKm,
     zonaEtapa,
     fcAlvo:          e.fcAlvoEtapa,
@@ -112,7 +112,7 @@ export function fromEtapaItens(itens: EtapaItem[], zones: AthleteTrainingZonesDt
         id:         `step-${item.id}`,
         tipo:       item.tipoEtapa,
         descricao:  item.descricaoEtapa,
-        duracaoMin: minutosDe(item.duracao),
+        duracaoMin: minutosDeTexto(item.duracao),
         distanciaKm: kmDe(item.distanciaKm),
         zonaEtapa:  zonaDe(item),
         fcAlvo:     item.fcAlvoEtapa || undefined,
@@ -130,7 +130,7 @@ export function fromEtapaItens(itens: EtapaItem[], zones: AthleteTrainingZonesDt
         id:         `bloco-${item.id}-1-${sub.id}`,
         tipo:       sub.tipoEtapa,
         descricao:  sub.descricaoEtapa,
-        duracaoMin: minutosDe(sub.duracao),
+        duracaoMin: minutosDeTexto(sub.duracao),
         distanciaKm: kmDe(sub.distanciaKm),
         zonaEtapa:  zonaDe(sub),
         fcAlvo:     sub.fcAlvoEtapa || undefined,
@@ -148,7 +148,7 @@ export function fromEtapaItens(itens: EtapaItem[], zones: AthleteTrainingZonesDt
           id:                  `bloco-${item.id}-${r}-${sub.id}`,
           tipo:                sub.tipoEtapa,
           descricao:           sub.descricaoEtapa,
-          duracaoMin:          minutosDe(sub.duracao),
+          duracaoMin:          minutosDeTexto(sub.duracao),
           distanciaKm:         kmDe(sub.distanciaKm),
           zonaEtapa:           zonaDe(sub),
           fcAlvo:              sub.fcAlvoEtapa || undefined,
@@ -169,13 +169,13 @@ function kmDe(valor: string): number | undefined {
 }
 
 /** Minutos fracionários a partir do `m:ss` do editor: o bloco do perfil mede em segundos. */
-function minutosDe(valor: string): number | undefined {
+function minutosDeTexto(valor: string): number | undefined {
   const seg = segundosDe(valor);
   return seg != null ? seg / 60 : undefined;
 }
 
 /** `duracaoSeg` vence o minuto arredondado quando o contrato o traz. */
-function minutosExatos(e: { duracaoSeg?: number; duracaoMin?: number }): number | undefined {
+function minutosDoDto(e: { duracaoSeg?: number; duracaoMin?: number }): number | undefined {
   return e.duracaoSeg != null ? e.duracaoSeg / 60 : e.duracaoMin;
 }
 

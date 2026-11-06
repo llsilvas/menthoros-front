@@ -21,6 +21,7 @@ function toEditorEtapa(e: EtapaTreino): EtapaTreinoDto {
         tipoEtapa: String(getSafeValue(e.tipoEtapa)),
         descricaoEtapa: e.descricaoEtapa,
         duracaoMin: e.duracaoMin,
+        duracaoSeg: e.duracaoSeg,
         distanciaKm: e.distanciaKm,
         fcAlvoEtapa: e.fcAlvoEtapa,
         ritmoAlvo: e.ritmoAlvo,

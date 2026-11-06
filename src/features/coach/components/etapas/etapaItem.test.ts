@@ -389,6 +389,8 @@ describe('duração em m:ss', () => {
         expect(duracaoInvalida('')).toBe(false);
         expect(duracaoInvalida('4:10')).toBe(false);
         expect(duracaoInvalida('abc')).toBe(true);
+        expect(duracaoInvalida('0:00')).toBe(true);
+        expect(duracaoInvalida('0')).toBe(true);
         expect(itensInvalidos([{ id: 'e', kind: 'step', tipoEtapa: 'PRINCIPAL', duracao: 'abc', distanciaKm: '', fcAlvoEtapa: '' }])).toBe(true);
         expect(itensInvalidos([{ id: 'b', kind: 'block', repeticoes: '3', steps: [{ id: 's', tipoEtapa: 'PRINCIPAL', duracao: '4:', distanciaKm: '', fcAlvoEtapa: '' }] }])).toBe(true);
         expect(itensInvalidos([{ id: 'e', kind: 'step', tipoEtapa: 'PRINCIPAL', duracao: '4:10', distanciaKm: '', fcAlvoEtapa: '' }])).toBe(false);
@@ -413,6 +415,9 @@ describe('duração em m:ss', () => {
         ]);
         expect(a).toMatchObject({ duracao: '4:10' });
         expect(b).toMatchObject({ duracao: '2:00' });
+        // Minuto 0 sem segundo (etapa legada) abre vazio, não `0:00`, que bloquearia o salvar.
+        const [c] = itensFromEtapas([{ ordem: 1, tipoEtapa: 'RECUPERACAO', duracaoMin: 0 }]);
+        expect(c).toMatchObject({ duracao: '' });
     });
 
     it('4:10 e 4:20 não viram a mesma etapa na inferência de série', () => {
@@ -558,5 +563,7 @@ describe('totais por item e resumo da série', () => {
         expect(resumoDaSerie(serie)).toBe('4× · 24 min · 4,3 km');
         expect(resumoDaSerie({ ...serie, steps: serie.steps.map((s) => ({ ...s, distanciaKm: '' })) })).toBe('4× · 24 min');
         expect(resumoDaSerie({ ...serie, repeticoes: '', steps: [] })).toBe('1×');
+        // Com segundos o cabeçalho mostra m:ss, como o card — "17 min" esconderia o que a change traz.
+        expect(resumoDaSerie({ ...serie, steps: [{ ...serie.steps[0], duracao: '4:10', distanciaKm: '' }] })).toBe('4× · 16:40');
     });
 });

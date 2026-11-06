@@ -3,7 +3,6 @@ import type { EtapaInputPayload, EtapaTreinoDto } from '../../../../types/PlanoR
 import type { ZoneKey } from '../../../workout/profile/types';
 import { detectarJanelaRepetida } from '../../../workout/serie/janelaRepetida';
 import { parseCanonicalPace } from '../../adapters/intensityFormat';
-import { formatDuration } from '../../../workout/profile/format';
 
 /**
  * Modelo de edição de etapas, compartilhado entre `TreinoAddDialog` e `TreinoEditDialog`.
@@ -147,7 +146,8 @@ function subStepFromEtapa(e: EtapaTreinoDto): SubStep {
     const passo: SubStep = {
         id: crypto.randomUUID(),
         tipoEtapa: e.tipoEtapa,
-        duracao: seg != null ? formatarDuracao(seg) : '',
+        // Minuto 0 sem segundo gravado é "sem duração", não `0:00` (que o campo recusa).
+        duracao: seg ? formatarDuracao(seg) : '',
         distanciaKm: txt(e.distanciaKm),
         fcAlvoEtapa: e.fcAlvoEtapa ?? '',
         ritmoAlvo: e.ritmoAlvo,
@@ -255,7 +255,7 @@ export function itensFromEtapas(etapas: EtapaTreinoDto[] | undefined): EtapaItem
 /** Segundos de `m`, `m:ss` ou `h:mm:ss`; `null` para vazio ou texto que não parseia. */
 export function segundosDe(texto: string): number | null {
     const partes = texto.trim().split(':');
-    if (partes.length === 0 || partes.length > 3 || partes.some(p => !/^\d+$/.test(p))) return null;
+    if (partes.length > 3 || partes.some(p => !/^\d+$/.test(p))) return null;
     const n = partes.map(Number);
     if (n.length === 1) return n[0] * 60;
     if (n.length === 2) return n[1] > 59 ? null : n[0] * 60 + n[1];
@@ -277,9 +277,16 @@ export function normalizarDuracao(texto: string): string {
     return seg == null ? texto : formatarDuracao(seg);
 }
 
-/** Vazio não é inválido: é "sem duração". */
+/** Vazio não é inválido: é "sem duração". Zero é: omiti-lo do PATCH apagaria a duração gravada. */
 export function duracaoInvalida(texto: string): boolean {
-    return texto.trim() !== '' && segundosDe(texto) == null;
+    if (texto.trim() === '') return false;
+    const seg = segundosDe(texto);
+    return seg == null || seg === 0;
+}
+
+/** Para ler: `24 min` em minuto cheio, `16:40` quando há segundos. Cabeçalho da série e card. */
+export function duracaoLegivel(seg: number): string {
+    return seg % 60 === 0 ? `${seg / 60} min` : formatarDuracao(seg);
 }
 
 /** Algum item com duração que não parseia — bloqueia o salvar nos dois dialogs. */
@@ -323,6 +330,8 @@ function duracaoEstimada({ distanciaKm, ritmoAlvo }: MedidasEtapa): number | nul
     return Math.round(km * segKm);
 }
 
+export type MedidasDerivadas = Pick<MedidasEtapa, 'distanciaKm' | 'distanciaAuto' | 'duracao' | 'duracaoAuto'>;
+
 /**
  * Regra dos três campos: o último editado manda e só o campo derivado muda.
  *
@@ -334,8 +343,6 @@ function duracaoEstimada({ distanciaKm, ritmoAlvo }: MedidasEtapa): number | nul
  * Sem fonte (duração/distância apagada, pace apagado) a derivada é limpa. Pace incompleto da
  * digitação ("5:0") mantém valor e marcador, senão o calculado viraria manual no meio da edição.
  */
-export type MedidasDerivadas = Pick<MedidasEtapa, 'distanciaKm' | 'distanciaAuto' | 'duracao' | 'duracaoAuto'>;
-
 export function recalcularMedidas(antes: MedidasEtapa, depois: MedidasEtapa, editado: CampoEditado): MedidasDerivadas {
     const base: MedidasEtapa = {
         distanciaKm: depois.distanciaKm, duracao: depois.duracao, ritmoAlvo: depois.ritmoAlvo,
@@ -345,7 +352,7 @@ export function recalcularMedidas(antes: MedidasEtapa, depois: MedidasEtapa, edi
     if (editado === 'distancia') base.distanciaAuto = false;
 
     const distanciaDerivavel = base.distanciaAuto || !(parseFloat(base.distanciaKm) > 0);
-    const duracaoDerivavel = base.duracaoAuto || !(segundosDe(base.duracao) != null && segundosDe(base.duracao)! > 0);
+    const duracaoDerivavel = base.duracaoAuto || !((segundosDe(base.duracao) ?? 0) > 0);
     const paceIncompleto = !!depois.ritmoAlvo.trim() && segPorKm(depois.ritmoAlvo) == null;
 
     const derivaDistancia = () => {
@@ -417,7 +424,7 @@ export function totaisDoItem(item: EtapaItem): { seg: number; km: number } {
 export function resumoDaSerie(item: BlockRow): string {
     const { seg, km } = totaisDoItem(item);
     const partes = [`${Math.max(1, parseInt(item.repeticoes, 10) || 1)}×`];
-    if (seg > 0) partes.push(formatDuration(seg));
+    if (seg > 0) partes.push(duracaoLegivel(seg));
     if (km > 0) partes.push(`${(Math.round(km * 10) / 10).toFixed(1).replace('.', ',')} km`);
     return partes.join(' · ');
 }
