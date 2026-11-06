@@ -19,7 +19,7 @@ import { GHOST_BTN_SX, PRIMARY_BTN_SX } from '../../../shared/components/actionB
 import type { TreinoPlanejadoDto, TreinoPlanejadoAddPayload } from '../../../types/PlanoReview';
 import { serializarItens, totaisDeItens, type EtapaItem } from './etapas/etapaItem';
 import { EtapasEditor } from './etapas/EtapasEditor';
-import { detalheDaZonaPredominante, minutosNaZonaAlvo, zonaPredominante } from '../adapters/zonaPredominante';
+import { detalheDaZonaPredominante, distribuicaoDeZonas, minutosNaZonaAlvo, zonaPredominante } from '../adapters/zonaPredominante';
 import { useAthleteTrainingZones } from '../../../hooks/useAthleteTrainingZones';
 import { AthleteZonesTable } from './AthleteZonesTable';
 import { EYEBROW_SX, fieldSx } from './etapas/etapasStyles';
@@ -126,6 +126,7 @@ export function TreinoAddDialog({
         [itens, tss, zones],
     );
     const predominante = useMemo(() => zonaPredominante(profile.blocks), [profile]);
+    const distribuicao = useMemo(() => distribuicaoDeZonas(profile.blocks), [profile]);
 
     const temAlteracoes =
         tipoTreino !== '' || dataTreino !== (dataInicial ?? '') || observacoes !== '' || tss !== ''
@@ -202,6 +203,7 @@ export function TreinoAddDialog({
                 {predominante && (
                     <span data-testid="total-na-zona-alvo">{minutosNaZonaAlvo(predominante)} min {predominante.zona}</span>
                 )}
+                {distribuicao && <span data-testid="distribuicao-zonas">{distribuicao}</span>}
             </Box>
         ) : null
     ) : (

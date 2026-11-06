@@ -54,3 +54,54 @@ export function detalheDaZonaPredominante(z: ZonaPredominante | null): string | 
     if (outra) partes.push(`${minutos(outra.seconds)} min em ${outra.zone}`);
     return partes.join(', ');
 }
+
+/**
+ * "67% Z1–Z2 · 33% Z5": tempo por zona sobre o tempo **total** das etapas, não só do tempo com zona
+ * — senão 5 min classificados num treino de 60 virariam 100%. O resto aparece como "sem zona".
+ * Zonas vizinhas contíguas viram uma faixa; percentuais inteiros fecham 100 pelo maior resto.
+ * `null` sem nenhuma zona escolhida.
+ */
+export function distribuicaoDeZonas(blocks: ProfileBlock[]): string | null {
+    const total = blocks.reduce((soma, b) => soma + b.durationSec, 0);
+    const porZona = new Map<ZoneKey, number>();
+    for (const b of blocks) {
+        if (b.confidence !== 'prescribed') continue;
+        porZona.set(b.zone, (porZona.get(b.zone) ?? 0) + b.durationSec);
+    }
+    if (total <= 0 || porZona.size === 0) return null;
+
+    const faixas: Array<{ de: ZoneKey; ate: ZoneKey; segundos: number }> = [];
+    for (const zona of ORDEM) {
+        const segundos = porZona.get(zona);
+        if (!segundos) continue;
+        const anterior = faixas[faixas.length - 1];
+        if (anterior && ORDEM.indexOf(zona) === ORDEM.indexOf(anterior.ate) + 1) {
+            anterior.ate = zona;
+            anterior.segundos += segundos;
+        } else {
+            faixas.push({ de: zona, ate: zona, segundos });
+        }
+    }
+    const rotulos = faixas.map((f) => (f.de === f.ate ? f.de : `${f.de}–${f.ate}`));
+    const segundos = faixas.map((f) => f.segundos);
+    const semZona = total - segundos.reduce((a, b) => a + b, 0);
+    if (semZona > 0) {
+        rotulos.push('sem zona');
+        segundos.push(semZona);
+    }
+    return percentuaisInteiros(segundos, total)
+        .map((pct, i) => `${pct === 0 ? '<1' : pct}% ${rotulos[i]}`)
+        .join(' · ');
+}
+
+/** Maior resto: os inteiros somam 100 mesmo quando cada parte arredonda para baixo. */
+export function percentuaisInteiros(partes: number[], total: number): number[] {
+    const exatos = partes.map((p) => (p / total) * 100);
+    const inteiros = exatos.map(Math.floor);
+    let falta = 100 - inteiros.reduce((a, b) => a + b, 0);
+    exatos
+        .map((v, i) => ({ i, resto: v - inteiros[i] }))
+        .sort((a, b) => b.resto - a.resto)
+        .forEach(({ i }) => { if (falta > 0) { inteiros[i] += 1; falta -= 1; } });
+    return inteiros;
+}

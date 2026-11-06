@@ -186,6 +186,41 @@ test.describe('revisão do plano — zonas do atleta no editor', () => {
     await expect(linha).toContainText('168–178 bpm')
   })
 
+  test('pace e duração calculam a distância da etapa; a derivada fica fora do PATCH, a digitada vai', async ({ page }) => {
+    const patches = await mockarApis(page, ZONAS_COMPLETAS)
+    await abrirEdicaoDoTreino(page)
+
+    await page.getByRole('button', { name: 'Editar treino' }).first().click()
+    await page.getByRole('button', { name: /editar intensidade — tipo da etapa 2/i }).click()
+    await page.getByRole('radio', { name: 'Z5' }).click()
+
+    // 30 min no ponto médio de 4:30-4:45/km, marcada como calculada
+    const distancia = page.getByLabel('Distância (km)').nth(1)
+    await expect(distancia).toHaveValue('6.49')
+    await expect(page.getByText('calculado de pace × duração').nth(1)).toBeVisible()
+
+    // A derivada não vai ao PATCH: o conversor do relógio descartaria a duração
+    await page.getByRole('button', { name: /^salvar$/i }).click()
+    await expect.poll(() => patches.length).toBe(1)
+    const derivada = (patches[0] as { etapas?: Array<EtapaApi & { distanciaKm?: number }> }).etapas?.find(e => e.tipoEtapa === 'INTERVALADO')
+    expect(derivada).toMatchObject({ duracaoMin: 30, ritmoAlvo: '4:30-4:45/km' })
+    expect(derivada).not.toHaveProperty('distanciaKm')
+
+    // Reaberto, o editor recalcula a derivada a partir do que foi gravado
+    await page.getByRole('button', { name: 'Editar treino' }).first().click()
+    const distancia2 = page.getByLabel('Distância (km)').nth(1)
+    await expect(distancia2).toHaveValue('6.49')
+
+    // Valor digitado vence, não é recalculado e vai ao PATCH
+    await distancia2.fill('7')
+    await page.getByLabel('Duração (min)').nth(1).fill('35')
+    await expect(distancia2).toHaveValue('7')
+    await page.getByRole('button', { name: /^salvar$/i }).click()
+    await expect.poll(() => patches.length).toBe(2)
+    expect((patches[1] as { etapas?: Array<EtapaApi & { distanciaKm?: number }> }).etapas?.find(e => e.tipoEtapa === 'INTERVALADO'))
+      .toMatchObject({ distanciaKm: 7, duracaoMin: 35 })
+  })
+
   test('atleta sem pace de limiar: o seletor preenche só a FC, avisa, e o PATCH não leva ritmoAlvo', async ({ page }) => {
     const patches = await mockarApis(page, ZONAS_SEM_PACE)
     await abrirEdicaoDoTreino(page)
