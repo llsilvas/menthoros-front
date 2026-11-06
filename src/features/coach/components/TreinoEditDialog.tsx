@@ -23,6 +23,7 @@ import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import type { TreinoPlanejadoDto, TreinoPlanejadoPatch, WorkoutEditReason } from '../../../types/PlanoReview';
 import {
+    duracaoLegivel,
     itensFromEtapas,
     itensInvalidos,
     serializarItens,
@@ -35,7 +36,6 @@ import { useAthleteTrainingZones } from '../../../hooks/useAthleteTrainingZones'
 import { AthleteZonesTable } from './AthleteZonesTable';
 import { NOME_CANAL, type WatchChannel } from '../adapters/watchChannel';
 import { WorkoutProfile, selectWorkoutProfile, fromEtapaItens } from '../../workout/profile';
-import { formatDuration } from '../../workout/profile/format';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -394,7 +394,7 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
             )}
             {totalSeg && (
                 <Typography sx={{ fontSize: '0.68rem', color: surface[200], fontFamily: 'monospace' }}>
-                    {formatDuration(totalSeg)}
+                    {duracaoLegivel(totalSeg)}
                 </Typography>
             )}
             {predominante && (

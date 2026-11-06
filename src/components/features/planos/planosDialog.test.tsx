@@ -258,13 +258,13 @@ describe('PlanosDialog — editar treino de plano aprovado', () => {
         return render(<PlanosDialog open onClose={vi.fn()} atletaId={atletaId} atletaNome="Ana" />);
     };
 
-    it('lápis abre o editor com 1h05, TSS, observação e o seletor de motivo', async () => {
+    it('lápis abre o editor com 65 min, TSS, observação e o seletor de motivo', async () => {
         abrirDialog();
 
         await userEvent.click(lapis());
 
         expect(editorAberto()).toBeInTheDocument();
-        expect(screen.getAllByText('1h05').length).toBeGreaterThan(0);
+        expect(screen.getByText('65 min')).toBeInTheDocument();
         expect(screen.getByLabelText(/TSS planejado/i)).toHaveValue(88);
         expect(screen.getByLabelText(/Observação/i)).toHaveValue('Segurar o ritmo');
         expect(screen.getByRole('button', { name: 'Carga' })).toBeInTheDocument();

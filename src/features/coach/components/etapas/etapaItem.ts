@@ -352,7 +352,8 @@ export function recalcularMedidas(antes: MedidasEtapa, depois: MedidasEtapa, edi
     if (editado === 'distancia') base.distanciaAuto = false;
 
     const distanciaDerivavel = base.distanciaAuto || !(parseFloat(base.distanciaKm) > 0);
-    const duracaoDerivavel = base.duracaoAuto || !((segundosDe(base.duracao) ?? 0) > 0);
+    // Texto inválido ("4:") é do treinador: fica, com o erro à vista, em vez de virar derivado.
+    const duracaoDerivavel = base.duracaoAuto || base.duracao.trim() === '';
     const paceIncompleto = !!depois.ritmoAlvo.trim() && segPorKm(depois.ritmoAlvo) == null;
 
     const derivaDistancia = () => {

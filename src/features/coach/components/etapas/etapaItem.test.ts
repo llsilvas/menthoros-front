@@ -490,6 +490,13 @@ describe('recalcularMedidas', () => {
         expect(rec(medidas('1', '4:10', '4:10/km', { duracaoAuto: true }), medidas('', '4:10', '4:10/km'), 'distancia').duracao).toBe('');
     });
 
+    it('texto inválido na duração é do treinador: mudar distância ou pace não o sobrescreve', () => {
+        expect(rec(medidas('1', '4:', '4:10/km'), medidas('2', '4:', '4:10/km'), 'distancia'))
+            .toMatchObject({ duracao: '4:', duracaoAuto: false });
+        expect(rec(medidas('1', '4:', '4:10/km'), medidas('1', '4:', '5:00/km'), 'pace'))
+            .toMatchObject({ duracao: '4:', duracaoAuto: false });
+    });
+
     it('duração inválida não deriva e não apaga a distância derivada', () => {
         expect(rec(medidas('0.83', '4:00', '4:50/km', { distanciaAuto: true }), medidas('0.83', '4:', '4:50/km'), 'duracao'))
             .toMatchObject({ distanciaKm: '0.83', distanciaAuto: true, duracaoAuto: false });

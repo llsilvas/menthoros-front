@@ -17,7 +17,7 @@ import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { GHOST_BTN_SX, PRIMARY_BTN_SX } from '../../../shared/components/actionButtonSx';
 import type { TreinoPlanejadoDto, TreinoPlanejadoAddPayload } from '../../../types/PlanoReview';
-import { itensInvalidos, serializarItens, totaisDeItens, type EtapaItem } from './etapas/etapaItem';
+import { duracaoLegivel, itensInvalidos, serializarItens, totaisDeItens, type EtapaItem } from './etapas/etapaItem';
 import { EtapasEditor } from './etapas/EtapasEditor';
 import { detalheDaZonaPredominante, distribuicaoDeZonas, minutosNaZonaAlvo, zonaPredominante } from '../adapters/zonaPredominante';
 import { useAthleteTrainingZones } from '../../../hooks/useAthleteTrainingZones';
@@ -25,7 +25,6 @@ import { AthleteZonesTable } from './AthleteZonesTable';
 import { EYEBROW_SX, fieldSx } from './etapas/etapasStyles';
 import { TIPOS_TREINO } from './tiposTreino';
 import { WorkoutProfile, selectWorkoutProfile, fromEtapaItens } from '../../workout/profile';
-import { formatDuration } from '../../workout/profile/format';
 
 /*
   Adicionar treino usa o MESMO editor de etapas do Editar treino (`EtapasEditor`) e mostra o mesmo
@@ -201,7 +200,7 @@ export function TreinoAddDialog({
             <Box data-testid="totais-treino" sx={{ display: 'flex', gap: 2, fontSize: '0.78rem', color: surface[200], fontFamily: activeTheme.font.mono }}>
                 <Box component="span" sx={EYEBROW_SX}>Total</Box>
                 {totais.km > 0 && <span>{totais.km} km</span>}
-                {totais.seg > 0 && <span>{formatDuration(totais.seg)}</span>}
+                {totais.seg > 0 && <span>{duracaoLegivel(totais.seg)}</span>}
                 {predominante && (
                     <span data-testid="total-na-zona-alvo">{minutosNaZonaAlvo(predominante)} min {predominante.zona}</span>
                 )}
