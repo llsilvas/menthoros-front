@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { itensFromEtapas, recalcularDistancia, serializarItens } from './etapaItem';
+import { itensFromEtapas, recalcularDistancia, resumoDaSerie, serializarItens, totaisDeItens, totaisDoItem } from './etapaItem';
 import type { EtapaTreinoDto } from '../../../../types/PlanoReview';
 
 /**
@@ -429,5 +429,33 @@ describe('recalcularDistancia', () => {
         const [gravada] = itensFromEtapas([{ ordem: 1, tipoEtapa: 'INTERVALADO', duracaoMin: 4, distanciaKm: 2, ritmoAlvo: '4:50/km' }]);
         expect(gravada).toMatchObject({ distanciaKm: '2' });
         expect((gravada as { distanciaAuto?: boolean }).distanciaAuto).toBeFalsy();
+    });
+});
+
+describe('totais por item e resumo da série', () => {
+    const serie = {
+        id: 'b1', kind: 'block' as const, repeticoes: '4',
+        steps: [
+            { id: 's1', tipoEtapa: 'INTERVALADO', duracaoMin: '4', distanciaKm: '0.83', fcAlvoEtapa: '' },
+            { id: 's2', tipoEtapa: 'RECUPERACAO', duracaoMin: '2', distanciaKm: '0.25', fcAlvoEtapa: '' },
+        ],
+    };
+
+    it('a série conta N vezes as suas etapas', () => {
+        expect(totaisDoItem(serie)).toEqual({ min: 24, km: 4.32 });
+        expect(totaisDoItem({ id: 'e', kind: 'step', tipoEtapa: 'AQUECIMENTO', duracaoMin: '10', distanciaKm: '1.5', fcAlvoEtapa: '' }))
+            .toEqual({ min: 10, km: 1.5 });
+    });
+
+    it('o total do treino é a soma dos itens', () => {
+        const t = totaisDeItens([serie, { id: 'e', kind: 'step', tipoEtapa: 'AQUECIMENTO', duracaoMin: '10', distanciaKm: '1.5', fcAlvoEtapa: '' }]);
+        expect(t.min).toBe(34);
+        expect(t.km).toBeCloseTo(5.82);
+    });
+
+    it('resumo: repetições, minutos e km com vírgula; parte zerada some', () => {
+        expect(resumoDaSerie(serie)).toBe('4× · 24 min · 4,3 km');
+        expect(resumoDaSerie({ ...serie, steps: serie.steps.map((s) => ({ ...s, distanciaKm: '' })) })).toBe('4× · 24 min');
+        expect(resumoDaSerie({ ...serie, repeticoes: '', steps: [] })).toBe('1×');
     });
 });

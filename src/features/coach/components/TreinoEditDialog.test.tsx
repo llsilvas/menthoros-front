@@ -259,6 +259,8 @@ describe('TreinoEditDialog — série', () => {
 
         expect(screen.getByText('Série', { selector: 'p' })).toBeInTheDocument();
         expect(screen.getByTestId('repeticoes-display-1')).toHaveTextContent('4×');
+        // Resumo do bloco já multiplicado: 4 × (3 + 2) min, sem distância prescrita
+        expect(screen.getByTestId('resumo-serie-1')).toHaveTextContent('4× · 20 min');
         expect(screen.getByLabelText('Tipo da etapa 1')).toHaveValue('AQUECIMENTO');
         expect(screen.getByLabelText('Tipo da etapa 3')).toHaveValue('DESAQUECIMENTO');
     });
@@ -268,6 +270,7 @@ describe('TreinoEditDialog — série', () => {
 
         fireEvent.click(screen.getByLabelText(/Aumentar repetições da série 2/i));
         expect(screen.getByTestId('repeticoes-display-1')).toHaveTextContent('5×');
+        expect(screen.getByTestId('resumo-serie-1')).toHaveTextContent('5× · 25 min');
 
         fireEvent.click(screen.getByLabelText(/Diminuir repetições da série 2/i));
         expect(screen.getByTestId('repeticoes-display-1')).toHaveTextContent('4×');

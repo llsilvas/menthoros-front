@@ -279,16 +279,33 @@ export function totaisDeItens(itens: EtapaItem[]): { min: number; km: number } {
     let min = 0;
     let km = 0;
     for (const item of itens) {
-        if (item.kind === 'step') {
-            min += parseInt(item.duracaoMin, 10) || 0;
-            km  += parseFloat(item.distanciaKm) || 0;
-            continue;
-        }
-        const reps = Math.max(1, parseInt(item.repeticoes, 10) || 1);
-        for (const s of item.steps) {
-            min += (parseInt(s.duracaoMin, 10) || 0) * reps;
-            km  += (parseFloat(s.distanciaKm) || 0) * reps;
-        }
+        const t = totaisDoItem(item);
+        min += t.min;
+        km += t.km;
     }
     return { min, km };
+}
+
+/** Total de um item: a série já multiplicada pelas repetições — é o que o cabeçalho dela mostra. */
+export function totaisDoItem(item: EtapaItem): { min: number; km: number } {
+    if (item.kind === 'step') {
+        return { min: parseInt(item.duracaoMin, 10) || 0, km: parseFloat(item.distanciaKm) || 0 };
+    }
+    const reps = Math.max(1, parseInt(item.repeticoes, 10) || 1);
+    let min = 0;
+    let km = 0;
+    for (const s of item.steps) {
+        min += (parseInt(s.duracaoMin, 10) || 0) * reps;
+        km  += (parseFloat(s.distanciaKm) || 0) * reps;
+    }
+    return { min, km };
+}
+
+/** "4× · 24 min · 4,3 km"; parte zerada some. Sem pace médio: tiro e recuperação juntos não têm um. */
+export function resumoDaSerie(item: BlockRow): string {
+    const { min, km } = totaisDoItem(item);
+    const partes = [`${Math.max(1, parseInt(item.repeticoes, 10) || 1)}×`];
+    if (min > 0) partes.push(`${min} min`);
+    if (km > 0) partes.push(`${(Math.round(km * 10) / 10).toFixed(1).replace('.', ',')} km`);
+    return partes.join(' · ');
 }

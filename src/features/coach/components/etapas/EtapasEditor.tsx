@@ -22,7 +22,7 @@ import { Card } from '../../../../shared/components/Card';
 import { GHOST_BTN_SX } from '../../../../shared/components/actionButtonSx';
 import { TIPOS_ETAPA, TIPO_ETAPA_LABEL, tipoEtapaLabel } from '../tiposTreino';
 import { EYEBROW_SX, fieldSx } from './etapasStyles';
-import { emptyBlock, emptyStep, emptySubStep, recalcularDistancia, type EtapaItem, type MedidasEtapa } from './etapaItem';
+import { emptyBlock, emptyStep, emptySubStep, recalcularDistancia, resumoDaSerie, type EtapaItem, type MedidasEtapa } from './etapaItem';
 import { ZoneSelector } from './ZoneSelector';
 import { StepSummaryRow } from './StepSummaryRow';
 import { comEixoPadrao, zonaDaEtapa, type IntensidadeEtapa } from '../../adapters/zoneSelectorLogic';
@@ -440,6 +440,9 @@ export function EtapasEditor({ itens, onChange, disabled = false, vazio, zones =
                         }}
                     >
                         <Typography sx={EYEBROW_SX}>Série</Typography>
+                        <Typography data-testid={`resumo-serie-${idx}`} sx={{ fontFamily: MONO, fontSize: '0.75rem', color: surface[300] }}>
+                            {resumoDaSerie(item)}
+                        </Typography>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 'auto' }}>
                             <IconButton
                                 size="small"
