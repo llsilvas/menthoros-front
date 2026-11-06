@@ -22,7 +22,7 @@ import { Card } from '../../../../shared/components/Card';
 import { GHOST_BTN_SX } from '../../../../shared/components/actionButtonSx';
 import { TIPOS_ETAPA, TIPO_ETAPA_LABEL, tipoEtapaLabel } from '../tiposTreino';
 import { EYEBROW_SX, fieldSx } from './etapasStyles';
-import { emptyBlock, emptyStep, emptySubStep, type EtapaItem } from './etapaItem';
+import { emptyBlock, emptyStep, emptySubStep, recalcularDistancia, type EtapaItem, type MedidasEtapa } from './etapaItem';
 import { ZoneSelector } from './ZoneSelector';
 import { StepSummaryRow } from './StepSummaryRow';
 import { comEixoPadrao, zonaDaEtapa, type IntensidadeEtapa } from '../../adapters/zoneSelectorLogic';
@@ -62,6 +62,7 @@ function accentDe(tipoEtapa: string): string {
  */
 interface BlocoState {
     distanciaKm: string;
+    distanciaAuto?: boolean;
     duracaoMin: string;
     intensidade: IntensidadeEtapa;
     descricao: string;
@@ -76,11 +77,13 @@ type CamposEtapa = {
     alvoPrimario?: AlvoPrimario;
     zonaEtapa?: ZoneKey | 'PERSONALIZADO';
     eixoTocado?: boolean;
+    distanciaAuto?: boolean;
 };
 
 function blocoStateDe(e: CamposEtapa & { tipoEtapa: string }, zones: AthleteTrainingZonesDto | null): BlocoState {
     return {
         distanciaKm: e.distanciaKm,
+        distanciaAuto: e.distanciaAuto,
         duracaoMin: e.duracaoMin,
         intensidade: comEixoPadrao({
             // Etapa vinda do backend não traz a zona: reconhece pelos valores contra as zonas do atleta.
@@ -98,6 +101,7 @@ function camposDe(b: BlocoState): CamposEtapa {
     return {
         duracaoMin: b.duracaoMin,
         distanciaKm: b.distanciaKm,
+        distanciaAuto: b.distanciaAuto,
         fcAlvoEtapa: b.intensidade.fcAlvoEtapa,
         // Vazio vira `undefined` para o serializador omitir o campo.
         ritmoAlvo: b.intensidade.ritmoAlvo.trim() || undefined,
@@ -176,6 +180,8 @@ function BlocoCard({
     const temDetalhes = Boolean(bloco.descricao);
     const [detalhesAbertos, setDetalhesAbertos] = useState(false);
     const mostraDetalhes = detalhesAbertos || temDetalhes;
+    const medidasDe = (b: BlocoState): MedidasEtapa => ({ ...b, ritmoAlvo: b.intensidade.ritmoAlvo });
+    const comDistancia = (novo: BlocoState) => onChange({ ...novo, ...recalcularDistancia(medidasDe(bloco), medidasDe(novo)) });
     return (
         <Card
             variant="flat"
@@ -226,7 +232,8 @@ function BlocoCard({
                         label="Distância (km)"
                         type="number"
                         value={bloco.distanciaKm}
-                        onChange={e => onChange({ ...bloco, distanciaKm: e.target.value })}
+                        onChange={e => onChange({ ...bloco, distanciaKm: e.target.value, distanciaAuto: false })}
+                        helperText={bloco.distanciaAuto ? 'calculado de pace × duração' : undefined}
                         disabled={disabled}
                         size="small"
                         inputProps={{ min: 0, step: 0.1 }}
@@ -236,7 +243,7 @@ function BlocoCard({
                         label="Duração (min)"
                         type="number"
                         value={bloco.duracaoMin}
-                        onChange={e => onChange({ ...bloco, duracaoMin: e.target.value })}
+                        onChange={e => comDistancia({ ...bloco, duracaoMin: e.target.value })}
                         disabled={disabled}
                         size="small"
                         inputProps={{ min: 1, step: 1 }}
@@ -253,7 +260,7 @@ function BlocoCard({
                         tipoTreino={tipoTreino}
                         descricao={bloco.descricao}
                         disabled={disabled}
-                        onChange={intensidade => onChange({ ...bloco, intensidade })}
+                        onChange={intensidade => comDistancia({ ...bloco, intensidade })}
                     />
                 ) : (
                     <StepSummaryRow

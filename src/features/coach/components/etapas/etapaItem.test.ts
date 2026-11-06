@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { itensFromEtapas, serializarItens } from './etapaItem';
+import { itensFromEtapas, recalcularDistancia, serializarItens } from './etapaItem';
 import type { EtapaTreinoDto } from '../../../../types/PlanoReview';
 
 /**
@@ -345,5 +345,89 @@ describe('etapaItem — o eixo do relógio (alvoPrimario) sobrevive ao round-tri
 
         expect(itens).toHaveLength(1);
         expect(itens[0].kind).toBe('block');
+    });
+});
+
+describe('recalcularDistancia', () => {
+    const medidas = (distanciaKm: string, duracaoMin: string, ritmoAlvo: string, distanciaAuto?: boolean) =>
+        ({ distanciaKm, duracaoMin, ritmoAlvo, distanciaAuto });
+
+    it('distância vazia ou zero: calcula com pace e duração', () => {
+        expect(recalcularDistancia(medidas('', '', '4:50/km'), medidas('', '4', '4:50/km')))
+            .toEqual({ distanciaKm: '0.83', distanciaAuto: true });
+        expect(recalcularDistancia(medidas('0', '4', ''), medidas('0', '4', '4:50/km')))
+            .toEqual({ distanciaKm: '0.83', distanciaAuto: true });
+    });
+
+    it('faixa de pace usa o ponto médio', () => {
+        expect(recalcularDistancia(medidas('', '', '5:00-5:20/km'), medidas('', '31', '5:00-5:20/km')).distanciaKm).toBe('6');
+    });
+
+    it('distância digitada à mão não muda', () => {
+        expect(recalcularDistancia(medidas('1.5', '4', '4:50/km', false), medidas('1.5', '8', '4:50/km')))
+            .toEqual({ distanciaKm: '1.5', distanciaAuto: false });
+    });
+
+    it('distância já calculada acompanha pace e duração', () => {
+        expect(recalcularDistancia(medidas('0.83', '4', '4:50/km', true), medidas('0.83', '8', '4:50/km')).distanciaKm).toBe('1.66');
+    });
+
+    it('distância gravada que bate com a conta é do treinador: não acompanha', () => {
+        expect(recalcularDistancia(medidas('2', '10', '5:00/km'), medidas('2', '20', '5:00/km')))
+            .toEqual({ distanciaKm: '2', distanciaAuto: false });
+    });
+
+    it('pace incompleto durante a digitação mantém o valor e segue derivada', () => {
+        const meio = recalcularDistancia(medidas('0.83', '4', '4:50/km', true), medidas('0.83', '4', '5:0'));
+        expect(meio).toEqual({ distanciaKm: '0.83', distanciaAuto: true });
+
+        expect(recalcularDistancia(medidas('0.83', '4', '5:0', true), medidas('0.83', '4', '5:00/km')).distanciaKm).toBe('0.8');
+    });
+
+    it('duração apagada, zerada ou pace apagado limpam a derivada', () => {
+        expect(recalcularDistancia(medidas('0.83', '4', '4:50/km', true), medidas('0.83', '', '4:50/km')).distanciaKm).toBe('');
+        expect(recalcularDistancia(medidas('0.83', '4', '4:50/km', true), medidas('0.83', '0', '4:50/km')).distanciaKm).toBe('');
+        expect(recalcularDistancia(medidas('0.83', '4', '4:50/km', true), medidas('0.83', '4', '')).distanciaKm).toBe('');
+        expect(recalcularDistancia(medidas('0.83', '4', '4:50/km', true), medidas('0.83', '4', '  ')).distanciaKm).toBe('');
+    });
+
+    it('duração fracionária deriva pelo inteiro, como o serializador envia', () => {
+        expect(recalcularDistancia(medidas('', '', '5:00/km'), medidas('', '4.9', '5:00/km')).distanciaKm).toBe('0.8');
+    });
+
+    it('sem duração não calcula', () => {
+        expect(recalcularDistancia(medidas('', '', ''), medidas('', '', '4:50/km')).distanciaKm).toBe('');
+    });
+
+    it('pace zerado não calcula', () => {
+        expect(recalcularDistancia(medidas('', '4', ''), medidas('', '4', '0:00/km')).distanciaKm).toBe('');
+    });
+
+    it('derivada fica fora do payload; digitada vai', () => {
+        const [derivada, digitada] = serializarItens([
+            { id: 'e1', kind: 'step', tipoEtapa: 'INTERVALADO', duracaoMin: '4', distanciaKm: '0.83', fcAlvoEtapa: '', distanciaAuto: true },
+            { id: 'e2', kind: 'step', tipoEtapa: 'INTERVALADO', duracaoMin: '4', distanciaKm: '7', fcAlvoEtapa: '', distanciaAuto: false },
+        ]);
+        expect(derivada).not.toHaveProperty('distanciaAuto');
+        expect(derivada.distanciaKm).toBeUndefined();
+        expect(derivada.duracaoMin).toBe(4);
+        expect(digitada.distanciaKm).toBe(7);
+    });
+
+    it('sub-etapa derivada também fica fora do payload', () => {
+        const [bloco] = serializarItens([{
+            id: 'b1', kind: 'block', repeticoes: '4',
+            steps: [{ id: 's1', tipoEtapa: 'INTERVALADO', duracaoMin: '4', distanciaKm: '0.83', fcAlvoEtapa: '', distanciaAuto: true }],
+        }]);
+        expect(bloco.subEtapas?.[0].distanciaKm).toBeUndefined();
+    });
+
+    it('hidratação deriva a distância vazia e marca como calculada', () => {
+        const [item] = itensFromEtapas([{ ordem: 1, tipoEtapa: 'INTERVALADO', duracaoMin: 4, ritmoAlvo: '4:50/km' }]);
+        expect(item).toMatchObject({ kind: 'step', distanciaKm: '0.83', distanciaAuto: true });
+
+        const [gravada] = itensFromEtapas([{ ordem: 1, tipoEtapa: 'INTERVALADO', duracaoMin: 4, distanciaKm: 2, ritmoAlvo: '4:50/km' }]);
+        expect(gravada).toMatchObject({ distanciaKm: '2' });
+        expect((gravada as { distanciaAuto?: boolean }).distanciaAuto).toBeFalsy();
     });
 });

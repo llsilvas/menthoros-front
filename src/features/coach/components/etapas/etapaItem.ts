@@ -2,6 +2,7 @@ import type { AlvoPrimario } from '../../../../types/AthleteTrainingZones';
 import type { EtapaInputPayload, EtapaTreinoDto } from '../../../../types/PlanoReview';
 import type { ZoneKey } from '../../../workout/profile/types';
 import { detectarJanelaRepetida } from '../../../workout/serie/janelaRepetida';
+import { parseCanonicalPace } from '../../adapters/intensityFormat';
 
 /**
  * Modelo de edição de etapas, compartilhado entre `TreinoAddDialog` e `TreinoEditDialog`.
@@ -46,6 +47,8 @@ export interface StepRow {
     zonaEtapa?: ZoneKey | 'PERSONALIZADO';
     /** View-model: o treinador escolheu o eixo do relógio nesta sessão. Não vai ao contrato. */
     eixoTocado?: boolean;
+    /** View-model: a distância veio de pace × duração e acompanha os dois. Não vai ao contrato. */
+    distanciaAuto?: boolean;
 }
 
 export interface SubStep {
@@ -62,6 +65,8 @@ export interface SubStep {
     zonaEtapa?: ZoneKey | 'PERSONALIZADO';
     /** View-model: o treinador escolheu o eixo do relógio nesta sessão. Não vai ao contrato. */
     eixoTocado?: boolean;
+    /** View-model: a distância veio de pace × duração e acompanha os dois. Não vai ao contrato. */
+    distanciaAuto?: boolean;
 }
 
 export interface BlockRow {
@@ -95,7 +100,9 @@ function subEtapaPayload(s: SubStep): EtapaInputPayload {
     return {
         tipoEtapa:      s.tipoEtapa,
         duracaoMin:     s.duracaoMin  ? parseInt(s.duracaoMin, 10) : undefined,
-        distanciaKm:    s.distanciaKm ? parseFloat(s.distanciaKm)  : undefined,
+        // Derivada fica fora: o conversor do intervals.icu descarta a duração quando há distância,
+        // e o tiro de 4 min viraria um tiro de 0,83 km no relógio.
+        distanciaKm:    s.distanciaKm && !s.distanciaAuto ? parseFloat(s.distanciaKm) : undefined,
         fcAlvoEtapa:    s.fcAlvoEtapa || undefined,
         ritmoAlvo:      s.ritmoAlvo || undefined,
         descricaoEtapa: s.descricaoEtapa || undefined,
@@ -116,15 +123,7 @@ export function serializarItens(itens: EtapaItem[]): EtapaInputPayload[] {
             return [{ tipoEtapa: 'BLOCO', blocoRepeticoes: reps, subEtapas }];
         }
         if (!item.tipoEtapa) return [];
-        return [{
-            tipoEtapa:      item.tipoEtapa,
-            duracaoMin:     item.duracaoMin  ? parseInt(item.duracaoMin, 10) : undefined,
-            distanciaKm:    item.distanciaKm ? parseFloat(item.distanciaKm)  : undefined,
-            fcAlvoEtapa:    item.fcAlvoEtapa || undefined,
-            ritmoAlvo:      item.ritmoAlvo || undefined,
-            descricaoEtapa: item.descricaoEtapa || undefined,
-            alvoPrimario:   item.alvoPrimario,
-        }];
+        return [subEtapaPayload(item)];
     });
 }
 
@@ -133,7 +132,7 @@ export function serializarItens(itens: EtapaItem[]): EtapaInputPayload[] {
 const txt = (v: number | undefined) => (v != null ? String(v) : '');
 
 function subStepFromEtapa(e: EtapaTreinoDto): SubStep {
-    return {
+    const passo: SubStep = {
         id: crypto.randomUUID(),
         tipoEtapa: e.tipoEtapa,
         duracaoMin: txt(e.duracaoMin),
@@ -143,6 +142,9 @@ function subStepFromEtapa(e: EtapaTreinoDto): SubStep {
         descricaoEtapa: e.descricaoEtapa,
         alvoPrimario: e.alvoPrimario,
     };
+    // Distância gravada é do treinador (a derivada nunca vai ao PATCH); vazia volta a ser derivada.
+    const estimada = passo.distanciaKm ? null : distanciaEstimada({ ...passo, ritmoAlvo: passo.ritmoAlvo ?? '' });
+    return estimada == null ? passo : { ...passo, distanciaKm: String(estimada), distanciaAuto: true };
 }
 
 function stepFromEtapa(e: EtapaTreinoDto): StepRow {
@@ -226,6 +228,44 @@ export function itensFromEtapas(etapas: EtapaTreinoDto[] | undefined): EtapaItem
     }
 
     return itens;
+}
+
+// ── Distância derivada ────────────────────────────────────────────────────────
+
+export interface MedidasEtapa {
+    distanciaKm: string;
+    duracaoMin: string;
+    ritmoAlvo: string;
+    distanciaAuto?: boolean;
+}
+
+/** Minutos inteiros, como o serializador envia (`parseInt`): 4.5 min deriva como 4. */
+const minutosDe = (duracaoMin: string) => parseInt(duracaoMin, 10);
+
+/** Faixa de pace usa o ponto médio: é a melhor estimativa de um alvo que admite os dois extremos. */
+function distanciaEstimada({ duracaoMin, ritmoAlvo }: MedidasEtapa): number | null {
+    const minutos = minutosDe(duracaoMin);
+    const pace = parseCanonicalPace(ritmoAlvo);
+    if (!(minutos > 0) || !pace) return null;
+    const segKm = (pace.minSegKm + pace.maxSegKm) / 2;
+    return segKm > 0 ? Number(((minutos * 60) / segKm).toFixed(2)) : null;
+}
+
+/**
+ * Distância depois de mudar pace ou duração. Só mexe em distância vazia, zerada ou já derivada: valor
+ * digitado ou gravado fica. Sem duração ou sem pace não há de onde derivar, e a derivada é limpa; já
+ * o pace incompleto da digitação ("5:0") mantém valor e marcador, senão a distância calculada viraria
+ * manual no meio da edição.
+ */
+export function recalcularDistancia(antes: MedidasEtapa, depois: MedidasEtapa): Pick<MedidasEtapa, 'distanciaKm' | 'distanciaAuto'> {
+    const derivavel = antes.distanciaAuto || !parseFloat(antes.distanciaKm);
+    if (!derivavel) return { distanciaKm: antes.distanciaKm, distanciaAuto: false };
+    if (!(minutosDe(depois.duracaoMin) > 0) || !depois.ritmoAlvo.trim()) {
+        return { distanciaKm: antes.distanciaAuto ? '' : antes.distanciaKm, distanciaAuto: false };
+    }
+    const estimada = distanciaEstimada(depois);
+    if (estimada == null) return { distanciaKm: antes.distanciaKm, distanciaAuto: !!antes.distanciaAuto };
+    return { distanciaKm: String(estimada), distanciaAuto: true };
 }
 
 // ── Totais ────────────────────────────────────────────────────────────────────
