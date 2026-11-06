@@ -7,6 +7,7 @@ import {
     eixoFoiEscolhido,
     escolherEixo,
     zonaDaEtapa,
+    sugestaoDeZona,
     zonaPorValor,
     type IntensidadeEtapa,
 } from './zoneSelectorLogic';
@@ -313,5 +314,30 @@ describe('zonaPorValor (zona do treino por onde os valores caem)', () => {
         expect(zonaPorValor('trote leve', undefined, undefined, ZONES)).toBeNull();
         expect(zonaPorValor('190-200 bpm', undefined, undefined, ZONES)).toBeNull();
         expect(zonaPorValor('144-148 bpm', undefined, undefined, null)).toBeNull();
+    });
+});
+
+describe('sugestaoDeZona (Personalizado: em que zona o valor digitado cai)', () => {
+    it('só pace ou só FC: nomeia o eixo que classificou', () => {
+        expect(sugestaoDeZona({ zona: 'PERSONALIZADO', fcAlvoEtapa: '', ritmoAlvo: '4:35/km' }, ZONES)).toEqual({ eixo: 'Pace', zona: 'Z5' });
+        expect(sugestaoDeZona({ zona: 'PERSONALIZADO', fcAlvoEtapa: '150-158 bpm', ritmoAlvo: '' }, ZONES)).toEqual({ eixo: 'FC', zona: 'Z3' });
+    });
+
+    it('os dois na mesma zona: o eixo exibido é o alvoPrimario, ou pace', () => {
+        expect(sugestaoDeZona({ zona: 'PERSONALIZADO', fcAlvoEtapa: '170-176 bpm', ritmoAlvo: '4:35-4:45/km', alvoPrimario: 'FC' }, ZONES)).toEqual({ eixo: 'FC', zona: 'Z5' });
+        expect(sugestaoDeZona({ zona: 'PERSONALIZADO', fcAlvoEtapa: '170-176 bpm', ritmoAlvo: '4:35-4:45/km' }, ZONES)).toEqual({ eixo: 'Pace', zona: 'Z5' });
+    });
+
+    it('zonas divergentes: vale o alvoPrimario; sem eixo, nada', () => {
+        expect(sugestaoDeZona({ zona: 'PERSONALIZADO', fcAlvoEtapa: '145-150 bpm', ritmoAlvo: '4:30-4:45/km', alvoPrimario: 'PACE' }, ZONES)).toEqual({ eixo: 'Pace', zona: 'Z5' });
+        expect(sugestaoDeZona({ zona: 'PERSONALIZADO', fcAlvoEtapa: '145-150 bpm', ritmoAlvo: '4:30-4:45/km', alvoPrimario: 'FC' }, ZONES)).toEqual({ eixo: 'FC', zona: 'Z2' });
+        expect(sugestaoDeZona({ zona: 'PERSONALIZADO', fcAlvoEtapa: '145-150 bpm', ritmoAlvo: '4:30-4:45/km' }, ZONES)).toBeNull();
+    });
+
+    it('fora de zona, zona já escolhida, texto livre ou sem zonas: nada', () => {
+        expect(sugestaoDeZona({ zona: 'PERSONALIZADO', fcAlvoEtapa: '190-200 bpm', ritmoAlvo: '' }, ZONES)).toBeNull();
+        expect(sugestaoDeZona({ zona: 'Z5', fcAlvoEtapa: '', ritmoAlvo: '4:50/km' }, ZONES)).toBeNull();
+        expect(sugestaoDeZona({ zona: 'PERSONALIZADO', fcAlvoEtapa: 'trote leve', ritmoAlvo: '' }, ZONES)).toBeNull();
+        expect(sugestaoDeZona({ zona: 'PERSONALIZADO', fcAlvoEtapa: '', ritmoAlvo: '4:50/km' }, null)).toBeNull();
     });
 });

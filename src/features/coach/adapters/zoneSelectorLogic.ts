@@ -238,3 +238,29 @@ export function zonaPorValor(
     if (zf && zp && zf !== zp) return alvoPrimario === 'PACE' ? zp : alvoPrimario === 'FC' ? zf : null;
     return zf ?? zp;
 }
+
+/**
+ * Em "Personalizado", em que zona do atleta o valor digitado cai e por qual eixo — mesma leitura de
+ * `zonaPorValor`, só que nomeando o eixo, porque "cai em Z5" sem dizer se é o pace ou a FC engana
+ * quando os dois estão preenchidos. Nada com zona escolhida, valor fora de zona ou eixos divergentes
+ * sem `alvoPrimario`.
+ */
+export function sugestaoDeZona(
+    i: IntensidadeEtapa,
+    zones: AthleteTrainingZonesDto | null,
+): { eixo: 'Pace' | 'FC'; zona: ZoneKey } | null {
+    if (!zones || i.zona !== 'PERSONALIZADO') return null;
+    const fc = parseCanonicalFc(i.fcAlvoEtapa) ?? undefined;
+    const pace = parseCanonicalPace(i.ritmoAlvo) ?? undefined;
+    if (!fc && !pace) return null;
+    const { fc: zf, pace: zp } = zonaDoPonto(fc, pace, zones.zonas);
+    if (zf && zp && zf !== zp) {
+        if (i.alvoPrimario === 'PACE') return { eixo: 'Pace', zona: zp };
+        if (i.alvoPrimario === 'FC') return { eixo: 'FC', zona: zf };
+        return null;
+    }
+    if (zf && zp) return i.alvoPrimario === 'FC' ? { eixo: 'FC', zona: zf } : { eixo: 'Pace', zona: zp };
+    if (zp) return { eixo: 'Pace', zona: zp };
+    if (zf) return { eixo: 'FC', zona: zf };
+    return null;
+}

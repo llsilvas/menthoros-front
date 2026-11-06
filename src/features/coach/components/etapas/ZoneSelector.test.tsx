@@ -131,6 +131,20 @@ describe('ZoneSelector', () => {
         expect(u.get().fcAlvoEtapa).toBe('143-150 bpm');
     });
 
+    it('Personalizado diz em que zona do atleta o valor digitado cai, nomeando o eixo', () => {
+        render(<Harness inicial={{ zona: 'PERSONALIZADO', fcAlvoEtapa: '', ritmoAlvo: '4:35/km', alvoPrimario: 'PACE' }} />);
+        expect(screen.getByText('Pace cai em Z5 para este atleta')).toBeInTheDocument();
+    });
+
+    it('Personalizado com FC sozinha nomeia a FC; fora de zona não sugere nada', () => {
+        const { unmount } = render(<Harness inicial={{ zona: 'PERSONALIZADO', fcAlvoEtapa: '150-158 bpm', ritmoAlvo: '', alvoPrimario: 'FC' }} />);
+        expect(screen.getByText('FC cai em Z3 para este atleta')).toBeInTheDocument();
+        unmount();
+
+        render(<Harness inicial={{ zona: 'PERSONALIZADO', fcAlvoEtapa: '190-200 bpm', ritmoAlvo: '', alvoPrimario: 'FC' }} />);
+        expect(screen.queryByText(/cai em Z/)).not.toBeInTheDocument();
+    });
+
     it('ao sair do campo, completa a unidade que o parser do backend exige', async () => {
         const u = ultimo();
         render(<Harness inicial={{ zona: 'PERSONALIZADO', fcAlvoEtapa: '', ritmoAlvo: '', alvoPrimario: 'NENHUM' }} onValor={u.set} />);
