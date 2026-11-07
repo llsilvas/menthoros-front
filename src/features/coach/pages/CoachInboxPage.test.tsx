@@ -657,46 +657,90 @@ describe('CoachInboxPage', () => {
     });
   });
 
-  describe('filtros na coluna da lista (task 2.11)', () => {
+  describe('header da coluna da lista (inbox-lista-triagem)', () => {
     /**
-     * Os filtros viviam numa barra full-width entre o cabeçalho e os KPIs, mas afetam **só** a
-     * lista de atletas. Controle longe do que ele afeta faz o coach duvidar do que está vendo — e
-     * a barra ainda ocupava uma faixa inteira da altura útil.
+     * Busca, filtro e ordenação JUNTO do que afetam. O filtro é segmentado e a ordenação é um
+     * ícone: dois chips iguais (filtro e ordenação) liam como dois filtros ativos.
      */
-    it('o header da lista traz status e ordenação, e a barra full-width sumiu', () => {
+    it('busca, filtro segmentado e ordenação por ícone vivem no header da coluna; a barra do topo não tem busca', () => {
       renderPage();
 
-      expect(screen.getByRole('button', { name: /filtrar por status/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /ordenar lista/i })).toBeInTheDocument();
-      // A barra antiga usava `Select` com rótulos soltos "Status" e "Ordenar".
-      expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+      const header = screen.getByTestId('inbox-lista-header');
+      expect(within(header).getByPlaceholderText('Buscar atleta...')).toBeInTheDocument();
+      expect(within(header).getByRole('group', { name: /filtrar lista/i })).toBeInTheDocument();
+      expect(within(header).getByRole('button', { name: /^Todos/ })).toHaveAttribute('aria-pressed', 'true');
+      expect(within(header).getByRole('button', { name: /^Em atenção/ })).toBeInTheDocument();
+      expect(within(header).getByRole('button', { name: /^Pausados$/ })).toBeInTheDocument();
+      expect(within(header).getByRole('button', { name: /ordenar lista/i })).toBeInTheDocument();
+      expect(within(screen.getByTestId('inbox-barra')).queryByPlaceholderText('Buscar atleta...')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /filtrar por status/i })).not.toBeInTheDocument();
     });
 
-    it('ordenar pelo chip aplica o sort', async () => {
+    it('"Em atenção" mostra só a fila, sem paginação, e não manda status à API', async () => {
+      renderPage();
+
+      await userEvent.click(screen.getByRole('button', { name: /^Em atenção/ }));
+
+      expect(screen.getByRole('button', { name: /^Em atenção/ })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByTestId('inbox-lista-contagem')).toHaveTextContent(`${DASHBOARD_STUB.attentionQueue.length} em atenção`);
+      expect(screen.queryByText(/página \d+\/\d+/)).not.toBeInTheDocument();
+      expect(document.querySelector('.MuiTablePagination-root')).toBeNull();
+      expect(mockFetchDashboard).toHaveBeenLastCalledWith(expect.objectContaining({ status: undefined }));
+    });
+
+    it('"Pausados" filtra pelo status da API', async () => {
+      renderPage();
+
+      await userEvent.click(screen.getByRole('button', { name: /^Pausados$/ }));
+
+      expect(mockFetchDashboard).toHaveBeenLastCalledWith(expect.objectContaining({ status: 'paused' }));
+    });
+
+    it('ordenar pelo ícone aplica o sort', async () => {
       renderPage();
 
       await userEvent.click(screen.getByRole('button', { name: /ordenar lista/i }));
-      await userEvent.click(screen.getByRole('menuitem', { name: /aderência/i }));
+      await userEvent.click(screen.getByRole('menuitem', { name: /carga/i }));
 
-      expect(screen.getByRole('button', { name: /ordenar lista/i })).toHaveTextContent(/aderência/i);
+      expect(mockFetchDashboard).toHaveBeenLastCalledWith(expect.objectContaining({ sortBy: 'volume' }));
     });
 
-    it('filtrar por status pelo chip aplica o filtro', async () => {
+    it('fila vazia em "Em atenção" é boa notícia, não "ajuste o filtro"', async () => {
+      vi.mocked(useCoachDashboard).mockReturnValue({
+        dashboard: { ...DASHBOARD_STUB, attentionQueue: [] },
+        loading: false,
+        error: null,
+        fetchDashboard: mockFetchDashboard,
+      });
       renderPage();
 
-      await userEvent.click(screen.getByRole('button', { name: /filtrar por status/i }));
-      await userEvent.click(screen.getByRole('menuitem', { name: 'Atenção' }));
+      await userEvent.click(screen.getByRole('button', { name: /^Em atenção/ }));
 
-      expect(screen.getByRole('button', { name: /filtrar por status/i })).toHaveTextContent(/atenção/i);
+      expect(screen.getByText(/ninguém em atenção agora/i)).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: /ver todos/i }));
+      expect(screen.getByRole('button', { name: /^Todos/ })).toHaveAttribute('aria-pressed', 'true');
     });
 
-    /** UX-007: o placeholder prometia busca por treino e prova; a query só filtra o roster. */
+    it('paginação em PT-BR, só com mais de uma página', () => {
+      const { unmount } = renderPage();
+      // O stub tem 24 atletas; a página é de ROSTER_PAGE_SIZE (10).
+      expect(screen.getByText(/1–10 de 24/)).toBeInTheDocument();
+      unmount();
+
+      vi.mocked(useCoachDashboard).mockReturnValue({
+        dashboard: { ...DASHBOARD_STUB, roster: { ...DASHBOARD_STUB.roster, totalElements: 1, totalPages: 1 } },
+        loading: false,
+        error: null,
+        fetchDashboard: mockFetchDashboard,
+      });
+      renderPage();
+      expect(document.querySelector('.MuiTablePagination-root')).toBeNull();
+    });
+
     it('o placeholder da busca não promete o que a tela não faz', () => {
       renderPage();
-
-      const busca = screen.getByPlaceholderText(/buscar atleta/i);
-      expect(busca).toBeInTheDocument();
-      expect(busca.getAttribute('placeholder')).not.toMatch(/treino|prova/i);
+      expect(screen.getByPlaceholderText('Buscar atleta...')).toBeInTheDocument();
+      expect(screen.queryByPlaceholderText(/treino|prova/i)).not.toBeInTheDocument();
     });
   });
 
@@ -745,8 +789,7 @@ describe('CoachInboxPage', () => {
       });
       renderPage();
 
-      await userEvent.click(screen.getByRole('button', { name: /filtrar por status/i }));
-      await userEvent.click(screen.getByRole('menuitem', { name: 'Atenção' }));
+      await userEvent.click(screen.getByRole('button', { name: /^Pausados$/ }));
 
       expect(screen.getByText(/nenhum atleta com este filtro/i)).toBeInTheDocument();
     });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { format, subDays } from 'date-fns';
-import { buildInboxQueue, buildRosterRowFromSummary, buildSelectedAthleteFromDashboard, calcularMonotonia, calcularLoadDelta, calcularAcwr, getAcwrZone, getMonotonyTone, calcularStrain, contarDiasComTreino7d, getStrainZone, calcularPrevisaoForma, calcularDiasAteProva } from './coachInboxAdapters';
+import { buildInboxQueue, buildRosterRowFromSummary, buildRowContext, buildSelectedAthleteFromDashboard, calcularMonotonia, calcularLoadDelta, calcularAcwr, getAcwrZone, getMonotonyTone, calcularStrain, contarDiasComTreino7d, getStrainZone, calcularPrevisaoForma, calcularDiasAteProva } from './coachInboxAdapters';
 import type { PmcPontoRaw, AtletaPerfilCoachDto } from '../../../types/AtletaPerfilCoach';
 import type { Prova } from '../../../types/Prova';
 import { formatWorkoutTypeLabel } from '../components/coachInboxHelpers';
@@ -583,5 +583,99 @@ describe('buildSelectedAthleteFromDashboard — próximo treino', () => {
   it('nada restante na semana: diz isso, sem mostrar treino passado', () => {
     const plano = comPlano([treino('SEGUNDA', 'FACIL')]);
     expect(proximo(plano)).toMatchObject({ title: 'Sem treino planejado', when: 'Sem data', objective: 'Nenhum treino restante no plano vigente.' });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// buildRowContext e aderência ausente — inbox-lista-triagem (tasks 1.1 e 2.1)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('buildRowContext', () => {
+  it('último treino conta dias de calendário no fuso local, não períodos de 24h UTC', () => {
+    // 22h local do mesmo dia: "hoje", não "há 1 dia".
+    const noite = new Date(2026, 7, 16, 22, 0, 0);
+    expect(buildRowContext(atletaResumo({ atletaId: 'a', nome: 'A', fase: 'Base', lastActivity: '2026-08-16' }), null, noite).texto)
+      .toBe('Base · último treino hoje');
+  });
+
+  const sinal = (over: Partial<import('./coachInboxAdapters').AttentionInfo> = {}) => ({
+    severity: 'ALTA' as const, reason: 'INATIVIDADE' as const, suggestedAction: 'x', recencyDays: 6, recencyKind: 'inactivity' as const, ...over,
+  });
+
+  it('inatividade com último treino conhecido: dias sem treino, tom de alerta', () => {
+    expect(buildRowContext(atletaResumo({ atletaId: 'a', nome: 'A', lastActivity: '2026-08-10' }), sinal(), HOJE))
+      .toEqual({ texto: 'Inatividade · 6 dias sem treino', tom: 'danger' });
+  });
+
+  it('outros motivos dizem a idade do sinal, nunca "dias sem treino"', () => {
+    expect(buildRowContext(undefined, sinal({ reason: 'SOBRECARGA', recencyDays: 2, recencyKind: 'signal', severity: 'MEDIA' }), HOJE))
+      .toEqual({ texto: 'Sobrecarga · sinal há 2 dias', tom: 'warning' });
+    expect(buildRowContext(undefined, sinal({ recencyDays: null }), HOJE).texto).toBe('Inatividade');
+  });
+
+  it('sinal tem precedência sobre pausado; pausado sobre status e fase', () => {
+    expect(buildRowContext(atletaResumo({ atletaId: 'a', nome: 'A', status: 'paused' }), sinal(), HOJE).tom).toBe('danger');
+    expect(buildRowContext(atletaResumo({ atletaId: 'a', nome: 'A', status: 'paused', fase: 'Base' }), null, HOJE))
+      .toEqual({ texto: 'Pausado', tom: 'neutral' });
+  });
+
+  it('status warning/danger do roster, sem item na fila, continua sendo sinal: rótulo, tom e moldura', () => {
+    expect(buildRowContext(atletaResumo({ atletaId: 'a', nome: 'A', status: 'danger', lastActivity: '2026-08-07' }), null, HOJE))
+      .toEqual({ texto: 'Alerta · último treino há 9 dias', tom: 'danger' });
+    expect(buildRowContext(atletaResumo({ atletaId: 'a', nome: 'A', status: 'warning', fase: 'Base', lastActivity: '2026-08-12' }), null, HOJE))
+      .toEqual({ texto: 'Atenção · último treino há 4 dias', tom: 'warning' });
+  });
+
+  it('sem sinal: fase e último treino; sem fase só o treino (o roster não a traz para todo plano)', () => {
+    expect(buildRowContext(atletaResumo({ atletaId: 'a', nome: 'A', fase: 'Base', lastActivity: '2026-08-14' }), null, HOJE).texto)
+      .toBe('Base · último treino há 2 dias');
+    expect(buildRowContext(atletaResumo({ atletaId: 'a', nome: 'A', lastActivity: '2026-08-16' }), null, HOJE).texto)
+      .toBe('último treino hoje');
+    expect(buildRowContext(atletaResumo({ atletaId: 'a', nome: 'A', fase: 'Base' }), null, HOJE).texto)
+      .toBe('Base · sem treino registrado');
+  });
+});
+
+describe('buildRosterRowFromSummary — aderência', () => {
+  it('ausente não vira 0%: fica indisponível; zero legítimo continua número', () => {
+    expect(buildRosterRowFromSummary(atletaResumo({ atletaId: 'a', nome: 'A' })).adherenceAvailable).toBe(false);
+    const zero = buildRosterRowFromSummary(atletaResumo({ atletaId: 'a', nome: 'A', aderenciaPercentual: 0 }));
+    expect(zero.adherenceAvailable).toBe(true);
+    expect(zero.adherence).toBe(0);
+  });
+});
+
+describe('buildInboxQueue — contexto por linha', () => {
+  it('toda linha sai com contexto; a fixada sem roster diz a idade do sinal', () => {
+    const roster = pagina([atletaResumo({ atletaId: 'r1', nome: 'Bruno', fase: 'Base', lastActivity: '2026-08-15' })]);
+    const { rows } = buildInboxQueue(roster, [alerta({ atletaId: 'a1', athleteName: 'Ana', generatedAt: '2026-08-14T12:00:00Z' })], SEM_FILTRO, HOJE);
+    expect(rows[0].contexto).toEqual({ texto: 'Inatividade · sinal há 2 dias', tom: 'danger' });
+    expect(rows[1].contexto).toEqual({ texto: 'Base · último treino há 1 dia', tom: 'neutral' });
+  });
+});
+
+describe('buildInboxQueue — modo "Em atenção"', () => {
+  const fila = [
+    alerta({ atletaId: 'a1', athleteName: 'Ana' }),
+    alerta({ atletaId: 'a2', athleteName: 'Bruno', severity: 'MEDIA' }),
+    alerta({ atletaId: 'a3', athleteName: 'Carla', severity: 'CRITICA' }),
+  ];
+  const roster = pagina(
+    [atletaResumo({ atletaId: 'a1', nome: 'Ana', status: 'warning' }), atletaResumo({ atletaId: 'r1', nome: 'Rui' })],
+    { page: 1, totalElements: 15, totalPages: 2 },
+  );
+
+  it('mostra só a fila, inteira, mesmo quem não está na página, e ignora o status do roster', () => {
+    const { rows, hiddenAttentionCount, rosterTotalElements } = buildInboxQueue(roster, fila, { status: 'attention', search: '' }, HOJE);
+    expect(rows.map((r) => r.atletaId)).toEqual(['a3', 'a1', 'a2']);
+    expect(rows.find((r) => r.atletaId === 'r1')).toBeUndefined();
+    expect(hiddenAttentionCount).toBe(0);
+    expect(rosterTotalElements).toBe(15);
+  });
+
+  it('a busca continua filtrando a fila por nome e conta os escondidos', () => {
+    const { rows, hiddenAttentionCount } = buildInboxQueue(roster, fila, { status: 'attention', search: 'an' }, HOJE);
+    expect(rows.map((r) => r.atletaId)).toEqual(['a1']);
+    expect(hiddenAttentionCount).toBe(2);
   });
 });

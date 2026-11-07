@@ -1,5 +1,5 @@
 import { differenceInCalendarDays, parseISO, startOfDay, subDays } from 'date-fns';
-import { formatWorkoutTypeLabel, statusLabel } from '../components/coachInboxHelpers';
+import { REASON_LABEL, formatWorkoutTypeLabel, statusLabel } from '../components/coachInboxHelpers';
 import type {
   AttentionReason,
   AttentionSeverity,
@@ -314,7 +314,8 @@ export function buildRosterRowFromSummary(roster: CoachAtletaResumo): CoachAthle
     decision: 'PENDING',
     adherence: roster.aderenciaPercentual ?? 0,
     adherenceWindow: null,
-    adherenceAvailable: true,
+    // Ausente é "sem treino devido na janela", nunca 0% — a linha mostra "—".
+    adherenceAvailable: roster.aderenciaPercentual != null,
     pmcAvailable: true,
     load7d: roster.weeklyVolume,
     loadDelta: null,
@@ -361,7 +362,61 @@ export interface AttentionInfo {
   suggestedAction: string;
   /** Dias sem treinar (inatividade) ou idade do alerta; `null` quando não há dado. */
   recencyDays: number | null;
+  /** O que `recencyDays` mede — a linha diz "dias sem treino" só quando é isso mesmo. */
+  recencyKind: 'inactivity' | 'signal';
 }
+
+export type RowTone = 'danger' | 'warning' | 'neutral';
+
+/** A única linha de contexto de uma linha da lista: o que o treinador lê abaixo do nome. */
+export interface RowContext {
+  texto: string;
+  tom: RowTone;
+}
+
+/**
+ * Contexto da linha, na precedência sinal da fila → status do roster (`warning`/`danger`, que o
+ * backend calcula sem passar pela fila) → pausado → fase/último treino, só com o que o resumo do
+ * roster traz (`status`, `fase`, `lastActivity`): prova e semanas no plano não vêm nele. `fase`
+ * ausente não quer dizer "sem plano" — o roster não a preenche para todo plano — então ela
+ * simplesmente não aparece.
+ */
+export function buildRowContext(
+  resumo: Pick<CoachAtletaResumo, 'status' | 'fase' | 'lastActivity'> | undefined,
+  attention: AttentionInfo | null,
+  hoje: Date,
+): RowContext {
+  if (attention) {
+    const tom = attention.severity === 'MEDIA' ? 'warning' : 'danger';
+    const motivo = REASON_LABEL[attention.reason];
+    if (attention.recencyDays == null) return { texto: motivo, tom };
+    const recencia = attention.recencyKind === 'inactivity'
+      ? `${diasTexto(attention.recencyDays)} sem treino`
+      : `sinal ${haDias(attention.recencyDays)}`;
+    return { texto: `${motivo} · ${recencia}`, tom };
+  }
+  if (resumo?.status === 'paused') return { texto: 'Pausado', tom: 'neutral' };
+  const dias = diasDeCalendario(resumo?.lastActivity, hoje);
+  const treino = dias == null ? 'sem treino registrado' : dias === 0 ? 'último treino hoje' : `último treino ${haDias(dias)}`;
+  if (resumo?.status === 'danger' || resumo?.status === 'warning') {
+    return { texto: `${statusLabel(resumo.status)} · ${treino}`, tom: resumo.status };
+  }
+  return { texto: resumo?.fase ? `${resumo.fase} · ${treino}` : treino, tom: 'neutral' };
+}
+
+/**
+ * `lastActivity` é só data (`yyyy-MM-dd`): contar períodos de 24h a partir de meia-noite UTC
+ * diria "há 1 dia" para o treino de hoje às 22h em São Paulo. Dias de calendário, no fuso local.
+ */
+function diasDeCalendario(data: string | undefined, hoje: Date): number | null {
+  if (!data) return null;
+  const inicio = parseISO(data);
+  if (Number.isNaN(inicio.getTime())) return null;
+  return differenceInCalendarDays(hoje, inicio);
+}
+
+const diasTexto = (n: number) => `${n} ${n === 1 ? 'dia' : 'dias'}`;
+const haDias = (n: number) => (n === 0 ? 'hoje' : `há ${diasTexto(n)}`);
 
 /**
  * Linha da lista principal do inbox.
@@ -372,8 +427,8 @@ export interface AttentionInfo {
  * com cara de medição real é pior do que ausência declarada.
  */
 export type InboxQueueRow =
-  | { source: 'roster'; atletaId: string; row: CoachAthleteRow; attention: AttentionInfo | null }
-  | { source: 'attention-only'; atletaId: string; athleteName: string; attention: AttentionInfo };
+  | { source: 'roster'; atletaId: string; row: CoachAthleteRow; attention: AttentionInfo | null; contexto: RowContext }
+  | { source: 'attention-only'; atletaId: string; athleteName: string; attention: AttentionInfo; contexto: RowContext };
 
 export interface InboxQueue {
   rows: InboxQueueRow[];
@@ -399,11 +454,15 @@ function diasEntre(inicio: string | undefined, hoje: Date): number | null {
  * não existe esse dado, e a idade do alerta é a informação honesta — usar `generatedAt` como se
  * fosse inatividade produziria um número errado com aparência de certo.
  */
-function resolverRecencia(item: CoachAttentionItem, resumo: CoachAtletaResumo | undefined, hoje: Date): number | null {
+function resolverRecencia(
+  item: CoachAttentionItem,
+  resumo: CoachAtletaResumo | undefined,
+  hoje: Date,
+): Pick<AttentionInfo, 'recencyDays' | 'recencyKind'> {
   if (item.primaryReason === 'INATIVIDADE' && resumo?.lastActivity) {
-    return diasEntre(resumo.lastActivity, hoje);
+    return { recencyDays: diasDeCalendario(resumo.lastActivity, hoje), recencyKind: 'inactivity' };
   }
-  return diasEntre(item.generatedAt, hoje);
+  return { recencyDays: diasEntre(item.generatedAt, hoje), recencyKind: 'signal' };
 }
 
 /**
@@ -427,6 +486,9 @@ export function buildInboxQueue(
 ): InboxQueue {
   const porId = new Map(roster.items.map((item) => [item.atletaId, item]));
   const busca = filters.search.trim().toLowerCase();
+  // "Em atenção" é a fila inteira: ignora o status do roster, mantém a busca, e nada do roster
+  // entra além de quem está na fila.
+  const modoAtencao = filters.status === 'attention';
 
   const ordenados = [...attentionQueue].sort((a, b) =>
     ORDEM_SEVERIDADE[a.severity] - ORDEM_SEVERIDADE[b.severity] || b.priorityScore - a.priorityScore);
@@ -440,7 +502,7 @@ export function buildInboxQueue(
 
     const passaBusca = busca.length === 0 || nome.toLowerCase().includes(busca);
     // Sem `resumo` não há status para comparar — o DTO da fila de atenção não o traz.
-    const passaStatus = filters.status === 'all' || resumo?.status === filters.status;
+    const passaStatus = modoAtencao || filters.status === 'all' || resumo?.status === filters.status;
 
     if (!passaBusca || !passaStatus) {
       hiddenAttentionCount += 1;
@@ -451,22 +513,24 @@ export function buildInboxQueue(
       severity: item.severity,
       reason: item.primaryReason,
       suggestedAction: item.suggestedAction,
-      recencyDays: resolverRecencia(item, resumo, hoje),
+      ...resolverRecencia(item, resumo, hoje),
     };
+    const contexto = buildRowContext(resumo, attention, hoje);
 
     fixados.push(resumo
-      ? { source: 'roster', atletaId: item.atletaId, row: buildRosterRowFromSummary(resumo), attention }
-      : { source: 'attention-only', atletaId: item.atletaId, athleteName: nome, attention });
+      ? { source: 'roster', atletaId: item.atletaId, row: buildRosterRowFromSummary(resumo), attention, contexto }
+      : { source: 'attention-only', atletaId: item.atletaId, athleteName: nome, attention, contexto });
   }
 
   const fixadosIds = new Set(fixados.map((r) => r.atletaId));
   const restante: InboxQueueRow[] = roster.items
-    .filter((item) => !fixadosIds.has(item.atletaId))
+    .filter((item) => !modoAtencao && !fixadosIds.has(item.atletaId))
     .map((item) => ({
       source: 'roster' as const,
       atletaId: item.atletaId,
       row: buildRosterRowFromSummary(item),
       attention: null,
+      contexto: buildRowContext(item, null, hoje),
     }));
 
   return {
