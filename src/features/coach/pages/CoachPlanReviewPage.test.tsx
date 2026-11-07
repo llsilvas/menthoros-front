@@ -171,6 +171,17 @@ describe('CoachPlanReviewPage', () => {
 
     // ── Edição de treino ─────────────────────────────────────────────────────
 
+    it('o dialog abre com o dia atual do treino selecionado (2.3)', () => {
+        mockContext({ reviewPendentes: [STUB] });
+        render(<CoachPlanReviewPage />);
+
+        clickCard();
+        fireEvent.click(screen.getAllByRole('button', { name: /editar treino/i })[0]);
+
+        // treino-1 é de SEGUNDA numa semana que começa em 2026-06-23 (segunda).
+        expect(screen.getByLabelText('Dia do treino')).toHaveValue('2026-06-23');
+    });
+
     it('clicar editar → salvar chama editarTreino e reviewFetchPendentes', async () => {
         const reviewFetchPendentes = vi.fn().mockResolvedValue(undefined);
         mockEditarTreino.mockResolvedValue({ id: 'treino-1', diaSemana: 'SEGUNDA', tipoTreino: 'FACIL', distanciaKm: 15, editadoPeloCoach: true });

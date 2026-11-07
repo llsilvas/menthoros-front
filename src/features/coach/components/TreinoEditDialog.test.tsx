@@ -17,6 +17,8 @@ const TREINO: TreinoPlanejadoDto = {
     editadoPeloCoach: false,
 };
 
+const SEMANA = { inicio: '2026-09-07', fim: '2026-09-13' };
+
 const etapa = (ordem: number, tipoEtapa: string, duracaoMin: number, fcAlvoEtapa?: string): EtapaTreinoDto =>
     ({ ordem, tipoEtapa, duracaoMin, fcAlvoEtapa });
 
@@ -26,7 +28,7 @@ describe('TreinoEditDialog', () => {
 
     const renderDialog = (treino: TreinoPlanejadoDto = TREINO, isSaving = false) =>
         render(
-            <TreinoEditDialog open treino={treino} isSaving={isSaving} onClose={onClose} onSave={onSave} />,
+            <TreinoEditDialog semana={SEMANA} open treino={treino} isSaving={isSaving} onClose={onClose} onSave={onSave} />,
         );
 
     beforeEach(() => vi.clearAllMocks());
@@ -110,7 +112,7 @@ describe('TreinoEditDialog', () => {
 
     it('não exibe campos quando open=false', () => {
         render(
-            <TreinoEditDialog open={false} treino={TREINO} isSaving={false} onClose={onClose} onSave={onSave} />,
+            <TreinoEditDialog semana={SEMANA} open={false} treino={TREINO} isSaving={false} onClose={onClose} onSave={onSave} />,
         );
 
         expect(screen.queryByDisplayValue('10')).not.toBeInTheDocument();
@@ -211,7 +213,7 @@ describe('TreinoEditDialog', () => {
 
     it('mostra o contexto e a justificativa da IA no cabeçalho', () => {
         render(
-            <TreinoEditDialog
+            <TreinoEditDialog semana={SEMANA}
                 open
                 treino={{ ...TREINO, justificativaIa: 'Recuperação ativa após o longo.' }}
                 contexto="Ana Silva · Seg 07/09"
@@ -270,7 +272,7 @@ describe('TreinoEditDialog — série', () => {
 
     const renderFartlek = (treino: TreinoPlanejadoDto = FARTLEK) =>
         render(
-            <TreinoEditDialog open treino={treino} isSaving={false} onClose={onClose} onSave={onSave} />,
+            <TreinoEditDialog semana={SEMANA} open treino={treino} isSaving={false} onClose={onClose} onSave={onSave} />,
         );
 
     beforeEach(() => vi.clearAllMocks());
@@ -348,7 +350,7 @@ describe('TreinoEditDialog — série', () => {
         // Cenário que expunha o vazamento: cabeçalho diz 50min, etapas somam 30min.
         const divergente = { ...FARTLEK, duracaoMin: 'PT50M' };
         render(
-            <TreinoEditDialog open treino={divergente} isSaving={false} onClose={onClose} onSave={onSave} />,
+            <TreinoEditDialog semana={SEMANA} open treino={divergente} isSaving={false} onClose={onClose} onSave={onSave} />,
         );
 
         fireEvent.change(screen.getByDisplayValue('90'), { target: { value: '85' } });
@@ -385,5 +387,48 @@ describe('TreinoEditDialog — série', () => {
 
         fireEvent.click(screen.getByRole('button', { name: /salvar assim/i }));
         expect(onSave).toHaveBeenCalledOnce();
+    });
+});
+
+describe('TreinoEditDialog — dia do treino (coach-alterar-data-treino)', () => {
+    const onClose = vi.fn();
+    const onSave = vi.fn();
+
+    beforeEach(() => vi.clearAllMocks());
+
+    it('CA8: abre no dia atual e, ao escolher outro, salva só a nova data', () => {
+        render(<TreinoEditDialog semana={SEMANA} open treino={TREINO} isSaving={false} onClose={onClose} onSave={onSave} />);
+
+        const select = screen.getByLabelText('Dia do treino');
+        expect(select).toHaveValue('2026-09-07');
+        expect(screen.getAllByRole('option').filter(o => /\/09$/.test(o.textContent ?? ''))).toHaveLength(7);
+
+        fireEvent.change(select, { target: { value: '2026-09-10' } });
+        fireEvent.click(screen.getByRole('button', { name: /salvar/i }));
+
+        expect(onSave).toHaveBeenCalledWith({ dataTreino: '2026-09-10' });
+    });
+
+    it('CA8: sem mudar o dia, o patch não leva dataTreino', () => {
+        render(<TreinoEditDialog semana={SEMANA} open treino={TREINO} isSaving={false} onClose={onClose} onSave={onSave} />);
+
+        fireEvent.change(screen.getByDisplayValue('55'), { target: { value: '60' } });
+        fireEvent.click(screen.getByRole('button', { name: /salvar/i }));
+
+        const patch = onSave.mock.calls[0][0] as TreinoPlanejadoPatch;
+        expect(patch).not.toHaveProperty('dataTreino');
+        expect(patch.tssPlanejado).toBe(60);
+    });
+
+    it('CA9: marca os dias fora da disponibilidade do atleta só quando recebe diasDisponiveis', () => {
+        const { unmount } = render(
+            <TreinoEditDialog semana={SEMANA} diasDisponiveis={['SEGUNDA', 'QUARTA']} open treino={TREINO} isSaving={false} onClose={onClose} onSave={onSave} />,
+        );
+        expect(screen.getByRole('option', { name: 'Ter 08/09 · fora dos dias do atleta' })).toBeInTheDocument();
+        expect(screen.getByRole('option', { name: 'Qua 09/09' })).toBeInTheDocument();
+        unmount();
+
+        render(<TreinoEditDialog semana={SEMANA} open treino={TREINO} isSaving={false} onClose={onClose} onSave={onSave} />);
+        expect(screen.queryByRole('option', { name: /fora dos dias do atleta/ })).toBeNull();
     });
 });

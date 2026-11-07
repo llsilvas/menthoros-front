@@ -337,10 +337,11 @@ export default function CoachPlanReviewPage() {
             />
 
             {/* Dialog de edição de treino */}
-            {editingTreino && (
+            {editingTreino && selected && (
                 <TreinoEditDialog
                     open
                     treino={editingTreino}
+                    semana={{ inicio: selected.semanaInicio, fim: selected.semanaFim }}
                     contexto={contextoDoTreino(selected, editingTreino)}
                     atletaId={selected?.atletaId}
                     atletaNome={selected?.atletaNome}

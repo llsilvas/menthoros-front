@@ -99,6 +99,8 @@ export interface EtapaInputPayload {
 /** Campos editáveis de um treino planejado durante revisão. Campos undefined são ignorados (patch semântico). */
 export interface TreinoPlanejadoPatch {
     tipoTreino?: string;
+    /** Nova data (ISO), dentro da semana do plano; o backend deriva o dia (coach-alterar-data-treino). */
+    dataTreino?: string;
     descricao?: string;
     distanciaKm?: number;
     duracaoMin?: string; // ISO-8601: "PT90M"

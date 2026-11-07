@@ -3,6 +3,8 @@ import {
     Box,
     Button,
     CircularProgress,
+    FormControl,
+    InputLabel,
     MenuItem,
     Select,
     TextField,
@@ -13,7 +15,8 @@ import { alpha } from '@mui/material/styles';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import { TIPOS_TREINO } from './tiposTreino';
+import { TIPOS_TREINO, rotuloDiaComData } from './tiposTreino';
+import { ORDEM_DIAS, isoDoDiaNaSemana, weekDatesFromInicio } from '../../../utils/semana';
 import { primary, semantic, surface } from '../../../theme/tokens';
 import { activeTheme } from '../../../theme/activeTheme';
 import { overlayWhite } from '../../../theme/overlays';
@@ -39,6 +42,16 @@ import { WorkoutProfile, selectWorkoutProfile, fromEtapaItens } from '../../work
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
+
+/**
+ * Data de origem do treino, para o select e para o diff do patch. O resumo do perfil
+ * (`CurrentWeekPlan`) não tem `dataTreino`; deriva de `semana.inicio + diaSemana` (D6).
+ */
+function dataOriginalDe(treino: TreinoPlanejadoDto, semanaInicio: string): string {
+    if (treino.dataTreino) return treino.dataTreino;
+    const dia = typeof treino.diaSemana === 'string' ? treino.diaSemana : treino.diaSemana.value;
+    return isoDoDiaNaSemana(weekDatesFromInicio(semanaInicio), dia);
+}
 
 function toIso8601(minutos: string): string | undefined {
     const n = parseInt(minutos, 10);
@@ -117,15 +130,21 @@ export interface TreinoEditDialogProps {
     aviso?: { canal: WatchChannel | null; neutro?: boolean };
     /** Mensagem do backend em 409/422: o dialog mostra e continua aberto com as edições (D5). */
     saveErrorMessage?: string | null;
+    /** Semana do plano (ISO): o treino pode ir para qualquer um dos sete dias (coach-alterar-data-treino, D5). */
+    semana: { inicio: string; fim: string };
+    /** Dias de treino do atleta; com a prop, os outros dias ganham a marcação "fora dos dias do atleta". */
+    diasDisponiveis?: string[];
     onClose: () => void;
     onSave: (patch: TreinoPlanejadoPatch) => void;
 }
 
-export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, atletaNome, aviso, saveErrorMessage, onClose, onSave }: TreinoEditDialogProps) {
+export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, atletaNome, aviso, saveErrorMessage, semana, diasDisponiveis, onClose, onSave }: TreinoEditDialogProps) {
     const { zones, loading: zonesLoading, error: zonesError } = useAthleteTrainingZones(atletaId);
     const [tipoTreino, setTipoTreino]         = useState(treino.tipoTreino ?? '');
     const [tss, setTss]                       = useState(treino.tssPlanejado != null ? String(treino.tssPlanejado) : '');
     const [observacao, setObservacao]         = useState(treino.observacao ?? '');
+    const dataOriginal = dataOriginalDe(treino, semana.inicio);
+    const [dataTreino, setDataTreino]         = useState(dataOriginal);
 
     // O treino é editado como lista de itens — etapas avulsas e blocos repetidos —, o mesmo modelo
     // do TreinoAddDialog. Antes eram quatro campos fixos, e qualquer série heterogênea era achatada
@@ -154,9 +173,10 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
         setRpe(treino.percepcaoEsforcoEsperada != null ? String(treino.percepcaoEsforcoEsperada) : '');
         setTss(treino.tssPlanejado != null ? String(treino.tssPlanejado) : '');
         setObservacao(treino.observacao ?? '');
+        setDataTreino(dataOriginalDe(treino, semana.inicio));
         setBlocosMudados(false);
         setConfirmarDescarte(false);
-    }, [treino]);
+    }, [treino, semana.inicio]);
 
     useEffect(() => { setGraficoAberto(!telaBaixa); }, [telaBaixa]);
 
@@ -213,6 +233,9 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
         const patch: TreinoPlanejadoPatch = {};
 
         if (tipoTreino && tipoTreino !== treino.tipoTreino) patch.tipoTreino = tipoTreino;
+
+        // Só quando mudou (D6): data igual em plano aprovado reiniciaria a sincronização à toa.
+        if (dataTreino !== dataOriginal) patch.dataTreino = dataTreino;
 
         // Distância e duração são DERIVADAS das etapas, então também ficam atrás da guarda. Sem
         // isso a promessa do CA7 valeria só para `etapas`: um treino cujo total no cabeçalho não
@@ -283,10 +306,6 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
         if (patch) onSave(patch);
     };
 
-    const diaSemana = typeof treino.diaSemana === 'string'
-        ? treino.diaSemana
-        : (treino.diaSemana as { value: string }).value;
-
     const footerFieldSx = {
         '& .MuiOutlinedInput-root': {
             fontSize: '0.82rem',
@@ -319,22 +338,54 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
     // TSS não é recalculado pelo sistema ao salvar etapas editadas: avisar em vez de fingir.
     const tssDesatualizado = blocosMudados && tss !== '' && tss === String(treino.tssPlanejado ?? '');
 
+    // Sete opções, sem date picker (D5). Fora dos dias do atleta é aviso, não bloqueio.
+    const datasDaSemana = weekDatesFromInicio(semana.inicio);
+    const disponiveis = diasDisponiveis?.map(d => d.toUpperCase());
+    const diaSelect = (
+        <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel shrink>Dia do treino</InputLabel>
+            <Select
+                native
+                label="Dia do treino"
+                value={dataTreino}
+                onChange={e => setDataTreino(e.target.value as string)}
+                disabled={isSaving}
+                inputProps={{ 'aria-label': 'Dia do treino' }}
+                sx={{ fontSize: '0.8rem' }}
+            >
+                {ORDEM_DIAS.map((dia, i) => {
+                    const fora = disponiveis && !disponiveis.includes(dia);
+                    return (
+                        <option key={dia} value={isoDoDiaNaSemana(datasDaSemana, dia)}>
+                            {rotuloDiaComData(dia, datasDaSemana[i])}{fora ? ' · fora dos dias do atleta' : ''}
+                        </option>
+                    );
+                })}
+            </Select>
+        </FormControl>
+    );
+
     const diaChip = (
-        <Box
-            sx={{
-                px: 0.75,
-                py: 0.25,
-                borderRadius: '4px',
-                bgcolor: overlayWhite[7],
-                fontSize: '0.62rem',
-                fontWeight: 700,
-                color: surface[400],
-                fontFamily: 'monospace',
-                letterSpacing: '0.07em',
-                userSelect: 'none',
-            }}
-        >
-            {contexto ?? diaSemana.slice(0, 3).toUpperCase()}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+            {contexto && (
+                <Box
+                    sx={{
+                        px: 0.75,
+                        py: 0.25,
+                        borderRadius: '4px',
+                        bgcolor: overlayWhite[7],
+                        fontSize: '0.62rem',
+                        fontWeight: 700,
+                        color: surface[400],
+                        fontFamily: 'monospace',
+                        letterSpacing: '0.07em',
+                        userSelect: 'none',
+                    }}
+                >
+                    {contexto}
+                </Box>
+            )}
+            {diaSelect}
         </Box>
     );
 
