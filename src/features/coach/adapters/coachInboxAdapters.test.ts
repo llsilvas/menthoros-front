@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { format, subDays } from 'date-fns';
-import { buildInboxQueue, buildRosterRowFromSummary, buildSelectedAthleteFromDashboard, calcularMonotonia, calcularLoadDelta, calcularAcwr, getAcwrZone, getMonotonyTone, calcularStrain, contarDiasComTreino7d, getStrainZone, calcularPrevisaoForma, calcularDiasAteProva } from './coachInboxAdapters';
+import { buildInboxQueue, buildRosterRowFromSummary, contextoDaLinha, buildSelectedAthleteFromDashboard, calcularMonotonia, calcularLoadDelta, calcularAcwr, getAcwrZone, getMonotonyTone, calcularStrain, contarDiasComTreino7d, getStrainZone, calcularPrevisaoForma, calcularDiasAteProva } from './coachInboxAdapters';
 import type { PmcPontoRaw, AtletaPerfilCoachDto } from '../../../types/AtletaPerfilCoach';
 import type { Prova } from '../../../types/Prova';
 import { formatWorkoutTypeLabel } from '../components/coachInboxHelpers';
@@ -583,5 +583,59 @@ describe('buildSelectedAthleteFromDashboard — próximo treino', () => {
   it('nada restante na semana: diz isso, sem mostrar treino passado', () => {
     const plano = comPlano([treino('SEGUNDA', 'FACIL')]);
     expect(proximo(plano)).toMatchObject({ title: 'Sem treino planejado', when: 'Sem data', objective: 'Nenhum treino restante no plano vigente.' });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// contextoDaLinha e aderência ausente — inbox-lista-triagem (tasks 1.1 e 2.1)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('contextoDaLinha', () => {
+  const sinal = (over: Partial<import('./coachInboxAdapters').AttentionInfo> = {}) => ({
+    severity: 'ALTA' as const, reason: 'INATIVIDADE' as const, suggestedAction: 'x', recencyDays: 6, recencyKind: 'sem-treino' as const, ...over,
+  });
+
+  it('inatividade com último treino conhecido: dias sem treino, tom de alerta', () => {
+    expect(contextoDaLinha(atletaResumo({ atletaId: 'a', nome: 'A', lastActivity: '2026-08-10' }), sinal(), HOJE))
+      .toEqual({ texto: 'Inatividade · 6 dias sem treino', tom: 'danger' });
+  });
+
+  it('outros motivos dizem a idade do sinal, nunca "dias sem treino"', () => {
+    expect(contextoDaLinha(undefined, sinal({ reason: 'SOBRECARGA', recencyDays: 2, recencyKind: 'sinal', severity: 'MEDIA' }), HOJE))
+      .toEqual({ texto: 'Sobrecarga · sinal há 2 dias', tom: 'warning' });
+    expect(contextoDaLinha(undefined, sinal({ recencyDays: null }), HOJE).texto).toBe('Inatividade');
+  });
+
+  it('sinal tem precedência sobre pausado; pausado sobre fase', () => {
+    expect(contextoDaLinha(atletaResumo({ atletaId: 'a', nome: 'A', status: 'paused' }), sinal(), HOJE).tom).toBe('danger');
+    expect(contextoDaLinha(atletaResumo({ atletaId: 'a', nome: 'A', status: 'paused', fase: 'Base' }), null, HOJE))
+      .toEqual({ texto: 'Pausado', tom: 'neutral' });
+  });
+
+  it('sem sinal: fase e último treino; sem fase "Sem plano"; sem treino "sem treino registrado"', () => {
+    expect(contextoDaLinha(atletaResumo({ atletaId: 'a', nome: 'A', fase: 'Base', lastActivity: '2026-08-14' }), null, HOJE).texto)
+      .toBe('Base · último treino há 2 dias');
+    expect(contextoDaLinha(atletaResumo({ atletaId: 'a', nome: 'A', lastActivity: '2026-08-16' }), null, HOJE).texto)
+      .toBe('Sem plano · último treino hoje');
+    expect(contextoDaLinha(atletaResumo({ atletaId: 'a', nome: 'A', fase: 'Base' }), null, HOJE).texto)
+      .toBe('Base · sem treino registrado');
+  });
+});
+
+describe('buildRosterRowFromSummary — aderência', () => {
+  it('ausente não vira 0%: fica indisponível; zero legítimo continua número', () => {
+    expect(buildRosterRowFromSummary(atletaResumo({ atletaId: 'a', nome: 'A' })).adherenceAvailable).toBe(false);
+    const zero = buildRosterRowFromSummary(atletaResumo({ atletaId: 'a', nome: 'A', aderenciaPercentual: 0 }));
+    expect(zero.adherenceAvailable).toBe(true);
+    expect(zero.adherence).toBe(0);
+  });
+});
+
+describe('buildInboxQueue — contexto por linha', () => {
+  it('toda linha sai com contexto; a fixada sem roster diz a idade do sinal', () => {
+    const roster = pagina([atletaResumo({ atletaId: 'r1', nome: 'Bruno', fase: 'Base', lastActivity: '2026-08-15' })]);
+    const { rows } = buildInboxQueue(roster, [alerta({ atletaId: 'a1', athleteName: 'Ana', generatedAt: '2026-08-14T12:00:00Z' })], SEM_FILTRO, HOJE);
+    expect(rows[0].contexto).toEqual({ texto: 'Inatividade · sinal há 2 dias', tom: 'danger' });
+    expect(rows[1].contexto).toEqual({ texto: 'Base · último treino há 1 dia', tom: 'neutral' });
   });
 });

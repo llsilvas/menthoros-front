@@ -620,6 +620,7 @@ function CoachInboxPage() {
                     atletaId={linha.atletaId}
                     athleteName={linha.athleteName}
                     attention={linha.attention}
+                    contexto={linha.contexto}
                     selected={linha.atletaId === selectedId}
                     onClick={() => setSelectedId(linha.atletaId)}
                   />
@@ -628,6 +629,7 @@ function CoachInboxPage() {
                     key={linha.atletaId}
                     athlete={linha.row}
                     attention={linha.attention}
+                    contexto={linha.contexto}
                     selected={linha.atletaId === selectedId}
                     onClick={() => setSelectedId(linha.atletaId)}
                   />

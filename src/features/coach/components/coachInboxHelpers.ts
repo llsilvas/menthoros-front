@@ -28,6 +28,13 @@ export function formatPercent(value: number): string {
   return `${value}%`;
 }
 
+/** Cor do número de aderência pelo valor — o número é o único portador do dado, sem barra nem rótulo. */
+export function corDaAderencia(valor: number): string {
+  if (valor >= 85) return semantic.success[500];
+  if (valor >= 70) return surface[200];
+  return semantic.warning[500];
+}
+
 export function formatKm(value: number): string {
   return `${value} km`;
 }

@@ -1,5 +1,5 @@
 import { differenceInCalendarDays, parseISO, startOfDay, subDays } from 'date-fns';
-import { formatWorkoutTypeLabel, statusLabel } from '../components/coachInboxHelpers';
+import { REASON_LABEL, formatWorkoutTypeLabel, statusLabel } from '../components/coachInboxHelpers';
 import type {
   AttentionReason,
   AttentionSeverity,
@@ -314,7 +314,8 @@ export function buildRosterRowFromSummary(roster: CoachAtletaResumo): CoachAthle
     decision: 'PENDING',
     adherence: roster.aderenciaPercentual ?? 0,
     adherenceWindow: null,
-    adherenceAvailable: true,
+    // Ausente é "sem treino devido na janela", nunca 0% — a linha mostra "—".
+    adherenceAvailable: roster.aderenciaPercentual != null,
     pmcAvailable: true,
     load7d: roster.weeklyVolume,
     loadDelta: null,
@@ -361,7 +362,43 @@ export interface AttentionInfo {
   suggestedAction: string;
   /** Dias sem treinar (inatividade) ou idade do alerta; `null` quando não há dado. */
   recencyDays: number | null;
+  /** O que `recencyDays` mede — a linha diz "dias sem treino" só quando é isso mesmo. */
+  recencyKind: 'sem-treino' | 'sinal';
 }
+
+/** A única linha de contexto de uma linha da lista: o que o treinador lê abaixo do nome. */
+export interface LinhaContexto {
+  texto: string;
+  tom: 'danger' | 'warning' | 'neutral';
+}
+
+/**
+ * Contexto da linha, na precedência sinal → pausado → fase/último treino, só com o que o resumo
+ * do roster traz (`status`, `fase`, `lastActivity`): prova e semanas no plano não vêm nele.
+ */
+export function contextoDaLinha(
+  resumo: Pick<CoachAtletaResumo, 'status' | 'fase' | 'lastActivity'> | undefined,
+  attention: AttentionInfo | null,
+  hoje: Date,
+): LinhaContexto {
+  if (attention) {
+    const tom = attention.severity === 'MEDIA' ? 'warning' : 'danger';
+    const motivo = REASON_LABEL[attention.reason];
+    if (attention.recencyDays == null) return { texto: motivo, tom };
+    const recencia = attention.recencyKind === 'sem-treino'
+      ? `${diasTexto(attention.recencyDays)} sem treino`
+      : `sinal ${haDias(attention.recencyDays)}`;
+    return { texto: `${motivo} · ${recencia}`, tom };
+  }
+  if (resumo?.status === 'paused') return { texto: 'Pausado', tom: 'neutral' };
+  const fase = resumo?.fase ?? 'Sem plano';
+  const dias = diasEntre(resumo?.lastActivity, hoje);
+  const treino = dias == null ? 'sem treino registrado' : dias === 0 ? 'último treino hoje' : `último treino ${haDias(dias)}`;
+  return { texto: `${fase} · ${treino}`, tom: 'neutral' };
+}
+
+const diasTexto = (n: number) => `${n} ${n === 1 ? 'dia' : 'dias'}`;
+const haDias = (n: number) => (n === 0 ? 'hoje' : `há ${diasTexto(n)}`);
 
 /**
  * Linha da lista principal do inbox.
@@ -372,8 +409,8 @@ export interface AttentionInfo {
  * com cara de medição real é pior do que ausência declarada.
  */
 export type InboxQueueRow =
-  | { source: 'roster'; atletaId: string; row: CoachAthleteRow; attention: AttentionInfo | null }
-  | { source: 'attention-only'; atletaId: string; athleteName: string; attention: AttentionInfo };
+  | { source: 'roster'; atletaId: string; row: CoachAthleteRow; attention: AttentionInfo | null; contexto: LinhaContexto }
+  | { source: 'attention-only'; atletaId: string; athleteName: string; attention: AttentionInfo; contexto: LinhaContexto };
 
 export interface InboxQueue {
   rows: InboxQueueRow[];
@@ -399,11 +436,15 @@ function diasEntre(inicio: string | undefined, hoje: Date): number | null {
  * não existe esse dado, e a idade do alerta é a informação honesta — usar `generatedAt` como se
  * fosse inatividade produziria um número errado com aparência de certo.
  */
-function resolverRecencia(item: CoachAttentionItem, resumo: CoachAtletaResumo | undefined, hoje: Date): number | null {
+function resolverRecencia(
+  item: CoachAttentionItem,
+  resumo: CoachAtletaResumo | undefined,
+  hoje: Date,
+): Pick<AttentionInfo, 'recencyDays' | 'recencyKind'> {
   if (item.primaryReason === 'INATIVIDADE' && resumo?.lastActivity) {
-    return diasEntre(resumo.lastActivity, hoje);
+    return { recencyDays: diasEntre(resumo.lastActivity, hoje), recencyKind: 'sem-treino' };
   }
-  return diasEntre(item.generatedAt, hoje);
+  return { recencyDays: diasEntre(item.generatedAt, hoje), recencyKind: 'sinal' };
 }
 
 /**
@@ -451,12 +492,13 @@ export function buildInboxQueue(
       severity: item.severity,
       reason: item.primaryReason,
       suggestedAction: item.suggestedAction,
-      recencyDays: resolverRecencia(item, resumo, hoje),
+      ...resolverRecencia(item, resumo, hoje),
     };
+    const contexto = contextoDaLinha(resumo, attention, hoje);
 
     fixados.push(resumo
-      ? { source: 'roster', atletaId: item.atletaId, row: buildRosterRowFromSummary(resumo), attention }
-      : { source: 'attention-only', atletaId: item.atletaId, athleteName: nome, attention });
+      ? { source: 'roster', atletaId: item.atletaId, row: buildRosterRowFromSummary(resumo), attention, contexto }
+      : { source: 'attention-only', atletaId: item.atletaId, athleteName: nome, attention, contexto });
   }
 
   const fixadosIds = new Set(fixados.map((r) => r.atletaId));
@@ -467,6 +509,7 @@ export function buildInboxQueue(
       atletaId: item.atletaId,
       row: buildRosterRowFromSummary(item),
       attention: null,
+      contexto: contextoDaLinha(item, null, hoje),
     }));
 
   return {
