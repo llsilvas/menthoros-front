@@ -36,6 +36,8 @@ const TREINO: TreinoPlanejadoDto = {
     ],
 };
 
+const SEMANA = { inicio: '2026-09-07', fim: '2026-09-13' };
+
 describe('TreinoEditDialog — zonas do atleta', () => {
     const onSave = vi.fn();
 
@@ -44,7 +46,7 @@ describe('TreinoEditDialog — zonas do atleta', () => {
         vi.mocked(useAthleteTrainingZones).mockReturnValue({ zones: ZONES, loading: false, error: null, fetchZones: vi.fn() });
     });
 
-    const abrir = () => render(<TreinoEditDialog open treino={TREINO} isSaving={false} atletaId="atleta-1" atletaNome="Mariana Costa" onClose={vi.fn()} onSave={onSave} />);
+    const abrir = () => render(<TreinoEditDialog semana={SEMANA} open treino={TREINO} isSaving={false} atletaId="atleta-1" atletaNome="Mariana Costa" onClose={vi.fn()} onSave={onSave} />);
 
     it('busca as zonas do atleta recebido', () => {
         abrir();
@@ -131,7 +133,7 @@ describe('TreinoEditDialog — zonas do atleta', () => {
     it('uma etapa sem zona escolhida não apaga a predominante das outras (aquecimento livre + principal Z5)', () => {
         vi.mocked(useAthleteTrainingZones).mockReturnValue({ zones: ZONES, loading: false, error: null, fetchZones: vi.fn() });
         render(
-            <TreinoEditDialog
+            <TreinoEditDialog semana={SEMANA}
                 open
                 treino={{ ...TREINO, zonaAlvo: undefined, etapas: [
                     { ordem: 1, tipoEtapa: 'AQUECIMENTO', duracaoMin: 10, descricaoEtapa: 'solto' },
@@ -150,7 +152,7 @@ describe('TreinoEditDialog — zonas do atleta', () => {
 
     it('etapas da IA com faixa dentro da zona (sem casar exatamente) dão a zona predominante', () => {
         render(
-            <TreinoEditDialog
+            <TreinoEditDialog semana={SEMANA}
                 open
                 treino={{ ...TREINO, zonaAlvo: undefined, etapas: [
                     { ordem: 1, tipoEtapa: 'AQUECIMENTO', duracaoMin: 10, fcAlvoEtapa: '130-140 bpm' },
@@ -169,7 +171,7 @@ describe('TreinoEditDialog — zonas do atleta', () => {
 
     it('sem nenhuma zona escolhida o "—" vem com a instrução do que fazer', () => {
         render(
-            <TreinoEditDialog
+            <TreinoEditDialog semana={SEMANA}
                 open
                 treino={{ ...TREINO, zonaAlvo: undefined, etapas: [{ ordem: 1, tipoEtapa: 'PRINCIPAL', duracaoMin: 30 }] }}
                 isSaving={false}

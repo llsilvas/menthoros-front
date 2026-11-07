@@ -58,6 +58,7 @@ interface EdicaoTreino {
     planoId: string;
     treinoId: string;
     treino: TreinoPlanejadoDto;
+    semana: { inicio: string; fim: string };
     canal: WatchChannel | null;
 }
 
@@ -282,6 +283,7 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
             planoId: plano.id,
             treinoId: treino.id,
             treino: toEditorTreino(treino),
+            semana: { inicio: plano.semanaInicio, fim: plano.semanaFim },
             canal: buildWatchChannelFromConexao(plano.conexaoCanal),
         });
     };
@@ -526,6 +528,7 @@ const PlanosDialog: React.FC<PlanosDialogProps> = ({
                 key={edicao.treinoId}
                 open
                 treino={edicao.treino}
+                semana={edicao.semana}
                 atletaId={edicao.atletaId}
                 atletaNome={atletaNome}
                 isSaving={isSaving}

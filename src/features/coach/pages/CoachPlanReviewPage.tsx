@@ -15,6 +15,7 @@ import { useTreinoPlanejado } from '../../../hooks/useTreinoPlanejado';
 import type { PlanoSemanalDto, TreinoPlanejadoPatch, TreinoPlanejadoDto } from '../../../types/PlanoReview';
 import { indiceDoDia, weekDatesFromInicio } from '../../../utils/semana';
 import { rotuloDiaComData } from '../components/tiposTreino';
+import { mensagemDeErroAoSalvar } from '../adapters/mensagemDeErroAoSalvar';
 
 // ── Coluna de filtros ────────────────────────────────────────────────────────
 
@@ -192,8 +193,8 @@ export default function CoachPlanReviewPage() {
             setEditingTreinoId(null);
             await reviewFetchPendentes();
             setToast({ msg: 'Treino atualizado com sucesso', severity: 'success' });
-        } catch {
-            setToast({ msg: 'Erro ao salvar treino. Tente novamente.', severity: 'error' });
+        } catch (err) {
+            setToast({ msg: mensagemDeErroAoSalvar(err), severity: 'error' });
         }
     };
 
@@ -337,10 +338,11 @@ export default function CoachPlanReviewPage() {
             />
 
             {/* Dialog de edição de treino */}
-            {editingTreino && (
+            {editingTreino && selected && (
                 <TreinoEditDialog
                     open
                     treino={editingTreino}
+                    semana={{ inicio: selected.semanaInicio, fim: selected.semanaFim }}
                     contexto={contextoDoTreino(selected, editingTreino)}
                     atletaId={selected?.atletaId}
                     atletaNome={selected?.atletaNome}

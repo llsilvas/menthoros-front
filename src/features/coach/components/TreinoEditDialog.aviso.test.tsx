@@ -18,6 +18,8 @@ const TREINO: TreinoPlanejadoDto = {
     etapas: [],
 };
 
+const SEMANA = { inicio: '2026-09-07', fim: '2026-09-13' };
+
 describe('TreinoEditDialog — plano já aprovado (coach-editar-treino-aprovado)', () => {
     const onSave = vi.fn();
 
@@ -27,7 +29,7 @@ describe('TreinoEditDialog — plano já aprovado (coach-editar-treino-aprovado)
     });
 
     const abrir = (props: Partial<TreinoEditDialogProps> = {}) => render(
-        <TreinoEditDialog open treino={TREINO} isSaving={false} atletaNome="Mariana Costa"
+        <TreinoEditDialog semana={SEMANA} open treino={TREINO} isSaving={false} atletaNome="Mariana Costa"
             onClose={vi.fn()} onSave={onSave} {...props} />,
     );
 

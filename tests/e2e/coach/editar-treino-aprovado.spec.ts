@@ -16,6 +16,12 @@ const json = (body: unknown, status = 200) => ({ status, contentType: 'applicati
 
 type Treino = Record<string, unknown>
 
+/** Semana do plano fake (2026-11-02 a 2026-11-08). */
+const DIA_POR_DATA: Record<string, string> = {
+  '2026-11-02': 'SEGUNDA', '2026-11-03': 'TERCA', '2026-11-04': 'QUARTA', '2026-11-05': 'QUINTA',
+  '2026-11-06': 'SEXTA', '2026-11-07': 'SABADO', '2026-11-08': 'DOMINGO',
+}
+
 function treino(id: string, diaSemana: string, over: Treino = {}): Treino {
   return {
     id, diaSemana, tipoTreino: 'CONTINUO', distanciaKm: 10, statusExecucao: 'PENDENTE', duracaoMin: 'PT60M',
@@ -54,10 +60,12 @@ async function mockarApis(page: Page, estado: { treinos: Treino[]; patches: { ur
     const body = route.request().postDataJSON() as Record<string, unknown>
     estado.patches.push({ url: route.request().url(), body })
     const id = route.request().url().split('/').pop()
+    // Como o backend: a data nova deriva o dia, e a resposta devolve a data aplicada.
+    const diaSemana = typeof body.dataTreino === 'string' ? DIA_POR_DATA[body.dataTreino] : undefined
     estado.treinos = estado.treinos.map((t) => t.id === id
-      ? { ...t, ...body, editedAfterApprovalAt: new Date().toISOString(), statusSincronizacao: 'AGUARDANDO_RETRY', syncInProgress: true }
+      ? { ...t, ...body, ...(diaSemana ? { diaSemana } : {}), editedAfterApprovalAt: new Date().toISOString(), statusSincronizacao: 'AGUARDANDO_RETRY', syncInProgress: true }
       : t)
-    return route.fulfill(json({ id }))
+    return route.fulfill(json({ id, ...body }))
   })
 }
 
@@ -99,6 +107,38 @@ test.describe('Coach — editar treino de plano aprovado', () => {
 
     await expect(page.getByLabel('Treino realizado — não editável')).toBeVisible()
     await expect(page.getByRole('button', { name: /editar treino/i })).toHaveCount(0)
+  })
+
+  test('mover treino pendente para dia futuro: o PATCH leva dataTreino e o card muda de dia (coach-alterar-data-treino)', async ({ page }) => {
+    const estado = { treinos: [treino('t2', 'QUINTA')], patches: [] as { url: string; body: Record<string, unknown> }[] }
+    await mockarApis(page, estado)
+    await page.goto(PERFIL_URL)
+
+    await page.getByRole('button', { name: /editar treino de qui/i }).click()
+    const dia = page.getByLabel('Dia do treino')
+    await expect(dia).toHaveValue('2026-11-05')
+    await dia.selectOption('2026-11-07')
+    await page.getByRole('button', { name: 'Salvar e reenviar' }).click()
+
+    await expect.poll(() => estado.patches.length).toBe(1)
+    expect(estado.patches[0].body).toEqual({ dataTreino: '2026-11-07' })
+    await expect(page.getByRole('button', { name: /editar treino de sáb/i })).toBeVisible()
+    await expect(page.getByRole('button', { name: /editar treino de qui/i })).toHaveCount(0)
+  })
+
+  test('destino no passado: o 422 do backend aparece no dialog, que continua aberto', async ({ page }) => {
+    const estado = { treinos: [treino('t2', 'QUINTA')], patches: [] as { url: string; body: Record<string, unknown> }[] }
+    await mockarApis(page, estado)
+    await page.route(`**/api/v1/coach/planos/${PLANO_ID}/treinos/*`, (route) => route.fulfill(json(
+      { status: 422, error: 'Unprocessable Entity', message: 'Nova data: treino de dia passado não pode ser editado.' }, 422)))
+    await page.goto(PERFIL_URL)
+
+    await page.getByRole('button', { name: /editar treino de qui/i }).click()
+    await page.getByLabel('Dia do treino').selectOption('2026-11-02')
+    await page.getByRole('button', { name: 'Salvar e reenviar' }).click()
+
+    await expect(page.getByRole('alert').filter({ hasText: 'Nova data: treino de dia passado' })).toBeVisible()
+    await expect(page.getByLabel('Dia do treino')).toHaveValue('2026-11-02')
   })
 
   test('409 do backend: o dialog continua aberto com a mensagem e nada é relido', async ({ page }) => {
