@@ -2,6 +2,7 @@ import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useTreinoPlanejado } from './useTreinoPlanejado';
 import { CoachPlanoReviewService } from '../api/services/CoachPlanoReviewService';
+import { DataNaoAplicadaError } from '../features/coach/adapters/mensagemDeErroAoSalvar';
 
 vi.mock('../api/services/CoachPlanoReviewService');
 
@@ -27,7 +28,7 @@ describe('useTreinoPlanejado.editarTreino — mover de dia (coach-alterar-data-t
         const { result } = renderHook(() => useTreinoPlanejado());
 
         await expect(act(() => result.current.editarTreino('p1', 't1', { dataTreino: '2026-09-09' })))
-            .rejects.toThrow(/não foi possível mover o treino/i);
+            .rejects.toThrow(DataNaoAplicadaError);
     });
 
     it('patch sem data não compara a resposta', async () => {

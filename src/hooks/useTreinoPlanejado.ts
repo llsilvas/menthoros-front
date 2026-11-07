@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { CoachPlanoReviewService } from '../api/services/CoachPlanoReviewService';
+import { DataNaoAplicadaError } from '../features/coach/adapters/mensagemDeErroAoSalvar';
 import type { TreinoPlanejadoAddPayload, TreinoPlanejadoDto, TreinoPlanejadoPatch } from '../types/PlanoReview';
 
 export function useTreinoPlanejado() {
@@ -34,7 +35,7 @@ export function useTreinoPlanejado() {
                 // Backend sem suporte a `dataTreino` ignora o campo e devolve 200 com a data antiga:
                 // sem esta checagem o treinador veria sucesso e o treino continuaria no dia de origem.
                 if (patch.dataTreino && salvo.dataTreino !== patch.dataTreino) {
-                    throw new Error('Não foi possível mover o treino: a nova data não foi aplicada.');
+                    throw new DataNaoAplicadaError();
                 }
                 return salvo;
             } catch (err) {

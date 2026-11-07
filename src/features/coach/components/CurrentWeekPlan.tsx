@@ -25,7 +25,7 @@ import { estadoDeExecucao } from './treinoPlanejadoEstado';
 import { rotuloDiaComData, tipoTreinoLabel } from './tiposTreino';
 import { duracaoEmMinutos } from '../adapters/duracaoTreino';
 import { isErroSync } from '../adapters/syncReason';
-import { indiceDoDia, isoDoDiaNaSemana, weekDatesFromInicio } from '../../../utils/semana';
+import { indiceDoDia, weekDatesFromInicio } from '../../../utils/semana';
 
 interface CurrentWeekPlanProps {
     plano: PlanoVigenteDto | null;
@@ -46,12 +46,11 @@ function canalConectado(t: TreinoPlanejadoResumoDto): boolean | undefined {
     return t.channelConnected ?? t.atletaConectadoIntervalsIcu;
 }
 
-function toDialogTreino(t: TreinoPlanejadoResumoDto, semanaInicio: string): TreinoPlanejadoDto {
+// O resumo não traz `dataTreino`; o editor deriva a data de `semana.inicio + diaSemana` (D6).
+function toDialogTreino(t: TreinoPlanejadoResumoDto): TreinoPlanejadoDto {
     return {
         id: t.id,
         diaSemana: t.diaSemana,
-        // O resumo não traz a data; o editor compara o select com ela para só mandar `dataTreino` se mudou (D6).
-        dataTreino: isoDoDiaNaSemana(weekDatesFromInicio(semanaInicio), t.diaSemana),
         tipoTreino: t.tipoTreino,
         // O dialog de edição exige número; 0 é o que o resumo mandava antes de a distância virar opcional.
         distanciaKm: t.distanciaKm ?? 0,
@@ -255,9 +254,8 @@ export function CurrentWeekPlan({ plano, atletaId, atletaNome, onGerarPlano, onR
     };
 
     const abrirEdicao = (t: TreinoPlanejadoResumoDto) => {
-        if (!plano) return;
         setErroAoSalvar(null);
-        setEditingTreino(toDialogTreino(t, plano.semanaInicio));
+        setEditingTreino(toDialogTreino(t));
     };
 
     const handleSalvar = async (patch: TreinoPlanejadoPatch) => {
