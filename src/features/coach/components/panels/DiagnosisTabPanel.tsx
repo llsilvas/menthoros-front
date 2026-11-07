@@ -17,6 +17,7 @@ import type { CoachAttentionItem } from '../../../../types/Coach';
 import { ACTION_BTN_END_ICON_SX } from '../../../../shared/components/actionButtonSx';
 import { buildDiagnosisMetrics } from '../../adapters/diagnosisMetricsAdapters';
 import { DIAGNOSIS_WEEKS } from '../../adapters/diagnosisChartsAdapters';
+import type { NextInAttention } from '../../adapters/coachInboxAdapters';
 import type { CoachAthleteRow } from '../../types/CoachInbox';
 import type { LimiareisInferidosDto } from '../../../../types/AtletaPerfilCoach';
 import type { PMCDataPoint, PMCGap, PMCRange } from '../../../athlete/components/PMCChart';
@@ -103,9 +104,14 @@ interface DiagnosisTabPanelProps {
   /** Série PMC (CTL/ATL/TSB) do atleta selecionado, já mapeada do perfil. */
   pmc: PMCDataPoint[];
   onOpenPlan: () => void;
+  /** Próximo atleta com sinal na lista visível; `null` = fim da fila. Só lido quando há sinal. */
+  nextAthlete?: NextInAttention | null;
+  onNext?: () => void;
 }
 
-export function DiagnosisTabPanel({ selected, attentionItem, attentionRecencyDays = null, limiareisInferidos, pmc, onOpenPlan }: DiagnosisTabPanelProps) {
+export function DiagnosisTabPanel({
+  selected, attentionItem, attentionRecencyDays = null, limiareisInferidos, pmc, onOpenPlan, nextAthlete = null, onNext,
+}: DiagnosisTabPanelProps) {
   const metrics = buildDiagnosisMetrics(selected);
   const statusColor = PLAN_STATUS_COLOR[selected.planStatus];
   const [pmcRange, setPmcRange] = useState<PMCRange>('12w');
@@ -255,6 +261,26 @@ export function DiagnosisTabPanel({ selected, attentionItem, attentionRecencyDay
 
       {limiareisInferidos && <LimiareisCard limiares={limiareisInferidos} />}
 
+      {/*
+        Fluxo de triagem: depois de agir, o coach não volta à lista para achar o próximo vermelho.
+        Só aparece para quem está na fila — fora dela não há "próximo" que faça sentido.
+      */}
+      {attentionItem ? (
+        <Box data-testid="inbox-proximo-em-atencao" sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 1, pt: 0.5 }}>
+          {nextAthlete ? (
+            <Button
+              size="small"
+              endIcon={<ArrowForwardIcon fontSize="small" />}
+              onClick={onNext}
+              sx={{ ...ACTION_BTN_END_ICON_SX, color: surface[50], px: 1 }}
+            >
+              Próximo em atenção · {nextAthlete.nome}
+            </Button>
+          ) : (
+            <Typography sx={{ fontSize: '0.8rem', color: surface[400] }}>Fim da fila de atenção</Typography>
+          )}
+        </Box>
+      ) : null}
     </Box>
   );
 }

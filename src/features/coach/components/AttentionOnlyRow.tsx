@@ -21,6 +21,7 @@ export interface AttentionOnlyRowProps {
  * preenchê-la com zero exibiria ausência como medição. O "—" diz isso; o `title` diz por quê.
  */
 export const AttentionOnlyRow = memo(function AttentionOnlyRow({
+  atletaId,
   athleteName,
   contexto,
   selected,
@@ -32,6 +33,7 @@ export const AttentionOnlyRow = memo(function AttentionOnlyRow({
     <ButtonBase
       onClick={onClick}
       aria-current={selected ? 'true' : undefined}
+      data-inbox-linha={atletaId}
       title="Fora da página atual da lista — abra para ver o detalhe completo."
       sx={{
         width: '100%',

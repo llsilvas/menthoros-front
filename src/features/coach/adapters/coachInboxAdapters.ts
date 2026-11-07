@@ -542,3 +542,27 @@ export function buildInboxQueue(
     rosterTotalElements: roster.totalElements,
   };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Fluxo de triagem — inbox-proximo-em-atencao
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface NextInAttention {
+  atletaId: string;
+  nome: string;
+}
+
+/**
+ * Próximo atleta com sinal entre as linhas VISÍVEIS, na ordem em que a lista as mostra (a fila:
+ * severidade, depois `priorityScore`). Só visíveis porque a página reverte a seleção para a
+ * primeira linha visível quando o selecionado some — selecionar alguém escondido pela busca ou
+ * pelo filtro seria desfeito no mesmo render. Sem circular: no último, `null`. Com o atual fora
+ * da fila, o primeiro com sinal.
+ */
+export function findNextInAttention(rows: InboxQueueRow[], atualId: string | null): NextInAttention | null {
+  const comSinal = rows.filter((linha) => linha.attention != null);
+  const idx = comSinal.findIndex((linha) => linha.atletaId === atualId);
+  const proximo = idx < 0 ? comSinal[0] : comSinal[idx + 1];
+  if (!proximo) return null;
+  return { atletaId: proximo.atletaId, nome: proximo.source === 'roster' ? proximo.row.name : proximo.athleteName };
+}

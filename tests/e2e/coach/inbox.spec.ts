@@ -641,3 +641,88 @@ test.describe('Coach — lista de triagem (inbox-lista-triagem)', () => {
     await expect(page.getByTestId('inbox-lista-contagem')).toHaveText(/10 de 10/)
   })
 })
+
+/**
+ * inbox-proximo-em-atencao — fluxo de triagem: "Próximo em atenção →" ao fim do Diagnóstico, tecla
+ * `N`, setas na lista, e prova no cabeçalho só quando existe.
+ */
+test.describe('Coach — próximo em atenção e atalhos (inbox-proximo-em-atencao)', () => {
+  test.beforeEach(async ({ page }) => {
+    await autenticarComPkce(page, { roles: ['PROPRIETARIO', 'TECNICO'] })
+  })
+
+  const FILA_ABC = [
+    { ...ANA_EM_ALERTA, atletaId: 'q-a', athleteName: 'Alice Atenta', severity: 'CRITICA' },
+    { ...ANA_EM_ALERTA, atletaId: 'q-b', athleteName: 'Bento Souza', severity: 'ALTA', primaryReason: 'SOBRECARGA' },
+    { ...ANA_EM_ALERTA, atletaId: 'q-c', athleteName: 'Clara Atenta', severity: 'MEDIA', primaryReason: 'ADERENCIA' },
+  ]
+  const linha = (page: Page, nome: RegExp) => page.getByTestId('inbox-lista').getByRole('button', { name: nome })
+  /** O perfil ecoa o id da URL: a página descarta perfil de outro atleta como "ainda carregando". */
+  const idDaUrl = (url: string) => /atletas\/([^/]+)\/perfil/.exec(url)?.[1] ?? 'x'
+
+  test('o link e a tecla N percorrem a fila até "Fim da fila de atenção"; a busca pula quem está escondido', async ({ page }) => {
+    await mockarDashboard(page, { attentionQueue: FILA_ABC })
+    await page.route('**/api/v1/coach/atletas/*/perfil', (route) => route.fulfill({ json: perfilDe(idDaUrl(route.request().url()), 'Atleta', null) }))
+    await page.goto(INBOX_URL)
+    await expect(linha(page, /alice atenta/i)).toHaveAttribute('aria-current', 'true')
+
+    await page.getByRole('button', { name: /próximo em atenção · bento souza/i }).click()
+    await expect(linha(page, /bento souza/i)).toHaveAttribute('aria-current', 'true')
+
+    await page.keyboard.press('n')
+    await expect(linha(page, /clara atenta/i)).toHaveAttribute('aria-current', 'true')
+    await expect(page.getByText(/fim da fila de atenção/i)).toBeVisible()
+    await expect(page.getByRole('button', { name: /próximo em atenção/i })).toHaveCount(0)
+
+    // Busca "atent" esconde Bento Souza: de Alice o próximo é Clara.
+    await linha(page, /alice atenta/i).click()
+    await page.getByPlaceholder('Buscar atleta...').fill('atent')
+    await expect(linha(page, /bento souza/i)).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /próximo em atenção · clara atenta/i })).toBeVisible()
+  })
+
+  test('N não age dentro da busca nem com o dialog de rejeição aberto; ↓ troca a seleção', async ({ page }) => {
+    await mockarDashboard(page, { attentionQueue: FILA_ABC })
+    await page.route('**/api/v1/coach/atletas/*/perfil', (route) =>
+      route.fulfill({
+        json: perfilDe(idDaUrl(route.request().url()), 'Atleta', {
+          planoId: '11111111-1111-1111-1111-111111111111',
+          semanaInicio: '2026-08-17',
+          semanaFim: '2026-08-23',
+          reviewStatus: 'AGUARDANDO_REVISAO',
+          treinos: [],
+        }),
+      }),
+    )
+    await page.goto(INBOX_URL)
+    await expect(linha(page, /alice atenta/i)).toHaveAttribute('aria-current', 'true')
+
+    await page.getByPlaceholder('Buscar atleta...').click()
+    await page.keyboard.press('n')
+    await expect(linha(page, /alice atenta/i)).toHaveAttribute('aria-current', 'true')
+    await page.getByPlaceholder('Buscar atleta...').clear()
+
+    await page.getByRole('button', { name: /^Rejeitar$/i }).click()
+    await expect(page.getByRole('dialog')).toBeVisible()
+    await page.keyboard.press('n')
+    await page.getByRole('button', { name: /^Cancelar$/i }).click()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await expect(linha(page, /alice atenta/i)).toHaveAttribute('aria-current', 'true')
+
+    await linha(page, /alice atenta/i).focus()
+    await page.keyboard.press('ArrowDown')
+    await expect(linha(page, /bento souza/i)).toBeFocused()
+    await expect(linha(page, /bento souza/i)).toHaveAttribute('aria-current', 'true')
+  })
+
+  test('sem prova cadastrada, nada ocupa o lugar da próxima prova no cabeçalho', async ({ page }) => {
+    await mockarDashboard(page)
+    await page.route('**/api/v1/coach/atletas/*/perfil', (route) => route.fulfill({ json: perfilDe('ana-alerta', 'Ana Fora da Pagina', null) }))
+    await page.goto(INBOX_URL)
+    await page.getByRole('button', { name: /ana fora da pagina/i }).click()
+    await expect(page.getByTestId('inbox-cta-primario')).toBeVisible()
+
+    await expect(page.getByTestId('inbox-proxima-prova')).toHaveCount(0)
+    await expect(page.getByText(/sem prova cadastrada/i)).toHaveCount(0)
+  })
+})
