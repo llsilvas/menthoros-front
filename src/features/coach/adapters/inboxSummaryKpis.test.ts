@@ -1,24 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import { buildInboxSummaryKpiViews } from './inboxSummaryKpis';
+import { buildInboxSummaryLine } from './inboxSummaryKpis';
 
-const SUMMARY = { totalAtletas: 5, ativos: 1, emAtencao: 4, treinosPlanejadosSemana: 4, atletasExibidos: 5, itensFilaAtencao: 1 };
+const BASE = { totalAtletas: 23, ativos: 19, emAtencao: 3, treinosPlanejadosSemana: 61, generatedAt: '2026-11-07T14:32:00Z' };
 
-describe('buildInboxSummaryKpiViews', () => {
-  it('quatro células na ordem, com a base de cada número na linha de apoio', () => {
-    expect(buildInboxSummaryKpiViews(SUMMARY).map((v) => [v.key, v.label, v.value, v.detail])).toEqual([
-      ['ativos', 'Atletas ativos', '1', '5 no total'],
-      ['treinos', 'Treinos planejados', '4', 'Nesta semana, em todos os planos'],
-      ['atencao', 'Em atenção', '4', '1 sinal na fila'],
-      ['exibidos', 'Atletas exibidos', '5', 'Na lista, com os filtros atuais'],
+describe('buildInboxSummaryLine', () => {
+  it('quatro segmentos na ordem: ativos de total, em atenção, treinos, atualizado', () => {
+    expect(buildInboxSummaryLine(BASE).map((s) => [s.key, s.value, s.label])).toEqual([
+      ['ativos', '19', 'ativos de 23'],
+      ['atencao', '3', 'em atenção'],
+      ['treinos', '61', 'treinos esta semana'],
+      ['atualizado', new Date(BASE.generatedAt).toLocaleTimeString('pt-BR', { timeStyle: 'short' }), 'atualizado'],
     ]);
   });
 
-  it('valores neutros: a cor fica no ícone da célula', () => {
-    expect(buildInboxSummaryKpiViews(SUMMARY).every((v) => v.tone === 'neutral' && v.badge === null && v.qualifier === null)).toBe(true);
+  it('em atenção ganha tom de aviso só quando há alguém na fila', () => {
+    expect(buildInboxSummaryLine(BASE)[1].tone).toBe('warning');
+    expect(buildInboxSummaryLine({ ...BASE, emAtencao: 0 })[1].tone).toBe('neutral');
   });
 
-  it('fila vazia e plural', () => {
-    expect(buildInboxSummaryKpiViews({ ...SUMMARY, itensFilaAtencao: 0 })[2].detail).toBe('Nenhum sinal na fila');
-    expect(buildInboxSummaryKpiViews({ ...SUMMARY, itensFilaAtencao: 3 })[2].detail).toBe('3 sinais na fila');
+  it('o horário carrega a data completa no title; sem generatedAt o segmento some', () => {
+    const atualizado = buildInboxSummaryLine(BASE)[3];
+    expect(atualizado.title).toBe(new Date(BASE.generatedAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }));
+    expect(buildInboxSummaryLine({ ...BASE, generatedAt: null }).map((s) => s.key)).toEqual(['ativos', 'atencao', 'treinos']);
   });
 });

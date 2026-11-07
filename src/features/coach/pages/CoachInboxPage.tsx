@@ -23,15 +23,9 @@ import {
 } from '@mui/material';
 import {
   CalendarMonth as CalendarMonthIcon,
-  ChatBubbleOutline as ChatBubbleOutlineIcon,
-  MoreHoriz as MoreHorizIcon,
   NotificationsNone as NotificationsNoneIcon,
   Search as SearchIcon,
   Tune as TuneIcon,
-  DirectionsRunRounded as DirectionsRunRoundedIcon,
-  EventNoteOutlined as EventNoteOutlinedIcon,
-  NotificationImportantOutlined as NotificationImportantOutlinedIcon,
-  FilterListRounded as FilterListRoundedIcon,
 } from '@mui/icons-material';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { DANGER_BTN_SX, GHOST_BTN_SX } from '../../../shared/components/actionButtonSx';
@@ -39,7 +33,6 @@ import { CoachAthleteAvatar } from '../components/CoachAthleteAvatar';
 import { QueueRow } from '../components/QueueRow';
 import { AttentionOnlyRow } from '../components/AttentionOnlyRow';
 import { statusPalette } from '../components/coachInboxHelpers';
-import { ACTION_BTN_START_ICON_SX, ACTION_BTN_END_ICON_SX, SECONDARY_OUTLINE_SX } from '../../../shared/components/actionButtonSx';
 import { DiagnosisTabPanel } from '../components/panels/DiagnosisTabPanel';
 import { PlanTabPanel } from '../components/panels/PlanTabPanel';
 import { RacesSuggestionsTabPanel } from '../components/panels/RacesSuggestionsTabPanel';
@@ -54,10 +47,8 @@ import { content, semantic, surface } from '../../../theme/tokens';
 import { buildInboxQueue, buildSelectedAthleteFromDashboard, calcularDiasAteProva } from '../adapters/coachInboxAdapters';
 import { buildAthleteKpis, buildNextRaceHeader } from '../adapters/athleteKpiAdapters';
 import { AthleteKpiStrip } from '../components/AthleteKpiStrip';
-import { KpiStrip } from '../components/KpiStrip';
-import { TELA_BAIXA } from '../theme/mediaQueries';
-import { buildInboxSummaryKpiViews } from '../adapters/inboxSummaryKpis';
-import type { InboxSummaryKpiKey } from '../adapters/inboxSummaryKpis';
+import { buildInboxSummaryLine } from '../adapters/inboxSummaryKpis';
+import { activeTheme } from '../../../theme/activeTheme';
 import { AthleteNextRace } from '../components/AthleteNextRace';
 import { resolveReviewStatus } from '../../../types/PlanoReview';
 import { montarRascunhoContato, resolveActionAvailability, resolvePrimaryAction } from '../components/coachInboxHelpers';
@@ -91,13 +82,6 @@ const TABS: Array<{ key: TabKey; label: string; icon: ReactElement }> = [
   { key: 'races', label: 'Provas & sugestões', icon: <CalendarMonthIcon fontSize="small" /> },
 ];
 
-/** Ícone de cada célula do resumo do topo: diz o que o número conta e carrega a cor. */
-const INBOX_SUMMARY_ICON: Record<InboxSummaryKpiKey, ReactElement> = {
-  ativos: <DirectionsRunRoundedIcon sx={{ color: semantic.success[500] }} />,
-  treinos: <EventNoteOutlinedIcon sx={{ color: surface[200] }} />,
-  atencao: <NotificationImportantOutlinedIcon sx={{ color: semantic.warning[500] }} />,
-  exibidos: <FilterListRoundedIcon sx={{ color: surface[200] }} />,
-};
 
 function CoachInboxPage() {
   const navigate = useNavigate();
@@ -113,7 +97,6 @@ function CoachInboxPage() {
   const [statusMenuAnchor, setStatusMenuAnchor] = useState<null | HTMLElement>(null);
   const [sortMenuAnchor, setSortMenuAnchor] = useState<null | HTMLElement>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('diagnosis');
-  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const {
     dashboard,
@@ -246,17 +229,14 @@ function CoachInboxPage() {
   }, [dashboardPage, rosterPageCount, setDashboardPage]);
 
   const dashboardSummary = dashboard?.summary ?? null;
-  const summary = {
+  // A fila completa, não o `emAtencao` do resumo: já chegaram diferentes na mesma resposta.
+  const summaryLine = buildInboxSummaryLine({
     totalAtletas: dashboardSummary?.kpis.totalAtletas ?? 0,
     ativos: dashboardSummary?.kpis.ativos ?? 0,
-    emAtencao: dashboardSummary?.kpis.emAtencao ?? 0,
+    emAtencao: dashboardAttentionQueue.length,
     treinosPlanejadosSemana: dashboardSummary?.kpis.treinosPlanejadosSemana ?? 0,
-    atletasExibidos: dashboardSummary?.atletasExibidos ?? rosterTotal,
-    itensFilaAtencao: dashboardSummary?.itensFilaAtencao ?? 0,
-  };
-  const dashboardUpdatedAt = dashboard?.generatedAt
-    ? new Date(dashboard.generatedAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
-    : null;
+    generatedAt: dashboard?.generatedAt ?? null,
+  });
 
   // Mesma correção do card da lista: o chip mostra `statusLabel`, então a cor tem de vir do MESMO
   // status. Vinha de `paletteForDecision(selected.decision)` — e `decision` é `'PENDING'` fixo no
@@ -283,10 +263,7 @@ function CoachInboxPage() {
     fetchSelectedProfile,
   });
 
-  const openRejectDialog = useCallback(() => {
-    setMenuAnchor(null);
-    openRejectDialogBase();
-  }, [openRejectDialogBase]);
+  const openRejectDialog = openRejectDialogBase;
 
   /** Sinal do atleta selecionado, se ele estiver na fila de atenção. */
   /** Item bruto da fila de atenção do selecionado — o painel precisa de `evidence`/`explanation`. */
@@ -335,37 +312,52 @@ function CoachInboxPage() {
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: elevation.base }}>
+      {/*
+        Barra única: título, resumo em linha e busca. Eyebrow, descrição e a faixa de quatro KPIs
+        somavam ~136px antes do primeiro atleta (crítica de design, 2026-11-07); só "em atenção"
+        é triagem, e cabe numa linha.
+      */}
       <Box
+        component="header"
         sx={{
           px: { xs: 2, md: 3 },
-          py: 2,
+          py: 1,
+          minHeight: 52,
+          boxSizing: 'border-box',
           borderBottom: `1px solid ${content.divider}`,
           display: 'flex',
           alignItems: 'center',
-          gap: 2,
+          gap: { xs: 1, md: 2 },
           flexWrap: 'wrap',
-          [TELA_BAIXA]: { py: 1.25 },
         }}
       >
-        <Box sx={{ minWidth: 0, flex: '1 1 260px' }}>
-          {/* Eyebrow em neutro: accent significa ação, e um rótulo estático não é acionável. */}
-          <Typography sx={{ fontSize: '0.75rem', color: surface[400], fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-            Assistente do Treinador
-          </Typography>
-          {/*
-            Título estático em 16px. Ele era o MAIOR texto da tela (23,2px) — chrome ganhando de
-            conteúdo. Quem tem de dominar a tela é o nome do atleta selecionado, logo abaixo.
-          */}
-          <Typography
-            data-testid="inbox-titulo"
-            sx={{ fontSize: '1rem', fontWeight: 800, color: surface[50], lineHeight: 1.2 }}
-          >
-            Fila, plano e calendário
-          </Typography>
-          {/* Em tela baixa a descrição sai: é texto de apresentação, e cada linha aqui é uma linha a menos na lista de atletas. */}
-          <Typography sx={{ fontSize: '0.86rem', color: surface[400], mt: 0.3, [TELA_BAIXA]: { display: 'none' } }}>
-            Revisão rápida, ajuste de plano e leitura de prova, status e adesão.
-          </Typography>
+        {/* 17px: o nome do atleta selecionado é o maior texto da tela, e o e2e cobra isso. */}
+        <Typography
+          component="h1"
+          data-testid="inbox-titulo"
+          sx={{ fontSize: '1.0625rem', fontWeight: 800, color: surface[50], lineHeight: 1.2, m: 0 }}
+        >
+          Inbox
+        </Typography>
+        <Box
+          data-testid="inbox-resumo"
+          sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, md: 1.75 }, flexWrap: 'wrap', minWidth: 0, fontSize: '0.78rem', color: surface[400] }}
+        >
+          {summaryLine.map((seg) => (
+            <Typography
+              key={seg.key}
+              component="span"
+              data-testid={`inbox-resumo-${seg.key}`}
+              title={seg.title}
+              sx={{ fontSize: 'inherit', whiteSpace: 'nowrap', color: seg.tone === 'warning' ? semantic.warning[500] : 'inherit', fontWeight: seg.tone === 'warning' ? 700 : 400 }}
+            >
+              {seg.key === 'atualizado' ? (
+                <>{seg.label} <Box component="span" sx={{ fontFamily: activeTheme.font.mono }}>{seg.value}</Box></>
+              ) : (
+                <><Box component="span" sx={{ fontFamily: activeTheme.font.mono, fontWeight: 700, color: seg.tone === 'warning' ? 'inherit' : surface[50] }}>{seg.value}</Box> {seg.label}</>
+              )}
+            </Typography>
+          ))}
         </Box>
 
         <TextField
@@ -375,7 +367,8 @@ function CoachInboxPage() {
           // A busca vai para `q` do dashboard, que filtra o roster por nome — prometer treino e
           // prova era contrato que a tela não cumpre.
           placeholder="Buscar atleta..."
-          sx={{ minWidth: { xs: '100%', md: 320 }, flex: '0 1 360px' }}
+          // Abaixo de `md` ela quebra para a segunda linha da barra; acima fica à direita.
+          sx={{ ml: { md: 'auto' }, minWidth: { xs: '100%', md: 260 }, flex: { xs: '1 1 100%', md: '0 1 320px' } }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -404,28 +397,6 @@ function CoachInboxPage() {
         </Alert>
       ) : null}
       {dashboardLoading ? <LinearProgress sx={{ mb: 1 }} /> : null}
-
-      {/*
-        "Resumo rápido" era um card ocupando uma coluna inteira, ao lado de dois previews que
-        repetiam atletas já listados na coluna seguinte. Os previews saem — a lista principal agora
-        carrega motivo e recência e fixa quem está em atenção (gate 1.1) — e os KPIs viram faixa.
-      */}
-      <KpiStrip
-        items={buildInboxSummaryKpiViews(summary).map((v) => ({ ...v, icon: INBOX_SUMMARY_ICON[v.key] }))}
-        testIdPrefix="inbox-kpi"
-        sx={{
-          border: `1px solid ${content.divider}`,
-          borderRadius: 2,
-          overflow: 'hidden',
-          mb: { xs: 1, lg: 1.25 },
-          [TELA_BAIXA]: { mb: 0.5 },
-        }}
-      />
-      {dashboardUpdatedAt ? (
-        <Typography sx={{ fontSize: '0.7rem', color: surface[500], mb: { xs: 1, lg: 1.25 }, mt: -0.5, [TELA_BAIXA]: { mb: 0.5, mt: 0 } }}>
-          Atualizado em {dashboardUpdatedAt}
-        </Typography>
-      ) : null}
 
       <Box
         sx={{
@@ -784,6 +755,19 @@ function CoachInboxPage() {
                     </Button>
                   ) : null}
 
+                  {/*
+                    Editar a proposta da IA é uma das faces da decisão: fica visível ao lado de
+                    aprovar, não num rodapé nem num menu (D4 de coach-inbox-notebook-height).
+                  */}
+                  <Button
+                    variant="outlined"
+                    startIcon={<TuneIcon />}
+                    onClick={() => setActiveTab('plan')}
+                    sx={{ minHeight: 40, fontSize: '0.875rem', textTransform: 'none', color: surface[200], borderColor: content.cardBorder }}
+                  >
+                    Ajustar plano
+                  </Button>
+
                   {actionAvailability === 'stale' ? (
                     <Typography sx={{ fontSize: '0.75rem', color: semantic.warning[500] }}>
                       O plano mudou em outra sessão. Recarregue para ver o estado atual.
@@ -828,7 +812,7 @@ function CoachInboxPage() {
                 </Tabs>
               </Box>
 
-              <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto', p: { xs: 0.9, sm: 1, lg: 1.15, xl: 2.25 } }}>
+              <Box data-testid="inbox-detalhe-conteudo" sx={{ flex: 1, minHeight: 0, overflow: 'auto', p: { xs: 0.9, sm: 1, lg: 1.15, xl: 2.25 } }}>
                 {feedback ? (
                   <Alert
                     severity="success"
@@ -897,63 +881,6 @@ function CoachInboxPage() {
                 ) : null}
               </Box>
 
-              <Box
-                sx={{
-                  px: { xs: 1.1, sm: 1.2, lg: 1.35, xl: 2.5 },
-                  py: { xs: 0.85, sm: 0.95, lg: 1.05, xl: 1.8 },
-                  borderTop: `1px solid ${content.divider}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: { xs: 0.6, lg: 0.75, xl: 1.2 },
-                  flexWrap: 'wrap',
-                }}
-              >
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<ChatBubbleOutlineIcon />}
-                  onClick={() => setFeedback('Mensagem preparada para o atleta.')}
-                  sx={{ ...ACTION_BTN_START_ICON_SX, ...SECONDARY_OUTLINE_SX }}
-                >
-                  Enviar mensagem
-                </Button>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<TuneIcon />}
-                  onClick={() => setActiveTab('plan')}
-                  sx={{ ...ACTION_BTN_START_ICON_SX, ...SECONDARY_OUTLINE_SX }}
-                >
-                  Ajustar plano
-                </Button>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  onClick={(event) => setMenuAnchor(event.currentTarget)}
-                  endIcon={<MoreHorizIcon />}
-                  sx={{ ...ACTION_BTN_END_ICON_SX, ...SECONDARY_OUTLINE_SX }}
-                >
-                  Mais ações
-                </Button>
-                <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
-                  <MenuItem
-                    onClick={() => {
-                      setMenuAnchor(null);
-                      setFeedback('Plano marcado como prioridade.');
-                    }}
-                  >
-                    Marcar como prioridade
-                  </MenuItem>
-                  <MenuItem
-                    onClick={() => {
-                      setMenuAnchor(null);
-                      setActiveTab('plan');
-                    }}
-                  >
-                    Abrir editor do plano
-                  </MenuItem>
-                </Menu>
-              </Box>
               <CoachDialog
                 open={rejectDialogOpen}
                 onClose={closeRejectDialog}
