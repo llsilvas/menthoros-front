@@ -57,6 +57,10 @@ type EtapaApi = {
   fcAlvoEtapa?: string
   ritmoAlvo?: string
   alvoPrimario?: string
+  blocoId?: string
+  blocoRepeticoes?: number
+  /** Só no payload de entrada, quando `tipoEtapa === 'BLOCO'`. */
+  subEtapas?: EtapaApi[]
 }
 
 const ETAPAS_INICIAIS: EtapaApi[] = [
@@ -65,6 +69,32 @@ const ETAPAS_INICIAIS: EtapaApi[] = [
   { ordem: 2, tipoEtapa: 'INTERVALADO', duracaoMin: 30, fcAlvoEtapa: '143-150 bpm', ritmoAlvo: '5:15-5:45/km' },
   { ordem: 3, tipoEtapa: 'DESAQUECIMENTO', duracaoMin: 5, fcAlvoEtapa: '126-143 bpm', ritmoAlvo: '5:45-6:15/km', alvoPrimario: 'FC' },
 ]
+
+/** Avulsa, série 2× (tiro + recuperação) gravada expandida com `blocoId`, avulsa. */
+const ETAPAS_COM_BLOCO: EtapaApi[] = [
+  { ordem: 1, tipoEtapa: 'AQUECIMENTO', duracaoMin: 10, fcAlvoEtapa: '126-143 bpm', alvoPrimario: 'FC' },
+  { ordem: 2, tipoEtapa: 'INTERVALADO', duracaoMin: 3, ritmoAlvo: '4:30-4:45/km', alvoPrimario: 'PACE', blocoId: 'b1', blocoRepeticoes: 2 },
+  { ordem: 3, tipoEtapa: 'RECUPERACAO', duracaoMin: 2, fcAlvoEtapa: '126-143 bpm', alvoPrimario: 'FC', blocoId: 'b1', blocoRepeticoes: 2 },
+  { ordem: 4, tipoEtapa: 'INTERVALADO', duracaoMin: 3, ritmoAlvo: '4:30-4:45/km', alvoPrimario: 'PACE', blocoId: 'b1', blocoRepeticoes: 2 },
+  { ordem: 5, tipoEtapa: 'RECUPERACAO', duracaoMin: 2, fcAlvoEtapa: '126-143 bpm', alvoPrimario: 'FC', blocoId: 'b1', blocoRepeticoes: 2 },
+  { ordem: 6, tipoEtapa: 'DESAQUECIMENTO', duracaoMin: 5, fcAlvoEtapa: '126-143 bpm', alvoPrimario: 'FC' },
+]
+
+/**
+ * O que o backend persiste a partir do payload: um `BLOCO` vira N cópias das sub-etapas com o
+ * mesmo `blocoId` (é assim que `itensFromEtapas` reconstrói a série ao reabrir o editor).
+ */
+function expandirPatch(etapas: EtapaApi[]): EtapaApi[] {
+  const planas: EtapaApi[] = []
+  etapas.forEach((e, i) => {
+    if (e.tipoEtapa !== 'BLOCO') { planas.push(e); return }
+    const reps = e.blocoRepeticoes ?? 1
+    for (let r = 0; r < reps; r++) {
+      for (const sub of e.subEtapas ?? []) planas.push({ ...sub, blocoId: `bloco-${i}`, blocoRepeticoes: reps })
+    }
+  })
+  return planas.map((e, i) => ({ ...e, ordem: i + 1 }))
+}
 
 function montarPlano(etapas: EtapaApi[], zonaAlvo = 'Z2') {
   return {
@@ -97,8 +127,8 @@ function montarPlano(etapas: EtapaApi[], zonaAlvo = 'Z2') {
 }
 
 /** Mocka o backend; o plano é estado: o PATCH atualiza as etapas e a tela relida as vê. */
-async function mockarApis(page: Page, zonas: unknown) {
-  let plano = montarPlano(ETAPAS_INICIAIS)
+async function mockarApis(page: Page, zonas: unknown, etapasIniciais: EtapaApi[] = ETAPAS_INICIAIS) {
+  let plano = montarPlano(etapasIniciais)
 
   await page.route(ME_API, route =>
     route.fulfill({
@@ -129,13 +159,21 @@ async function mockarApis(page: Page, zonas: unknown) {
     const patch = route.request().postDataJSON() as { etapas?: EtapaApi[]; zonaAlvo?: string }
     patches.push(patch)
     if (patch.etapas) {
-      const etapas = patch.etapas.map((e, i) => ({ ...e, ordem: i + 1 }))
-      plano = montarPlano(etapas, patch.zonaAlvo ?? plano.treinosPlanejados[0].zonaAlvo)
+      plano = montarPlano(expandirPatch(patch.etapas), patch.zonaAlvo ?? plano.treinosPlanejados[0].zonaAlvo)
     }
     await route.fulfill({ json: { ...plano.treinosPlanejados[0], editadoPeloCoach: true } })
   })
   return patches
 }
+
+/** Valores dos selects de tipo cujo rótulo bate com `padrao`, na ordem do DOM. */
+const tiposPorRotulo = (page: Page, padrao: RegExp) =>
+  page.locator('select[aria-label^="Tipo da etapa"]').evaluateAll((els, fonte) => {
+    const re = new RegExp(fonte)
+    return els
+      .filter(el => re.test(el.getAttribute('aria-label') ?? ''))
+      .map(el => (el as HTMLSelectElement).value)
+  }, padrao.source)
 
 async function abrirEdicaoDoTreino(page: Page) {
   await autenticarComPkce(page, { roles: ['TECNICO'] })
@@ -316,5 +354,55 @@ test.describe('revisão do plano — zonas do atleta no editor', () => {
     const tiro = patch.etapas?.find(e => e.tipoEtapa === 'INTERVALADO')
     expect(tiro).toMatchObject({ fcAlvoEtapa: '168-178 bpm', alvoPrimario: 'FC' })
     expect(tiro?.ritmoAlvo, 'sem pace de limiar nenhum ritmo é inventado').toBeUndefined()
+  })
+
+  test('arrastar o desaquecimento para o topo: o PATCH leva as etapas na nova ordem e a série reabre inteira (coach-reordenar-etapas-dnd)', async ({ page }) => {
+    // O gesto precisa das duas alças na viewport ao mesmo tempo: o conteúdo do dialog rola, e
+    // `mouse.move` fora da tela não chega ao sensor.
+    await page.setViewportSize({ width: 1280, height: 1600 })
+    const patches = await mockarApis(page, ZONAS_COMPLETAS, ETAPAS_COM_BLOCO)
+    await abrirEdicaoDoTreino(page)
+    await page.getByRole('button', { name: 'Editar treino' }).first().click()
+    await page.getByRole('button', { name: /ocultar gráfico/i }).click()
+
+    // Ordem inicial: aquecimento (1), série (2), desaquecimento (3)
+    await expect.poll(() => tiposPorRotulo(page, /^Tipo da etapa \d$/)).toEqual(['AQUECIMENTO', 'DESAQUECIMENTO'])
+    await expect(page.getByTestId('resumo-serie-1')).toBeVisible()
+
+    // O PointerSensor exige movimento real (distance: 4): mouse pressionado e arrastado em passos
+    const alca = page.getByRole('button', { name: 'Arrastar etapa 3' })
+    const destino = page.getByRole('button', { name: 'Arrastar etapa 1' })
+    await alca.scrollIntoViewIfNeeded()
+    await expect(destino).toBeInViewport()
+    await expect(alca).toBeInViewport()
+    const de = await alca.boundingBox()
+    const para = await destino.boundingBox()
+    if (!de || !para) throw new Error('alças sem geometria')
+    await page.mouse.move(de.x + de.width / 2, de.y + de.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(de.x + de.width / 2, de.y + de.height / 2 + 8, { steps: 2 })
+    await page.mouse.move(para.x + para.width / 2, para.y - 8, { steps: 12 })
+    await page.mouse.up()
+
+    // Na tela: desaquecimento no topo, aquecimento em seguida, a série virou o terceiro item
+    await expect.poll(() => tiposPorRotulo(page, /^Tipo da etapa \d$/)).toEqual(['DESAQUECIMENTO', 'AQUECIMENTO'])
+    await expect(page.getByTestId('resumo-serie-2')).toBeVisible()
+
+    // O dnd-kit segura um stopPropagation de clique no document por 50ms depois do drop
+    // (AbstractPointerSensor.detach); um clique imediato em Salvar não chega ao React.
+    await page.waitForTimeout(250)
+    await page.getByRole('button', { name: /^salvar$/i }).click()
+    await expect.poll(() => patches.length).toBe(1)
+    const etapas = (patches[0] as { etapas?: EtapaApi[] }).etapas ?? []
+    expect(etapas.map(e => e.tipoEtapa)).toEqual(['DESAQUECIMENTO', 'AQUECIMENTO', 'BLOCO'])
+    expect(etapas[2]).toMatchObject({ blocoRepeticoes: 2 })
+    expect(etapas[2].subEtapas?.map(e => e.tipoEtapa)).toEqual(['INTERVALADO', 'RECUPERACAO'])
+
+    // Reaberto a partir do que foi gravado (expandido com blocoId), a série continua uma só, na nova posição
+    await page.getByRole('button', { name: 'Editar treino' }).first().click()
+    await expect.poll(() => tiposPorRotulo(page, /^Tipo da etapa \d$/)).toEqual(['DESAQUECIMENTO', 'AQUECIMENTO'])
+    await expect(page.getByTestId('resumo-serie-2')).toBeVisible()
+    await expect(page.getByTestId('repeticoes-display-2')).toHaveText('2×')
+    await expect.poll(() => tiposPorRotulo(page, /^Tipo da etapa \d da série 3$/)).toEqual(['INTERVALADO', 'RECUPERACAO'])
   })
 })

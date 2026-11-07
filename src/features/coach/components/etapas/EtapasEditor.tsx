@@ -1,4 +1,14 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
+import {
+    DndContext,
+    PointerSensor,
+    closestCenter,
+    useSensor,
+    useSensors,
+    type DragEndEvent,
+} from '@dnd-kit/core';
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import {
     Box,
     Button,
@@ -15,15 +25,16 @@ import RepeatIcon from '@mui/icons-material/Repeat';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { backgrounds, content, primary, semantic, surface } from '../../../../theme/tokens';
 import { activeTheme } from '../../../../theme/activeTheme';
 import { Card } from '../../../../shared/components/Card';
 import { GHOST_BTN_SX } from '../../../../shared/components/actionButtonSx';
 import { TIPOS_ETAPA, TIPO_ETAPA_LABEL, tipoEtapaLabel } from '../tiposTreino';
-import { EYEBROW_SX, fieldSx } from './etapasStyles';
+import { DRAG_HANDLE_SX, EYEBROW_SX, fieldSx, sortableRowSx } from './etapasStyles';
 import {
-    duracaoInvalida, emptyBlock, emptyStep, emptySubStep, normalizarDuracao, recalcularMedidas, resumoDaSerie,
+    duracaoInvalida, emptyBlock, emptyStep, emptySubStep, normalizarDuracao, recalcularMedidas, reordenar, resumoDaSerie,
     type CampoEditado, type EtapaItem, type MedidasEtapa,
 } from './etapaItem';
 import { ZoneSelector } from './ZoneSelector';
@@ -163,6 +174,8 @@ interface BlocoCardProps {
     onChange: (b: BlocoState) => void;
     disabled?: boolean;
     actions?: React.ReactNode;
+    /** Alça de arrastar, só nos itens do nível raiz; vem antes do quadradinho de cor. */
+    alca?: ReactNode;
     tipoEtapa?: string;
     onTipoChange?: (tipo: string) => void;
     tipoAriaLabel?: string;
@@ -182,7 +195,7 @@ interface BlocoCardProps {
  * lê na etapa — ficam em "Mais detalhes", abertos sozinhos quando já têm valor.
  */
 function BlocoCard({
-    accent, bloco, onChange, disabled, actions, tipoEtapa, onTipoChange, tipoAriaLabel, aninhado,
+    accent, bloco, onChange, disabled, actions, alca, tipoEtapa, onTipoChange, tipoAriaLabel, aninhado,
     zones, tipoTreino, focada, onFocar, idBase,
 }: BlocoCardProps) {
     const sx = fieldSx(accent);
@@ -206,6 +219,8 @@ function BlocoCard({
             <Box
                 sx={{
                     display: 'flex',
+                    // Com a alça, o header não cabe em 360px: as ações descem de linha, não somem.
+                    flexWrap: 'wrap',
                     alignItems: 'center',
                     gap: 1,
                     px: 1.5,
@@ -213,6 +228,7 @@ function BlocoCard({
                     borderBottom: `1px solid ${content.divider}`,
                 }}
             >
+                {alca}
                 <Box aria-hidden sx={{ flex: 'none', width: 10, height: 10, borderRadius: '3px', bgcolor: accent }} />
                 {onTipoChange ? (
                     <FormControl size="small" sx={{ minWidth: 170, ...sx }}>
@@ -329,6 +345,40 @@ function BlocoCard({
     );
 }
 
+// ── Arrastar e soltar (nível raiz) ────────────────────────────────────────────
+
+interface SortableRowProps {
+    id: string;
+    /** "etapa N" ou "série N" — o rótulo da alça diz o que está sendo arrastado. */
+    nome: string;
+    disabled: boolean;
+    children: (alca: ReactNode) => ReactNode;
+}
+
+/** Envolve um item raiz: `transform` do sortable no wrapper, listeners só na alça. */
+function SortableRow({ id, nome, disabled, children }: SortableRowProps) {
+    const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
+        useSortable({ id, disabled });
+    const alca = (
+        <IconButton
+            ref={setActivatorNodeRef}
+            size="small"
+            aria-label={`Arrastar ${nome}`}
+            disabled={disabled}
+            sx={DRAG_HANDLE_SX}
+            {...attributes}
+            {...listeners}
+        >
+            <DragIndicatorIcon sx={{ fontSize: 18 }} />
+        </IconButton>
+    );
+    return (
+        <Box ref={setNodeRef} sx={sortableRowSx(isDragging)} style={{ transform: CSS.Transform.toString(transform), transition }}>
+            {children(alca)}
+        </Box>
+    );
+}
+
 // ── Editor ────────────────────────────────────────────────────────────────────
 
 export interface EtapasEditorProps {
@@ -353,6 +403,23 @@ export function EtapasEditor({ itens, onChange, disabled = false, vazio, zones =
         return primeiro.kind === 'step' ? primeiro.id : primeiro.steps[0]?.id ?? null;
     })();
     const focoAtual = focoId ?? primeiraEtapaId;
+
+    // Só ponteiro: teclado reordena pelas setas (KeyboardSensor adiado, ver proposal).
+    const sensores = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+    const [arrastando, setArrastando] = useState(false);
+    const aoSoltar = ({ active, over }: DragEndEvent) => {
+        setArrastando(false);
+        // Cancelado, no mesmo lugar ou destino desconhecido: nada a fazer, e `onChange` marcaria
+        // o form como alterado mesmo devolvendo `prev`.
+        if (!over || active.id === over.id || !itens.some(it => it.id === over.id)) return;
+        onChange(prev => reordenar(prev, String(active.id), String(over.id)));
+    };
+    // O Dialog do MUI consome Escape (stopPropagation) antes do listener do dnd-kit no document:
+    // no meio de um arrasto, Escape fecharia o editor em vez de cancelar o gesto. Sem API de
+    // cancelamento no dnd-kit, Escape durante o arrasto não faz nada; soltar termina o gesto.
+    const bloqueiaEscapeNoArrasto = (e: React.KeyboardEvent) => {
+        if (arrastando && e.key === 'Escape') e.stopPropagation();
+    };
 
     const atualizaStep = (idx: number, b: BlocoState) =>
         onChange(prev => prev.map((it, i) =>
@@ -403,154 +470,167 @@ export function EtapasEditor({ itens, onChange, disabled = false, vazio, zones =
 
     const removerItem = (idx: number) => onChange(prev => prev.filter((_, i) => i !== idx));
 
+    // Mesma regra do arrasto: seta e alça produzem o mesmo array.
     const moverItem = (idx: number, delta: number) =>
         onChange(prev => {
-            const destino = idx + delta;
-            if (destino < 0 || destino >= prev.length) return prev;
-            const copia = [...prev];
-            [copia[idx], copia[destino]] = [copia[destino], copia[idx]];
-            return copia;
+            const alvo = prev[idx + delta];
+            return alvo ? reordenar(prev, prev[idx].id, alvo.id) : prev;
         });
 
     return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }} onKeyDown={bloqueiaEscapeNoArrasto}>
             {itens.length === 0 && (
                 <Box sx={{ py: 2, textAlign: 'center', color: surface[500], fontSize: '0.8rem' }}>
                     {vazio ?? 'Nenhuma etapa. Use os botões abaixo para montar o treino.'}
                 </Box>
             )}
 
-            {itens.map((item, idx) => item.kind === 'step' ? (
-                <BlocoCard
-                    key={item.id}
-                    accent={accentDe(item.tipoEtapa)}
-                    bloco={blocoStateDe(item, zones)}
-                    onChange={b => atualizaStep(idx, b)}
-                    zones={zones}
-                    tipoTreino={tipoTreino}
-                    focada={focoAtual === item.id}
-                    onFocar={() => setFocoId(item.id)}
-                    idBase={`etapa-${item.id}`}
-                    disabled={disabled}
-                    tipoEtapa={item.tipoEtapa}
-                    onTipoChange={t => atualizaTipoStep(idx, t)}
-                    tipoAriaLabel={`Tipo da etapa ${idx + 1}`}
-                    actions={
-                        <ItemActions
-                            idx={idx}
-                            total={itens.length}
-                            disabled={disabled}
-                            onMover={moverItem}
-                            onRemover={removerItem}
-                        />
-                    }
-                />
-            ) : (
-                <Card
-                    key={item.id}
-                    variant="flat"
-                    sx={{ p: 0, overflow: 'hidden', minWidth: 0 }}
-                >
-                    <Box
-                        sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1,
-                            px: 1.5,
-                            py: 0.75,
-                            borderBottom: `1px solid ${content.divider}`,
-                        }}
-                    >
-                        <Typography sx={EYEBROW_SX}>Série</Typography>
-                        <Typography data-testid={`resumo-serie-${idx}`} sx={{ fontFamily: MONO, fontSize: '0.75rem', color: surface[300] }}>
-                            {resumoDaSerie(item)}
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 'auto' }}>
-                            <IconButton
-                                size="small"
-                                aria-label={`Diminuir repetições da série ${idx + 1}`}
-                                disabled={disabled || (parseInt(item.repeticoes, 10) || 1) <= 1}
-                                onClick={() => atualizaReps(idx, -1)}
-                            >
-                                <RemoveIcon sx={{ fontSize: 16 }} />
-                            </IconButton>
-                            <Box
-                                data-testid={`repeticoes-display-${idx}`}
-                                sx={{
-                                    minWidth: 36,
-                                    textAlign: 'center',
-                                    fontFamily: MONO,
-                                    fontSize: '0.6875rem',
-                                    fontWeight: 700,
-                                    color: primary[400],
-                                    border: `1px solid ${content.cardBorder}`,
-                                    borderRadius: '11px',
-                                    py: 0.25,
-                                }}
-                            >
-                                {item.repeticoes}×
-                            </Box>
-                            <IconButton
-                                size="small"
-                                aria-label={`Aumentar repetições da série ${idx + 1}`}
-                                disabled={disabled || (parseInt(item.repeticoes, 10) || 1) >= 20}
-                                onClick={() => atualizaReps(idx, 1)}
-                            >
-                                <AddIcon sx={{ fontSize: 16 }} />
-                            </IconButton>
-                            <ItemActions
-                                idx={idx}
-                                total={itens.length}
-                                disabled={disabled}
-                                onMover={moverItem}
-                                onRemover={removerItem}
-                                nome="série"
-                            />
-                        </Box>
-                    </Box>
-
-                    <Box sx={{ p: 1.25, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                        {item.steps.map((sub, si) => (
+            <DndContext
+                sensors={sensores}
+                collisionDetection={closestCenter}
+                onDragStart={() => setArrastando(true)}
+                onDragCancel={() => setArrastando(false)}
+                onDragEnd={aoSoltar}
+            >
+                <SortableContext items={itens.map(it => it.id)} strategy={verticalListSortingStrategy}>
+                    {itens.map((item, idx) => item.kind === 'step' ? (
+                        <SortableRow key={item.id} id={item.id} nome={`etapa ${idx + 1}`} disabled={disabled}>{alca => (
                             <BlocoCard
-                                key={sub.id}
-                                aninhado
-                                accent={accentDe(sub.tipoEtapa)}
-                                bloco={blocoStateDe(sub, zones)}
-                                onChange={b => atualizaSubStep(idx, si, b)}
+                                alca={alca}
+                                accent={accentDe(item.tipoEtapa)}
+                                bloco={blocoStateDe(item, zones)}
+                                onChange={b => atualizaStep(idx, b)}
                                 zones={zones}
                                 tipoTreino={tipoTreino}
-                                focada={focoAtual === sub.id}
-                                onFocar={() => setFocoId(sub.id)}
-                                idBase={`etapa-${sub.id}`}
+                                focada={focoAtual === item.id}
+                                onFocar={() => setFocoId(item.id)}
+                                idBase={`etapa-${item.id}`}
                                 disabled={disabled}
-                                tipoEtapa={sub.tipoEtapa}
-                                onTipoChange={t => atualizaTipoSubStep(idx, si, t)}
-                                tipoAriaLabel={`Tipo da etapa ${si + 1} da série ${idx + 1}`}
+                                tipoEtapa={item.tipoEtapa}
+                                onTipoChange={t => atualizaTipoStep(idx, t)}
+                                tipoAriaLabel={`Tipo da etapa ${idx + 1}`}
                                 actions={
-                                    <IconButton
-                                        size="small"
-                                        aria-label={`Remover etapa ${si + 1} da série ${idx + 1}`}
-                                        disabled={disabled || item.steps.length <= 1}
-                                        onClick={() => removerSubStep(idx, si)}
-                                    >
-                                        <RemoveIcon sx={{ fontSize: 16 }} />
-                                    </IconButton>
+                                    <ItemActions
+                                        idx={idx}
+                                        total={itens.length}
+                                        disabled={disabled}
+                                        onMover={moverItem}
+                                        onRemover={removerItem}
+                                    />
                                 }
                             />
-                        ))}
+                        )}</SortableRow>
+                    ) : (
+                        <SortableRow key={item.id} id={item.id} nome={`série ${idx + 1}`} disabled={disabled}>{alca => (
+                            <Card
+                                variant="flat"
+                                sx={{ p: 0, overflow: 'hidden', minWidth: 0 }}
+                >
+                                <Box
+                                    sx={{
+                                        display: 'flex',
+                                        flexWrap: 'wrap',
+                                        alignItems: 'center',
+                                        gap: 1,
+                                        px: 1.5,
+                                        py: 0.75,
+                                        borderBottom: `1px solid ${content.divider}`,
+                                    }}
+                    >
+                                    {alca}
+                                    <Typography sx={EYEBROW_SX}>Série</Typography>
+                                    <Typography data-testid={`resumo-serie-${idx}`} sx={{ fontFamily: MONO, fontSize: '0.75rem', color: surface[300] }}>
+                                        {resumoDaSerie(item)}
+                                    </Typography>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 'auto' }}>
+                                        <IconButton
+                                            size="small"
+                                            aria-label={`Diminuir repetições da série ${idx + 1}`}
+                                            disabled={disabled || (parseInt(item.repeticoes, 10) || 1) <= 1}
+                                            onClick={() => atualizaReps(idx, -1)}
+                            >
+                                            <RemoveIcon sx={{ fontSize: 16 }} />
+                                        </IconButton>
+                                        <Box
+                                            data-testid={`repeticoes-display-${idx}`}
+                                            sx={{
+                                                minWidth: 36,
+                                                textAlign: 'center',
+                                                fontFamily: MONO,
+                                                fontSize: '0.6875rem',
+                                                fontWeight: 700,
+                                                color: primary[400],
+                                                border: `1px solid ${content.cardBorder}`,
+                                                borderRadius: '11px',
+                                                py: 0.25,
+                                            }}
+                            >
+                                            {item.repeticoes}×
+                                        </Box>
+                                        <IconButton
+                                            size="small"
+                                            aria-label={`Aumentar repetições da série ${idx + 1}`}
+                                            disabled={disabled || (parseInt(item.repeticoes, 10) || 1) >= 20}
+                                            onClick={() => atualizaReps(idx, 1)}
+                            >
+                                            <AddIcon sx={{ fontSize: 16 }} />
+                                        </IconButton>
+                                        <ItemActions
+                                            idx={idx}
+                                            total={itens.length}
+                                            disabled={disabled}
+                                            onMover={moverItem}
+                                            onRemover={removerItem}
+                                            nome="série"
+                                        />
+                                    </Box>
+                                </Box>
 
-                        <Button
-                            size="small"
-                            startIcon={<AddIcon />}
-                            onClick={() => adicionarSubStep(idx)}
-                            disabled={disabled}
-                            sx={{ ...GHOST_BTN_SX, alignSelf: 'flex-start' }}
+                                <Box sx={{ p: 1.25, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                    {item.steps.map((sub, si) => (
+                                        <BlocoCard
+                                            key={sub.id}
+                                            aninhado
+                                            accent={accentDe(sub.tipoEtapa)}
+                                            bloco={blocoStateDe(sub, zones)}
+                                            onChange={b => atualizaSubStep(idx, si, b)}
+                                            zones={zones}
+                                            tipoTreino={tipoTreino}
+                                            focada={focoAtual === sub.id}
+                                            onFocar={() => setFocoId(sub.id)}
+                                            idBase={`etapa-${sub.id}`}
+                                            disabled={disabled}
+                                            tipoEtapa={sub.tipoEtapa}
+                                            onTipoChange={t => atualizaTipoSubStep(idx, si, t)}
+                                            tipoAriaLabel={`Tipo da etapa ${si + 1} da série ${idx + 1}`}
+                                            actions={
+                                                <IconButton
+                                                    size="small"
+                                                    aria-label={`Remover etapa ${si + 1} da série ${idx + 1}`}
+                                                    disabled={disabled || item.steps.length <= 1}
+                                                    onClick={() => removerSubStep(idx, si)}
+                                    >
+                                                    <RemoveIcon sx={{ fontSize: 16 }} />
+                                                </IconButton>
+                                            }
+                                        />
+                                    ))}
+
+                                    <Button
+                                        size="small"
+                                        startIcon={<AddIcon />}
+                                        onClick={() => adicionarSubStep(idx)}
+                                        disabled={disabled}
+                                        sx={{ ...GHOST_BTN_SX, alignSelf: 'flex-start' }}
                         >
-                            Etapa na série
-                        </Button>
-                    </Box>
-                </Card>
-            ))}
+                                        Etapa na série
+                                    </Button>
+                                </Box>
+                            </Card>
+                        )}</SortableRow>
+                    ))}
+                </SortableContext>
+            </DndContext>
 
             <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
