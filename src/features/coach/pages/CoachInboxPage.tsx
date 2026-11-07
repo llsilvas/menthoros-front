@@ -319,9 +319,11 @@ function CoachInboxPage() {
       */}
       <Box
         component="header"
+        data-testid="inbox-barra"
         sx={{
           px: { xs: 2, md: 3 },
-          py: 1,
+          // 40px do campo de busca + 12px: 53px com a borda. O e2e cobra ≤ 56.
+          py: 0.75,
           minHeight: 52,
           boxSizing: 'border-box',
           borderBottom: `1px solid ${content.divider}`,
