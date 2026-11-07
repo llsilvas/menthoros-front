@@ -468,6 +468,9 @@ export function buildInboxQueue(
 ): InboxQueue {
   const porId = new Map(roster.items.map((item) => [item.atletaId, item]));
   const busca = filters.search.trim().toLowerCase();
+  // "Em atenção" é a fila inteira: ignora o status do roster, mantém a busca, e nada do roster
+  // entra além de quem está na fila.
+  const modoAtencao = filters.status === 'attention';
 
   const ordenados = [...attentionQueue].sort((a, b) =>
     ORDEM_SEVERIDADE[a.severity] - ORDEM_SEVERIDADE[b.severity] || b.priorityScore - a.priorityScore);
@@ -481,7 +484,7 @@ export function buildInboxQueue(
 
     const passaBusca = busca.length === 0 || nome.toLowerCase().includes(busca);
     // Sem `resumo` não há status para comparar — o DTO da fila de atenção não o traz.
-    const passaStatus = filters.status === 'all' || resumo?.status === filters.status;
+    const passaStatus = modoAtencao || filters.status === 'all' || resumo?.status === filters.status;
 
     if (!passaBusca || !passaStatus) {
       hiddenAttentionCount += 1;
@@ -503,7 +506,7 @@ export function buildInboxQueue(
 
   const fixadosIds = new Set(fixados.map((r) => r.atletaId));
   const restante: InboxQueueRow[] = roster.items
-    .filter((item) => !fixadosIds.has(item.atletaId))
+    .filter((item) => !modoAtencao && !fixadosIds.has(item.atletaId))
     .map((item) => ({
       source: 'roster' as const,
       atletaId: item.atletaId,

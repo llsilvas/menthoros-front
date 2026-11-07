@@ -11,6 +11,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  IconButton,
   InputAdornment,
   LinearProgress,
   Menu,
@@ -19,12 +20,15 @@ import {
   Tabs,
   TablePagination,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from '@mui/material';
 import {
   CalendarMonth as CalendarMonthIcon,
   NotificationsNone as NotificationsNoneIcon,
   Search as SearchIcon,
+  Sort as SortIcon,
   Tune as TuneIcon,
 } from '@mui/icons-material';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
@@ -41,7 +45,7 @@ import { useAthleteProfile } from '../../../hooks/useAthleteProfile';
 import { useDashboardFilters } from '../hooks/useDashboardFilters';
 import { usePlanReview } from '../hooks/usePlanReview';
 import { ROSTER_PAGE_SIZE } from '../hooks/useDashboardFilters';
-import type { SortKey, DashboardStatusFilter } from '../hooks/useDashboardFilters';
+import type { SortKey } from '../hooks/useDashboardFilters';
 import { elevation } from '../../../shared/design-tokens';
 import { content, semantic, surface } from '../../../theme/tokens';
 import { buildInboxQueue, buildSelectedAthleteFromDashboard, calcularDiasAteProva } from '../adapters/coachInboxAdapters';
@@ -71,13 +75,6 @@ const SORT_OPTIONS: Array<{ key: SortKey; label: string }> = [
   { key: 'load', label: 'Carga' },
   { key: 'race', label: 'Próxima prova' },
 ];
-const DASHBOARD_STATUS_OPTIONS: Array<{ key: DashboardStatusFilter; label: string }> = [
-  { key: 'all', label: 'Todos' },
-  { key: 'active', label: 'Ativo' },
-  { key: 'warning', label: 'Atenção' },
-  { key: 'danger', label: 'Alerta' },
-  { key: 'paused', label: 'Pausado' },
-];
 
 const TABS: Array<{ key: TabKey; label: string; icon: ReactElement }> = [
   { key: 'diagnosis', label: 'Diagnóstico', icon: <NotificationsNoneIcon fontSize="small" /> },
@@ -97,7 +94,6 @@ function CoachInboxPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   /** Rascunho de contato exibido quando a área de transferência não está disponível. */
   const [rascunhoContato, setRascunhoContato] = useState<string | null>(null);
-  const [statusMenuAnchor, setStatusMenuAnchor] = useState<null | HTMLElement>(null);
   const [sortMenuAnchor, setSortMenuAnchor] = useState<null | HTMLElement>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('diagnosis');
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -192,10 +188,12 @@ function CoachInboxPage() {
    * Estado da coluna da lista. Derivado, não inferido no JSX: "sem linhas" tem quatro causas com
    * saídas diferentes, e um `length === 0` no meio da renderização colapsava todas numa só.
    */
-  const estadoDaLista: 'carregando' | 'erro' | 'vazio-filtrado' | 'vazio' | 'conteudo' = (() => {
+  const estadoDaLista: 'carregando' | 'erro' | 'vazio-atencao' | 'vazio-filtrado' | 'vazio' | 'conteudo' = (() => {
     if (inboxQueue.rows.length > 0) return 'conteudo';
     if (dashboardLoading) return 'carregando';
     if (dashboardError) return 'erro';
+    // Fila vazia é boa notícia, não "ajuste o filtro".
+    if (dashboardStatus === 'attention' && !search.trim()) return 'vazio-atencao';
     return dashboardStatus !== 'all' || search.trim() ? 'vazio-filtrado' : 'vazio';
   })();
 
@@ -372,23 +370,6 @@ function CoachInboxPage() {
           })}
         </Box>
 
-        <TextField
-          size="small"
-          value={search}
-          onChange={handleSearchChange}
-          // A busca vai para `q` do dashboard, que filtra o roster por nome — prometer treino e
-          // prova era contrato que a tela não cumpre.
-          placeholder="Buscar atleta..."
-          // Abaixo de `md` ela quebra para a segunda linha da barra; acima fica à direita.
-          sx={{ ml: { md: 'auto' }, minWidth: { xs: '100%', md: 200 }, flex: { xs: '1 1 100%', md: '0 1 240px', lg: '0 1 320px' } }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" />
-              </InputAdornment>
-            ),
-          }}
-        />
       </Box>
 
       {/*
@@ -447,80 +428,77 @@ function CoachInboxPage() {
             flexDirection: 'column',
           }}
         >
+          {/*
+            Header da coluna: busca, filtro e ordenação JUNTO do que eles afetam — a busca estava
+            na barra do topo. O filtro é segmentado (Todos · Em atenção · Pausados) e a ordenação
+            é um ícone com menu: dois chips iguais, um de filtro e um de ordenação, liam como dois
+            filtros ativos. "Em atenção" é a fila inteira, sem paginação.
+          */}
           <Box
-            sx={{
-              px: 2,
-              py: 1.5,
-              minHeight: { lg: 82, xl: 90 },
-              boxSizing: 'border-box',
-              borderBottom: `1px solid ${content.divider}`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 1,
-            }}
+            data-testid="inbox-lista-header"
+            sx={{ px: 1.5, pt: 1.25, pb: 1, borderBottom: `1px solid ${content.divider}`, display: 'flex', flexDirection: 'column', gap: 1 }}
           >
-            <Box sx={{ minWidth: 0 }}>
-              {/*
-                "Fila de revisão" era rótulo errado: esta coluna lista o ROSTER paginado, e a fila
-                de revisão de planos é outra tela (/coach/planos/revisao). O nome enganoso foi o que
-                levou a spec desta change a descrever um módulo que não existe aqui.
-              */}
-              <Typography sx={{ fontSize: '0.78rem', color: surface[400], fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                Atletas
-              </Typography>
-              <Typography sx={{ fontSize: '0.88rem', color: surface[500] }} noWrap>
-                {rosterItems.length} de {rosterTotal} · página {rosterHeaderLabel}
-              </Typography>
-            </Box>
-
-            {/*
-              Filtros vivem AQUI, não numa barra full-width acima dos KPIs: eles filtram só esta
-              coluna, e um controle longe do que ele afeta faz o coach duvidar do que está vendo.
-              A coluna tem ~300px, então são dois chips que abrem menu — dois `Select` não caberiam.
-            */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
-              <Chip
+            <TextField
+              size="small"
+              fullWidth
+              value={search}
+              onChange={handleSearchChange}
+              // A busca vai para `q` do dashboard, que filtra o roster por nome — prometer treino e
+              // prova era contrato que a tela não cumpre.
+              placeholder="Buscar atleta..."
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <ToggleButtonGroup
+                exclusive
                 size="small"
-                clickable
-                label={DASHBOARD_STATUS_OPTIONS.find((o) => o.key === dashboardStatus)?.label ?? 'Todos'}
-                onClick={(e) => setStatusMenuAnchor(e.currentTarget)}
-                aria-label="Filtrar por status"
-                sx={{
-                  bgcolor: dashboardStatus === 'all' ? `${surface[0]}10` : `${semantic.warning[500]}1F`,
-                  color: dashboardStatus === 'all' ? surface[300] : semantic.warning[500],
-                  border: `1px solid ${dashboardStatus === 'all' ? content.cardBorder : `${semantic.warning[500]}55`}`,
-                  fontWeight: 700,
+                aria-label="Filtrar lista"
+                value={dashboardStatus === 'attention' || dashboardStatus === 'paused' ? dashboardStatus : 'all'}
+                onChange={(_, valor: string | null) => {
+                  if (valor) handleDashboardStatusChange({ target: { value: valor } });
                 }}
-              />
-              {/*
-                Ordenação era um `Select` na barra e um `Chip` no header — controle e display
-                separados, mostrando a mesma coisa em dois lugares. Agora é um só.
-              */}
-              <Chip
+                sx={{
+                  '& .MuiToggleButton-root': {
+                    textTransform: 'none',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    px: 1.1,
+                    py: 0.4,
+                    color: surface[400],
+                    borderColor: content.cardBorder,
+                    '&.Mui-selected': { color: surface[50], bgcolor: `${surface[0]}14` },
+                  },
+                }}
+              >
+                <ToggleButton value="all">
+                  Todos <Box component="span" sx={{ ml: 0.5, fontFamily: activeTheme.font.mono }}>{rosterTotal}</Box>
+                </ToggleButton>
+                <ToggleButton value="attention">
+                  Em atenção <Box component="span" sx={{ ml: 0.5, fontFamily: activeTheme.font.mono, color: dashboardAttentionQueue.length > 0 ? semantic.warning[500] : 'inherit' }}>{dashboardAttentionQueue.length}</Box>
+                </ToggleButton>
+                <ToggleButton value="paused">Pausados</ToggleButton>
+              </ToggleButtonGroup>
+              <IconButton
                 size="small"
-                clickable
-                label={currentSortLabel}
-                onClick={(e) => setSortMenuAnchor(e.currentTarget)}
                 aria-label="Ordenar lista"
-                sx={{ bgcolor: `${surface[0]}10`, color: surface[300], border: `1px solid ${content.cardBorder}`, fontWeight: 700 }}
-              />
+                title={`Ordenar: ${currentSortLabel}`}
+                onClick={(e) => setSortMenuAnchor(e.currentTarget)}
+                sx={{ ml: 'auto', color: sortBy === 'priority' ? surface[400] : surface[50] }}
+              >
+                <SortIcon fontSize="small" />
+              </IconButton>
             </Box>
-
-            <Menu anchorEl={statusMenuAnchor} open={Boolean(statusMenuAnchor)} onClose={() => setStatusMenuAnchor(null)}>
-              {DASHBOARD_STATUS_OPTIONS.map((option) => (
-                <MenuItem
-                  key={option.key}
-                  selected={option.key === dashboardStatus}
-                  onClick={() => {
-                    handleDashboardStatusChange({ target: { value: option.key } });
-                    setStatusMenuAnchor(null);
-                  }}
-                >
-                  {option.label}
-                </MenuItem>
-              ))}
-            </Menu>
+            <Typography data-testid="inbox-lista-contagem" sx={{ fontSize: '0.72rem', color: surface[400] }} noWrap>
+              {dashboardStatus === 'attention'
+                ? `${inboxQueue.rows.length} em atenção`
+                : `${rosterItems.length} de ${rosterTotal} · página ${rosterHeaderLabel}`}
+            </Typography>
 
             <Menu anchorEl={sortMenuAnchor} open={Boolean(sortMenuAnchor)} onClose={() => setSortMenuAnchor(null)}>
               {SORT_OPTIONS.map((option) => (
@@ -590,6 +568,15 @@ function CoachInboxPage() {
                   Não foi possível carregar a lista de atletas.
                 </Typography>
               </Box>
+            ) : estadoDaLista === 'vazio-atencao' ? (
+              <Box sx={{ p: 3, textAlign: 'center' }}>
+                <Typography sx={{ color: surface[200], fontSize: '0.875rem' }}>
+                  Ninguém em atenção agora.
+                </Typography>
+                <Button size="small" onClick={() => handleDashboardStatusChange({ target: { value: 'all' } })} sx={{ mt: 1, textTransform: 'none' }}>
+                  Ver todos
+                </Button>
+              </Box>
             ) : estadoDaLista === 'vazio-filtrado' ? (
               <Box sx={{ p: 3, textAlign: 'center' }}>
                 <Typography sx={{ color: surface[200], fontSize: '0.875rem' }}>
@@ -637,30 +624,28 @@ function CoachInboxPage() {
               ))
             )}
           </Box>
-          <Box
-            sx={{
-              borderTop: `1px solid ${content.divider}`,
-              backgroundColor: `${surface[0]}08`,
-            }}
-          >
-            <TablePagination
-              component="div"
-              count={rosterTotal}
-              page={dashboardPage}
-              onPageChange={handleRosterPageChange}
-              rowsPerPage={ROSTER_PAGE_SIZE}
-              rowsPerPageOptions={[ROSTER_PAGE_SIZE]}
-              onRowsPerPageChange={() => setDashboardPage(0)}
-              labelRowsPerPage="Itens por página"
-              sx={{
-                color: surface[300],
-                '& .MuiTablePagination-toolbar': { minHeight: 52, px: 1 },
-                '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
-                  fontSize: '0.8rem',
-                },
-              }}
-            />
-          </Box>
+          {/* Só com mais de uma página: com uma, repetia o "10 de 10 · página 1/1" do header. */}
+          {dashboardStatus !== 'attention' && rosterPageCount > 1 ? (
+            <Box sx={{ borderTop: `1px solid ${content.divider}`, backgroundColor: `${surface[0]}08` }}>
+              <TablePagination
+                component="div"
+                count={rosterTotal}
+                page={dashboardPage}
+                onPageChange={handleRosterPageChange}
+                rowsPerPage={ROSTER_PAGE_SIZE}
+                rowsPerPageOptions={[ROSTER_PAGE_SIZE]}
+                onRowsPerPageChange={() => setDashboardPage(0)}
+                labelRowsPerPage="Itens por página"
+                labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
+                getItemAriaLabel={(tipo) => (tipo === 'next' ? 'Próxima página' : 'Página anterior')}
+                sx={{
+                  color: surface[400],
+                  '& .MuiTablePagination-toolbar': { minHeight: 44, px: 1 },
+                  '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': { fontSize: '0.75rem' },
+                }}
+              />
+            </Box>
+          ) : null}
         </Box>
 
         <Box

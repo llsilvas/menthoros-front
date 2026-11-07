@@ -639,3 +639,29 @@ describe('buildInboxQueue — contexto por linha', () => {
     expect(rows[1].contexto).toEqual({ texto: 'Base · último treino há 1 dia', tom: 'neutral' });
   });
 });
+
+describe('buildInboxQueue — modo "Em atenção"', () => {
+  const fila = [
+    alerta({ atletaId: 'a1', athleteName: 'Ana' }),
+    alerta({ atletaId: 'a2', athleteName: 'Bruno', severity: 'MEDIA' }),
+    alerta({ atletaId: 'a3', athleteName: 'Carla', severity: 'CRITICA' }),
+  ];
+  const roster = pagina(
+    [atletaResumo({ atletaId: 'a1', nome: 'Ana', status: 'warning' }), atletaResumo({ atletaId: 'r1', nome: 'Rui' })],
+    { page: 1, totalElements: 15, totalPages: 2 },
+  );
+
+  it('mostra só a fila, inteira, mesmo quem não está na página, e ignora o status do roster', () => {
+    const { rows, hiddenAttentionCount, rosterTotalElements } = buildInboxQueue(roster, fila, { status: 'attention', search: '' }, HOJE);
+    expect(rows.map((r) => r.atletaId)).toEqual(['a3', 'a1', 'a2']);
+    expect(rows.find((r) => r.atletaId === 'r1')).toBeUndefined();
+    expect(hiddenAttentionCount).toBe(0);
+    expect(rosterTotalElements).toBe(15);
+  });
+
+  it('a busca continua filtrando a fila por nome e conta os escondidos', () => {
+    const { rows, hiddenAttentionCount } = buildInboxQueue(roster, fila, { status: 'attention', search: 'an' }, HOJE);
+    expect(rows.map((r) => r.atletaId)).toEqual(['a1']);
+    expect(hiddenAttentionCount).toBe(2);
+  });
+});
