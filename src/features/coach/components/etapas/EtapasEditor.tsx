@@ -1,4 +1,14 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
+import {
+    DndContext,
+    PointerSensor,
+    closestCenter,
+    useSensor,
+    useSensors,
+    type DragEndEvent,
+} from '@dnd-kit/core';
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import {
     Box,
     Button,
@@ -15,15 +25,16 @@ import RepeatIcon from '@mui/icons-material/Repeat';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { backgrounds, content, primary, semantic, surface } from '../../../../theme/tokens';
 import { activeTheme } from '../../../../theme/activeTheme';
 import { Card } from '../../../../shared/components/Card';
 import { GHOST_BTN_SX } from '../../../../shared/components/actionButtonSx';
 import { TIPOS_ETAPA, TIPO_ETAPA_LABEL, tipoEtapaLabel } from '../tiposTreino';
-import { EYEBROW_SX, fieldSx } from './etapasStyles';
+import { DRAG_HANDLE_SX, EYEBROW_SX, fieldSx, sortableRowSx } from './etapasStyles';
 import {
-    duracaoInvalida, emptyBlock, emptyStep, emptySubStep, normalizarDuracao, recalcularMedidas, resumoDaSerie,
+    duracaoInvalida, emptyBlock, emptyStep, emptySubStep, normalizarDuracao, recalcularMedidas, reordenar, resumoDaSerie,
     type CampoEditado, type EtapaItem, type MedidasEtapa,
 } from './etapaItem';
 import { ZoneSelector } from './ZoneSelector';
@@ -163,6 +174,8 @@ interface BlocoCardProps {
     onChange: (b: BlocoState) => void;
     disabled?: boolean;
     actions?: React.ReactNode;
+    /** Alça de arrastar, só nos itens do nível raiz; vem antes do quadradinho de cor. */
+    alca?: ReactNode;
     tipoEtapa?: string;
     onTipoChange?: (tipo: string) => void;
     tipoAriaLabel?: string;
@@ -182,7 +195,7 @@ interface BlocoCardProps {
  * lê na etapa — ficam em "Mais detalhes", abertos sozinhos quando já têm valor.
  */
 function BlocoCard({
-    accent, bloco, onChange, disabled, actions, tipoEtapa, onTipoChange, tipoAriaLabel, aninhado,
+    accent, bloco, onChange, disabled, actions, alca, tipoEtapa, onTipoChange, tipoAriaLabel, aninhado,
     zones, tipoTreino, focada, onFocar, idBase,
 }: BlocoCardProps) {
     const sx = fieldSx(accent);
@@ -213,6 +226,7 @@ function BlocoCard({
                     borderBottom: `1px solid ${content.divider}`,
                 }}
             >
+                {alca}
                 <Box aria-hidden sx={{ flex: 'none', width: 10, height: 10, borderRadius: '3px', bgcolor: accent }} />
                 {onTipoChange ? (
                     <FormControl size="small" sx={{ minWidth: 170, ...sx }}>
@@ -329,6 +343,40 @@ function BlocoCard({
     );
 }
 
+// ── Arrastar e soltar (nível raiz) ────────────────────────────────────────────
+
+interface SortableRowProps {
+    id: string;
+    /** "etapa N" ou "série N" — o rótulo da alça diz o que está sendo arrastado. */
+    nome: string;
+    disabled: boolean;
+    children: (alca: ReactNode) => ReactNode;
+}
+
+/** Envolve um item raiz: `transform` do sortable no wrapper, listeners só na alça. */
+function SortableRow({ id, nome, disabled, children }: SortableRowProps) {
+    const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
+        useSortable({ id, disabled });
+    const alca = (
+        <IconButton
+            ref={setActivatorNodeRef}
+            size="small"
+            aria-label={`Arrastar ${nome}`}
+            disabled={disabled}
+            sx={DRAG_HANDLE_SX}
+            {...attributes}
+            {...listeners}
+        >
+            <DragIndicatorIcon sx={{ fontSize: 18 }} />
+        </IconButton>
+    );
+    return (
+        <Box ref={setNodeRef} sx={sortableRowSx(isDragging)} style={{ transform: CSS.Transform.toString(transform), transition }}>
+            {children(alca)}
+        </Box>
+    );
+}
+
 // ── Editor ────────────────────────────────────────────────────────────────────
 
 export interface EtapasEditorProps {
@@ -353,6 +401,14 @@ export function EtapasEditor({ itens, onChange, disabled = false, vazio, zones =
         return primeiro.kind === 'step' ? primeiro.id : primeiro.steps[0]?.id ?? null;
     })();
     const focoAtual = focoId ?? primeiraEtapaId;
+
+    // Só ponteiro: teclado reordena pelas setas (KeyboardSensor adiado, ver proposal).
+    const sensores = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+    const aoSoltar = ({ active, over }: DragEndEvent) => {
+        // Cancelado ou no mesmo lugar: nada a fazer, e `onChange` marcaria o form como alterado.
+        if (!over || active.id === over.id) return;
+        onChange(prev => reordenar(prev, String(active.id), String(over.id)));
+    };
 
     const atualizaStep = (idx: number, b: BlocoState) =>
         onChange(prev => prev.map((it, i) =>
@@ -420,9 +476,12 @@ export function EtapasEditor({ itens, onChange, disabled = false, vazio, zones =
                 </Box>
             )}
 
+            <DndContext sensors={sensores} collisionDetection={closestCenter} onDragEnd={aoSoltar}>
+            <SortableContext items={itens.map(it => it.id)} strategy={verticalListSortingStrategy}>
             {itens.map((item, idx) => item.kind === 'step' ? (
+                <SortableRow key={item.id} id={item.id} nome={`etapa ${idx + 1}`} disabled={disabled}>{alca => (
                 <BlocoCard
-                    key={item.id}
+                    alca={alca}
                     accent={accentDe(item.tipoEtapa)}
                     bloco={blocoStateDe(item, zones)}
                     onChange={b => atualizaStep(idx, b)}
@@ -445,9 +504,10 @@ export function EtapasEditor({ itens, onChange, disabled = false, vazio, zones =
                         />
                     }
                 />
+                )}</SortableRow>
             ) : (
+                <SortableRow key={item.id} id={item.id} nome={`série ${idx + 1}`} disabled={disabled}>{alca => (
                 <Card
-                    key={item.id}
                     variant="flat"
                     sx={{ p: 0, overflow: 'hidden', minWidth: 0 }}
                 >
@@ -461,6 +521,7 @@ export function EtapasEditor({ itens, onChange, disabled = false, vazio, zones =
                             borderBottom: `1px solid ${content.divider}`,
                         }}
                     >
+                        {alca}
                         <Typography sx={EYEBROW_SX}>Série</Typography>
                         <Typography data-testid={`resumo-serie-${idx}`} sx={{ fontFamily: MONO, fontSize: '0.75rem', color: surface[300] }}>
                             {resumoDaSerie(item)}
@@ -550,7 +611,10 @@ export function EtapasEditor({ itens, onChange, disabled = false, vazio, zones =
                         </Button>
                     </Box>
                 </Card>
+                )}</SortableRow>
             ))}
+            </SortableContext>
+            </DndContext>
 
             <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
