@@ -29,6 +29,7 @@ export const QueueRow = memo(function QueueRow({ athlete, contexto, selected, on
     <ButtonBase
       onClick={onClick}
       aria-current={selected ? 'true' : undefined}
+      data-inbox-linha={athlete.id}
       sx={{
         width: '100%',
         textAlign: 'left',

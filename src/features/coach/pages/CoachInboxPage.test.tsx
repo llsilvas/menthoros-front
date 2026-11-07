@@ -223,7 +223,8 @@ describe('CoachInboxPage', () => {
   it('o sinal do atleta aparece na lista principal, com motivo', () => {
     renderPage();
 
-    expect(screen.queryByText(/Fila de atenção/i)).not.toBeInTheDocument();
+    // O título do preview antigo; "Fim da fila de atenção" (inbox-proximo-em-atencao) não conta.
+    expect(screen.queryByText(/^Fila de atenção$/i)).not.toBeInTheDocument();
     expect(screen.getByTestId('queue-row-motivo')).toHaveTextContent(/fadiga/i);
   });
 
@@ -401,10 +402,24 @@ describe('CoachInboxPage', () => {
       expect(prova.getByText(/· em 20 dias$/)).toBeInTheDocument();
     });
 
-    it('sem prova cadastrada, o cabeçalho diz isso', () => {
-      renderPage();
+    /**
+     * inbox-proximo-em-atencao: sem prova nada ocupa o lugar ao lado do CTA; e enquanto o perfil
+     * carrega (ou falhou) a ausência ainda não é conhecida, então também não aparece.
+     */
+    it('sem prova, carregando ou em erro, não há bloco de próxima prova', () => {
+      const { unmount } = renderPage();
+      expect(screen.queryByTestId('inbox-proxima-prova')).not.toBeInTheDocument();
+      expect(screen.queryByText('Sem prova cadastrada')).not.toBeInTheDocument();
+      unmount();
 
-      expect(within(screen.getByTestId('inbox-proxima-prova')).getByText('Sem prova cadastrada')).toBeInTheDocument();
+      vi.mocked(useAthleteProfile).mockReturnValue({ profile: null, isLoading: true, error: null, errorKind: null, fetchProfile: mockFetchProfile });
+      const r2 = renderPage();
+      expect(screen.queryByTestId('inbox-proxima-prova')).not.toBeInTheDocument();
+      r2.unmount();
+
+      vi.mocked(useAthleteProfile).mockReturnValue({ profile: null, isLoading: false, error: new Error('x'), errorKind: 'unknown', fetchProfile: mockFetchProfile } as never);
+      renderPage();
+      expect(screen.queryByTestId('inbox-proxima-prova')).not.toBeInTheDocument();
     });
 
     it('aderência vem das 4 semanas completas do perfil, mesmo com PMC vazio', () => {
@@ -861,6 +876,79 @@ describe('CoachInboxPage', () => {
 
       await userEvent.click(screen.getByRole('button', { name: /tentar de novo/i }));
       expect(mockFetchProfile).toHaveBeenCalled();
+    });
+  });
+
+  describe('próximo em atenção e atalhos (inbox-proximo-em-atencao)', () => {
+    const BRUNO = {
+      atletaId: 'a2',
+      athleteName: 'Bruno Lima',
+      severity: 'MEDIA' as const,
+      priorityScore: 40,
+      primaryReason: 'ADERENCIA' as const,
+      suggestedAction: 'Conversar sobre a semana',
+      generatedAt: '2026-06-24T13:30:00Z',
+      evidence: [],
+    };
+    const comDoisEmAtencao = () => {
+      vi.mocked(useCoachDashboard).mockReturnValue({
+        dashboard: { ...DASHBOARD_STUB, attentionQueue: [...DASHBOARD_STUB.attentionQueue, BRUNO] },
+        loading: false,
+        error: null,
+        fetchDashboard: mockFetchDashboard,
+      });
+    };
+
+    it('o link no fim do Diagnóstico seleciona o próximo com sinal; no último, "Fim da fila"', async () => {
+      comDoisEmAtencao();
+      renderPage();
+
+      await userEvent.click(screen.getByRole('button', { name: /próximo em atenção · bruno lima/i }));
+
+      expect(within(screen.getByTestId('inbox-lista')).getByRole('button', { name: /bruno lima/i })).toHaveAttribute('aria-current', 'true');
+      expect(screen.getByText(/fim da fila de atenção/i)).toBeInTheDocument();
+    });
+
+    it('tecla N avança; dentro de um campo, com Ctrl ou com dialog aberto, não', async () => {
+      comDoisEmAtencao();
+      renderPage();
+      // Pelo atributo, não pelo papel: com o dialog aberto o MUI põe o resto da página em aria-hidden.
+      const bruno = () => document.querySelector<HTMLElement>('[data-inbox-linha="a2"]')!;
+
+      await userEvent.keyboard('{Control>}n{/Control}');
+      expect(bruno()).not.toHaveAttribute('aria-current');
+
+      await userEvent.click(screen.getByPlaceholderText('Buscar atleta...'));
+      await userEvent.keyboard('n');
+      expect(bruno()).not.toHaveAttribute('aria-current');
+      await userEvent.clear(screen.getByPlaceholderText('Buscar atleta...'));
+
+      await userEvent.click(screen.getByRole('button', { name: /^Rejeitar$/i }));
+      await userEvent.keyboard('n');
+      expect(bruno()).not.toHaveAttribute('aria-current');
+      await userEvent.click(screen.getByRole('button', { name: /^Cancelar$/i }));
+      // O Dialog do MUI sai com transição: a guarda do N o vê até ele desmontar.
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+      await userEvent.click(document.body);
+      await userEvent.keyboard('n');
+      expect(bruno()).toHaveAttribute('aria-current', 'true');
+    });
+
+    it('↓ move foco e seleção para a linha seguinte; na última, nada', async () => {
+      comDoisEmAtencao();
+      renderPage();
+      const linhas = within(screen.getByTestId('inbox-lista')).getAllByRole('button');
+      expect(linhas.length).toBeGreaterThanOrEqual(2);
+
+      linhas[0].focus();
+      await userEvent.keyboard('{ArrowDown}');
+      expect(document.activeElement).toBe(linhas[1]);
+      expect(linhas[1]).toHaveAttribute('aria-current', 'true');
+
+      linhas[linhas.length - 1].focus();
+      await userEvent.keyboard('{ArrowDown}');
+      expect(document.activeElement).toBe(linhas[linhas.length - 1]);
     });
   });
 });
