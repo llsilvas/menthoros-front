@@ -390,7 +390,7 @@ test.describe('revisão do plano — zonas do atleta no editor', () => {
 
     // O dnd-kit segura um stopPropagation de clique no document por 50ms depois do drop
     // (AbstractPointerSensor.detach); um clique imediato em Salvar não chega ao React.
-    await page.waitForTimeout(100)
+    await page.waitForTimeout(250)
     await page.getByRole('button', { name: /^salvar$/i }).click()
     await expect.poll(() => patches.length).toBe(1)
     const etapas = (patches[0] as { etapas?: EtapaApi[] }).etapas ?? []

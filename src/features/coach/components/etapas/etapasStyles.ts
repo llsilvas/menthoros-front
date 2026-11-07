@@ -1,6 +1,6 @@
-import type { Theme } from '@mui/material/styles';
+import { alpha, type Theme } from '@mui/material/styles';
 import { primary, surface } from '../../../../theme/tokens';
-import { elevation } from '../../../../shared/design-tokens';
+import { elevation, radius } from '../../../../shared/design-tokens';
 import { overlayBlack, overlayWhite } from '../../../../theme/overlays';
 
 /**
@@ -62,10 +62,10 @@ export function sortableRowSx(arrastando: boolean) {
             ? {
                 zIndex: 1,
                 opacity: 0.92,
-                borderRadius: '8px',
+                borderRadius: radius.md,
                 bgcolor: elevation.highest,
                 boxShadow: `0 4px 12px ${overlayBlack[25]}, 0 16px 32px ${overlayBlack[40]}`,
-                outline: `1px solid ${primary[500]}73`,
+                outline: `1px solid ${alpha(primary[500], 0.45)}`,
             }
             : {}),
     } as const;

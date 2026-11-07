@@ -1,4 +1,3 @@
-import { arrayMove } from '@dnd-kit/sortable';
 import type { AlvoPrimario } from '../../../../types/AthleteTrainingZones';
 import type { EtapaInputPayload, EtapaTreinoDto } from '../../../../types/PlanoReview';
 import type { ZoneKey } from '../../../workout/profile/types';
@@ -85,7 +84,7 @@ export interface BlockRow {
 export type EtapaItem = StepRow | BlockRow;
 
 /**
- * Nova ordem após soltar o item `activeId` sobre `overId`. Inserção (`arrayMove`), não troca:
+ * Nova ordem após soltar o item `activeId` sobre `overId`. Inserção, não troca:
  * é o mesmo resultado de N cliques na seta. Sem destino, mesmo lugar ou id desconhecido devolve
  * o próprio array — o chamador usa a identidade para não marcar o form como alterado.
  */
@@ -94,7 +93,10 @@ export function reordenar(prev: EtapaItem[], activeId: string, overId: string): 
     const de = prev.findIndex(it => it.id === activeId);
     const para = prev.findIndex(it => it.id === overId);
     if (de < 0 || para < 0) return prev;
-    return arrayMove(prev, de, para);
+    const copia = [...prev];
+    const [movido] = copia.splice(de, 1);
+    copia.splice(para, 0, movido);
+    return copia;
 }
 
 export function emptyStep(): StepRow {
