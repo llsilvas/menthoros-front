@@ -105,12 +105,12 @@ interface DiagnosisTabPanelProps {
   pmc: PMCDataPoint[];
   onOpenPlan: () => void;
   /** Próximo atleta com sinal na lista visível; `null` = fim da fila. Só lido quando há sinal. */
-  nextInAttention?: NextInAttention | null;
+  nextAthlete?: NextInAttention | null;
   onNext?: () => void;
 }
 
 export function DiagnosisTabPanel({
-  selected, attentionItem, attentionRecencyDays = null, limiareisInferidos, pmc, onOpenPlan, nextInAttention = null, onNext,
+  selected, attentionItem, attentionRecencyDays = null, limiareisInferidos, pmc, onOpenPlan, nextAthlete = null, onNext,
 }: DiagnosisTabPanelProps) {
   const metrics = buildDiagnosisMetrics(selected);
   const statusColor = PLAN_STATUS_COLOR[selected.planStatus];
@@ -267,14 +267,14 @@ export function DiagnosisTabPanel({
       */}
       {attentionItem ? (
         <Box data-testid="inbox-proximo-em-atencao" sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 1, pt: 0.5 }}>
-          {nextInAttention ? (
+          {nextAthlete ? (
             <Button
               size="small"
               endIcon={<ArrowForwardIcon fontSize="small" />}
               onClick={onNext}
               sx={{ ...ACTION_BTN_END_ICON_SX, color: surface[50], px: 1 }}
             >
-              Próximo em atenção · {nextInAttention.nome}
+              Próximo em atenção · {nextAthlete.nome}
             </Button>
           ) : (
             <Typography sx={{ fontSize: '0.8rem', color: surface[400] }}>Fim da fila de atenção</Typography>

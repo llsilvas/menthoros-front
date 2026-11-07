@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { format, subDays } from 'date-fns';
-import { buildInboxQueue, buildRosterRowFromSummary, buildRowContext, nextInAttention, buildSelectedAthleteFromDashboard, calcularMonotonia, calcularLoadDelta, calcularAcwr, getAcwrZone, getMonotonyTone, calcularStrain, contarDiasComTreino7d, getStrainZone, calcularPrevisaoForma, calcularDiasAteProva } from './coachInboxAdapters';
+import { buildInboxQueue, buildRosterRowFromSummary, buildRowContext, findNextInAttention, buildSelectedAthleteFromDashboard, calcularMonotonia, calcularLoadDelta, calcularAcwr, getAcwrZone, getMonotonyTone, calcularStrain, contarDiasComTreino7d, getStrainZone, calcularPrevisaoForma, calcularDiasAteProva } from './coachInboxAdapters';
 import type { PmcPontoRaw, AtletaPerfilCoachDto } from '../../../types/AtletaPerfilCoach';
 import type { Prova } from '../../../types/Prova';
 import { formatWorkoutTypeLabel } from '../components/coachInboxHelpers';
@@ -680,27 +680,27 @@ describe('buildInboxQueue — modo "Em atenção"', () => {
   });
 });
 
-describe('nextInAttention — inbox-proximo-em-atencao', () => {
+describe('findNextInAttention — inbox-proximo-em-atencao', () => {
   const fila = [alerta({ atletaId: 'a', athleteName: 'Ana', severity: 'CRITICA' }), alerta({ atletaId: 'b', athleteName: 'Bruno' }), alerta({ atletaId: 'c', athleteName: 'Carina', severity: 'MEDIA' })];
   const roster = pagina([atletaResumo({ atletaId: 'b', nome: 'Bruno' }), atletaResumo({ atletaId: 'z', nome: 'Zé' })]);
 
   it('percorre só as linhas com sinal, na ordem da fila, e para no último', () => {
     const { rows } = buildInboxQueue(roster, fila, SEM_FILTRO, HOJE);
-    expect(nextInAttention(rows, 'a')).toEqual({ atletaId: 'b', nome: 'Bruno' });
-    expect(nextInAttention(rows, 'b')).toEqual({ atletaId: 'c', nome: 'Carina' });
-    expect(nextInAttention(rows, 'c')).toBeNull();
+    expect(findNextInAttention(rows, 'a')).toEqual({ atletaId: 'b', nome: 'Bruno' });
+    expect(findNextInAttention(rows, 'b')).toEqual({ atletaId: 'c', nome: 'Carina' });
+    expect(findNextInAttention(rows, 'c')).toBeNull();
   });
 
   it('com o atual fora da fila (ou nulo), o próximo é o primeiro com sinal', () => {
     const { rows } = buildInboxQueue(roster, fila, SEM_FILTRO, HOJE);
-    expect(nextInAttention(rows, 'z')).toEqual({ atletaId: 'a', nome: 'Ana' });
-    expect(nextInAttention(rows, null)?.atletaId).toBe('a');
+    expect(findNextInAttention(rows, 'z')).toEqual({ atletaId: 'a', nome: 'Ana' });
+    expect(findNextInAttention(rows, null)?.atletaId).toBe('a');
   });
 
   it('linha escondida pela busca é pulada; sem ninguém com sinal, null', () => {
     const { rows } = buildInboxQueue(roster, fila, { status: 'all', search: 'a' }, HOJE);
     // "a" casa Ana e Carina; Bruno some.
-    expect(nextInAttention(rows, 'a')).toEqual({ atletaId: 'c', nome: 'Carina' });
-    expect(nextInAttention(buildInboxQueue(roster, [], SEM_FILTRO, HOJE).rows, 'z')).toBeNull();
+    expect(findNextInAttention(rows, 'a')).toEqual({ atletaId: 'c', nome: 'Carina' });
+    expect(findNextInAttention(buildInboxQueue(roster, [], SEM_FILTRO, HOJE).rows, 'z')).toBeNull();
   });
 });

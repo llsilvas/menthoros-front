@@ -559,7 +559,7 @@ export interface NextInAttention {
  * pelo filtro seria desfeito no mesmo render. Sem circular: no último, `null`. Com o atual fora
  * da fila, o primeiro com sinal.
  */
-export function nextInAttention(rows: InboxQueueRow[], atualId: string | null): NextInAttention | null {
+export function findNextInAttention(rows: InboxQueueRow[], atualId: string | null): NextInAttention | null {
   const comSinal = rows.filter((linha) => linha.attention != null);
   const idx = comSinal.findIndex((linha) => linha.atletaId === atualId);
   const proximo = idx < 0 ? comSinal[0] : comSinal[idx + 1];

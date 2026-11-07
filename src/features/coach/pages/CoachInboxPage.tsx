@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactElement } from 'react';
 import { useNavigate, useOutletContext } from 'react-router';
 import {
@@ -48,7 +48,7 @@ import { ROSTER_PAGE_SIZE } from '../hooks/useDashboardFilters';
 import type { SortKey } from '../hooks/useDashboardFilters';
 import { elevation } from '../../../shared/design-tokens';
 import { content, semantic, surface } from '../../../theme/tokens';
-import { buildInboxQueue, buildSelectedAthleteFromDashboard, calcularDiasAteProva, nextInAttention } from '../adapters/coachInboxAdapters';
+import { buildInboxQueue, buildSelectedAthleteFromDashboard, calcularDiasAteProva, findNextInAttention } from '../adapters/coachInboxAdapters';
 import { buildAthleteKpis, buildNextRaceHeader } from '../adapters/athleteKpiAdapters';
 import { AthleteKpiStrip } from '../components/AthleteKpiStrip';
 import { buildInboxSummaryLine } from '../adapters/inboxSummaryKpis';
@@ -225,7 +225,10 @@ function CoachInboxPage() {
   const athleteKpis = selected
     ? buildAthleteKpis(selected, currentFormDisplay, selectedProfile ? null : selectedRosterItem?.aderenciaPercentual ?? null)
     : [];
-  const nextRaceHeader = buildNextRaceHeader(selected?.raceCalendar[0] ?? null, calcularDiasAteProva(selectedProfile ?? null, new Date()));
+  // Só com perfil carregado: durante o carregamento e em erro a ausência de prova ainda não se sabe.
+  const nextRaceHeader = selectedProfile && !profileLoading && !profileError
+    ? buildNextRaceHeader(selected?.raceCalendar[0] ?? null, calcularDiasAteProva(selectedProfile, new Date()))
+    : null;
 
   // A seleção acompanha a lista COMPOSTA, não só o roster: um atleta fixado pela fila de atenção
   // não está em `rosterItems`, e comparar com ele revertia a seleção para o primeiro do roster no
@@ -296,20 +299,27 @@ function CoachInboxPage() {
   );
 
   // Fluxo de triagem: o próximo com sinal entre as linhas visíveis (inbox-proximo-em-atencao).
-  const proximoEmAtencao = useMemo(() => nextInAttention(inboxQueue.rows, selectedId), [inboxQueue.rows, selectedId]);
+  const proximoEmAtencao = useMemo(() => findNextInAttention(inboxQueue.rows, selectedId), [inboxQueue.rows, selectedId]);
+  const detalheRef = useRef<HTMLDivElement | null>(null);
   const irParaProximoEmAtencao = useCallback(() => {
-    if (proximoEmAtencao) setSelectedId(proximoEmAtencao.atletaId);
+    if (!proximoEmAtencao) return;
+    setSelectedId(proximoEmAtencao.atletaId);
+    // O link fica no fim do Diagnóstico: sem isto, o próximo abre rolado até o fim e o sinal
+    // dele (no topo) fica fora da tela.
+    if (detalheRef.current) detalheRef.current.scrollTop = 0;
   }, [proximoEmAtencao]);
 
   // Tecla N = próximo em atenção. Guardas: modificadores (Ctrl/Cmd+N é do navegador), repetição,
-  // composição, evento já tratado, campos de texto e qualquer dialog aberto.
+  // composição, evento já tratado, campos de texto (inclusive por role e contenteditable
+  // herdado) e qualquer overlay aberto (modal, menu, listbox).
   useEffect(() => {
     const aoTeclar = (event: KeyboardEvent) => {
       if (event.key !== 'n' && event.key !== 'N') return;
       if (event.ctrlKey || event.metaKey || event.altKey || event.repeat || event.isComposing || event.defaultPrevented) return;
-      const alvo = event.target instanceof HTMLElement ? event.target : null;
-      if (alvo && (alvo.isContentEditable || alvo.closest('input, textarea, select'))) return;
-      if (document.querySelector('[role="dialog"]')) return;
+      const origem = event.composedPath()[0];
+      const alvo = origem instanceof Element ? origem : null;
+      if (alvo?.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"], [role="combobox"]')) return;
+      if (document.querySelector('[aria-modal="true"], [role="menu"], [role="listbox"]')) return;
       irParaProximoEmAtencao();
     };
     window.addEventListener('keydown', aoTeclar);
@@ -319,14 +329,14 @@ function CoachInboxPage() {
   // ↑/↓ com foco numa linha: foco e seleção vão para a vizinha renderizada; nas bordas nada.
   const aoNavegarNaLista = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+    const origem = event.target instanceof Element ? event.target.closest<HTMLElement>('[data-inbox-linha]') : null;
+    if (!origem) return;
     const linhas = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('[data-inbox-linha]'));
-    const atual = linhas.indexOf(document.activeElement as HTMLElement);
-    if (atual < 0) return;
-    const alvo = linhas[atual + (event.key === 'ArrowDown' ? 1 : -1)];
+    const alvo = linhas[linhas.indexOf(origem) + (event.key === 'ArrowDown' ? 1 : -1)];
     if (!alvo) return;
     event.preventDefault();
     alvo.focus();
-    setSelectedId(alvo.dataset.inboxLinha ?? null);
+    setSelectedId(alvo.dataset.inboxLinha!);
   }, []);
 
   const primaryAction = useMemo(
@@ -782,7 +792,7 @@ function CoachInboxPage() {
                   lugar de honra para dizer que não há dado, e durante o carregamento afirmava
                   uma ausência que ainda não se sabia.
                 */}
-                {nextRaceHeader && selectedProfile && !profileLoading && !profileError ? <AthleteNextRace race={nextRaceHeader} /> : null}
+                {nextRaceHeader ? <AthleteNextRace race={nextRaceHeader} /> : null}
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                   <Button
@@ -876,7 +886,7 @@ function CoachInboxPage() {
                 </Tabs>
               </Box>
 
-              <Box data-testid="inbox-detalhe-conteudo" sx={{ flex: 1, minHeight: 0, overflow: 'auto', p: { xs: 0.9, sm: 1, lg: 1.15, xl: 2.25 } }}>
+              <Box ref={detalheRef} data-testid="inbox-detalhe-conteudo" sx={{ flex: 1, minHeight: 0, overflow: 'auto', p: { xs: 0.9, sm: 1, lg: 1.15, xl: 2.25 } }}>
                 {feedback ? (
                   <Alert
                     severity="success"
@@ -922,7 +932,7 @@ function CoachInboxPage() {
                     limiareisInferidos={selectedProfile?.limiareisInferidos ?? null}
                     pmc={selectedPmc}
                     onOpenPlan={() => setActiveTab('plan')}
-                    nextInAttention={proximoEmAtencao}
+                    nextAthlete={proximoEmAtencao}
                     onNext={irParaProximoEmAtencao}
                   />
                 ) : null}
