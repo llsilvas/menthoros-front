@@ -527,13 +527,14 @@ function CoachInboxPage() {
           </Box>
 
           <Box
+            data-testid="inbox-lista"
             sx={{
               flex: 1,
               overflowY: 'auto',
-              p: 1.5,
+              p: 1.25,
               display: 'flex',
               flexDirection: 'column',
-              gap: 1,
+              gap: 0.75,
             }}
           >
             {inboxQueue.hiddenAttentionCount > 0 ? (

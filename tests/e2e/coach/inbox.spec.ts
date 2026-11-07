@@ -121,8 +121,8 @@ test.describe('Coach — lista principal do inbox', () => {
 
     const linha = page.getByRole('button', { name: /ana fora da pagina/i })
     await expect(linha).toBeVisible()
-    await expect(linha).toContainText(/inatividade/i)
-    await expect(linha).toContainText(/\d+d/)
+    // Fora do roster não há último treino: a recência é a idade do sinal, dita como tal.
+    await expect(linha).toContainText(/inatividade · sinal há \d+ dias?/i)
   })
 
   test('navegar para a página 2 mantém o atleta em atenção e não altera o total', async ({ page }) => {
@@ -131,18 +131,18 @@ test.describe('Coach — lista principal do inbox', () => {
     })
     await page.goto(INBOX_URL)
 
-    // Escopado ao TablePagination: desde a task 2.11 o header da lista também exibe "10 de 15",
-    // e um matcher solto casaria com os dois.
+    // Escopado ao TablePagination: o header da lista também exibe "10 de 15", e um matcher solto
+    // casaria com os dois. Rodapé em PT-BR (inbox-lista-triagem).
     const paginacao = page.locator('.MuiTablePagination-displayedRows')
-    await expect(paginacao).toHaveText(/of 15/i)
+    await expect(paginacao).toHaveText(/1–10 de 15/)
     await expect(page.getByRole('button', { name: /ana fora da pagina/i })).toBeVisible()
 
-    await page.getByRole('button', { name: 'Go to next page' }).click()
+    await page.getByRole('button', { name: 'Próxima página' }).click()
 
     // O fixado sobrevive à troca de página...
     await expect(page.getByRole('button', { name: /ana fora da pagina/i })).toBeVisible()
-    // ...e não entra na contagem: somá-lo faria "of 15" virar "of 16" e a última página vir curta.
-    await expect(page.locator('.MuiTablePagination-displayedRows')).toHaveText(/of 15/i)
+    // ...e não entra na contagem: somá-lo faria "de 15" virar "de 16" e a última página vir curta.
+    await expect(page.locator('.MuiTablePagination-displayedRows')).toHaveText(/11–15 de 15/)
   })
 
   test('atleta em atenção fora do filtro ativo é contado, não sumido', async ({ page }) => {
@@ -150,9 +150,9 @@ test.describe('Coach — lista principal do inbox', () => {
     await page.goto(INBOX_URL)
     await expect(page.getByRole('button', { name: /ana fora da pagina/i })).toBeVisible()
 
-    // Task 2.11: o filtro virou um chip no header da própria lista — a barra full-width sumiu.
-    await page.getByRole('button', { name: /filtrar por status/i }).click()
-    await page.getByRole('menuitem', { name: 'Atenção' }).click()
+    // Filtro segmentado no header da própria lista (inbox-lista-triagem): "Pausados" esconde quem
+    // está em atenção mas não está pausado — e a tela diz quantos ficaram de fora.
+    await page.getByRole('button', { name: /^Pausados$/ }).click()
 
     await expect(page.getByRole('button', { name: /ana fora da pagina/i })).toHaveCount(0)
     await expect(page.getByText(/em atenção fora do filtro atual/i)).toBeVisible()
@@ -177,9 +177,11 @@ test.describe('Coach — lista principal do inbox', () => {
     })
     await page.goto(INBOX_URL)
 
+    // inbox-lista-triagem: a severidade saiu do texto (ficou na moldura e na cor); o motivo e a
+    // recência são a linha de contexto, uma vez só.
     const card = page.getByRole('button', { name: /atleta roster 3/i })
-    await expect(card).toContainText(/alerta/i)
-    await expect(card).toContainText(/aderência/i)
+    await expect(card).toContainText(/aderência · sinal há \d+ dias?/i)
+    await expect(card.locator('.MuiChip-root')).toHaveCount(0)
   })
 
   test('clicar na linha de atenção abre o detalhe do atleta certo', async ({ page }) => {
@@ -555,5 +557,87 @@ test.describe('Coach — barra única e rodapé fora (inbox-barra-unica-sem-roda
     const conteudo = (await page.getByTestId('inbox-detalhe-conteudo').boundingBox())!
     expect(conteudo.height / 500).toBeGreaterThanOrEqual(0.4)
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
+  })
+})
+
+/**
+ * inbox-lista-triagem — a coluna da lista como ferramenta de triagem: linha densa, "Em atenção"
+ * como visão da fila inteira, busca junto da lista, paginação em PT-BR.
+ */
+test.describe('Coach — lista de triagem (inbox-lista-triagem)', () => {
+  test.beforeEach(async ({ page }) => {
+    await autenticarComPkce(page, { roles: ['PROPRIETARIO', 'TECNICO'] })
+  })
+
+  const TRES_EM_ATENCAO = [
+    ANA_EM_ALERTA,
+    { ...ANA_EM_ALERTA, atletaId: 'roster-2', athleteName: 'Atleta Roster 2', primaryReason: 'SOBRECARGA', severity: 'ALTA' },
+    { ...ANA_EM_ALERTA, atletaId: 'roster-12', athleteName: 'Atleta Roster 12', primaryReason: 'ADERENCIA', severity: 'MEDIA' },
+  ]
+
+  test('1366×625: pelo menos 6 linhas inteiras na lista, cada uma com até 52px, e a busca no header da coluna', async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 625 })
+    await mockarDashboard(page, { attentionQueue: TRES_EM_ATENCAO, rosterExtra: Array.from({ length: 5 }, (_, i) => atletaRoster(11 + i)) })
+    await page.goto(INBOX_URL)
+    await expect(page.getByRole('button', { name: /ana fora da pagina/i })).toBeVisible()
+
+    const header = page.getByTestId('inbox-lista-header')
+    await expect(header.getByPlaceholder('Buscar atleta...')).toBeVisible()
+    await expect(page.getByTestId('inbox-barra').getByPlaceholder('Buscar atleta...')).toHaveCount(0)
+
+    const lista = page.getByTestId('inbox-lista')
+    const caixaLista = (await lista.boundingBox())!
+    const linhas = await lista.getByRole('button').all()
+    let inteiras = 0
+    for (const linha of linhas) {
+      const caixa = (await linha.boundingBox())!
+      expect(caixa.height).toBeLessThanOrEqual(52)
+      if (caixa.y >= caixaLista.y && caixa.y + caixa.height <= caixaLista.y + caixaLista.height) inteiras += 1
+    }
+    expect(inteiras).toBeGreaterThanOrEqual(6)
+  })
+
+  test('linha com sinal diz o motivo uma vez, sem chip; sem aderência no roster, "—"', async ({ page }) => {
+    await mockarDashboard(page, {
+      attentionQueue: [{ ...ANA_EM_ALERTA, atletaId: 'roster-2', athleteName: 'Atleta Roster 2', primaryReason: 'SOBRECARGA' }],
+      rosterExtra: [atletaRoster(99, { aderenciaPercentual: undefined })],
+    })
+    await page.goto(INBOX_URL)
+
+    const linha = page.getByRole('button', { name: /atleta roster 2/i })
+    await expect(linha).toContainText(/sobrecarga · sinal há \d+ dias?/i)
+    await expect(linha.getByText(/alerta/i)).toHaveCount(0)
+    await expect(linha.locator('.MuiChip-root')).toHaveCount(0)
+    await expect(linha.locator('.MuiLinearProgress-root')).toHaveCount(0)
+
+    // O extra cai na página 2 (o mock pagina de 10 em 10).
+    await page.getByRole('button', { name: 'Próxima página' }).click()
+    await expect(page.getByRole('button', { name: /atleta roster 99/i }).getByTestId('queue-row-aderencia')).toHaveText('—')
+  })
+
+  test('"Em atenção" da página 2 mostra a fila inteira sem paginação; "Todos" devolve a página 2', async ({ page }) => {
+    await mockarDashboard(page, { attentionQueue: TRES_EM_ATENCAO, rosterExtra: Array.from({ length: 5 }, (_, i) => atletaRoster(11 + i)) })
+    await page.goto(INBOX_URL)
+    await page.getByRole('button', { name: 'Próxima página' }).click()
+    await expect(page.locator('.MuiTablePagination-displayedRows')).toHaveText(/11–15 de 15/)
+
+    await page.getByRole('button', { name: /^Em atenção/ }).click()
+
+    await expect(page).toHaveURL(/status=attention/)
+    await expect(page.getByTestId('inbox-lista-contagem')).toHaveText(/3 em atenção/)
+    await expect(page.getByTestId('inbox-lista').getByRole('button')).toHaveCount(3)
+    await expect(page.getByRole('button', { name: /atleta roster 12/i })).toBeVisible()
+    await expect(page.locator('.MuiTablePagination-root')).toHaveCount(0)
+
+    await page.getByRole('button', { name: /^Todos/ }).click()
+    await expect(page.locator('.MuiTablePagination-displayedRows')).toHaveText(/11–15 de 15/)
+  })
+
+  test('com uma página só, não há rodapé de paginação', async ({ page }) => {
+    await mockarDashboard(page)
+    await page.goto(INBOX_URL)
+    await expect(page.getByRole('button', { name: /ana fora da pagina/i })).toBeVisible()
+    await expect(page.locator('.MuiTablePagination-root')).toHaveCount(0)
+    await expect(page.getByTestId('inbox-lista-contagem')).toHaveText(/10 de 10/)
   })
 })
