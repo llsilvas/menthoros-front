@@ -1,27 +1,19 @@
 import { memo } from 'react';
 import { Box, ButtonBase, Typography } from '@mui/material';
-import { content, primary, semantic, surface } from '../../../theme/tokens';
+import { content, primary, surface } from '../../../theme/tokens';
 import { activeTheme } from '../../../theme/activeTheme';
 import type { CoachAthleteRow } from '../types/CoachInbox';
-import type { AttentionInfo, LinhaContexto } from '../adapters/coachInboxAdapters';
+import type { RowContext } from '../adapters/coachInboxAdapters';
 import { CoachAthleteAvatar } from './CoachAthleteAvatar';
-import { corDaAderencia, formatPercent } from './coachInboxHelpers';
+import { COR_DO_TOM, corDaAderencia, formatPercent } from './coachInboxHelpers';
 
 interface QueueRowProps {
   athlete: CoachAthleteRow;
   /** A única linha abaixo do nome: motivo e recência do sinal, ou pausado, ou fase e último treino. */
-  contexto: LinhaContexto;
+  contexto: RowContext;
   selected: boolean;
   onClick: () => void;
-  /** Sinal ativo do atleta, quando existe. Ausente = atleta sem nada pendente. */
-  attention?: AttentionInfo | null;
 }
-
-const COR_DO_TOM = {
-  danger: semantic.danger[500],
-  warning: semantic.warning[500],
-  neutral: surface[400],
-} as const;
 
 /**
  * Linha de um atleta na coluna da lista: ~46px, para caber sete em 625px de janela.
@@ -31,8 +23,8 @@ const COR_DO_TOM = {
  * visíveis num notebook. A severidade fica na moldura e na cor do contexto; a aderência é um
  * número mono à direita.
  */
-export const QueueRow = memo(function QueueRow({ athlete, contexto, selected, onClick, attention }: QueueRowProps) {
-  const corDoSinal = attention ? COR_DO_TOM[contexto.tom] : null;
+export const QueueRow = memo(function QueueRow({ athlete, contexto, selected, onClick }: QueueRowProps) {
+  const corDoSinal = contexto.tom === 'neutral' ? null : COR_DO_TOM[contexto.tom];
   return (
     <ButtonBase
       onClick={onClick}

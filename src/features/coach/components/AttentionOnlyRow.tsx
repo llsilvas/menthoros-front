@@ -1,15 +1,15 @@
 import { memo } from 'react';
 import { Box, ButtonBase, Typography } from '@mui/material';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import type { AttentionInfo, LinhaContexto } from '../adapters/coachInboxAdapters';
+import type { RowContext } from '../adapters/coachInboxAdapters';
 import { activeTheme } from '../../../theme/activeTheme';
-import { primary, semantic, surface } from '../../../theme/tokens';
+import { primary, surface } from '../../../theme/tokens';
+import { COR_DO_TOM } from './coachInboxHelpers';
 
 export interface AttentionOnlyRowProps {
   atletaId: string;
   athleteName: string;
-  attention: AttentionInfo;
-  contexto: LinhaContexto;
+  contexto: RowContext;
   selected: boolean;
   onClick: () => void;
 }
@@ -22,12 +22,11 @@ export interface AttentionOnlyRowProps {
  */
 export const AttentionOnlyRow = memo(function AttentionOnlyRow({
   athleteName,
-  attention,
   contexto,
   selected,
   onClick,
 }: AttentionOnlyRowProps) {
-  const cor = attention.severity === 'MEDIA' ? semantic.warning[500] : semantic.danger[500];
+  const cor = COR_DO_TOM[contexto.tom];
 
   return (
     <ButtonBase

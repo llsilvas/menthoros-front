@@ -41,6 +41,20 @@ describe('useDashboardFilters — visão "Em atenção"', () => {
     expect(fetchDashboard).toHaveBeenLastCalledWith(expect.objectContaining({ status: 'paused', page: 0 }));
   });
 
+  it('sair de "Em atenção" para um status do roster zera a página', () => {
+    const { result } = renderHook(() => useDashboardFilters({ fetchDashboard: vi.fn() }), { wrapper: comRota('/coach/inbox?status=attention&page=2') });
+    act(() => result.current.handleDashboardStatusChange({ target: { value: 'paused' } }));
+    expect(result.current.dashboardStatus).toBe('paused');
+    expect(result.current.dashboardPage).toBe(0);
+  });
+
+  it('busca: a URL só sobrescreve o texto digitado em mudança externa', () => {
+    const { result } = renderHook(() => useDashboardFilters({ fetchDashboard: vi.fn() }), { wrapper: comRota('/coach/inbox?q=ana') });
+    expect(result.current.search).toBe('ana');
+    act(() => result.current.handleSearchChange({ target: { value: 'anab' } }));
+    expect(result.current.search).toBe('anab');
+  });
+
   it('resetFilters volta a "Todos"', () => {
     const { result } = renderHook(() => useDashboardFilters({ fetchDashboard: vi.fn() }), { wrapper: comRota('/coach/inbox?status=attention') });
     act(() => result.current.resetFilters());

@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueueRow } from './QueueRow';
 import { corDaAderencia } from './coachInboxHelpers';
-import type { AttentionInfo, LinhaContexto } from '../adapters/coachInboxAdapters';
+import type { RowContext } from '../adapters/coachInboxAdapters';
 import type { CoachAthleteRow } from '../types/CoachInbox';
 import { semantic, surface } from '../../../theme/tokens';
 
@@ -35,12 +35,8 @@ function atleta(over: Partial<CoachAthleteRow> = {}): CoachAthleteRow {
   } as CoachAthleteRow;
 }
 
-function atencao(over: Partial<AttentionInfo> = {}): AttentionInfo {
-  return { severity: 'ALTA', reason: 'INATIVIDADE', suggestedAction: 'Entrar em contato', recencyDays: 14, recencyKind: 'sem-treino', ...over };
-}
-
-const CONTEXTO_SINAL: LinhaContexto = { texto: 'Inatividade · 14 dias sem treino', tom: 'danger' };
-const CONTEXTO_NEUTRO: LinhaContexto = { texto: 'Base · último treino há 2 dias', tom: 'neutral' };
+const CONTEXTO_SINAL: RowContext = { texto: 'Inatividade · 14 dias sem treino', tom: 'danger' };
+const CONTEXTO_NEUTRO: RowContext = { texto: 'Base · último treino há 2 dias', tom: 'neutral' };
 
 /** jsdom devolve `rgb(...)`; os tokens são hex. */
 function hexParaRgb(hex: string): string {
@@ -63,7 +59,7 @@ describe('QueueRow', () => {
    * a aderência três (rótulo, número, barra). A linha tem UMA linha de contexto e UM número.
    */
   it('uma linha de contexto, sem chip e sem barra; a severidade está na cor do texto', () => {
-    render(<QueueRow athlete={atleta()} attention={atencao()} contexto={CONTEXTO_SINAL} selected={false} onClick={vi.fn()} />);
+    render(<QueueRow athlete={atleta()} contexto={CONTEXTO_SINAL} selected={false} onClick={vi.fn()} />);
 
     const motivo = screen.getByTestId('queue-row-motivo');
     expect(motivo).toHaveTextContent('Inatividade · 14 dias sem treino');
@@ -75,7 +71,7 @@ describe('QueueRow', () => {
 
   it('sinal médio usa âmbar; sem sinal o contexto é neutro', () => {
     const { rerender } = render(
-      <QueueRow athlete={atleta()} attention={atencao({ severity: 'MEDIA' })} contexto={{ texto: 'Aderência · sinal há 4 dias', tom: 'warning' }} selected={false} onClick={vi.fn()} />,
+      <QueueRow athlete={atleta()} contexto={{ texto: 'Aderência · sinal há 4 dias', tom: 'warning' }} selected={false} onClick={vi.fn()} />,
     );
     expect(getComputedStyle(screen.getByTestId('queue-row-motivo')).color).toBe(hexParaRgb(semantic.warning[500]));
 
@@ -103,7 +99,7 @@ describe('QueueRow', () => {
 
   /** Texto funcional abaixo de 11px é o defeito nº 2 da auditoria; a linha nova não pode repetí-lo. */
   it('o contexto respeita a fonte mínima de 11px e não usa surface-500', () => {
-    render(<QueueRow athlete={atleta()} attention={atencao()} contexto={CONTEXTO_SINAL} selected={false} onClick={vi.fn()} />);
+    render(<QueueRow athlete={atleta()} contexto={CONTEXTO_SINAL} selected={false} onClick={vi.fn()} />);
 
     const motivo = screen.getByTestId('queue-row-motivo');
     const declarado = getComputedStyle(motivo).fontSize;

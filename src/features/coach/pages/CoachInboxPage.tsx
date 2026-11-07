@@ -459,7 +459,9 @@ function CoachInboxPage() {
                 exclusive
                 size="small"
                 aria-label="Filtrar lista"
-                value={dashboardStatus === 'attention' || dashboardStatus === 'paused' ? dashboardStatus : 'all'}
+                // `status=active|warning|danger` (URLs antigas) não têm segmento: nada fica
+                // marcado, e "Todos" limpa — marcar "Todos" esconderia um filtro ativo.
+                value={dashboardStatus === 'attention' || dashboardStatus === 'paused' || dashboardStatus === 'all' ? dashboardStatus : null}
                 onChange={(_, valor: string | null) => {
                   if (valor) handleDashboardStatusChange({ target: { value: valor } });
                 }}
@@ -607,7 +609,6 @@ function CoachInboxPage() {
                     key={linha.atletaId}
                     atletaId={linha.atletaId}
                     athleteName={linha.athleteName}
-                    attention={linha.attention}
                     contexto={linha.contexto}
                     selected={linha.atletaId === selectedId}
                     onClick={() => setSelectedId(linha.atletaId)}
@@ -616,7 +617,6 @@ function CoachInboxPage() {
                   <QueueRow
                     key={linha.atletaId}
                     athlete={linha.row}
-                    attention={linha.attention}
                     contexto={linha.contexto}
                     selected={linha.atletaId === selectedId}
                     onClick={() => setSelectedId(linha.atletaId)}
@@ -635,7 +635,6 @@ function CoachInboxPage() {
                 onPageChange={handleRosterPageChange}
                 rowsPerPage={ROSTER_PAGE_SIZE}
                 rowsPerPageOptions={[ROSTER_PAGE_SIZE]}
-                onRowsPerPageChange={() => setDashboardPage(0)}
                 labelRowsPerPage="Itens por página"
                 labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
                 getItemAriaLabel={(tipo) => (tipo === 'next' ? 'Próxima página' : 'Página anterior')}

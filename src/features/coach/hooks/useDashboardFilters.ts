@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router';
 import { useDebounce } from '../../../shared/hooks/useDebounce';
 import type { CoachAtletaStatus, CoachDashboardQuery } from '../../../types/Coach';
@@ -70,25 +70,31 @@ export function useDashboardFilters({ fetchDashboard }: UseDashboardFiltersParam
     }, { replace: true });
   }, [setSearchParams]);
 
-  // busca: URL → estado (link compartilhado, voltar do navegador)
+  // O último `q` que ESTE hook gravou na URL. Diferença entre a URL e ele = mudança externa
+  // (voltar do navegador, link colado) e só então a URL sobrescreve o que está digitado.
+  const ultimoQGravado = useRef(searchParams.get('q') ?? '');
+
+  // busca: URL → estado, só em mudança externa
   useEffect(() => {
     const q = new URLSearchParams(location.search).get('q') ?? '';
-    if (q !== search) setSearch(q);
-    // Só a URL dispara: incluir `search` reescreveria o que o coach acabou de digitar.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (q !== ultimoQGravado.current) {
+      ultimoQGravado.current = q;
+      setSearch(q);
+    }
   }, [location.search]);
 
   // busca: estado → URL
   useEffect(() => {
-    const current = new URLSearchParams(location.search);
-    const next = new URLSearchParams(location.search);
     const normalizedSearch = search.trim();
-    if (normalizedSearch) next.set('q', normalizedSearch);
-    else next.delete('q');
-    if (next.toString() !== current.toString()) {
-      setSearchParams(next, { replace: true });
-    }
-  }, [location.search, search, setSearchParams]);
+    if (normalizedSearch === ultimoQGravado.current) return;
+    ultimoQGravado.current = normalizedSearch;
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      if (normalizedSearch) next.set('q', normalizedSearch);
+      else next.delete('q');
+      return next;
+    }, { replace: true });
+  }, [search, setSearchParams]);
 
   const buildQuery = useCallback((): CoachDashboardQuery => ({
     q: debouncedSearch.trim() ? debouncedSearch.trim() : undefined,
@@ -114,9 +120,10 @@ export function useDashboardFilters({ fetchDashboard }: UseDashboardFiltersParam
 
   const handleDashboardStatusChange = useCallback((event: { target: { value: unknown } }) => {
     const nextStatus = event.target.value as DashboardStatusFilter;
-    // Entrar ou sair de "Em atenção" não mexe na página: é uma visão da fila, não do roster, e
-    // voltar a "Todos" tem de devolver a página em que o coach estava.
-    const trocaDeVisao = nextStatus === 'attention' || dashboardStatus === 'attention';
+    // Entrar em "Em atenção" e voltar dela a "Todos" não mexem na página: é uma visão da fila,
+    // e o coach volta à página em que estava. Sair dela para um status do roster é consulta nova:
+    // a página guardada podia estar fora da faixa.
+    const trocaDeVisao = nextStatus === 'attention' || (dashboardStatus === 'attention' && nextStatus === 'all');
     setSearchParams((current) => {
       const next = new URLSearchParams(current);
       if (nextStatus !== 'all') next.set('status', nextStatus);
@@ -143,6 +150,7 @@ export function useDashboardFilters({ fetchDashboard }: UseDashboardFiltersParam
 
   const resetFilters = useCallback(() => {
     setSearch('');
+    ultimoQGravado.current = '';
     setSearchParams((current) => {
       const next = new URLSearchParams(current);
       next.delete('q');

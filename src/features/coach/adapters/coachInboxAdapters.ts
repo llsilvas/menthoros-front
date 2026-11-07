@@ -363,38 +363,51 @@ export interface AttentionInfo {
   /** Dias sem treinar (inatividade) ou idade do alerta; `null` quando não há dado. */
   recencyDays: number | null;
   /** O que `recencyDays` mede — a linha diz "dias sem treino" só quando é isso mesmo. */
-  recencyKind: 'sem-treino' | 'sinal';
+  recencyKind: 'inactivity' | 'signal';
 }
 
+export type RowTone = 'danger' | 'warning' | 'neutral';
+
 /** A única linha de contexto de uma linha da lista: o que o treinador lê abaixo do nome. */
-export interface LinhaContexto {
+export interface RowContext {
   texto: string;
-  tom: 'danger' | 'warning' | 'neutral';
+  tom: RowTone;
 }
 
 /**
  * Contexto da linha, na precedência sinal → pausado → fase/último treino, só com o que o resumo
  * do roster traz (`status`, `fase`, `lastActivity`): prova e semanas no plano não vêm nele.
  */
-export function contextoDaLinha(
+export function buildRowContext(
   resumo: Pick<CoachAtletaResumo, 'status' | 'fase' | 'lastActivity'> | undefined,
   attention: AttentionInfo | null,
   hoje: Date,
-): LinhaContexto {
+): RowContext {
   if (attention) {
     const tom = attention.severity === 'MEDIA' ? 'warning' : 'danger';
     const motivo = REASON_LABEL[attention.reason];
     if (attention.recencyDays == null) return { texto: motivo, tom };
-    const recencia = attention.recencyKind === 'sem-treino'
+    const recencia = attention.recencyKind === 'inactivity'
       ? `${diasTexto(attention.recencyDays)} sem treino`
       : `sinal ${haDias(attention.recencyDays)}`;
     return { texto: `${motivo} · ${recencia}`, tom };
   }
   if (resumo?.status === 'paused') return { texto: 'Pausado', tom: 'neutral' };
   const fase = resumo?.fase ?? 'Sem plano';
-  const dias = diasEntre(resumo?.lastActivity, hoje);
+  const dias = diasDeCalendario(resumo?.lastActivity, hoje);
   const treino = dias == null ? 'sem treino registrado' : dias === 0 ? 'último treino hoje' : `último treino ${haDias(dias)}`;
   return { texto: `${fase} · ${treino}`, tom: 'neutral' };
+}
+
+/**
+ * `lastActivity` é só data (`yyyy-MM-dd`): contar períodos de 24h a partir de meia-noite UTC
+ * diria "há 1 dia" para o treino de hoje às 22h em São Paulo. Dias de calendário, no fuso local.
+ */
+function diasDeCalendario(data: string | undefined, hoje: Date): number | null {
+  if (!data) return null;
+  const inicio = parseISO(data);
+  if (Number.isNaN(inicio.getTime())) return null;
+  return differenceInCalendarDays(hoje, inicio);
 }
 
 const diasTexto = (n: number) => `${n} ${n === 1 ? 'dia' : 'dias'}`;
@@ -409,8 +422,8 @@ const haDias = (n: number) => (n === 0 ? 'hoje' : `há ${diasTexto(n)}`);
  * com cara de medição real é pior do que ausência declarada.
  */
 export type InboxQueueRow =
-  | { source: 'roster'; atletaId: string; row: CoachAthleteRow; attention: AttentionInfo | null; contexto: LinhaContexto }
-  | { source: 'attention-only'; atletaId: string; athleteName: string; attention: AttentionInfo; contexto: LinhaContexto };
+  | { source: 'roster'; atletaId: string; row: CoachAthleteRow; attention: AttentionInfo | null; contexto: RowContext }
+  | { source: 'attention-only'; atletaId: string; athleteName: string; attention: AttentionInfo; contexto: RowContext };
 
 export interface InboxQueue {
   rows: InboxQueueRow[];
@@ -442,9 +455,9 @@ function resolverRecencia(
   hoje: Date,
 ): Pick<AttentionInfo, 'recencyDays' | 'recencyKind'> {
   if (item.primaryReason === 'INATIVIDADE' && resumo?.lastActivity) {
-    return { recencyDays: diasEntre(resumo.lastActivity, hoje), recencyKind: 'sem-treino' };
+    return { recencyDays: diasDeCalendario(resumo.lastActivity, hoje), recencyKind: 'inactivity' };
   }
-  return { recencyDays: diasEntre(item.generatedAt, hoje), recencyKind: 'sinal' };
+  return { recencyDays: diasEntre(item.generatedAt, hoje), recencyKind: 'signal' };
 }
 
 /**
@@ -497,7 +510,7 @@ export function buildInboxQueue(
       suggestedAction: item.suggestedAction,
       ...resolverRecencia(item, resumo, hoje),
     };
-    const contexto = contextoDaLinha(resumo, attention, hoje);
+    const contexto = buildRowContext(resumo, attention, hoje);
 
     fixados.push(resumo
       ? { source: 'roster', atletaId: item.atletaId, row: buildRosterRowFromSummary(resumo), attention, contexto }
@@ -512,7 +525,7 @@ export function buildInboxQueue(
       atletaId: item.atletaId,
       row: buildRosterRowFromSummary(item),
       attention: null,
-      contexto: contextoDaLinha(item, null, hoje),
+      contexto: buildRowContext(item, null, hoje),
     }));
 
   return {

@@ -8,7 +8,6 @@ describe('AttentionOnlyRow', () => {
       <AttentionOnlyRow
         atletaId="a1"
         athleteName="Ana Silva"
-        attention={{ severity: 'CRITICA', reason: 'PROVA_ATLETA', suggestedAction: 'Revise a prova e o plano das próximas semanas.', recencyDays: 3, recencyKind: 'sinal' }}
         contexto={{ texto: 'Prova do atleta · sinal há 3 dias', tom: 'danger' }}
         selected={false}
         onClick={vi.fn()}
@@ -18,7 +17,6 @@ describe('AttentionOnlyRow', () => {
     expect(screen.getByRole('button', { name: /ana silva/i })).toBeInTheDocument();
     expect(screen.getByTestId('queue-row-motivo')).toHaveTextContent('Prova do atleta · sinal há 3 dias');
     expect(screen.getByTestId('queue-row-aderencia')).toHaveTextContent('—');
-    expect(screen.queryByText(/revise a prova/i)).not.toBeInTheDocument();
   });
 
   it('selecionada marca aria-current', () => {
@@ -26,7 +24,6 @@ describe('AttentionOnlyRow', () => {
       <AttentionOnlyRow
         atletaId="a1"
         athleteName="Ana"
-        attention={{ severity: 'MEDIA', reason: 'ADERENCIA', suggestedAction: 'x', recencyDays: null, recencyKind: 'sinal' }}
         contexto={{ texto: 'Aderência', tom: 'warning' }}
         selected
         onClick={vi.fn()}

@@ -5,7 +5,7 @@ import type { AttentionInfo } from '../adapters/coachInboxAdapters';
 const SEM_SINAL = { planReviewStatus: null, planId: null, attention: null };
 
 function atencao(over: Partial<AttentionInfo> = {}): AttentionInfo {
-  return { severity: 'ALTA', reason: 'INATIVIDADE', suggestedAction: 'Entrar em contato', recencyDays: 14, recencyKind: 'sem-treino', ...over };
+  return { severity: 'ALTA', reason: 'INATIVIDADE', suggestedAction: 'Entrar em contato', recencyDays: 14, recencyKind: 'inactivity', ...over };
 }
 
 describe('resolvePrimaryAction', () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { format, subDays } from 'date-fns';
-import { buildInboxQueue, buildRosterRowFromSummary, contextoDaLinha, buildSelectedAthleteFromDashboard, calcularMonotonia, calcularLoadDelta, calcularAcwr, getAcwrZone, getMonotonyTone, calcularStrain, contarDiasComTreino7d, getStrainZone, calcularPrevisaoForma, calcularDiasAteProva } from './coachInboxAdapters';
+import { buildInboxQueue, buildRosterRowFromSummary, buildRowContext, buildSelectedAthleteFromDashboard, calcularMonotonia, calcularLoadDelta, calcularAcwr, getAcwrZone, getMonotonyTone, calcularStrain, contarDiasComTreino7d, getStrainZone, calcularPrevisaoForma, calcularDiasAteProva } from './coachInboxAdapters';
 import type { PmcPontoRaw, AtletaPerfilCoachDto } from '../../../types/AtletaPerfilCoach';
 import type { Prova } from '../../../types/Prova';
 import { formatWorkoutTypeLabel } from '../components/coachInboxHelpers';
@@ -587,37 +587,44 @@ describe('buildSelectedAthleteFromDashboard — próximo treino', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// contextoDaLinha e aderência ausente — inbox-lista-triagem (tasks 1.1 e 2.1)
+// buildRowContext e aderência ausente — inbox-lista-triagem (tasks 1.1 e 2.1)
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('contextoDaLinha', () => {
+describe('buildRowContext', () => {
+  it('último treino conta dias de calendário no fuso local, não períodos de 24h UTC', () => {
+    // 22h local do mesmo dia: "hoje", não "há 1 dia".
+    const noite = new Date(2026, 7, 16, 22, 0, 0);
+    expect(buildRowContext(atletaResumo({ atletaId: 'a', nome: 'A', fase: 'Base', lastActivity: '2026-08-16' }), null, noite).texto)
+      .toBe('Base · último treino hoje');
+  });
+
   const sinal = (over: Partial<import('./coachInboxAdapters').AttentionInfo> = {}) => ({
-    severity: 'ALTA' as const, reason: 'INATIVIDADE' as const, suggestedAction: 'x', recencyDays: 6, recencyKind: 'sem-treino' as const, ...over,
+    severity: 'ALTA' as const, reason: 'INATIVIDADE' as const, suggestedAction: 'x', recencyDays: 6, recencyKind: 'inactivity' as const, ...over,
   });
 
   it('inatividade com último treino conhecido: dias sem treino, tom de alerta', () => {
-    expect(contextoDaLinha(atletaResumo({ atletaId: 'a', nome: 'A', lastActivity: '2026-08-10' }), sinal(), HOJE))
+    expect(buildRowContext(atletaResumo({ atletaId: 'a', nome: 'A', lastActivity: '2026-08-10' }), sinal(), HOJE))
       .toEqual({ texto: 'Inatividade · 6 dias sem treino', tom: 'danger' });
   });
 
   it('outros motivos dizem a idade do sinal, nunca "dias sem treino"', () => {
-    expect(contextoDaLinha(undefined, sinal({ reason: 'SOBRECARGA', recencyDays: 2, recencyKind: 'sinal', severity: 'MEDIA' }), HOJE))
+    expect(buildRowContext(undefined, sinal({ reason: 'SOBRECARGA', recencyDays: 2, recencyKind: 'signal', severity: 'MEDIA' }), HOJE))
       .toEqual({ texto: 'Sobrecarga · sinal há 2 dias', tom: 'warning' });
-    expect(contextoDaLinha(undefined, sinal({ recencyDays: null }), HOJE).texto).toBe('Inatividade');
+    expect(buildRowContext(undefined, sinal({ recencyDays: null }), HOJE).texto).toBe('Inatividade');
   });
 
   it('sinal tem precedência sobre pausado; pausado sobre fase', () => {
-    expect(contextoDaLinha(atletaResumo({ atletaId: 'a', nome: 'A', status: 'paused' }), sinal(), HOJE).tom).toBe('danger');
-    expect(contextoDaLinha(atletaResumo({ atletaId: 'a', nome: 'A', status: 'paused', fase: 'Base' }), null, HOJE))
+    expect(buildRowContext(atletaResumo({ atletaId: 'a', nome: 'A', status: 'paused' }), sinal(), HOJE).tom).toBe('danger');
+    expect(buildRowContext(atletaResumo({ atletaId: 'a', nome: 'A', status: 'paused', fase: 'Base' }), null, HOJE))
       .toEqual({ texto: 'Pausado', tom: 'neutral' });
   });
 
   it('sem sinal: fase e último treino; sem fase "Sem plano"; sem treino "sem treino registrado"', () => {
-    expect(contextoDaLinha(atletaResumo({ atletaId: 'a', nome: 'A', fase: 'Base', lastActivity: '2026-08-14' }), null, HOJE).texto)
+    expect(buildRowContext(atletaResumo({ atletaId: 'a', nome: 'A', fase: 'Base', lastActivity: '2026-08-14' }), null, HOJE).texto)
       .toBe('Base · último treino há 2 dias');
-    expect(contextoDaLinha(atletaResumo({ atletaId: 'a', nome: 'A', lastActivity: '2026-08-16' }), null, HOJE).texto)
+    expect(buildRowContext(atletaResumo({ atletaId: 'a', nome: 'A', lastActivity: '2026-08-16' }), null, HOJE).texto)
       .toBe('Sem plano · último treino hoje');
-    expect(contextoDaLinha(atletaResumo({ atletaId: 'a', nome: 'A', fase: 'Base' }), null, HOJE).texto)
+    expect(buildRowContext(atletaResumo({ atletaId: 'a', nome: 'A', fase: 'Base' }), null, HOJE).texto)
       .toBe('Base · sem treino registrado');
   });
 });
