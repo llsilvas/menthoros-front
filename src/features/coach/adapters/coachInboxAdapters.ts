@@ -375,8 +375,11 @@ export interface RowContext {
 }
 
 /**
- * Contexto da linha, na precedência sinal → pausado → fase/último treino, só com o que o resumo
- * do roster traz (`status`, `fase`, `lastActivity`): prova e semanas no plano não vêm nele.
+ * Contexto da linha, na precedência sinal da fila → status do roster (`warning`/`danger`, que o
+ * backend calcula sem passar pela fila) → pausado → fase/último treino, só com o que o resumo do
+ * roster traz (`status`, `fase`, `lastActivity`): prova e semanas no plano não vêm nele. `fase`
+ * ausente não quer dizer "sem plano" — o roster não a preenche para todo plano — então ela
+ * simplesmente não aparece.
  */
 export function buildRowContext(
   resumo: Pick<CoachAtletaResumo, 'status' | 'fase' | 'lastActivity'> | undefined,
@@ -393,10 +396,12 @@ export function buildRowContext(
     return { texto: `${motivo} · ${recencia}`, tom };
   }
   if (resumo?.status === 'paused') return { texto: 'Pausado', tom: 'neutral' };
-  const fase = resumo?.fase ?? 'Sem plano';
   const dias = diasDeCalendario(resumo?.lastActivity, hoje);
   const treino = dias == null ? 'sem treino registrado' : dias === 0 ? 'último treino hoje' : `último treino ${haDias(dias)}`;
-  return { texto: `${fase} · ${treino}`, tom: 'neutral' };
+  if (resumo?.status === 'danger' || resumo?.status === 'warning') {
+    return { texto: `${statusLabel(resumo.status)} · ${treino}`, tom: resumo.status };
+  }
+  return { texto: resumo?.fase ? `${resumo.fase} · ${treino}` : treino, tom: 'neutral' };
 }
 
 /**

@@ -613,17 +613,24 @@ describe('buildRowContext', () => {
     expect(buildRowContext(undefined, sinal({ recencyDays: null }), HOJE).texto).toBe('Inatividade');
   });
 
-  it('sinal tem precedência sobre pausado; pausado sobre fase', () => {
+  it('sinal tem precedência sobre pausado; pausado sobre status e fase', () => {
     expect(buildRowContext(atletaResumo({ atletaId: 'a', nome: 'A', status: 'paused' }), sinal(), HOJE).tom).toBe('danger');
     expect(buildRowContext(atletaResumo({ atletaId: 'a', nome: 'A', status: 'paused', fase: 'Base' }), null, HOJE))
       .toEqual({ texto: 'Pausado', tom: 'neutral' });
   });
 
-  it('sem sinal: fase e último treino; sem fase "Sem plano"; sem treino "sem treino registrado"', () => {
+  it('status warning/danger do roster, sem item na fila, continua sendo sinal: rótulo, tom e moldura', () => {
+    expect(buildRowContext(atletaResumo({ atletaId: 'a', nome: 'A', status: 'danger', lastActivity: '2026-08-07' }), null, HOJE))
+      .toEqual({ texto: 'Alerta · último treino há 9 dias', tom: 'danger' });
+    expect(buildRowContext(atletaResumo({ atletaId: 'a', nome: 'A', status: 'warning', fase: 'Base', lastActivity: '2026-08-12' }), null, HOJE))
+      .toEqual({ texto: 'Atenção · último treino há 4 dias', tom: 'warning' });
+  });
+
+  it('sem sinal: fase e último treino; sem fase só o treino (o roster não a traz para todo plano)', () => {
     expect(buildRowContext(atletaResumo({ atletaId: 'a', nome: 'A', fase: 'Base', lastActivity: '2026-08-14' }), null, HOJE).texto)
       .toBe('Base · último treino há 2 dias');
     expect(buildRowContext(atletaResumo({ atletaId: 'a', nome: 'A', lastActivity: '2026-08-16' }), null, HOJE).texto)
-      .toBe('Sem plano · último treino hoje');
+      .toBe('último treino hoje');
     expect(buildRowContext(atletaResumo({ atletaId: 'a', nome: 'A', fase: 'Base' }), null, HOJE).texto)
       .toBe('Base · sem treino registrado');
   });
