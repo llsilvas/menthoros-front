@@ -327,13 +327,53 @@ describe('CoachInboxPage', () => {
     });
   });
 
-  it('resumo do topo na faixa de KPIs, com ícone por métrica', () => {
-    renderPage();
+  describe('barra única e rodapé fora (inbox-barra-unica-sem-rodape)', () => {
+    it('o topo é uma barra: título "Inbox", resumo em linha e busca; sem faixa de KPIs nem apresentação', () => {
+      renderPage();
 
-    for (const key of ['ativos', 'treinos', 'atencao', 'exibidos']) {
-      expect(within(screen.getByTestId(`inbox-kpi-${key}`)).getByTestId('kpi-icon')).toBeInTheDocument();
-    }
-    expect(within(screen.getByTestId('inbox-kpi-ativos')).getByText('Atletas ativos')).toBeInTheDocument();
+      expect(screen.getByTestId('inbox-titulo')).toHaveTextContent('Inbox');
+      expect(screen.getByTestId('inbox-resumo')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Buscar atleta...')).toBeInTheDocument();
+      expect(screen.queryByTestId('inbox-kpi-ativos')).not.toBeInTheDocument();
+      expect(screen.queryByText(/Assistente do Treinador/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Revisão rápida, ajuste de plano/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Atletas exibidos/i)).not.toBeInTheDocument();
+    });
+
+    it('"em atenção" conta a fila completa, não o emAtencao do resumo', () => {
+      renderPage();
+
+      // O stub tem `kpis.emAtencao: 5` e uma fila com outro tamanho: a barra segue a fila.
+      const fila = DASHBOARD_STUB.attentionQueue.length;
+      expect(fila).not.toBe(DASHBOARD_STUB.summary.kpis.emAtencao);
+      expect(screen.getByTestId('inbox-resumo-atencao')).toHaveTextContent(`${fila} em atenção`);
+      expect(screen.getByTestId('inbox-resumo-ativos')).toHaveTextContent(`${DASHBOARD_STUB.summary.kpis.ativos} ativos de ${DASHBOARD_STUB.summary.kpis.totalAtletas}`);
+    });
+
+    it('sem rodapé: nenhuma ação simulada; "Ajustar plano" fica no cabeçalho e abre a aba Plano', async () => {
+      const user = userEvent.setup();
+      renderPage();
+
+      expect(screen.queryByRole('button', { name: /enviar mensagem/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /mais ações/i })).not.toBeInTheDocument();
+      expect(screen.queryByText(/marcar como prioridade/i)).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: /ajustar plano/i }));
+      expect(screen.getByRole('tab', { name: /^Plano$/i })).toHaveAttribute('aria-selected', 'true');
+    });
+
+    it('com plano aguardando revisão a ordem é CTA, Rejeitar, Ajustar plano', () => {
+      renderPage();
+
+      const cta = screen.getByTestId('inbox-cta-primario');
+      const rejeitar = screen.getByRole('button', { name: /^Rejeitar$/i });
+      const ajustar = screen.getByRole('button', { name: /ajustar plano/i });
+      expect(cta.compareDocumentPosition(rejeitar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(rejeitar.compareDocumentPosition(ajustar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      // Os três no mesmo cabeçalho do atleta, acima do conteúdo rolável.
+      const conteudo = screen.getByTestId('inbox-detalhe-conteudo');
+      expect(ajustar.compareDocumentPosition(conteudo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
   });
 
   describe('cabeçalho e faixa de KPIs (fix-coach-diagnosis-charts)', () => {

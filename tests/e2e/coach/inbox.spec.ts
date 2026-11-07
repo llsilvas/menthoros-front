@@ -88,7 +88,12 @@ async function mockarDashboard(
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        resumo: { totalAtletas: totalElements, ativos: totalElements, emAtencao: 1, treinosPlanejadosSemana: 12 },
+        generatedAt: '2026-08-15T12:00:00Z',
+        summary: {
+          kpis: { totalAtletas: totalElements, ativos: totalElements, emAtencao: 1, treinosPlanejadosSemana: 12 },
+          atletasExibidos: items.length,
+          itensFilaAtencao: 1,
+        },
         roster: { items, page: pagina, size: 10, totalElements, totalPages: Math.ceil(totalElements / 10) },
         attentionQueue: opcoes.attentionQueue ?? [ANA_EM_ALERTA],
       }),
@@ -430,5 +435,125 @@ test.describe('Coach — decisão sobre sugestão pelo inbox', () => {
 
     await expect(page.getByText('Aprovada')).toBeVisible()
     await expect(page.getByText('Pendente')).toHaveCount(0)
+  })
+})
+
+/**
+ * inbox-barra-unica-sem-rodape — os dois achados críticos da crítica de design de 2026-11-07:
+ * o cabeçalho + faixa de KPIs (~136px) viram uma barra, e o rodapé de ações simuladas sai, com
+ * "Ajustar plano" no cabeçalho do atleta. Medido no viewport real de notebook (1366×625), não em
+ * 1366×768, que nenhum navegador entrega nessa tela.
+ */
+function perfilDe(atletaId: string, nome: string, planoVigente: Record<string, unknown> | null) {
+  return {
+    atletaId,
+    nomeAtleta: nome,
+    objetivo: null,
+    proximaProva: null,
+    nivelExperiencia: null,
+    pmc: [],
+    aderenciaSemanal: [],
+    planoVigente,
+    sinaisRecentes: [],
+    sugestoesRecentes: [],
+    recordes: [],
+    melhoresEsforcos: [],
+    melhoresEsforcosIntegracaoConectada: true,
+    geradoEm: '2026-08-15T12:00:00Z',
+    avisos: null,
+  }
+}
+
+test.describe('Coach — barra única e rodapé fora (inbox-barra-unica-sem-rodape)', () => {
+  test.beforeEach(async ({ page }) => {
+    await autenticarComPkce(page, { roles: ['PROPRIETARIO', 'TECNICO'] })
+  })
+
+  test('o topo é uma barra de até 56px e "em atenção" conta a fila, não o resumo', async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 625 })
+    // `resumo.emAtencao` fica em 1 (mock padrão) enquanto a fila tem três: a barra segue a fila.
+    await mockarDashboard(page, {
+      attentionQueue: [
+        ANA_EM_ALERTA,
+        { ...ANA_EM_ALERTA, atletaId: 'roster-2', athleteName: 'Atleta Roster 2', primaryReason: 'SOBRECARGA' },
+        { ...ANA_EM_ALERTA, atletaId: 'roster-5', athleteName: 'Atleta Roster 5', severity: 'MEDIA', primaryReason: 'ADERENCIA' },
+      ],
+    })
+    await page.goto(INBOX_URL)
+    await expect(page.getByRole('button', { name: /ana fora da pagina/i })).toBeVisible()
+
+    await expect(page.getByTestId('inbox-titulo')).toHaveText('Inbox')
+    await expect(page.getByTestId('inbox-resumo-atencao')).toHaveText(/3 em atenção/)
+    await expect(page.getByTestId('inbox-kpi-ativos')).toHaveCount(0)
+    await expect(page.getByText(/Assistente do Treinador/i)).toHaveCount(0)
+    await expect(page.getByText(/Atletas exibidos/i)).toHaveCount(0)
+
+    const barra = (await page.getByTestId('inbox-barra').boundingBox())!
+    expect(barra.height).toBeLessThanOrEqual(56)
+  })
+
+  test('em 900px (início de md, sidebar recolhida) a barra continua numa linha com resumo e busca', async ({ page }) => {
+    await page.setViewportSize({ width: 900, height: 700 })
+    await mockarDashboard(page)
+    await page.goto(INBOX_URL)
+    await expect(page.getByRole('button', { name: /ana fora da pagina/i })).toBeVisible()
+
+    await expect(page.getByTestId('inbox-resumo-atualizado')).toBeVisible()
+    await expect(page.getByPlaceholder('Buscar atleta...')).toBeVisible()
+    const barra = (await page.getByTestId('inbox-barra').boundingBox())!
+    expect(barra.height).toBeLessThanOrEqual(56)
+  })
+
+  test('sem rodapé; "Ajustar plano" no cabeçalho abre a aba Plano; detalhe com ≥ 45% da altura em 1366×625', async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 625 })
+    await mockarDashboard(page)
+    await page.route('**/api/v1/coach/atletas/*/perfil', (route) =>
+      route.fulfill({ json: perfilDe('ana-alerta', 'Ana Fora da Pagina', null) }),
+    )
+    await page.goto(INBOX_URL)
+    await page.getByRole('button', { name: /ana fora da pagina/i }).click()
+    await expect(page.getByTestId('inbox-cta-primario')).toHaveText(/contatar atleta/i)
+
+    await expect(page.getByRole('button', { name: /enviar mensagem/i })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /mais ações/i })).toHaveCount(0)
+
+    const ajustar = page.getByRole('button', { name: /ajustar plano/i })
+    await expect(ajustar).toBeInViewport({ ratio: 1 })
+    await ajustar.click()
+    await expect(page.getByRole('tab', { name: /^Plano$/i })).toHaveAttribute('aria-selected', 'true')
+
+    const conteudo = (await page.getByTestId('inbox-detalhe-conteudo').boundingBox())!
+    expect(conteudo.height / 625).toBeGreaterThanOrEqual(0.45)
+  })
+
+  test('1093×500 com plano aguardando revisão e nome longo: Aprovar, Rejeitar e Ajustar plano inteiros na tela', async ({ page }) => {
+    await page.setViewportSize({ width: 1093, height: 500 })
+    const nomeLongo = 'Maria Aparecida Nascimento de Oliveira'
+    await mockarDashboard(page, {
+      attentionQueue: [{ ...ANA_EM_ALERTA, atletaId: 'maria-longa', athleteName: nomeLongo }],
+    })
+    await page.route('**/api/v1/coach/atletas/*/perfil', (route) =>
+      route.fulfill({
+        json: perfilDe('maria-longa', nomeLongo, {
+          planoId: '11111111-1111-1111-1111-111111111111',
+          semanaInicio: '2026-08-17',
+          semanaFim: '2026-08-23',
+          reviewStatus: 'AGUARDANDO_REVISAO',
+          treinos: [],
+        }),
+      }),
+    )
+    await page.goto(INBOX_URL)
+    await page.getByRole('button', { name: new RegExp(nomeLongo, 'i') }).click()
+
+    const cta = page.getByTestId('inbox-cta-primario')
+    await expect(cta).toHaveText(/aprovar plano/i)
+    await expect(cta).toBeInViewport({ ratio: 1 })
+    await expect(page.getByRole('button', { name: /^Rejeitar$/i })).toBeInViewport({ ratio: 1 })
+    await expect(page.getByRole('button', { name: /ajustar plano/i })).toBeInViewport({ ratio: 1 })
+
+    const conteudo = (await page.getByTestId('inbox-detalhe-conteudo').boundingBox())!
+    expect(conteudo.height / 500).toBeGreaterThanOrEqual(0.4)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
   })
 })
