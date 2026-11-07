@@ -30,7 +30,13 @@ export function useTreinoPlanejado() {
             setIsSaving(true);
             setSaveError(null);
             try {
-                return await CoachPlanoReviewService.editarTreino(planoId, treinoId, patch);
+                const salvo = await CoachPlanoReviewService.editarTreino(planoId, treinoId, patch);
+                // Backend sem suporte a `dataTreino` ignora o campo e devolve 200 com a data antiga:
+                // sem esta checagem o treinador veria sucesso e o treino continuaria no dia de origem.
+                if (patch.dataTreino && salvo.dataTreino !== patch.dataTreino) {
+                    throw new Error('Não foi possível mover o treino: a nova data não foi aplicada.');
+                }
+                return salvo;
             } catch (err) {
                 const e = err instanceof Error ? err : new Error('Erro ao editar treino');
                 setSaveError(e);
