@@ -88,7 +88,12 @@ async function mockarDashboard(
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        resumo: { totalAtletas: totalElements, ativos: totalElements, emAtencao: 1, treinosPlanejadosSemana: 12 },
+        generatedAt: '2026-08-15T12:00:00Z',
+        summary: {
+          kpis: { totalAtletas: totalElements, ativos: totalElements, emAtencao: 1, treinosPlanejadosSemana: 12 },
+          atletasExibidos: items.length,
+          itensFilaAtencao: 1,
+        },
         roster: { items, page: pagina, size: 10, totalElements, totalPages: Math.ceil(totalElements / 10) },
         attentionQueue: opcoes.attentionQueue ?? [ANA_EM_ALERTA],
       }),
@@ -483,6 +488,18 @@ test.describe('Coach — barra única e rodapé fora (inbox-barra-unica-sem-roda
     await expect(page.getByText(/Assistente do Treinador/i)).toHaveCount(0)
     await expect(page.getByText(/Atletas exibidos/i)).toHaveCount(0)
 
+    const barra = (await page.getByTestId('inbox-barra').boundingBox())!
+    expect(barra.height).toBeLessThanOrEqual(56)
+  })
+
+  test('em 900px (início de md, sidebar recolhida) a barra continua numa linha com resumo e busca', async ({ page }) => {
+    await page.setViewportSize({ width: 900, height: 700 })
+    await mockarDashboard(page)
+    await page.goto(INBOX_URL)
+    await expect(page.getByRole('button', { name: /ana fora da pagina/i })).toBeVisible()
+
+    await expect(page.getByTestId('inbox-resumo-atualizado')).toBeVisible()
+    await expect(page.getByPlaceholder('Buscar atleta...')).toBeVisible()
     const barra = (await page.getByTestId('inbox-barra').boundingBox())!
     expect(barra.height).toBeLessThanOrEqual(56)
   })

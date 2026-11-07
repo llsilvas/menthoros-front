@@ -61,6 +61,9 @@ import { ROUTES } from '../../../constants/routes';
 
 type TabKey = 'diagnosis' | 'plan' | 'races';
 
+/** Botões secundários ao lado do CTA no cabeçalho do atleta: mesma altura e fonte do CTA, em neutro. */
+const HEADER_SECONDARY_BTN_SX = { minHeight: 40, fontSize: '0.875rem', textTransform: 'none', color: surface[200], borderColor: content.cardBorder } as const;
+
 
 const SORT_OPTIONS: Array<{ key: SortKey; label: string }> = [
   { key: 'priority', label: 'Prioridade' },
@@ -251,7 +254,7 @@ function CoachInboxPage() {
     rejectReason,
     setRejectReason,
     handleApprovePlan,
-    openRejectDialog: openRejectDialogBase,
+    openRejectDialog,
     closeRejectDialog,
     handleRejectPlan,
   } = usePlanReview({
@@ -263,7 +266,6 @@ function CoachInboxPage() {
     fetchSelectedProfile,
   });
 
-  const openRejectDialog = openRejectDialogBase;
 
   /** Sinal do atleta selecionado, se ele estiver na fila de atenção. */
   /** Item bruto da fila de atenção do selecionado — o painel precisa de `evidence`/`explanation`. */
@@ -345,21 +347,29 @@ function CoachInboxPage() {
           data-testid="inbox-resumo"
           sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, md: 1.75 }, flexWrap: 'wrap', minWidth: 0, fontSize: '0.78rem', color: surface[400] }}
         >
-          {summaryLine.map((seg) => (
-            <Typography
-              key={seg.key}
-              component="span"
-              data-testid={`inbox-resumo-${seg.key}`}
-              title={seg.title}
-              sx={{ fontSize: 'inherit', whiteSpace: 'nowrap', color: seg.tone === 'warning' ? semantic.warning[500] : 'inherit', fontWeight: seg.tone === 'warning' ? 700 : 400 }}
-            >
-              {seg.key === 'atualizado' ? (
-                <>{seg.label} <Box component="span" sx={{ fontFamily: activeTheme.font.mono }}>{seg.value}</Box></>
-              ) : (
-                <><Box component="span" sx={{ fontFamily: activeTheme.font.mono, fontWeight: 700, color: seg.tone === 'warning' ? 'inherit' : surface[50] }}>{seg.value}</Box> {seg.label}</>
-              )}
-            </Typography>
-          ))}
+          {summaryLine.map((seg) => {
+            const aviso = seg.tone === 'warning';
+            return (
+              <Typography
+                key={seg.key}
+                component="span"
+                data-testid={`inbox-resumo-${seg.key}`}
+                title={seg.title}
+                sx={{
+                  fontSize: 'inherit',
+                  whiteSpace: 'nowrap',
+                  color: aviso ? semantic.warning[500] : 'inherit',
+                  fontWeight: aviso ? 700 : 400,
+                  // Contexto, não triagem: entre 900 e 1200px a barra não tem lugar para ele.
+                  display: seg.key === 'treinos' ? { xs: 'none', lg: 'inline' } : 'inline',
+                }}
+              >
+                {seg.prefix ? `${seg.prefix} ` : ''}
+                <Box component="span" sx={{ fontFamily: activeTheme.font.mono, fontWeight: 700, color: aviso ? 'inherit' : surface[50] }}>{seg.value}</Box>
+                {seg.suffix ? ` ${seg.suffix}` : ''}
+              </Typography>
+            );
+          })}
         </Box>
 
         <TextField
@@ -370,7 +380,7 @@ function CoachInboxPage() {
           // prova era contrato que a tela não cumpre.
           placeholder="Buscar atleta..."
           // Abaixo de `md` ela quebra para a segunda linha da barra; acima fica à direita.
-          sx={{ ml: { md: 'auto' }, minWidth: { xs: '100%', md: 260 }, flex: { xs: '1 1 100%', md: '0 1 320px' } }}
+          sx={{ ml: { md: 'auto' }, minWidth: { xs: '100%', md: 200 }, flex: { xs: '1 1 100%', md: '0 1 240px', lg: '0 1 320px' } }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -751,7 +761,7 @@ function CoachInboxPage() {
                       variant="outlined"
                       onClick={openRejectDialog}
                       disabled={actionAvailability === 'loading' || actionAvailability === 'forbidden'}
-                      sx={{ minHeight: 40, fontSize: '0.875rem', textTransform: 'none', color: surface[200], borderColor: content.cardBorder }}
+                      sx={HEADER_SECONDARY_BTN_SX}
                     >
                       Rejeitar
                     </Button>
@@ -765,7 +775,7 @@ function CoachInboxPage() {
                     variant="outlined"
                     startIcon={<TuneIcon />}
                     onClick={() => setActiveTab('plan')}
-                    sx={{ minHeight: 40, fontSize: '0.875rem', textTransform: 'none', color: surface[200], borderColor: content.cardBorder }}
+                    sx={HEADER_SECONDARY_BTN_SX}
                   >
                     Ajustar plano
                   </Button>

@@ -15,8 +15,10 @@ export interface InboxSummarySegment {
   key: InboxSummarySegmentKey;
   /** O número (ou horário), em mono. */
   value: string;
-  /** O rótulo que acompanha o número. */
-  label: string;
+  /** Texto antes do valor ("atualizado 14:32"). */
+  prefix?: string;
+  /** Texto depois do valor ("3 em atenção"). */
+  suffix?: string;
   tone: 'neutral' | 'warning';
   /** Texto completo para o `title` quando o valor é abreviado (horário sem data). */
   title?: string;
@@ -29,16 +31,17 @@ export interface InboxSummarySegment {
  */
 export function buildInboxSummaryLine(s: InboxSummary): InboxSummarySegment[] {
   const segmentos: InboxSummarySegment[] = [
-    { key: 'ativos', value: String(s.ativos), label: `ativos de ${s.totalAtletas}`, tone: 'neutral' },
-    { key: 'atencao', value: String(s.emAtencao), label: 'em atenção', tone: s.emAtencao > 0 ? 'warning' : 'neutral' },
-    { key: 'treinos', value: String(s.treinosPlanejadosSemana), label: 'treinos esta semana', tone: 'neutral' },
+    { key: 'ativos', value: String(s.ativos), suffix: `ativos de ${s.totalAtletas}`, tone: 'neutral' },
+    { key: 'atencao', value: String(s.emAtencao), suffix: 'em atenção', tone: s.emAtencao > 0 ? 'warning' : 'neutral' },
+    { key: 'treinos', value: String(s.treinosPlanejadosSemana), suffix: 'treinos esta semana', tone: 'neutral' },
   ];
-  if (s.generatedAt) {
-    const data = new Date(s.generatedAt);
+  const data = s.generatedAt ? new Date(s.generatedAt) : null;
+  // Data inválida sairia como "Invalid Date" na barra: melhor sem o segmento.
+  if (data && !Number.isNaN(data.getTime())) {
     segmentos.push({
       key: 'atualizado',
       value: data.toLocaleTimeString('pt-BR', { timeStyle: 'short' }),
-      label: 'atualizado',
+      prefix: 'atualizado',
       tone: 'neutral',
       title: data.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
     });
