@@ -6,6 +6,9 @@ import AthleteShareWorkoutPage from './AthleteShareWorkoutPage';
 import { useShareWorkout } from '../hooks/useShareWorkout';
 import type { ShareCardData } from '../types/ShareCard';
 
+// jsdom não rasteriza; a geração da imagem tem teste próprio (useShareImage.test.ts).
+vi.mock('html-to-image', () => ({ toBlob: vi.fn().mockResolvedValue(new Blob(['png'], { type: 'image/png' })) }));
+
 vi.mock('../hooks/useShareWorkout');
 
 const fetchData = vi.fn();

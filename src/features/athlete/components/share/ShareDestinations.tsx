@@ -1,0 +1,67 @@
+import { useMemo, useState } from 'react';
+import { Alert, Box, Button } from '@mui/material';
+import IosShareIcon from '@mui/icons-material/IosShare';
+import DownloadIcon from '@mui/icons-material/Download';
+
+export interface ShareDestinationsProps {
+  blob: Blob | null;
+  generating: boolean;
+  error: Error | null;
+  fileName: string;
+}
+
+function podeCompartilharArquivos(): boolean {
+  if (typeof navigator.share !== 'function' || typeof navigator.canShare !== 'function') return false;
+  return navigator.canShare({ files: [new File([], 'teste.png', { type: 'image/png' })] });
+}
+
+/** Destinos da imagem pronta: share sheet nativo (quando o navegador aceita arquivos) e download. */
+export function ShareDestinations({ blob, generating, error, fileName }: ShareDestinationsProps) {
+  const suportaShare = useMemo(podeCompartilharArquivos, []);
+  const [falhaShare, setFalhaShare] = useState(false);
+
+  const compartilhar = async () => {
+    if (!blob) return;
+    setFalhaShare(false);
+    try {
+      await navigator.share({ files: [new File([blob], fileName, { type: 'image/png' })] });
+    } catch (e) {
+      // AbortError = o atleta fechou o share sheet; não é erro.
+      if ((e as Error).name !== 'AbortError') setFalhaShare(true);
+    }
+  };
+
+  const salvar = () => {
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+      {error && <Alert severity="error">Não deu para gerar a imagem. Tente mudar uma opção ou recarregar.</Alert>}
+      {falhaShare && <Alert severity="warning">Não deu para compartilhar — use Salvar.</Alert>}
+      <Box sx={{ display: 'flex', gap: 1 }}>
+        {suportaShare && (
+          <Button variant="contained" fullWidth startIcon={<IosShareIcon />} disabled={!blob} onClick={compartilhar} sx={{ minHeight: 44 }}>
+            {generating ? 'Gerando imagem…' : 'Compartilhar'}
+          </Button>
+        )}
+        <Button
+          variant={suportaShare ? 'outlined' : 'contained'}
+          fullWidth
+          startIcon={<DownloadIcon />}
+          disabled={!blob}
+          onClick={salvar}
+          sx={{ minHeight: 44 }}
+        >
+          {!suportaShare && generating ? 'Gerando imagem…' : 'Salvar'}
+        </Button>
+      </Box>
+    </Box>
+  );
+}

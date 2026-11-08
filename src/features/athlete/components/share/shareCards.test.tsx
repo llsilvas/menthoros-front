@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { buildShareCardData } from '../../adapters/buildShareCardData';
 import type { TreinoRealizadoDto } from '../../../../types/TreinoManual';
 import type { TreinoPlanejado } from '../../../../types/TreinoPlanejado';
@@ -8,6 +8,9 @@ import { ShareWorkoutView } from './ShareWorkoutView';
 import { PlanVsActualCard } from './PlanVsActualCard';
 import { SplitsCard } from './SplitsCard';
 import { WeekCard } from './WeekCard';
+
+// jsdom não rasteriza; a geração da imagem tem teste próprio (useShareImage.test.ts).
+vi.mock('html-to-image', () => ({ toBlob: vi.fn().mockResolvedValue(new Blob(['png'], { type: 'image/png' })) }));
 
 // Fixtures com a forma real da API (`GET /me/treinos`), passadas pelo adapter — sem MOCK_*.
 const garmin: TreinoRealizadoDto = {
@@ -97,5 +100,10 @@ describe('ShareWorkoutView', () => {
     expect(screen.getByTestId('share-signature')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('switch', { name: 'Mostrar assessoria' }));
     expect(screen.queryByTestId('share-signature')).not.toBeInTheDocument();
+  });
+
+  it('Salvar fica disponível depois que a imagem do card é gerada (CA7)', async () => {
+    render(<ShareWorkoutView data={data} />);
+    expect(await screen.findByRole('button', { name: 'Salvar' })).toBeEnabled();
   });
 });

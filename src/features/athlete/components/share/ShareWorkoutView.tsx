@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Box } from '@mui/material';
 import { formatKm } from '../../../../utils/formatKm';
 import { SHARE_MODEL_DEFAULT_FORMAT, type ShareCardData, type ShareFormat, type ShareModel } from '../../types/ShareCard';
@@ -8,17 +8,21 @@ import { SplitsCard } from './SplitsCard';
 import { WeekCard } from './WeekCard';
 import { ShareSignature } from './ShareSignature';
 import { ShareFormatPicker, ShareModelPicker, ShareOptionSwitch } from './ShareControls';
+import { ShareDestinations } from './ShareDestinations';
+import { useShareImage } from '../../hooks/useShareImage';
 
 export interface ShareWorkoutViewProps {
   data: ShareCardData;
 }
 
-/** Tela de compartilhar com dados prontos: prévia do card e controles. Destinos chegam na seção 4. */
+/** Tela de compartilhar com dados prontos: prévia do card, controles e destinos da imagem. */
 export function ShareWorkoutView({ data }: ShareWorkoutViewProps) {
   const [model, setModel] = useState<ShareModel>(data.availableModels[0]);
   const [format, setFormat] = useState<ShareFormat>(SHARE_MODEL_DEFAULT_FORMAT[data.availableModels[0]]);
   const [mostrarFc, setMostrarFc] = useState(true);
   const [mostrarAssessoria, setMostrarAssessoria] = useState(true);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const imagem = useShareImage(cardRef, `${model}|${format}|${mostrarFc}|${mostrarAssessoria}`);
 
   const escolherModelo = (m: ShareModel) => {
     setModel(m);
@@ -33,6 +37,7 @@ export function ShareWorkoutView({ data }: ShareWorkoutViewProps) {
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <Box sx={{ display: 'flex', justifyContent: 'center', overflowX: 'auto' }}>
         <ShareCardFrame
+          ref={cardRef}
           format={format}
           ariaLabel={ariaLabel}
           footer={<ShareSignature signature={data.signature} visible={mostrarAssessoria} />}
@@ -48,6 +53,7 @@ export function ShareWorkoutView({ data }: ShareWorkoutViewProps) {
         <ShareOptionSwitch label="Mostrar FC" checked={mostrarFc} onChange={setMostrarFc} />
         <ShareOptionSwitch label="Mostrar assessoria" checked={mostrarAssessoria} onChange={setMostrarAssessoria} />
       </Box>
+      <ShareDestinations {...imagem} fileName={`menthoros-${model}-${format}.png`} />
     </Box>
   );
 }
