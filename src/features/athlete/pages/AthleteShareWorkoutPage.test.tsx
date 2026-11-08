@@ -66,6 +66,6 @@ describe('AthleteShareWorkoutPage', () => {
     estado({ data: DATA });
     renderEm('abc');
     expect(useShareWorkout).toHaveBeenCalledWith('abc');
-    expect(screen.getByTestId('share-models')).toBeInTheDocument();
+    expect(screen.getByRole('radiogroup', { name: 'Modelo' })).toBeInTheDocument();
   });
 });
