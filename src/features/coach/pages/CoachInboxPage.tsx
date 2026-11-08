@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactElement } from 'react';
-import { useNavigate, useOutletContext } from 'react-router';
+import { Link as RouterLink, useNavigate, useOutletContext } from 'react-router';
 import {
   Alert,
   Box,
@@ -14,6 +14,7 @@ import {
   IconButton,
   InputAdornment,
   LinearProgress,
+  Link,
   Menu,
   MenuItem,
   Tab,
@@ -49,7 +50,7 @@ import type { SortKey } from '../hooks/useDashboardFilters';
 import { elevation } from '../../../shared/design-tokens';
 import { content, semantic, surface } from '../../../theme/tokens';
 import { buildInboxQueue, buildSelectedAthleteFromDashboard, calcularDiasAteProva, findNextInAttention } from '../adapters/coachInboxAdapters';
-import { buildAthleteKpis, buildNextRaceHeader } from '../adapters/athleteKpiAdapters';
+import { avisoSemDado, buildAthleteKpis, buildNextRaceHeader } from '../adapters/athleteKpiAdapters';
 import { AthleteKpiStrip } from '../components/AthleteKpiStrip';
 import { buildInboxSummaryLine } from '../adapters/inboxSummaryKpis';
 import { activeTheme } from '../../../theme/activeTheme';
@@ -225,10 +226,13 @@ function CoachInboxPage() {
   const athleteKpis = selected
     ? buildAthleteKpis(selected, currentFormDisplay, selectedProfile ? null : selectedRosterItem?.aderenciaPercentual ?? null)
     : [];
-  // Só com perfil carregado: durante o carregamento e em erro a ausência de prova ainda não se sabe.
-  const nextRaceHeader = selectedProfile && !profileLoading && !profileError
+  // Só com perfil carregado: durante o carregamento e em erro a ausência de prova e a de treinos
+  // ainda não se sabem (a linha do roster tem `hasWindowData: false` fixo).
+  const perfilPronto = selectedProfile !== null && !profileLoading && !profileError;
+  const nextRaceHeader = perfilPronto
     ? buildNextRaceHeader(selected?.raceCalendar[0] ?? null, calcularDiasAteProva(selectedProfile, new Date()))
     : null;
+  const kpiAviso = perfilPronto && selected ? avisoSemDado(selected) : null;
 
   // A seleção acompanha a lista COMPOSTA, não só o roster: um atleta fixado pela fila de atenção
   // não está em `rosterItems`, e comparar com ele revertia a seleção para o primeiro do roster no
@@ -857,6 +861,17 @@ function CoachInboxPage() {
               </Box>
 
               <AthleteKpiStrip kpis={athleteKpis} />
+              {kpiAviso ? (
+                <Typography
+                  data-testid="inbox-kpi-aviso"
+                  sx={{ px: { xs: 1.25, lg: 2, xl: 2.5 }, py: 0.5, fontSize: '0.6875rem', lineHeight: 1.4, color: surface[400], borderBottom: `1px solid ${content.divider}` }}
+                >
+                  {kpiAviso}{' '}
+                  <Link component={RouterLink} to={ROUTES.COACH_ATHLETES} sx={{ color: surface[300], fontWeight: 600 }}>
+                    Conferir integração
+                  </Link>
+                </Typography>
+              ) : null}
 
               <Box sx={{ px: { xs: 1.1, sm: 1.2, lg: 1.3, xl: 2 }, pt: { xs: 0.35, sm: 0.45, lg: 0.5, xl: 0.8 }, borderBottom: `1px solid ${content.divider}` }}>
                 <Tabs

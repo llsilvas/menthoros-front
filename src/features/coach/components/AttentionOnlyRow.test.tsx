@@ -16,7 +16,7 @@ describe('AttentionOnlyRow', () => {
 
     expect(screen.getByRole('button', { name: /ana silva/i })).toBeInTheDocument();
     expect(screen.getByTestId('queue-row-motivo')).toHaveTextContent('Prova do atleta · sinal há 3 dias');
-    expect(screen.getByTestId('queue-row-aderencia')).toHaveTextContent('—');
+    expect(screen.getByTestId('queue-row-aderencia')).toHaveTextContent(/^Ader\. —$/);
   });
 
   it('selecionada marca aria-current', () => {

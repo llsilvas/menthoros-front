@@ -156,7 +156,7 @@ describe('DiagnosisTabPanel', () => {
      * "adequado". O coach lia "carga 0 km, monotonia 1.00, tudo verde" para um atleta que nunca
      * sincronizou nada. Zero por ausência de dado não é zero medido.
      */
-    it('substitui a grade de métricas por uma mensagem', () => {
+    it('a grade de métricas some, sem banner: a ausência já foi dita abaixo da faixa de KPIs (inbox-kpis-atleta-sem-dado)', () => {
       render(
         <DiagnosisTabPanel
           selected={atleta({ quickStats: { ...atleta().quickStats, hasWindowData: false } })}
@@ -165,7 +165,7 @@ describe('DiagnosisTabPanel', () => {
         />,
       );
 
-      expect(screen.getByText(/sem treinos registrados/i)).toBeInTheDocument();
+      expect(screen.queryByText(/sem treinos registrados na janela analisada/i)).not.toBeInTheDocument();
       expect(screen.queryByText(/carga aguda/i)).not.toBeInTheDocument();
       expect(screen.queryByText(/monotonia/i)).not.toBeInTheDocument();
     });
@@ -187,7 +187,7 @@ describe('DiagnosisTabPanel', () => {
       render(<DiagnosisTabPanel selected={atleta()} pmc={[]} onOpenPlan={vi.fn()} />);
 
       expect(screen.getByText(/carga aguda/i)).toBeInTheDocument();
-      expect(screen.queryByText(/sem treinos registrados/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/sem treinos registrados na janela analisada/i)).not.toBeInTheDocument();
     });
   });
 

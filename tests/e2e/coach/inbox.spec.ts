@@ -612,7 +612,7 @@ test.describe('Coach — lista de triagem (inbox-lista-triagem)', () => {
 
     // O extra cai na página 2 (o mock pagina de 10 em 10).
     await page.getByRole('button', { name: 'Próxima página' }).click()
-    await expect(page.getByRole('button', { name: /atleta roster 99/i }).getByTestId('queue-row-aderencia')).toHaveText('—')
+    await expect(page.getByRole('button', { name: /atleta roster 99/i }).getByTestId('queue-row-aderencia')).toHaveText('Ader. —')
   })
 
   test('"Em atenção" da página 2 mostra a fila inteira sem paginação; "Todos" devolve a página 2', async ({ page }) => {
@@ -724,5 +724,85 @@ test.describe('Coach — próximo em atenção e atalhos (inbox-proximo-em-atenc
 
     await expect(page.getByTestId('inbox-proxima-prova')).toHaveCount(0)
     await expect(page.getByText(/sem prova cadastrada/i)).toHaveCount(0)
+  })
+})
+
+/**
+ * inbox-kpis-atleta-sem-dado — achado #5 da crítica de design de 2026-11-07: a faixa de KPIs do
+ * atleta (93px) dizia "Sem dado na janela" até três vezes e o Diagnóstico repetia num banner.
+ * Agora a faixa cabe em uma linha e a ausência é dita uma vez, abaixo dela, com o link para
+ * conferir a integração.
+ */
+test.describe('Coach — KPIs do atleta em uma linha (inbox-kpis-atleta-sem-dado)', () => {
+  test.beforeEach(async ({ page }) => {
+    await autenticarComPkce(page, { roles: ['PROPRIETARIO', 'TECNICO'] })
+  })
+
+  test('faixa ≤ 40px, detalhe ≥ 62% em 1366×625; sem dado dito uma vez, com link para a integração', async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 625 })
+    await mockarDashboard(page)
+    // `perfilDe` vem sem PMC: a condição em que as células ficavam sem dado.
+    await page.route('**/api/v1/coach/atletas/*/perfil', (route) =>
+      route.fulfill({ json: perfilDe('ana-alerta', 'Ana Fora da Pagina', null) }),
+    )
+    await page.goto(INBOX_URL)
+    await page.getByRole('button', { name: /ana fora da pagina/i }).click()
+    await expect(page.getByTestId('inbox-cta-primario')).toHaveText(/contatar atleta/i)
+
+    const faixa = (await page.getByTestId('inbox-kpi-faixa').boundingBox())!
+    expect(faixa.height).toBeLessThanOrEqual(40)
+    // A linha de apoio sai da tela mas fica no title e no leitor de tela.
+    await expect(page.getByTestId('kpi-adherence')).toHaveAttribute('title', /.+/)
+
+    await expect(page.getByText(/sem dado na janela/i)).toHaveCount(0)
+    expect(await page.locator('[title*="Sem dado na janela"]').count()).toBe(0)
+    const aviso = page.getByTestId('inbox-kpi-aviso')
+    await expect(aviso).toHaveCount(1)
+    await expect(aviso).toHaveText(/^Sem treinos sincronizados na janela: .*com o primeiro treino\. Conferir integração$/)
+    await expect(page.getByText(/sem treinos registrados na janela analisada/i)).toHaveCount(0)
+
+    const conteudo = (await page.getByTestId('inbox-detalhe-conteudo').boundingBox())!
+    expect(conteudo.height / 625).toBeGreaterThanOrEqual(0.62)
+
+    await aviso.getByRole('link', { name: 'Conferir integração' }).click()
+    await expect(page).toHaveURL(/#\/coach\/athletes$/)
+  })
+
+  // Com valores, rótulo e valor ficam em linhas separadas quando não cabem lado a lado: ~52px em
+  // 1366 (célula de ~160px úteis) e até ~80px em 1024 (~75px úteis, o valor quebra). Ambos abaixo
+  // dos 93px da faixa anterior; o que não pode acontecer é vazar ou cortar texto.
+  for (const { width, height, alturaMax } of [{ width: 1366, height: 625, alturaMax: 56 }, { width: 1024, height: 640, alturaMax: 84 }]) {
+    test(`com KPIs preenchidos em ${width}×${height}, nenhuma célula vaza e a faixa fica em até ${alturaMax}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height })
+      await mockarDashboard(page)
+      const dia = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10)
+      // Série curta: ACWR sai com "Baixa confiança"; forma "Acumulando fadiga" é o rótulo mais longo.
+      const pmc = Array.from({ length: 10 }, (_, i) => ({ data: dia(9 - i), ctl: 40 + i, atl: 60 + i, tsb: -20, tss: 80, statusForma: 'ACUMULANDO_FADIGA' }))
+      await page.route('**/api/v1/coach/atletas/*/perfil', (route) =>
+        route.fulfill({ json: { ...perfilDe('ana-alerta', 'Ana Fora da Pagina', null), pmc } }),
+      )
+      await page.goto(INBOX_URL)
+      await page.getByRole('button', { name: /ana fora da pagina/i }).click()
+      await expect(page.getByTestId('kpi-form')).toHaveText(/Acumulando fadiga/)
+      await expect(page.getByTestId('kpi-acwr')).toHaveText(/Baixa confiança/)
+      await expect(page.getByTestId('inbox-kpi-aviso')).toHaveCount(0)
+
+      const faixa = (await page.getByTestId('inbox-kpi-faixa').boundingBox())!
+      expect(faixa.height).toBeLessThanOrEqual(alturaMax)
+      const vazando = await page.evaluate(() =>
+        Array.from(document.querySelectorAll('[data-testid^="kpi-"]'))
+          .filter((el) => el.scrollWidth > el.clientWidth + 1)
+          .map((el) => el.getAttribute('data-testid')),
+      )
+      expect(vazando).toEqual([])
+    })
+  }
+
+  test('a aderência da linha da lista tem rótulo', async ({ page }) => {
+    await mockarDashboard(page)
+    await page.goto(INBOX_URL)
+    await page.getByTestId('inbox-cta-primario').waitFor()
+
+    await expect(page.getByTestId('queue-row-aderencia').first()).toHaveText(/^Ader\. (\d+%|—)$/)
   })
 })
