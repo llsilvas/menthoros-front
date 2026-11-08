@@ -6,7 +6,10 @@ interface AthleteKpiStripProps {
   kpis: AthleteKpi[];
 }
 
-/** Faixa de KPIs do atleta selecionado (substitui a grade de `MetricTile compact`). */
+/**
+ * Faixa de KPIs do atleta selecionado, em uma linha: o coach lê de relance e segue para o
+ * Diagnóstico. A base de cada número fica no `title` e no leitor de tela.
+ */
 export function AthleteKpiStrip({ kpis }: AthleteKpiStripProps) {
-  return <KpiStrip items={kpis} testIdPrefix="kpi" sx={{ borderBottom: `1px solid ${content.divider}` }} />;
+  return <KpiStrip items={kpis} testIdPrefix="kpi" testId="inbox-kpi-faixa" dense sx={{ borderBottom: `1px solid ${content.divider}` }} />;
 }

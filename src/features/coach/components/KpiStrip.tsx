@@ -10,6 +10,10 @@ interface KpiStripProps {
   items: Array<KpiView & { key: string; icon?: ReactNode }>;
   /** Prefixo do `data-testid` de cada célula: `${testIdPrefix}-${key}`. */
   testIdPrefix: string;
+  /** `data-testid` da faixa inteira (para medir a altura). */
+  testId?: string;
+  /** Células em uma linha (ver `KpiCell.dense`). */
+  dense?: boolean;
   sx?: SxProps<Theme>;
 }
 
@@ -17,9 +21,10 @@ interface KpiStripProps {
  * Faixa de células de KPI separadas por linha de 1px (o fundo do grid aparece no `gap`). É o padrão
  * do topo do atleta e das métricas do Diagnóstico — um só, para as duas leituras não divergirem.
  */
-export function KpiStrip({ items, testIdPrefix, sx }: KpiStripProps) {
+export function KpiStrip({ items, testIdPrefix, testId, dense = false, sx }: KpiStripProps) {
   return (
     <Box
+      data-testid={testId}
       sx={[
         {
           display: 'grid',
@@ -36,12 +41,14 @@ export function KpiStrip({ items, testIdPrefix, sx }: KpiStripProps) {
           kpi={item}
           testId={`${testIdPrefix}-${item.key}`}
           icon={item.icon}
+          dense={dense}
           sx={{
             backgroundColor: backgrounds.panel,
             px: { xs: 1.25, lg: 2, xl: 2.5 },
-            py: { xs: 1.1, lg: 1.5, xl: 1.75 },
-            // Em altura baixa a faixa cede espaço vertical para a lista e o detalhe.
-            [TELA_BAIXA]: { py: 0.75 },
+            // Densa: ~34px em qualquer altura. Senão, em altura baixa a faixa cede espaço
+            // vertical para a lista e o detalhe.
+            py: dense ? 0.75 : { xs: 1.1, lg: 1.5, xl: 1.75 },
+            ...(dense ? {} : { [TELA_BAIXA]: { py: 0.75 } }),
           }}
         />
       ))}
