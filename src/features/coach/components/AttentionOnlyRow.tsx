@@ -63,6 +63,9 @@ export const AttentionOnlyRow = memo(function AttentionOnlyRow({
         aria-label="Aderência sem dado"
         sx={{ flex: 'none', fontFamily: activeTheme.font.mono, fontSize: '0.75rem', fontWeight: 600, color: surface[500] }}
       >
+        <Box component="span" aria-hidden sx={{ fontFamily: activeTheme.font.text, fontWeight: 500, color: surface[400], mr: 0.5 }}>
+          Ader.
+        </Box>{' '}
         —
       </Typography>
     </ButtonBase>

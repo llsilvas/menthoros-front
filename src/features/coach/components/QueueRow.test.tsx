@@ -82,12 +82,12 @@ describe('QueueRow', () => {
 
   it('aderência: número mono uma vez, cor pelo valor, "—" quando indisponível', () => {
     const { rerender } = render(<QueueRow athlete={atleta({ adherence: 91 })} contexto={CONTEXTO_NEUTRO} selected={false} onClick={vi.fn()} />);
-    expect(screen.getByTestId('queue-row-aderencia')).toHaveTextContent('91%');
+    expect(screen.getByTestId('queue-row-aderencia')).toHaveTextContent(/^Ader\. 91%$/);
     expect(screen.getAllByText(/91%/)).toHaveLength(1);
     expect(getComputedStyle(screen.getByTestId('queue-row-aderencia')).color).toBe(hexParaRgb(semantic.success[500]));
 
     rerender(<QueueRow athlete={atleta({ adherence: 0, adherenceAvailable: false })} contexto={CONTEXTO_NEUTRO} selected={false} onClick={vi.fn()} />);
-    expect(screen.getByTestId('queue-row-aderencia')).toHaveTextContent('—');
+    expect(screen.getByTestId('queue-row-aderencia')).toHaveTextContent(/^Ader\. —$/);
     expect(screen.queryByText('0%')).not.toBeInTheDocument();
   });
 
