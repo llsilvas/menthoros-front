@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import type { ReactElement } from 'react';
+import { render as rtlRender, screen } from '@testing-library/react';
+import { createHashRouter, RouterProvider } from 'react-router';
 import { TodayCompletedCard } from './TodayCompletedCard';
 import type { AthleteRealizadoHoje } from '../../../types/AthleteHome';
 
@@ -7,6 +9,13 @@ const REALIZADO: AthleteRealizadoHoje = {
   id: 'r1', fonteDados: 'MANUAL', tipoTreino: 'FACIL', duracaoMin: 40, percepcaoEsforco: 6,
   feedbackRegistradoEm: '2026-08-27T19:00:00',
 };
+
+// O card tem link para a tela de compartilhar — precisa de router real (hash).
+function render(ui: ReactElement) {
+  const router = createHashRouter([{ path: '/', element: ui }]);
+  const r = rtlRender(<RouterProvider router={router} />);
+  return { ...r, rerender: (next: ReactElement) => { r.unmount(); router.dispose(); return render(next); } };
+}
 
 describe('TodayCompletedCard', () => {
   it('treino do Garmin mostra o modelo do dispositivo; outra fonte não mostra nada (CA8)', () => {
@@ -74,5 +83,10 @@ describe('TodayCompletedCard', () => {
       />,
     );
     expect(screen.queryByTestId('workout-verdict-chip')).toBeNull();
+  });
+
+  it('"Compartilhar" leva à tela de compartilhar deste realizado', () => {
+    render(<TodayCompletedCard realizado={REALIZADO} />);
+    expect(screen.getByRole('link', { name: 'Compartilhar' })).toHaveAttribute('href', '#/athlete/share/r1');
   });
 });

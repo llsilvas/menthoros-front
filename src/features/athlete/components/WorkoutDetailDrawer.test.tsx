@@ -96,4 +96,15 @@ describe('WorkoutDetailDrawer — análise do treino', () => {
         expect(screen.queryByTestId('workout-analysis-card')).toBeNull();
         expect(screen.getByRole('button', { name: /registrar treino/i })).toBeInTheDocument();
     });
+
+    it('concluído: "Compartilhar" leva à tela de compartilhar do realizado; pendente não mostra', () => {
+        useAnalysis.mockReturnValue({ analysis: null, status: 'empty', error: null, loading: false });
+
+        const { unmount } = renderDrawer(dia());
+        expect(screen.getByRole('link', { name: 'Compartilhar' })).toHaveAttribute('href', '#/athlete/share/tr1');
+        unmount();
+
+        renderDrawer(dia({ isToday: true, status: 'pendente' }));
+        expect(screen.queryByRole('link', { name: 'Compartilhar' })).toBeNull();
+    });
 });

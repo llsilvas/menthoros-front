@@ -63,6 +63,16 @@ describe('useShareWorkout', () => {
     expect(r.current.error).toBeNull();
   });
 
+  it('endpoint de planos devolvendo objeto único (não array) também acha o planejado', async () => {
+    vi.mocked(ManualTrainingService.listarRecentes).mockResolvedValue([REALIZADO]);
+    vi.mocked(PlanoSemanalService.listarPlanosPorAtleta).mockResolvedValue(PLANO as unknown as PlanoSemanal[]);
+
+    const r = await carregar('r1');
+
+    expect(r.current.error).toBeNull();
+    expect(r.current.data?.availableModels).toEqual(['plano', 'parciais', 'semana']);
+  });
+
   it('sem plano aprovado (404) segue sem planejado, não é erro', async () => {
     vi.mocked(ManualTrainingService.listarRecentes).mockResolvedValue([REALIZADO]);
     vi.mocked(PlanoSemanalService.listarPlanosPorAtleta).mockRejectedValue(

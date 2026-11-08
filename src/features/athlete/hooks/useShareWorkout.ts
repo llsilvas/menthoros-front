@@ -4,6 +4,7 @@ import { ManualTrainingService } from '../../../api/services/ManualTrainingServi
 import { PlanoSemanalService } from '../../../api/services/PlanoSemanalService';
 import { UsuarioService } from '../../../api/services/UsuarioService';
 import type { TreinoRealizadoDto } from '../../../types/TreinoManual';
+import type { PlanoSemanal } from '../../../types/PlanoSemanal';
 import type { TreinoPlanejado } from '../../../types/TreinoPlanejado';
 import { buildShareCardData } from '../adapters/buildShareCardData';
 import type { ShareCardData } from '../types/ShareCard';
@@ -61,8 +62,10 @@ export function useShareWorkout(treinoId: string | undefined) {
 /** Planejado cujo realizado é este treino; sem plano aprovado (404) é só "sem planejado". */
 async function buscarPlanejado(atletaId: string, treinoId: string): Promise<TreinoPlanejado | null> {
   try {
-    const planos = await PlanoSemanalService.listarPlanosPorAtleta(atletaId);
-    for (const plano of planos ?? []) {
+    const resposta: PlanoSemanal | PlanoSemanal[] | null = await PlanoSemanalService.listarPlanosPorAtleta(atletaId);
+    // O backend pode devolver um plano só em vez de lista — mesma tolerância de `selectAthletePlan`.
+    const planos = resposta == null ? [] : Array.isArray(resposta) ? resposta : [resposta];
+    for (const plano of planos) {
       const achado = plano.treinosPlanejados?.find((t) => t.treinoRealizadoId === treinoId);
       if (achado) return achado;
     }
