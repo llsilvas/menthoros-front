@@ -67,7 +67,7 @@ describe('ShareDestinations', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
 
     expect(click).toHaveBeenCalledOnce();
-    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:card');
+    await vi.waitFor(() => expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:card'), { timeout: 2000 });
   });
 
   it('canShare recusa arquivos: esconde Compartilhar', () => {

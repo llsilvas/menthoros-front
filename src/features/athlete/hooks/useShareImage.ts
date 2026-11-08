@@ -19,13 +19,13 @@ export function useShareImage(nodeRef: RefObject<HTMLElement | null>, version: s
       try {
         await document.fonts?.ready;
         const node = nodeRef.current;
-        if (!node) return;
+        if (!node) throw new Error('Card não montado');
         const gerado = await toBlob(node, { pixelRatio: SHARE_EXPORT_PIXEL_RATIO, cacheBust: true });
         if (!atual) return;
         if (!gerado) throw new Error('Imagem vazia');
         setBlob(gerado);
       } catch (e) {
-        if (atual) setError(e as Error);
+        if (atual) setError(e instanceof Error ? e : new Error(String(e)));
       }
     })();
     return () => {

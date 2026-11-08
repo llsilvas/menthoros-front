@@ -12,7 +12,8 @@ export interface ShareDestinationsProps {
 
 function podeCompartilharArquivos(): boolean {
   if (typeof navigator.share !== 'function' || typeof navigator.canShare !== 'function') return false;
-  return navigator.canShare({ files: [new File([], 'teste.png', { type: 'image/png' })] });
+  // Arquivo com conteúdo: alguns navegadores recusam sondagem com arquivo vazio.
+  return navigator.canShare({ files: [new File(['x'], 'teste.png', { type: 'image/png' })] });
 }
 
 /** Destinos da imagem pronta: share sheet nativo (quando o navegador aceita arquivos) e download. */
@@ -27,7 +28,7 @@ export function ShareDestinations({ blob, generating, error, fileName }: ShareDe
       await navigator.share({ files: [new File([blob], fileName, { type: 'image/png' })] });
     } catch (e) {
       // AbortError = o atleta fechou o share sheet; não é erro.
-      if ((e as Error).name !== 'AbortError') setFalhaShare(true);
+      if (!(e instanceof DOMException && e.name === 'AbortError')) setFalhaShare(true);
     }
   };
 
@@ -38,7 +39,8 @@ export function ShareDestinations({ blob, generating, error, fileName }: ShareDe
     a.href = url;
     a.download = fileName;
     a.click();
-    URL.revokeObjectURL(url);
+    // Revogar no mesmo tick cancela o download em alguns navegadores (Safari).
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   return (

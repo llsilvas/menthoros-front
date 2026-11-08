@@ -5,6 +5,7 @@ import type { EtapaRealizadaDetalhe } from '../../../types/TreinoRealizado';
 import type { EtapaTreino, TreinoPlanejado } from '../../../types/TreinoPlanejado';
 import { activeTheme, workoutTypeColor } from '../../../theme/activeTheme';
 import { tipoTreinoLabel } from './homeAdapter';
+import { formatPace } from '../../coach/adapters/zoneAnchors';
 import type {
   GarminAttributionView,
   PlanVsActualView,
@@ -126,8 +127,7 @@ function formatarHoras(seg: number): string {
 }
 
 function paceDe(seg: number, km: number): string {
-  const porKm = Math.round(seg / km);
-  return `${Math.floor(porKm / 60)}:${String(porKm % 60).padStart(2, '0')}`;
+  return formatPace(seg / km);
 }
 
 /** Pace da volta em segundos/km: `paceMedia` ("4:18") ou derivado de duração e distância. */
@@ -176,7 +176,7 @@ function buildParciais(input: ShareCardInput): SplitsView | null {
     splits: voltas.map((v) => ({
       n: v.n,
       paceSeg: v.paceSeg,
-      pace: `${Math.floor(v.paceSeg / 60)}:${String(v.paceSeg % 60).padStart(2, '0')}`,
+      pace: formatPace(v.paceSeg),
       isBest: v.paceSeg === melhor,
     })),
     distanciaKm: realizado.distanciaKm,

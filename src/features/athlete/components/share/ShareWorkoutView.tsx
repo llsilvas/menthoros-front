@@ -22,7 +22,8 @@ export function ShareWorkoutView({ data }: ShareWorkoutViewProps) {
   const [mostrarFc, setMostrarFc] = useState(true);
   const [mostrarAssessoria, setMostrarAssessoria] = useState(true);
   const cardRef = useRef<HTMLDivElement>(null);
-  const imagem = useShareImage(cardRef, `${model}|${format}|${mostrarFc}|${mostrarAssessoria}`);
+  // FC só aparece no card Plano — nos outros a chave não muda a imagem.
+  const imagem = useShareImage(cardRef, `${model}|${format}|${model === 'plano' && mostrarFc}|${mostrarAssessoria}`);
 
   const escolherModelo = (m: ShareModel) => {
     setModel(m);
