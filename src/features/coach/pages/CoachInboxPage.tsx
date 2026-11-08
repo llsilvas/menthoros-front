@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactElement } from 'react';
-import { useNavigate, useOutletContext } from 'react-router';
+import { Link as RouterLink, useNavigate, useOutletContext } from 'react-router';
 import {
   Alert,
   Box,
@@ -11,27 +11,26 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  IconButton,
   InputAdornment,
   LinearProgress,
+  Link,
   Menu,
   MenuItem,
   Tab,
   Tabs,
   TablePagination,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from '@mui/material';
 import {
   CalendarMonth as CalendarMonthIcon,
-  ChatBubbleOutline as ChatBubbleOutlineIcon,
-  MoreHoriz as MoreHorizIcon,
   NotificationsNone as NotificationsNoneIcon,
   Search as SearchIcon,
+  Sort as SortIcon,
   Tune as TuneIcon,
-  DirectionsRunRounded as DirectionsRunRoundedIcon,
-  EventNoteOutlined as EventNoteOutlinedIcon,
-  NotificationImportantOutlined as NotificationImportantOutlinedIcon,
-  FilterListRounded as FilterListRoundedIcon,
 } from '@mui/icons-material';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { DANGER_BTN_SX, GHOST_BTN_SX } from '../../../shared/components/actionButtonSx';
@@ -39,7 +38,6 @@ import { CoachAthleteAvatar } from '../components/CoachAthleteAvatar';
 import { QueueRow } from '../components/QueueRow';
 import { AttentionOnlyRow } from '../components/AttentionOnlyRow';
 import { statusPalette } from '../components/coachInboxHelpers';
-import { ACTION_BTN_START_ICON_SX, ACTION_BTN_END_ICON_SX, SECONDARY_OUTLINE_SX } from '../../../shared/components/actionButtonSx';
 import { DiagnosisTabPanel } from '../components/panels/DiagnosisTabPanel';
 import { PlanTabPanel } from '../components/panels/PlanTabPanel';
 import { RacesSuggestionsTabPanel } from '../components/panels/RacesSuggestionsTabPanel';
@@ -48,16 +46,14 @@ import { useAthleteProfile } from '../../../hooks/useAthleteProfile';
 import { useDashboardFilters } from '../hooks/useDashboardFilters';
 import { usePlanReview } from '../hooks/usePlanReview';
 import { ROSTER_PAGE_SIZE } from '../hooks/useDashboardFilters';
-import type { SortKey, DashboardStatusFilter } from '../hooks/useDashboardFilters';
+import type { SortKey } from '../hooks/useDashboardFilters';
 import { elevation } from '../../../shared/design-tokens';
 import { content, semantic, surface } from '../../../theme/tokens';
-import { buildInboxQueue, buildSelectedAthleteFromDashboard, calcularDiasAteProva } from '../adapters/coachInboxAdapters';
-import { buildAthleteKpis, buildNextRaceHeader } from '../adapters/athleteKpiAdapters';
+import { buildInboxQueue, buildSelectedAthleteFromDashboard, calcularDiasAteProva, findNextInAttention } from '../adapters/coachInboxAdapters';
+import { avisoSemDado, buildAthleteKpis, buildNextRaceHeader } from '../adapters/athleteKpiAdapters';
 import { AthleteKpiStrip } from '../components/AthleteKpiStrip';
-import { KpiStrip } from '../components/KpiStrip';
-import { TELA_BAIXA } from '../theme/mediaQueries';
-import { buildInboxSummaryKpiViews } from '../adapters/inboxSummaryKpis';
-import type { InboxSummaryKpiKey } from '../adapters/inboxSummaryKpis';
+import { buildInboxSummaryLine } from '../adapters/inboxSummaryKpis';
+import { activeTheme } from '../../../theme/activeTheme';
 import { AthleteNextRace } from '../components/AthleteNextRace';
 import { resolveReviewStatus } from '../../../types/PlanoReview';
 import { montarRascunhoContato, resolveActionAvailability, resolvePrimaryAction } from '../components/coachInboxHelpers';
@@ -70,19 +66,33 @@ import { ROUTES } from '../../../constants/routes';
 
 type TabKey = 'diagnosis' | 'plan' | 'races';
 
+/** Tecla desenhada na legenda de atalhos da barra. */
+const KBD_SX = {
+  display: 'inline-block',
+  minWidth: 16,
+  px: 0.5,
+  mr: 0.25,
+  border: `1px solid ${content.cardBorder}`,
+  borderBottomWidth: 2,
+  borderRadius: '4px',
+  fontFamily: activeTheme.font.mono,
+  // 11px: o e2e varre todo texto visível do inbox e recusa menos que isso.
+  fontSize: '0.6875rem',
+  fontWeight: 700,
+  color: surface[200],
+  textAlign: 'center',
+  lineHeight: 1.4,
+} as const;
+
+/** Botões secundários ao lado do CTA no cabeçalho do atleta: mesma altura e fonte do CTA, em neutro. */
+const HEADER_SECONDARY_BTN_SX = { minHeight: 40, fontSize: '0.875rem', textTransform: 'none', color: surface[200], borderColor: content.cardBorder } as const;
+
 
 const SORT_OPTIONS: Array<{ key: SortKey; label: string }> = [
   { key: 'priority', label: 'Prioridade' },
   { key: 'adherence', label: 'Aderência' },
   { key: 'load', label: 'Carga' },
   { key: 'race', label: 'Próxima prova' },
-];
-const DASHBOARD_STATUS_OPTIONS: Array<{ key: DashboardStatusFilter; label: string }> = [
-  { key: 'all', label: 'Todos' },
-  { key: 'active', label: 'Ativo' },
-  { key: 'warning', label: 'Atenção' },
-  { key: 'danger', label: 'Alerta' },
-  { key: 'paused', label: 'Pausado' },
 ];
 
 const TABS: Array<{ key: TabKey; label: string; icon: ReactElement }> = [
@@ -91,13 +101,6 @@ const TABS: Array<{ key: TabKey; label: string; icon: ReactElement }> = [
   { key: 'races', label: 'Provas & sugestões', icon: <CalendarMonthIcon fontSize="small" /> },
 ];
 
-/** Ícone de cada célula do resumo do topo: diz o que o número conta e carrega a cor. */
-const INBOX_SUMMARY_ICON: Record<InboxSummaryKpiKey, ReactElement> = {
-  ativos: <DirectionsRunRoundedIcon sx={{ color: semantic.success[500] }} />,
-  treinos: <EventNoteOutlinedIcon sx={{ color: surface[200] }} />,
-  atencao: <NotificationImportantOutlinedIcon sx={{ color: semantic.warning[500] }} />,
-  exibidos: <FilterListRoundedIcon sx={{ color: surface[200] }} />,
-};
 
 function CoachInboxPage() {
   const navigate = useNavigate();
@@ -110,10 +113,8 @@ function CoachInboxPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   /** Rascunho de contato exibido quando a área de transferência não está disponível. */
   const [rascunhoContato, setRascunhoContato] = useState<string | null>(null);
-  const [statusMenuAnchor, setStatusMenuAnchor] = useState<null | HTMLElement>(null);
   const [sortMenuAnchor, setSortMenuAnchor] = useState<null | HTMLElement>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('diagnosis');
-  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const {
     dashboard,
@@ -206,10 +207,12 @@ function CoachInboxPage() {
    * Estado da coluna da lista. Derivado, não inferido no JSX: "sem linhas" tem quatro causas com
    * saídas diferentes, e um `length === 0` no meio da renderização colapsava todas numa só.
    */
-  const estadoDaLista: 'carregando' | 'erro' | 'vazio-filtrado' | 'vazio' | 'conteudo' = (() => {
+  const estadoDaLista: 'carregando' | 'erro' | 'vazio-atencao' | 'vazio-filtrado' | 'vazio' | 'conteudo' = (() => {
     if (inboxQueue.rows.length > 0) return 'conteudo';
     if (dashboardLoading) return 'carregando';
     if (dashboardError) return 'erro';
+    // Fila vazia é boa notícia, não "ajuste o filtro".
+    if (dashboardStatus === 'attention' && !search.trim()) return 'vazio-atencao';
     return dashboardStatus !== 'all' || search.trim() ? 'vazio-filtrado' : 'vazio';
   })();
 
@@ -223,7 +226,13 @@ function CoachInboxPage() {
   const athleteKpis = selected
     ? buildAthleteKpis(selected, currentFormDisplay, selectedProfile ? null : selectedRosterItem?.aderenciaPercentual ?? null)
     : [];
-  const nextRaceHeader = buildNextRaceHeader(selected?.raceCalendar[0] ?? null, calcularDiasAteProva(selectedProfile ?? null, new Date()));
+  // Só com perfil carregado: durante o carregamento e em erro a ausência de prova e a de treinos
+  // ainda não se sabem (a linha do roster tem `hasWindowData: false` fixo).
+  const perfilPronto = selectedProfile !== null && !profileLoading && !profileError;
+  const nextRaceHeader = perfilPronto
+    ? buildNextRaceHeader(selected?.raceCalendar[0] ?? null, calcularDiasAteProva(selectedProfile, new Date()))
+    : null;
+  const kpiAviso = perfilPronto && selected ? avisoSemDado(selected) : null;
 
   // A seleção acompanha a lista COMPOSTA, não só o roster: um atleta fixado pela fila de atenção
   // não está em `rosterItems`, e comparar com ele revertia a seleção para o primeiro do roster no
@@ -246,17 +255,14 @@ function CoachInboxPage() {
   }, [dashboardPage, rosterPageCount, setDashboardPage]);
 
   const dashboardSummary = dashboard?.summary ?? null;
-  const summary = {
+  // A fila completa, não o `emAtencao` do resumo: já chegaram diferentes na mesma resposta.
+  const summaryLine = buildInboxSummaryLine({
     totalAtletas: dashboardSummary?.kpis.totalAtletas ?? 0,
     ativos: dashboardSummary?.kpis.ativos ?? 0,
-    emAtencao: dashboardSummary?.kpis.emAtencao ?? 0,
+    emAtencao: dashboardAttentionQueue.length,
     treinosPlanejadosSemana: dashboardSummary?.kpis.treinosPlanejadosSemana ?? 0,
-    atletasExibidos: dashboardSummary?.atletasExibidos ?? rosterTotal,
-    itensFilaAtencao: dashboardSummary?.itensFilaAtencao ?? 0,
-  };
-  const dashboardUpdatedAt = dashboard?.generatedAt
-    ? new Date(dashboard.generatedAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
-    : null;
+    generatedAt: dashboard?.generatedAt ?? null,
+  });
 
   // Mesma correção do card da lista: o chip mostra `statusLabel`, então a cor tem de vir do MESMO
   // status. Vinha de `paletteForDecision(selected.decision)` — e `decision` é `'PENDING'` fixo no
@@ -271,7 +277,7 @@ function CoachInboxPage() {
     rejectReason,
     setRejectReason,
     handleApprovePlan,
-    openRejectDialog: openRejectDialogBase,
+    openRejectDialog,
     closeRejectDialog,
     handleRejectPlan,
   } = usePlanReview({
@@ -283,10 +289,6 @@ function CoachInboxPage() {
     fetchSelectedProfile,
   });
 
-  const openRejectDialog = useCallback(() => {
-    setMenuAnchor(null);
-    openRejectDialogBase();
-  }, [openRejectDialogBase]);
 
   /** Sinal do atleta selecionado, se ele estiver na fila de atenção. */
   /** Item bruto da fila de atenção do selecionado — o painel precisa de `evidence`/`explanation`. */
@@ -299,6 +301,47 @@ function CoachInboxPage() {
     () => inboxQueue.rows.find((linha) => linha.atletaId === selectedId)?.attention ?? null,
     [inboxQueue.rows, selectedId],
   );
+
+  // Fluxo de triagem: o próximo com sinal entre as linhas visíveis (inbox-proximo-em-atencao).
+  const proximoEmAtencao = useMemo(() => findNextInAttention(inboxQueue.rows, selectedId), [inboxQueue.rows, selectedId]);
+  const detalheRef = useRef<HTMLDivElement | null>(null);
+  const irParaProximoEmAtencao = useCallback(() => {
+    if (!proximoEmAtencao) return;
+    setSelectedId(proximoEmAtencao.atletaId);
+    // O link fica no fim do Diagnóstico: sem isto, o próximo abre rolado até o fim e o sinal
+    // dele (no topo) fica fora da tela.
+    if (detalheRef.current) detalheRef.current.scrollTop = 0;
+  }, [proximoEmAtencao]);
+
+  // Tecla N = próximo em atenção. Guardas: modificadores (Ctrl/Cmd+N é do navegador), repetição,
+  // composição, evento já tratado, campos de texto (inclusive por role e contenteditable
+  // herdado) e qualquer overlay aberto (modal, menu, listbox).
+  useEffect(() => {
+    const aoTeclar = (event: KeyboardEvent) => {
+      if (event.key !== 'n' && event.key !== 'N') return;
+      if (event.ctrlKey || event.metaKey || event.altKey || event.repeat || event.isComposing || event.defaultPrevented) return;
+      const origem = event.composedPath()[0];
+      const alvo = origem instanceof Element ? origem : null;
+      if (alvo?.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"], [role="combobox"]')) return;
+      if (document.querySelector('[aria-modal="true"], [role="menu"], [role="listbox"]')) return;
+      irParaProximoEmAtencao();
+    };
+    window.addEventListener('keydown', aoTeclar);
+    return () => window.removeEventListener('keydown', aoTeclar);
+  }, [irParaProximoEmAtencao]);
+
+  // ↑/↓ com foco numa linha: foco e seleção vão para a vizinha renderizada; nas bordas nada.
+  const aoNavegarNaLista = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+    const origem = event.target instanceof Element ? event.target.closest<HTMLElement>('[data-inbox-linha]') : null;
+    if (!origem) return;
+    const linhas = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('[data-inbox-linha]'));
+    const alvo = linhas[linhas.indexOf(origem) + (event.key === 'ArrowDown' ? 1 : -1)];
+    if (!alvo) return;
+    event.preventDefault();
+    alvo.focus();
+    setSelectedId(alvo.dataset.inboxLinha!);
+  }, []);
 
   const primaryAction = useMemo(
     () => resolvePrimaryAction({
@@ -335,55 +378,71 @@ function CoachInboxPage() {
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: elevation.base }}>
+      {/*
+        Barra única: título, resumo em linha e busca. Eyebrow, descrição e a faixa de quatro KPIs
+        somavam ~136px antes do primeiro atleta (crítica de design, 2026-11-07); só "em atenção"
+        é triagem, e cabe numa linha.
+      */}
       <Box
+        component="header"
+        data-testid="inbox-barra"
         sx={{
           px: { xs: 2, md: 3 },
-          py: 2,
+          // 40px do campo de busca + 12px: 53px com a borda. O e2e cobra ≤ 56.
+          py: 0.75,
+          minHeight: 52,
+          boxSizing: 'border-box',
           borderBottom: `1px solid ${content.divider}`,
           display: 'flex',
           alignItems: 'center',
-          gap: 2,
+          gap: { xs: 1, md: 2 },
           flexWrap: 'wrap',
-          [TELA_BAIXA]: { py: 1.25 },
         }}
       >
-        <Box sx={{ minWidth: 0, flex: '1 1 260px' }}>
-          {/* Eyebrow em neutro: accent significa ação, e um rótulo estático não é acionável. */}
-          <Typography sx={{ fontSize: '0.75rem', color: surface[400], fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-            Assistente do Treinador
-          </Typography>
-          {/*
-            Título estático em 16px. Ele era o MAIOR texto da tela (23,2px) — chrome ganhando de
-            conteúdo. Quem tem de dominar a tela é o nome do atleta selecionado, logo abaixo.
-          */}
-          <Typography
-            data-testid="inbox-titulo"
-            sx={{ fontSize: '1rem', fontWeight: 800, color: surface[50], lineHeight: 1.2 }}
-          >
-            Fila, plano e calendário
-          </Typography>
-          {/* Em tela baixa a descrição sai: é texto de apresentação, e cada linha aqui é uma linha a menos na lista de atletas. */}
-          <Typography sx={{ fontSize: '0.86rem', color: surface[400], mt: 0.3, [TELA_BAIXA]: { display: 'none' } }}>
-            Revisão rápida, ajuste de plano e leitura de prova, status e adesão.
-          </Typography>
+        {/* 17px: o nome do atleta selecionado é o maior texto da tela, e o e2e cobra isso. */}
+        <Typography
+          component="h1"
+          data-testid="inbox-titulo"
+          sx={{ fontSize: '1.0625rem', fontWeight: 800, color: surface[50], lineHeight: 1.2, m: 0 }}
+        >
+          Inbox
+        </Typography>
+        <Box
+          data-testid="inbox-resumo"
+          sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, md: 1.75 }, flexWrap: 'wrap', minWidth: 0, fontSize: '0.78rem', color: surface[400] }}
+        >
+          {summaryLine.map((seg) => {
+            const aviso = seg.tone === 'warning';
+            return (
+              <Typography
+                key={seg.key}
+                component="span"
+                data-testid={`inbox-resumo-${seg.key}`}
+                title={seg.title}
+                sx={{
+                  fontSize: 'inherit',
+                  whiteSpace: 'nowrap',
+                  color: aviso ? semantic.warning[500] : 'inherit',
+                  fontWeight: aviso ? 700 : 400,
+                  // Contexto, não triagem: entre 900 e 1200px a barra não tem lugar para ele.
+                  display: seg.key === 'treinos' ? { xs: 'none', lg: 'inline' } : 'inline',
+                }}
+              >
+                {seg.prefix ? `${seg.prefix} ` : ''}
+                <Box component="span" sx={{ fontFamily: activeTheme.font.mono, fontWeight: 700, color: aviso ? 'inherit' : surface[50] }}>{seg.value}</Box>
+                {seg.suffix ? ` ${seg.suffix}` : ''}
+              </Typography>
+            );
+          })}
         </Box>
 
-        <TextField
-          size="small"
-          value={search}
-          onChange={handleSearchChange}
-          // A busca vai para `q` do dashboard, que filtra o roster por nome — prometer treino e
-          // prova era contrato que a tela não cumpre.
-          placeholder="Buscar atleta..."
-          sx={{ minWidth: { xs: '100%', md: 320 }, flex: '0 1 360px' }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" />
-              </InputAdornment>
-            ),
-          }}
-        />
+        {/* Legenda dos atalhos: só onde a barra tem espaço. */}
+        <Typography
+          data-testid="inbox-atalhos"
+          sx={{ display: { xs: 'none', lg: 'inline' }, ml: 'auto', fontSize: '0.72rem', color: surface[400], whiteSpace: 'nowrap' }}
+        >
+          <Box component="kbd" sx={KBD_SX}>↑</Box><Box component="kbd" sx={KBD_SX}>↓</Box> atleta · <Box component="kbd" sx={KBD_SX}>N</Box> próximo em atenção
+        </Typography>
       </Box>
 
       {/*
@@ -404,28 +463,6 @@ function CoachInboxPage() {
         </Alert>
       ) : null}
       {dashboardLoading ? <LinearProgress sx={{ mb: 1 }} /> : null}
-
-      {/*
-        "Resumo rápido" era um card ocupando uma coluna inteira, ao lado de dois previews que
-        repetiam atletas já listados na coluna seguinte. Os previews saem — a lista principal agora
-        carrega motivo e recência e fixa quem está em atenção (gate 1.1) — e os KPIs viram faixa.
-      */}
-      <KpiStrip
-        items={buildInboxSummaryKpiViews(summary).map((v) => ({ ...v, icon: INBOX_SUMMARY_ICON[v.key] }))}
-        testIdPrefix="inbox-kpi"
-        sx={{
-          border: `1px solid ${content.divider}`,
-          borderRadius: 2,
-          overflow: 'hidden',
-          mb: { xs: 1, lg: 1.25 },
-          [TELA_BAIXA]: { mb: 0.5 },
-        }}
-      />
-      {dashboardUpdatedAt ? (
-        <Typography sx={{ fontSize: '0.7rem', color: surface[500], mb: { xs: 1, lg: 1.25 }, mt: -0.5, [TELA_BAIXA]: { mb: 0.5, mt: 0 } }}>
-          Atualizado em {dashboardUpdatedAt}
-        </Typography>
-      ) : null}
 
       <Box
         sx={{
@@ -464,80 +501,79 @@ function CoachInboxPage() {
             flexDirection: 'column',
           }}
         >
+          {/*
+            Header da coluna: busca, filtro e ordenação JUNTO do que eles afetam — a busca estava
+            na barra do topo. O filtro é segmentado (Todos · Em atenção · Pausados) e a ordenação
+            é um ícone com menu: dois chips iguais, um de filtro e um de ordenação, liam como dois
+            filtros ativos. "Em atenção" é a fila inteira, sem paginação.
+          */}
           <Box
-            sx={{
-              px: 2,
-              py: 1.5,
-              minHeight: { lg: 82, xl: 90 },
-              boxSizing: 'border-box',
-              borderBottom: `1px solid ${content.divider}`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 1,
-            }}
+            data-testid="inbox-lista-header"
+            sx={{ px: 1.5, pt: 1.25, pb: 1, borderBottom: `1px solid ${content.divider}`, display: 'flex', flexDirection: 'column', gap: 1 }}
           >
-            <Box sx={{ minWidth: 0 }}>
-              {/*
-                "Fila de revisão" era rótulo errado: esta coluna lista o ROSTER paginado, e a fila
-                de revisão de planos é outra tela (/coach/planos/revisao). O nome enganoso foi o que
-                levou a spec desta change a descrever um módulo que não existe aqui.
-              */}
-              <Typography sx={{ fontSize: '0.78rem', color: surface[400], fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                Atletas
-              </Typography>
-              <Typography sx={{ fontSize: '0.88rem', color: surface[500] }} noWrap>
-                {rosterItems.length} de {rosterTotal} · página {rosterHeaderLabel}
-              </Typography>
-            </Box>
-
-            {/*
-              Filtros vivem AQUI, não numa barra full-width acima dos KPIs: eles filtram só esta
-              coluna, e um controle longe do que ele afeta faz o coach duvidar do que está vendo.
-              A coluna tem ~300px, então são dois chips que abrem menu — dois `Select` não caberiam.
-            */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
-              <Chip
+            <TextField
+              size="small"
+              fullWidth
+              value={search}
+              onChange={handleSearchChange}
+              // A busca vai para `q` do dashboard, que filtra o roster por nome — prometer treino e
+              // prova era contrato que a tela não cumpre.
+              placeholder="Buscar atleta..."
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <ToggleButtonGroup
+                exclusive
                 size="small"
-                clickable
-                label={DASHBOARD_STATUS_OPTIONS.find((o) => o.key === dashboardStatus)?.label ?? 'Todos'}
-                onClick={(e) => setStatusMenuAnchor(e.currentTarget)}
-                aria-label="Filtrar por status"
-                sx={{
-                  bgcolor: dashboardStatus === 'all' ? `${surface[0]}10` : `${semantic.warning[500]}1F`,
-                  color: dashboardStatus === 'all' ? surface[300] : semantic.warning[500],
-                  border: `1px solid ${dashboardStatus === 'all' ? content.cardBorder : `${semantic.warning[500]}55`}`,
-                  fontWeight: 700,
+                aria-label="Filtrar lista"
+                // `status=active|warning|danger` (URLs antigas) não têm segmento: nada fica
+                // marcado, e "Todos" limpa — marcar "Todos" esconderia um filtro ativo.
+                value={dashboardStatus === 'attention' || dashboardStatus === 'paused' || dashboardStatus === 'all' ? dashboardStatus : null}
+                onChange={(_, valor: string | null) => {
+                  if (valor) handleDashboardStatusChange({ target: { value: valor } });
                 }}
-              />
-              {/*
-                Ordenação era um `Select` na barra e um `Chip` no header — controle e display
-                separados, mostrando a mesma coisa em dois lugares. Agora é um só.
-              */}
-              <Chip
+                sx={{
+                  '& .MuiToggleButton-root': {
+                    textTransform: 'none',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    px: 1.1,
+                    py: 0.4,
+                    color: surface[400],
+                    borderColor: content.cardBorder,
+                    '&.Mui-selected': { color: surface[50], bgcolor: `${surface[0]}14` },
+                  },
+                }}
+              >
+                <ToggleButton value="all">
+                  Todos <Box component="span" sx={{ ml: 0.5, fontFamily: activeTheme.font.mono }}>{rosterTotal}</Box>
+                </ToggleButton>
+                <ToggleButton value="attention">
+                  Em atenção <Box component="span" sx={{ ml: 0.5, fontFamily: activeTheme.font.mono, color: dashboardAttentionQueue.length > 0 ? semantic.warning[500] : 'inherit' }}>{dashboardAttentionQueue.length}</Box>
+                </ToggleButton>
+                <ToggleButton value="paused">Pausados</ToggleButton>
+              </ToggleButtonGroup>
+              <IconButton
                 size="small"
-                clickable
-                label={currentSortLabel}
-                onClick={(e) => setSortMenuAnchor(e.currentTarget)}
                 aria-label="Ordenar lista"
-                sx={{ bgcolor: `${surface[0]}10`, color: surface[300], border: `1px solid ${content.cardBorder}`, fontWeight: 700 }}
-              />
+                title={`Ordenar: ${currentSortLabel}`}
+                onClick={(e) => setSortMenuAnchor(e.currentTarget)}
+                sx={{ ml: 'auto', color: sortBy === 'priority' ? surface[400] : surface[50] }}
+              >
+                <SortIcon fontSize="small" />
+              </IconButton>
             </Box>
-
-            <Menu anchorEl={statusMenuAnchor} open={Boolean(statusMenuAnchor)} onClose={() => setStatusMenuAnchor(null)}>
-              {DASHBOARD_STATUS_OPTIONS.map((option) => (
-                <MenuItem
-                  key={option.key}
-                  selected={option.key === dashboardStatus}
-                  onClick={() => {
-                    handleDashboardStatusChange({ target: { value: option.key } });
-                    setStatusMenuAnchor(null);
-                  }}
-                >
-                  {option.label}
-                </MenuItem>
-              ))}
-            </Menu>
+            <Typography data-testid="inbox-lista-contagem" sx={{ fontSize: '0.72rem', color: surface[400] }} noWrap>
+              {dashboardStatus === 'attention'
+                ? `${inboxQueue.rows.length} em atenção`
+                : `${rosterItems.length} de ${rosterTotal} · página ${rosterHeaderLabel}`}
+            </Typography>
 
             <Menu anchorEl={sortMenuAnchor} open={Boolean(sortMenuAnchor)} onClose={() => setSortMenuAnchor(null)}>
               {SORT_OPTIONS.map((option) => (
@@ -566,13 +602,15 @@ function CoachInboxPage() {
           </Box>
 
           <Box
+            data-testid="inbox-lista"
+            onKeyDown={aoNavegarNaLista}
             sx={{
               flex: 1,
               overflowY: 'auto',
-              p: 1.5,
+              p: 1.25,
               display: 'flex',
               flexDirection: 'column',
-              gap: 1,
+              gap: 0.75,
             }}
           >
             {inboxQueue.hiddenAttentionCount > 0 ? (
@@ -607,6 +645,15 @@ function CoachInboxPage() {
                   Não foi possível carregar a lista de atletas.
                 </Typography>
               </Box>
+            ) : estadoDaLista === 'vazio-atencao' ? (
+              <Box sx={{ p: 3, textAlign: 'center' }}>
+                <Typography sx={{ color: surface[200], fontSize: '0.875rem' }}>
+                  Ninguém em atenção agora.
+                </Typography>
+                <Button size="small" onClick={() => handleDashboardStatusChange({ target: { value: 'all' } })} sx={{ mt: 1, textTransform: 'none' }}>
+                  Ver todos
+                </Button>
+              </Box>
             ) : estadoDaLista === 'vazio-filtrado' ? (
               <Box sx={{ p: 3, textAlign: 'center' }}>
                 <Typography sx={{ color: surface[200], fontSize: '0.875rem' }}>
@@ -636,7 +683,7 @@ function CoachInboxPage() {
                     key={linha.atletaId}
                     atletaId={linha.atletaId}
                     athleteName={linha.athleteName}
-                    attention={linha.attention}
+                    contexto={linha.contexto}
                     selected={linha.atletaId === selectedId}
                     onClick={() => setSelectedId(linha.atletaId)}
                   />
@@ -644,7 +691,7 @@ function CoachInboxPage() {
                   <QueueRow
                     key={linha.atletaId}
                     athlete={linha.row}
-                    attention={linha.attention}
+                    contexto={linha.contexto}
                     selected={linha.atletaId === selectedId}
                     onClick={() => setSelectedId(linha.atletaId)}
                   />
@@ -652,30 +699,27 @@ function CoachInboxPage() {
               ))
             )}
           </Box>
-          <Box
-            sx={{
-              borderTop: `1px solid ${content.divider}`,
-              backgroundColor: `${surface[0]}08`,
-            }}
-          >
-            <TablePagination
-              component="div"
-              count={rosterTotal}
-              page={dashboardPage}
-              onPageChange={handleRosterPageChange}
-              rowsPerPage={ROSTER_PAGE_SIZE}
-              rowsPerPageOptions={[ROSTER_PAGE_SIZE]}
-              onRowsPerPageChange={() => setDashboardPage(0)}
-              labelRowsPerPage="Itens por página"
-              sx={{
-                color: surface[300],
-                '& .MuiTablePagination-toolbar': { minHeight: 52, px: 1 },
-                '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
-                  fontSize: '0.8rem',
-                },
-              }}
-            />
-          </Box>
+          {/* Só com mais de uma página: com uma, repetia o "10 de 10 · página 1/1" do header. */}
+          {dashboardStatus !== 'attention' && rosterPageCount > 1 ? (
+            <Box sx={{ borderTop: `1px solid ${content.divider}`, backgroundColor: `${surface[0]}08` }}>
+              <TablePagination
+                component="div"
+                count={rosterTotal}
+                page={dashboardPage}
+                onPageChange={handleRosterPageChange}
+                rowsPerPage={ROSTER_PAGE_SIZE}
+                rowsPerPageOptions={[ROSTER_PAGE_SIZE]}
+                labelRowsPerPage="Itens por página"
+                labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
+                getItemAriaLabel={(tipo) => (tipo === 'next' ? 'Próxima página' : 'Página anterior')}
+                sx={{
+                  color: surface[400],
+                  '& .MuiTablePagination-toolbar': { minHeight: 44, px: 1 },
+                  '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': { fontSize: '0.75rem' },
+                }}
+              />
+            </Box>
+          ) : null}
         </Box>
 
         <Box
@@ -747,7 +791,12 @@ function CoachInboxPage() {
                   ele fica ao lado do nome do atleta, com altura e fonte legíveis, e **troca** de
                   ação conforme o estado em vez de aparecer morto.
                 */}
-                <AthleteNextRace race={nextRaceHeader} />
+                {/*
+                  Só com prova e perfil carregado: "Sem prova cadastrada" ao lado do CTA gastava o
+                  lugar de honra para dizer que não há dado, e durante o carregamento afirmava
+                  uma ausência que ainda não se sabia.
+                */}
+                {nextRaceHeader ? <AthleteNextRace race={nextRaceHeader} /> : null}
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                   <Button
@@ -778,11 +827,24 @@ function CoachInboxPage() {
                       variant="outlined"
                       onClick={openRejectDialog}
                       disabled={actionAvailability === 'loading' || actionAvailability === 'forbidden'}
-                      sx={{ minHeight: 40, fontSize: '0.875rem', textTransform: 'none', color: surface[200], borderColor: content.cardBorder }}
+                      sx={HEADER_SECONDARY_BTN_SX}
                     >
                       Rejeitar
                     </Button>
                   ) : null}
+
+                  {/*
+                    Editar a proposta da IA é uma das faces da decisão: fica visível ao lado de
+                    aprovar, não num rodapé nem num menu (D4 de coach-inbox-notebook-height).
+                  */}
+                  <Button
+                    variant="outlined"
+                    startIcon={<TuneIcon />}
+                    onClick={() => setActiveTab('plan')}
+                    sx={HEADER_SECONDARY_BTN_SX}
+                  >
+                    Ajustar plano
+                  </Button>
 
                   {actionAvailability === 'stale' ? (
                     <Typography sx={{ fontSize: '0.75rem', color: semantic.warning[500] }}>
@@ -799,6 +861,17 @@ function CoachInboxPage() {
               </Box>
 
               <AthleteKpiStrip kpis={athleteKpis} />
+              {kpiAviso ? (
+                <Typography
+                  data-testid="inbox-kpi-aviso"
+                  sx={{ px: { xs: 1.25, lg: 2, xl: 2.5 }, py: 0.5, fontSize: '0.6875rem', lineHeight: 1.4, color: surface[400], borderBottom: `1px solid ${content.divider}` }}
+                >
+                  {kpiAviso}{' '}
+                  <Link component={RouterLink} to={ROUTES.COACH_ATHLETES} sx={{ color: surface[300], fontWeight: 600 }}>
+                    Conferir integração
+                  </Link>
+                </Typography>
+              ) : null}
 
               <Box sx={{ px: { xs: 1.1, sm: 1.2, lg: 1.3, xl: 2 }, pt: { xs: 0.35, sm: 0.45, lg: 0.5, xl: 0.8 }, borderBottom: `1px solid ${content.divider}` }}>
                 <Tabs
@@ -828,7 +901,7 @@ function CoachInboxPage() {
                 </Tabs>
               </Box>
 
-              <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto', p: { xs: 0.9, sm: 1, lg: 1.15, xl: 2.25 } }}>
+              <Box ref={detalheRef} data-testid="inbox-detalhe-conteudo" sx={{ flex: 1, minHeight: 0, overflow: 'auto', p: { xs: 0.9, sm: 1, lg: 1.15, xl: 2.25 } }}>
                 {feedback ? (
                   <Alert
                     severity="success"
@@ -874,6 +947,8 @@ function CoachInboxPage() {
                     limiareisInferidos={selectedProfile?.limiareisInferidos ?? null}
                     pmc={selectedPmc}
                     onOpenPlan={() => setActiveTab('plan')}
+                    nextAthlete={proximoEmAtencao}
+                    onNext={irParaProximoEmAtencao}
                   />
                 ) : null}
 
@@ -897,63 +972,6 @@ function CoachInboxPage() {
                 ) : null}
               </Box>
 
-              <Box
-                sx={{
-                  px: { xs: 1.1, sm: 1.2, lg: 1.35, xl: 2.5 },
-                  py: { xs: 0.85, sm: 0.95, lg: 1.05, xl: 1.8 },
-                  borderTop: `1px solid ${content.divider}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: { xs: 0.6, lg: 0.75, xl: 1.2 },
-                  flexWrap: 'wrap',
-                }}
-              >
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<ChatBubbleOutlineIcon />}
-                  onClick={() => setFeedback('Mensagem preparada para o atleta.')}
-                  sx={{ ...ACTION_BTN_START_ICON_SX, ...SECONDARY_OUTLINE_SX }}
-                >
-                  Enviar mensagem
-                </Button>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<TuneIcon />}
-                  onClick={() => setActiveTab('plan')}
-                  sx={{ ...ACTION_BTN_START_ICON_SX, ...SECONDARY_OUTLINE_SX }}
-                >
-                  Ajustar plano
-                </Button>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  onClick={(event) => setMenuAnchor(event.currentTarget)}
-                  endIcon={<MoreHorizIcon />}
-                  sx={{ ...ACTION_BTN_END_ICON_SX, ...SECONDARY_OUTLINE_SX }}
-                >
-                  Mais ações
-                </Button>
-                <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
-                  <MenuItem
-                    onClick={() => {
-                      setMenuAnchor(null);
-                      setFeedback('Plano marcado como prioridade.');
-                    }}
-                  >
-                    Marcar como prioridade
-                  </MenuItem>
-                  <MenuItem
-                    onClick={() => {
-                      setMenuAnchor(null);
-                      setActiveTab('plan');
-                    }}
-                  >
-                    Abrir editor do plano
-                  </MenuItem>
-                </Menu>
-              </Box>
               <CoachDialog
                 open={rejectDialogOpen}
                 onClose={closeRejectDialog}

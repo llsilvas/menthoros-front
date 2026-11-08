@@ -1,6 +1,6 @@
 import { semantic, surface } from '../../../theme/tokens';
 import type { CoachAtletaStatus } from '../../../types/Coach';
-import type { AttentionInfo } from '../adapters/coachInboxAdapters';
+import type { AttentionInfo, RowTone } from '../adapters/coachInboxAdapters';
 import type { PlanoReviewStatus } from '../../../types/PlanoReview';
 
 
@@ -26,6 +26,20 @@ export function statusLabel(status: CoachAtletaStatus): string {
 
 export function formatPercent(value: number): string {
   return `${value}%`;
+}
+
+/** Cor do tom de uma linha da lista: moldura e texto de contexto seguem o sinal. */
+export const COR_DO_TOM: Record<RowTone, string> = {
+  danger: semantic.danger[500],
+  warning: semantic.warning[500],
+  neutral: surface[400],
+};
+
+/** Cor do número de aderência pelo valor — o número é o único portador do dado, sem barra nem rótulo. */
+export function corDaAderencia(valor: number): string {
+  if (valor >= 85) return semantic.success[500];
+  if (valor >= 70) return surface[200];
+  return semantic.warning[500];
 }
 
 export function formatKm(value: number): string {

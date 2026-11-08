@@ -53,8 +53,8 @@ describe('fromEtapaItens — editor ao vivo', () => {
       kind: 'block',
       repeticoes: '5',
       steps: [
-        { id: 's-1', tipoEtapa: 'INTERVALADO',  duracaoMin: '3', distanciaKm: '', fcAlvoEtapa: 'Z4' },
-        { id: 's-2', tipoEtapa: 'RECUPERACAO',  duracaoMin: '2', distanciaKm: '', fcAlvoEtapa: 'Z1' },
+        { id: 's-1', tipoEtapa: 'INTERVALADO',  duracao: '3:00', distanciaKm: '', fcAlvoEtapa: 'Z4' },
+        { id: 's-2', tipoEtapa: 'RECUPERACAO',  duracao: '2:00', distanciaKm: '', fcAlvoEtapa: 'Z1' },
       ],
     },
   ];
@@ -78,8 +78,8 @@ describe('fromEtapaItens — editor ao vivo', () => {
 
   it('não agrupa etapas avulsas — sem bloco, sem repeat', () => {
     const avulsas: EtapaItem[] = [
-      { id: 'a-1', kind: 'step', tipoEtapa: 'AQUECIMENTO', duracaoMin: '10', distanciaKm: '', fcAlvoEtapa: 'Z2' },
-      { id: 'a-2', kind: 'step', tipoEtapa: 'AQUECIMENTO', duracaoMin: '10', distanciaKm: '', fcAlvoEtapa: 'Z2' },
+      { id: 'a-1', kind: 'step', tipoEtapa: 'AQUECIMENTO', duracao: '10:00', distanciaKm: '', fcAlvoEtapa: 'Z2' },
+      { id: 'a-2', kind: 'step', tipoEtapa: 'AQUECIMENTO', duracao: '10:00', distanciaKm: '', fcAlvoEtapa: 'Z2' },
     ];
     const entradas = fromEtapaItens(avulsas);
     expect(entradas).toHaveLength(2);
@@ -91,7 +91,7 @@ describe('fromEtapaItens — editor ao vivo', () => {
   it('um bloco de uma repetição não vira série', () => {
     const umaVez: EtapaItem[] = [{
       id: 'b-2', kind: 'block', repeticoes: '1',
-      steps: [{ id: 's-3', tipoEtapa: 'PRINCIPAL', duracaoMin: '20', distanciaKm: '', fcAlvoEtapa: 'Z3' }],
+      steps: [{ id: 's-3', tipoEtapa: 'PRINCIPAL', duracao: '20:00', distanciaKm: '', fcAlvoEtapa: 'Z3' }],
     }];
     const entradas = fromEtapaItens(umaVez);
     expect(entradas).toHaveLength(1);
@@ -100,9 +100,9 @@ describe('fromEtapaItens — editor ao vivo', () => {
 
   it('mantém a ordem da lista entre itens', () => {
     const mistura: EtapaItem[] = [
-      { id: 'a-1', kind: 'step', tipoEtapa: 'AQUECIMENTO', duracaoMin: '10', distanciaKm: '', fcAlvoEtapa: 'Z2' },
+      { id: 'a-1', kind: 'step', tipoEtapa: 'AQUECIMENTO', duracao: '10:00', distanciaKm: '', fcAlvoEtapa: 'Z2' },
       ...bloco5x2,
-      { id: 'a-2', kind: 'step', tipoEtapa: 'DESAQUECIMENTO', duracaoMin: '5', distanciaKm: '', fcAlvoEtapa: 'Z1' },
+      { id: 'a-2', kind: 'step', tipoEtapa: 'DESAQUECIMENTO', duracao: '5:00', distanciaKm: '', fcAlvoEtapa: 'Z1' },
     ];
     const tipos = fromEtapaItens(mistura).map((e) => e.tipo);
     expect(tipos[0]).toBe('AQUECIMENTO');

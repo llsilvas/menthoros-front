@@ -240,7 +240,7 @@ const apiError = (status: number, message: string) => new ApiError(
 const lapis = () => screen.getByRole('button', { name: /editar treino/i });
 const editorAberto = () => screen.queryByText(/este treino faz parte de um plano já aprovado/i);
 const mudarDuracaoPrincipal = (min: string) => {
-    const duracoes = screen.getAllByLabelText(/Duração \(min\)/i);
+    const duracoes = screen.getAllByLabelText(/Duração \(m:ss\)/i);
     fireEvent.change(duracoes[duracoes.length - 1], { target: { value: min } });
 };
 

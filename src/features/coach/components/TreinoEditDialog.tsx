@@ -3,6 +3,8 @@ import {
     Box,
     Button,
     CircularProgress,
+    FormControl,
+    InputLabel,
     MenuItem,
     Select,
     TextField,
@@ -13,7 +15,8 @@ import { alpha } from '@mui/material/styles';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import { TIPOS_TREINO } from './tiposTreino';
+import { TIPOS_TREINO, rotuloDiaComData } from './tiposTreino';
+import { ORDEM_DIAS, isoDoDiaNaSemana, weekDatesFromInicio } from '../../../utils/semana';
 import { primary, semantic, surface } from '../../../theme/tokens';
 import { activeTheme } from '../../../theme/activeTheme';
 import { overlayWhite } from '../../../theme/overlays';
@@ -23,7 +26,9 @@ import { CoachDialog } from '../../../shared/components/CoachDialog';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import type { TreinoPlanejadoDto, TreinoPlanejadoPatch, WorkoutEditReason } from '../../../types/PlanoReview';
 import {
+    duracaoLegivel,
     itensFromEtapas,
+    itensInvalidos,
     serializarItens,
     totaisDeItens,
     type EtapaItem,
@@ -37,6 +42,16 @@ import { WorkoutProfile, selectWorkoutProfile, fromEtapaItens } from '../../work
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
+
+/**
+ * Data de origem do treino, para o select e para o diff do patch. O resumo do perfil
+ * (`CurrentWeekPlan`) não tem `dataTreino`; deriva de `semana.inicio + diaSemana` (D6).
+ */
+function dataOriginalDe(treino: TreinoPlanejadoDto, semanaInicio: string): string {
+    if (treino.dataTreino) return treino.dataTreino;
+    const dia = typeof treino.diaSemana === 'string' ? treino.diaSemana : treino.diaSemana.value;
+    return isoDoDiaNaSemana(weekDatesFromInicio(semanaInicio), dia);
+}
 
 function toIso8601(minutos: string): string | undefined {
     const n = parseInt(minutos, 10);
@@ -70,7 +85,7 @@ function itensIniciais(treino: TreinoPlanejadoDto): EtapaItem[] {
         id: crypto.randomUUID(),
         kind: 'step',
         tipoEtapa: 'PRINCIPAL',
-        duracaoMin,
+        duracao: duracaoMin ? `${duracaoMin}:00` : '',
         distanciaKm,
         fcAlvoEtapa: treino.zonaAlvo ?? '',
     }];
@@ -115,15 +130,21 @@ export interface TreinoEditDialogProps {
     aviso?: { canal: WatchChannel | null; neutro?: boolean };
     /** Mensagem do backend em 409/422: o dialog mostra e continua aberto com as edições (D5). */
     saveErrorMessage?: string | null;
+    /** Semana do plano (ISO): o treino pode ir para qualquer um dos sete dias (coach-alterar-data-treino, D5). */
+    semana: { inicio: string; fim: string };
+    /** Dias de treino do atleta; com a prop, os outros dias ganham a marcação "fora dos dias do atleta". */
+    diasDisponiveis?: string[];
     onClose: () => void;
     onSave: (patch: TreinoPlanejadoPatch) => void;
 }
 
-export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, atletaNome, aviso, saveErrorMessage, onClose, onSave }: TreinoEditDialogProps) {
+export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, atletaNome, aviso, saveErrorMessage, semana, diasDisponiveis, onClose, onSave }: TreinoEditDialogProps) {
     const { zones, loading: zonesLoading, error: zonesError } = useAthleteTrainingZones(atletaId);
     const [tipoTreino, setTipoTreino]         = useState(treino.tipoTreino ?? '');
     const [tss, setTss]                       = useState(treino.tssPlanejado != null ? String(treino.tssPlanejado) : '');
     const [observacao, setObservacao]         = useState(treino.observacao ?? '');
+    const dataOriginal = dataOriginalDe(treino, semana.inicio);
+    const [dataTreino, setDataTreino]         = useState(dataOriginal);
 
     // O treino é editado como lista de itens — etapas avulsas e blocos repetidos —, o mesmo modelo
     // do TreinoAddDialog. Antes eram quatro campos fixos, e qualquer série heterogênea era achatada
@@ -152,21 +173,24 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
         setRpe(treino.percepcaoEsforcoEsperada != null ? String(treino.percepcaoEsforcoEsperada) : '');
         setTss(treino.tssPlanejado != null ? String(treino.tssPlanejado) : '');
         setObservacao(treino.observacao ?? '');
+        setDataTreino(dataOriginalDe(treino, semana.inicio));
         setBlocosMudados(false);
         setConfirmarDescarte(false);
-    }, [treino]);
+    }, [treino, semana.inicio]);
 
     useEffect(() => { setGraficoAberto(!telaBaixa); }, [telaBaixa]);
 
 
     // Totais em tempo real: soma o treino inteiro já expandido (mesma conta do Adicionar treino)
-    const { totalKm, totalMin } = useMemo(() => {
-        const { km, min } = totaisDeItens(itens);
+    const { totalKm, totalSeg } = useMemo(() => {
+        const { km, seg } = totaisDeItens(itens);
         return {
             totalKm:  km  > 0 ? km.toFixed(1) : null,
-            totalMin: min > 0 ? String(min)   : null,
+            totalSeg: seg > 0 ? seg : null,
         };
     }, [itens]);
+    // Duração inválida numa etapa bloqueia o salvar: omiti-la do PATCH apagaria a gravada.
+    const etapasInvalidas = itensInvalidos(itens);
 
     /** Bloco destacado no gráfico — segue o campo em foco, ou o hover no próprio plot. */
     const [blocoDestacado, setBlocoDestacado] = useState<string | null>(null);
@@ -210,13 +234,16 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
 
         if (tipoTreino && tipoTreino !== treino.tipoTreino) patch.tipoTreino = tipoTreino;
 
+        // Só quando mudou (D6): data igual em plano aprovado reiniciaria a sincronização à toa.
+        if (dataTreino !== dataOriginal) patch.dataTreino = dataTreino;
+
         // Distância e duração são DERIVADAS das etapas, então também ficam atrás da guarda. Sem
         // isso a promessa do CA7 valeria só para `etapas`: um treino cujo total no cabeçalho não
         // bate com a soma das etapas (arredondamento, ou o campo gravado antes de as etapas
         // existirem) teria os dois campos reescritos ao mudar apenas o TSS.
         if (blocosMudados) {
             const distNum = totalKm ? parseFloat(totalKm) : NaN;
-            const durMin  = totalMin ? parseInt(totalMin, 10) : NaN;
+            const durMin  = totalSeg ? Math.round(totalSeg / 60) : NaN;
 
             if (!isNaN(distNum) && distNum !== treino.distanciaKm) patch.distanciaKm = distNum;
 
@@ -250,6 +277,7 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
     };
 
     const handleSalvar = () => {
+        if (etapasInvalidas) return;
         const patch = montarPatch();
 
         if (Object.keys(patch).length === 0) {
@@ -277,10 +305,6 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
         setPendente(null);
         if (patch) onSave(patch);
     };
-
-    const diaSemana = typeof treino.diaSemana === 'string'
-        ? treino.diaSemana
-        : (treino.diaSemana as { value: string }).value;
 
     const footerFieldSx = {
         '& .MuiOutlinedInput-root': {
@@ -314,22 +338,54 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
     // TSS não é recalculado pelo sistema ao salvar etapas editadas: avisar em vez de fingir.
     const tssDesatualizado = blocosMudados && tss !== '' && tss === String(treino.tssPlanejado ?? '');
 
+    // Sete opções, sem date picker (D5). Fora dos dias do atleta é aviso, não bloqueio.
+    const datasDaSemana = weekDatesFromInicio(semana.inicio);
+    const disponiveis = diasDisponiveis?.map(d => d.toUpperCase());
+    const diaSelect = (
+        <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel shrink>Dia do treino</InputLabel>
+            <Select
+                native
+                label="Dia do treino"
+                value={dataTreino}
+                onChange={e => setDataTreino(e.target.value as string)}
+                disabled={isSaving}
+                inputProps={{ 'aria-label': 'Dia do treino' }}
+                sx={{ fontSize: '0.8rem' }}
+            >
+                {ORDEM_DIAS.map((dia, i) => {
+                    const fora = disponiveis && !disponiveis.includes(dia);
+                    return (
+                        <option key={dia} value={isoDoDiaNaSemana(datasDaSemana, dia)}>
+                            {rotuloDiaComData(dia, datasDaSemana[i])}{fora ? ' · fora dos dias do atleta' : ''}
+                        </option>
+                    );
+                })}
+            </Select>
+        </FormControl>
+    );
+
     const diaChip = (
-        <Box
-            sx={{
-                px: 0.75,
-                py: 0.25,
-                borderRadius: '4px',
-                bgcolor: overlayWhite[7],
-                fontSize: '0.62rem',
-                fontWeight: 700,
-                color: surface[400],
-                fontFamily: 'monospace',
-                letterSpacing: '0.07em',
-                userSelect: 'none',
-            }}
-        >
-            {contexto ?? diaSemana.slice(0, 3).toUpperCase()}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+            {contexto && (
+                <Box
+                    sx={{
+                        px: 0.75,
+                        py: 0.25,
+                        borderRadius: '4px',
+                        bgcolor: overlayWhite[7],
+                        fontSize: '0.62rem',
+                        fontWeight: 700,
+                        color: surface[400],
+                        fontFamily: 'monospace',
+                        letterSpacing: '0.07em',
+                        userSelect: 'none',
+                    }}
+                >
+                    {contexto}
+                </Box>
+            )}
+            {diaSelect}
         </Box>
     );
 
@@ -358,7 +414,7 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
         </Select>
     );
 
-    const totalHint = (totalKm || totalMin) ? (
+    const totalHint = (totalKm || totalSeg) ? (
         <Box
             sx={{
                 px: 1.5,
@@ -387,9 +443,9 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
                     {totalKm} km
                 </Typography>
             )}
-            {totalMin && (
+            {totalSeg && (
                 <Typography sx={{ fontSize: '0.68rem', color: surface[200], fontFamily: 'monospace' }}>
-                    {totalMin} min
+                    {duracaoLegivel(totalSeg)}
                 </Typography>
             )}
             {predominante && (
@@ -495,7 +551,7 @@ export function TreinoEditDialog({ open, treino, isSaving, contexto, atletaId, a
                     <Button
                         variant="contained"
                         onClick={handleSalvar}
-                        disabled={isSaving}
+                        disabled={isSaving || etapasInvalidas}
                         aria-label={rotuloSalvar}
                         sx={{
                             ...PRIMARY_BTN_SX,

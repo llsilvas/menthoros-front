@@ -88,7 +88,12 @@ async function mockarDashboard(
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        resumo: { totalAtletas: totalElements, ativos: totalElements, emAtencao: 1, treinosPlanejadosSemana: 12 },
+        generatedAt: '2026-08-15T12:00:00Z',
+        summary: {
+          kpis: { totalAtletas: totalElements, ativos: totalElements, emAtencao: 1, treinosPlanejadosSemana: 12 },
+          atletasExibidos: items.length,
+          itensFilaAtencao: 1,
+        },
         roster: { items, page: pagina, size: 10, totalElements, totalPages: Math.ceil(totalElements / 10) },
         attentionQueue: opcoes.attentionQueue ?? [ANA_EM_ALERTA],
       }),
@@ -116,8 +121,8 @@ test.describe('Coach — lista principal do inbox', () => {
 
     const linha = page.getByRole('button', { name: /ana fora da pagina/i })
     await expect(linha).toBeVisible()
-    await expect(linha).toContainText(/inatividade/i)
-    await expect(linha).toContainText(/\d+d/)
+    // Fora do roster não há último treino: a recência é a idade do sinal, dita como tal.
+    await expect(linha).toContainText(/inatividade · sinal há \d+ dias?/i)
   })
 
   test('navegar para a página 2 mantém o atleta em atenção e não altera o total', async ({ page }) => {
@@ -126,18 +131,18 @@ test.describe('Coach — lista principal do inbox', () => {
     })
     await page.goto(INBOX_URL)
 
-    // Escopado ao TablePagination: desde a task 2.11 o header da lista também exibe "10 de 15",
-    // e um matcher solto casaria com os dois.
+    // Escopado ao TablePagination: o header da lista também exibe "10 de 15", e um matcher solto
+    // casaria com os dois. Rodapé em PT-BR (inbox-lista-triagem).
     const paginacao = page.locator('.MuiTablePagination-displayedRows')
-    await expect(paginacao).toHaveText(/of 15/i)
+    await expect(paginacao).toHaveText(/1–10 de 15/)
     await expect(page.getByRole('button', { name: /ana fora da pagina/i })).toBeVisible()
 
-    await page.getByRole('button', { name: 'Go to next page' }).click()
+    await page.getByRole('button', { name: 'Próxima página' }).click()
 
     // O fixado sobrevive à troca de página...
     await expect(page.getByRole('button', { name: /ana fora da pagina/i })).toBeVisible()
-    // ...e não entra na contagem: somá-lo faria "of 15" virar "of 16" e a última página vir curta.
-    await expect(page.locator('.MuiTablePagination-displayedRows')).toHaveText(/of 15/i)
+    // ...e não entra na contagem: somá-lo faria "de 15" virar "de 16" e a última página vir curta.
+    await expect(page.locator('.MuiTablePagination-displayedRows')).toHaveText(/11–15 de 15/)
   })
 
   test('atleta em atenção fora do filtro ativo é contado, não sumido', async ({ page }) => {
@@ -145,9 +150,9 @@ test.describe('Coach — lista principal do inbox', () => {
     await page.goto(INBOX_URL)
     await expect(page.getByRole('button', { name: /ana fora da pagina/i })).toBeVisible()
 
-    // Task 2.11: o filtro virou um chip no header da própria lista — a barra full-width sumiu.
-    await page.getByRole('button', { name: /filtrar por status/i }).click()
-    await page.getByRole('menuitem', { name: 'Atenção' }).click()
+    // Filtro segmentado no header da própria lista (inbox-lista-triagem): "Pausados" esconde quem
+    // está em atenção mas não está pausado — e a tela diz quantos ficaram de fora.
+    await page.getByRole('button', { name: /^Pausados$/ }).click()
 
     await expect(page.getByRole('button', { name: /ana fora da pagina/i })).toHaveCount(0)
     await expect(page.getByText(/em atenção fora do filtro atual/i)).toBeVisible()
@@ -172,9 +177,11 @@ test.describe('Coach — lista principal do inbox', () => {
     })
     await page.goto(INBOX_URL)
 
+    // inbox-lista-triagem: a severidade saiu do texto (ficou na moldura e na cor); o motivo e a
+    // recência são a linha de contexto, uma vez só.
     const card = page.getByRole('button', { name: /atleta roster 3/i })
-    await expect(card).toContainText(/alerta/i)
-    await expect(card).toContainText(/aderência/i)
+    await expect(card).toContainText(/aderência · sinal há \d+ dias?/i)
+    await expect(card.locator('.MuiChip-root')).toHaveCount(0)
   })
 
   test('clicar na linha de atenção abre o detalhe do atleta certo', async ({ page }) => {
@@ -430,5 +437,372 @@ test.describe('Coach — decisão sobre sugestão pelo inbox', () => {
 
     await expect(page.getByText('Aprovada')).toBeVisible()
     await expect(page.getByText('Pendente')).toHaveCount(0)
+  })
+})
+
+/**
+ * inbox-barra-unica-sem-rodape — os dois achados críticos da crítica de design de 2026-11-07:
+ * o cabeçalho + faixa de KPIs (~136px) viram uma barra, e o rodapé de ações simuladas sai, com
+ * "Ajustar plano" no cabeçalho do atleta. Medido no viewport real de notebook (1366×625), não em
+ * 1366×768, que nenhum navegador entrega nessa tela.
+ */
+function perfilDe(atletaId: string, nome: string, planoVigente: Record<string, unknown> | null) {
+  return {
+    atletaId,
+    nomeAtleta: nome,
+    objetivo: null,
+    proximaProva: null,
+    nivelExperiencia: null,
+    pmc: [],
+    aderenciaSemanal: [],
+    planoVigente,
+    sinaisRecentes: [],
+    sugestoesRecentes: [],
+    recordes: [],
+    melhoresEsforcos: [],
+    melhoresEsforcosIntegracaoConectada: true,
+    geradoEm: '2026-08-15T12:00:00Z',
+    avisos: null,
+  }
+}
+
+test.describe('Coach — barra única e rodapé fora (inbox-barra-unica-sem-rodape)', () => {
+  test.beforeEach(async ({ page }) => {
+    await autenticarComPkce(page, { roles: ['PROPRIETARIO', 'TECNICO'] })
+  })
+
+  test('o topo é uma barra de até 56px e "em atenção" conta a fila, não o resumo', async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 625 })
+    // `resumo.emAtencao` fica em 1 (mock padrão) enquanto a fila tem três: a barra segue a fila.
+    await mockarDashboard(page, {
+      attentionQueue: [
+        ANA_EM_ALERTA,
+        { ...ANA_EM_ALERTA, atletaId: 'roster-2', athleteName: 'Atleta Roster 2', primaryReason: 'SOBRECARGA' },
+        { ...ANA_EM_ALERTA, atletaId: 'roster-5', athleteName: 'Atleta Roster 5', severity: 'MEDIA', primaryReason: 'ADERENCIA' },
+      ],
+    })
+    await page.goto(INBOX_URL)
+    await expect(page.getByRole('button', { name: /ana fora da pagina/i })).toBeVisible()
+
+    await expect(page.getByTestId('inbox-titulo')).toHaveText('Inbox')
+    await expect(page.getByTestId('inbox-resumo-atencao')).toHaveText(/3 em atenção/)
+    await expect(page.getByTestId('inbox-kpi-ativos')).toHaveCount(0)
+    await expect(page.getByText(/Assistente do Treinador/i)).toHaveCount(0)
+    await expect(page.getByText(/Atletas exibidos/i)).toHaveCount(0)
+
+    const barra = (await page.getByTestId('inbox-barra').boundingBox())!
+    expect(barra.height).toBeLessThanOrEqual(56)
+  })
+
+  test('em 900px (início de md, sidebar recolhida) a barra continua numa linha com resumo e busca', async ({ page }) => {
+    await page.setViewportSize({ width: 900, height: 700 })
+    await mockarDashboard(page)
+    await page.goto(INBOX_URL)
+    await expect(page.getByRole('button', { name: /ana fora da pagina/i })).toBeVisible()
+
+    await expect(page.getByTestId('inbox-resumo-atualizado')).toBeVisible()
+    await expect(page.getByPlaceholder('Buscar atleta...')).toBeVisible()
+    const barra = (await page.getByTestId('inbox-barra').boundingBox())!
+    expect(barra.height).toBeLessThanOrEqual(56)
+  })
+
+  test('sem rodapé; "Ajustar plano" no cabeçalho abre a aba Plano; detalhe com ≥ 45% da altura em 1366×625', async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 625 })
+    await mockarDashboard(page)
+    await page.route('**/api/v1/coach/atletas/*/perfil', (route) =>
+      route.fulfill({ json: perfilDe('ana-alerta', 'Ana Fora da Pagina', null) }),
+    )
+    await page.goto(INBOX_URL)
+    await page.getByRole('button', { name: /ana fora da pagina/i }).click()
+    await expect(page.getByTestId('inbox-cta-primario')).toHaveText(/contatar atleta/i)
+
+    await expect(page.getByRole('button', { name: /enviar mensagem/i })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /mais ações/i })).toHaveCount(0)
+
+    const ajustar = page.getByRole('button', { name: /ajustar plano/i })
+    await expect(ajustar).toBeInViewport({ ratio: 1 })
+    await ajustar.click()
+    await expect(page.getByRole('tab', { name: /^Plano$/i })).toHaveAttribute('aria-selected', 'true')
+
+    const conteudo = (await page.getByTestId('inbox-detalhe-conteudo').boundingBox())!
+    expect(conteudo.height / 625).toBeGreaterThanOrEqual(0.45)
+  })
+
+  test('1093×500 com plano aguardando revisão e nome longo: Aprovar, Rejeitar e Ajustar plano inteiros na tela', async ({ page }) => {
+    await page.setViewportSize({ width: 1093, height: 500 })
+    const nomeLongo = 'Maria Aparecida Nascimento de Oliveira'
+    await mockarDashboard(page, {
+      attentionQueue: [{ ...ANA_EM_ALERTA, atletaId: 'maria-longa', athleteName: nomeLongo }],
+    })
+    await page.route('**/api/v1/coach/atletas/*/perfil', (route) =>
+      route.fulfill({
+        json: perfilDe('maria-longa', nomeLongo, {
+          planoId: '11111111-1111-1111-1111-111111111111',
+          semanaInicio: '2026-08-17',
+          semanaFim: '2026-08-23',
+          reviewStatus: 'AGUARDANDO_REVISAO',
+          treinos: [],
+        }),
+      }),
+    )
+    await page.goto(INBOX_URL)
+    await page.getByRole('button', { name: new RegExp(nomeLongo, 'i') }).click()
+
+    const cta = page.getByTestId('inbox-cta-primario')
+    await expect(cta).toHaveText(/aprovar plano/i)
+    await expect(cta).toBeInViewport({ ratio: 1 })
+    await expect(page.getByRole('button', { name: /^Rejeitar$/i })).toBeInViewport({ ratio: 1 })
+    await expect(page.getByRole('button', { name: /ajustar plano/i })).toBeInViewport({ ratio: 1 })
+
+    const conteudo = (await page.getByTestId('inbox-detalhe-conteudo').boundingBox())!
+    expect(conteudo.height / 500).toBeGreaterThanOrEqual(0.4)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
+  })
+})
+
+/**
+ * inbox-lista-triagem — a coluna da lista como ferramenta de triagem: linha densa, "Em atenção"
+ * como visão da fila inteira, busca junto da lista, paginação em PT-BR.
+ */
+test.describe('Coach — lista de triagem (inbox-lista-triagem)', () => {
+  test.beforeEach(async ({ page }) => {
+    await autenticarComPkce(page, { roles: ['PROPRIETARIO', 'TECNICO'] })
+  })
+
+  const TRES_EM_ATENCAO = [
+    ANA_EM_ALERTA,
+    { ...ANA_EM_ALERTA, atletaId: 'roster-2', athleteName: 'Atleta Roster 2', primaryReason: 'SOBRECARGA', severity: 'ALTA' },
+    { ...ANA_EM_ALERTA, atletaId: 'roster-12', athleteName: 'Atleta Roster 12', primaryReason: 'ADERENCIA', severity: 'MEDIA' },
+  ]
+
+  test('1366×625: pelo menos 6 linhas inteiras na lista, cada uma com até 52px, e a busca no header da coluna', async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 625 })
+    await mockarDashboard(page, { attentionQueue: TRES_EM_ATENCAO, rosterExtra: Array.from({ length: 5 }, (_, i) => atletaRoster(11 + i)) })
+    await page.goto(INBOX_URL)
+    await expect(page.getByRole('button', { name: /ana fora da pagina/i })).toBeVisible()
+
+    const header = page.getByTestId('inbox-lista-header')
+    await expect(header.getByPlaceholder('Buscar atleta...')).toBeVisible()
+    await expect(page.getByTestId('inbox-barra').getByPlaceholder('Buscar atleta...')).toHaveCount(0)
+
+    const lista = page.getByTestId('inbox-lista')
+    const caixaLista = (await lista.boundingBox())!
+    const linhas = await lista.getByRole('button').all()
+    let inteiras = 0
+    for (const linha of linhas) {
+      const caixa = (await linha.boundingBox())!
+      expect(caixa.height).toBeLessThanOrEqual(52)
+      if (caixa.y >= caixaLista.y && caixa.y + caixa.height <= caixaLista.y + caixaLista.height) inteiras += 1
+    }
+    expect(inteiras).toBeGreaterThanOrEqual(6)
+  })
+
+  test('linha com sinal diz o motivo uma vez, sem chip; sem aderência no roster, "—"', async ({ page }) => {
+    await mockarDashboard(page, {
+      attentionQueue: [{ ...ANA_EM_ALERTA, atletaId: 'roster-2', athleteName: 'Atleta Roster 2', primaryReason: 'SOBRECARGA' }],
+      rosterExtra: [atletaRoster(99, { aderenciaPercentual: undefined })],
+    })
+    await page.goto(INBOX_URL)
+
+    const linha = page.getByRole('button', { name: /atleta roster 2/i })
+    await expect(linha).toContainText(/sobrecarga · sinal há \d+ dias?/i)
+    await expect(linha.getByText(/alerta/i)).toHaveCount(0)
+    await expect(linha.locator('.MuiChip-root')).toHaveCount(0)
+    await expect(linha.locator('.MuiLinearProgress-root')).toHaveCount(0)
+
+    // O extra cai na página 2 (o mock pagina de 10 em 10).
+    await page.getByRole('button', { name: 'Próxima página' }).click()
+    await expect(page.getByRole('button', { name: /atleta roster 99/i }).getByTestId('queue-row-aderencia')).toHaveText('Ader. —')
+  })
+
+  test('"Em atenção" da página 2 mostra a fila inteira sem paginação; "Todos" devolve a página 2', async ({ page }) => {
+    await mockarDashboard(page, { attentionQueue: TRES_EM_ATENCAO, rosterExtra: Array.from({ length: 5 }, (_, i) => atletaRoster(11 + i)) })
+    await page.goto(INBOX_URL)
+    await page.getByRole('button', { name: 'Próxima página' }).click()
+    await expect(page.locator('.MuiTablePagination-displayedRows')).toHaveText(/11–15 de 15/)
+
+    await page.getByRole('button', { name: /^Em atenção/ }).click()
+
+    await expect(page).toHaveURL(/status=attention/)
+    await expect(page.getByTestId('inbox-lista-contagem')).toHaveText(/3 em atenção/)
+    await expect(page.getByTestId('inbox-lista').getByRole('button')).toHaveCount(3)
+    await expect(page.getByRole('button', { name: /atleta roster 12/i })).toBeVisible()
+    await expect(page.locator('.MuiTablePagination-root')).toHaveCount(0)
+
+    await page.getByRole('button', { name: /^Todos/ }).click()
+    await expect(page.locator('.MuiTablePagination-displayedRows')).toHaveText(/11–15 de 15/)
+  })
+
+  test('com uma página só, não há rodapé de paginação', async ({ page }) => {
+    await mockarDashboard(page)
+    await page.goto(INBOX_URL)
+    await expect(page.getByRole('button', { name: /ana fora da pagina/i })).toBeVisible()
+    await expect(page.locator('.MuiTablePagination-root')).toHaveCount(0)
+    await expect(page.getByTestId('inbox-lista-contagem')).toHaveText(/10 de 10/)
+  })
+})
+
+/**
+ * inbox-proximo-em-atencao — fluxo de triagem: "Próximo em atenção →" ao fim do Diagnóstico, tecla
+ * `N`, setas na lista, e prova no cabeçalho só quando existe.
+ */
+test.describe('Coach — próximo em atenção e atalhos (inbox-proximo-em-atencao)', () => {
+  test.beforeEach(async ({ page }) => {
+    await autenticarComPkce(page, { roles: ['PROPRIETARIO', 'TECNICO'] })
+  })
+
+  const FILA_ABC = [
+    { ...ANA_EM_ALERTA, atletaId: 'q-a', athleteName: 'Alice Atenta', severity: 'CRITICA' },
+    { ...ANA_EM_ALERTA, atletaId: 'q-b', athleteName: 'Bento Souza', severity: 'ALTA', primaryReason: 'SOBRECARGA' },
+    { ...ANA_EM_ALERTA, atletaId: 'q-c', athleteName: 'Clara Atenta', severity: 'MEDIA', primaryReason: 'ADERENCIA' },
+  ]
+  const linha = (page: Page, nome: RegExp) => page.getByTestId('inbox-lista').getByRole('button', { name: nome })
+  /** O perfil ecoa o id da URL: a página descarta perfil de outro atleta como "ainda carregando". */
+  const idDaUrl = (url: string) => /atletas\/([^/]+)\/perfil/.exec(url)?.[1] ?? 'x'
+
+  test('o link e a tecla N percorrem a fila até "Fim da fila de atenção"; a busca pula quem está escondido', async ({ page }) => {
+    await mockarDashboard(page, { attentionQueue: FILA_ABC })
+    await page.route('**/api/v1/coach/atletas/*/perfil', (route) => route.fulfill({ json: perfilDe(idDaUrl(route.request().url()), 'Atleta', null) }))
+    await page.goto(INBOX_URL)
+    await expect(linha(page, /alice atenta/i)).toHaveAttribute('aria-current', 'true')
+
+    await page.getByRole('button', { name: /próximo em atenção · bento souza/i }).click()
+    await expect(linha(page, /bento souza/i)).toHaveAttribute('aria-current', 'true')
+
+    await page.keyboard.press('n')
+    await expect(linha(page, /clara atenta/i)).toHaveAttribute('aria-current', 'true')
+    await expect(page.getByText(/fim da fila de atenção/i)).toBeVisible()
+    await expect(page.getByRole('button', { name: /próximo em atenção/i })).toHaveCount(0)
+
+    // Busca "atent" esconde Bento Souza: de Alice o próximo é Clara.
+    await linha(page, /alice atenta/i).click()
+    await page.getByPlaceholder('Buscar atleta...').fill('atent')
+    await expect(linha(page, /bento souza/i)).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /próximo em atenção · clara atenta/i })).toBeVisible()
+  })
+
+  test('N não age dentro da busca nem com o dialog de rejeição aberto; ↓ troca a seleção', async ({ page }) => {
+    await mockarDashboard(page, { attentionQueue: FILA_ABC })
+    await page.route('**/api/v1/coach/atletas/*/perfil', (route) =>
+      route.fulfill({
+        json: perfilDe(idDaUrl(route.request().url()), 'Atleta', {
+          planoId: '11111111-1111-1111-1111-111111111111',
+          semanaInicio: '2026-08-17',
+          semanaFim: '2026-08-23',
+          reviewStatus: 'AGUARDANDO_REVISAO',
+          treinos: [],
+        }),
+      }),
+    )
+    await page.goto(INBOX_URL)
+    await expect(linha(page, /alice atenta/i)).toHaveAttribute('aria-current', 'true')
+
+    await page.getByPlaceholder('Buscar atleta...').click()
+    await page.keyboard.press('n')
+    await expect(linha(page, /alice atenta/i)).toHaveAttribute('aria-current', 'true')
+    await page.getByPlaceholder('Buscar atleta...').clear()
+
+    await page.getByRole('button', { name: /^Rejeitar$/i }).click()
+    await expect(page.getByRole('dialog')).toBeVisible()
+    await page.keyboard.press('n')
+    await page.getByRole('button', { name: /^Cancelar$/i }).click()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await expect(linha(page, /alice atenta/i)).toHaveAttribute('aria-current', 'true')
+
+    await linha(page, /alice atenta/i).focus()
+    await page.keyboard.press('ArrowDown')
+    await expect(linha(page, /bento souza/i)).toBeFocused()
+    await expect(linha(page, /bento souza/i)).toHaveAttribute('aria-current', 'true')
+  })
+
+  test('sem prova cadastrada, nada ocupa o lugar da próxima prova no cabeçalho', async ({ page }) => {
+    await mockarDashboard(page)
+    await page.route('**/api/v1/coach/atletas/*/perfil', (route) => route.fulfill({ json: perfilDe('ana-alerta', 'Ana Fora da Pagina', null) }))
+    await page.goto(INBOX_URL)
+    await page.getByRole('button', { name: /ana fora da pagina/i }).click()
+    await expect(page.getByTestId('inbox-cta-primario')).toBeVisible()
+
+    await expect(page.getByTestId('inbox-proxima-prova')).toHaveCount(0)
+    await expect(page.getByText(/sem prova cadastrada/i)).toHaveCount(0)
+  })
+})
+
+/**
+ * inbox-kpis-atleta-sem-dado — achado #5 da crítica de design de 2026-11-07: a faixa de KPIs do
+ * atleta (93px) dizia "Sem dado na janela" até três vezes e o Diagnóstico repetia num banner.
+ * Agora a faixa cabe em uma linha e a ausência é dita uma vez, abaixo dela, com o link para
+ * conferir a integração.
+ */
+test.describe('Coach — KPIs do atleta em uma linha (inbox-kpis-atleta-sem-dado)', () => {
+  test.beforeEach(async ({ page }) => {
+    await autenticarComPkce(page, { roles: ['PROPRIETARIO', 'TECNICO'] })
+  })
+
+  test('faixa ≤ 40px, detalhe ≥ 62% em 1366×625; sem dado dito uma vez, com link para a integração', async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 625 })
+    await mockarDashboard(page)
+    // `perfilDe` vem sem PMC: a condição em que as células ficavam sem dado.
+    await page.route('**/api/v1/coach/atletas/*/perfil', (route) =>
+      route.fulfill({ json: perfilDe('ana-alerta', 'Ana Fora da Pagina', null) }),
+    )
+    await page.goto(INBOX_URL)
+    await page.getByRole('button', { name: /ana fora da pagina/i }).click()
+    await expect(page.getByTestId('inbox-cta-primario')).toHaveText(/contatar atleta/i)
+
+    const faixa = (await page.getByTestId('inbox-kpi-faixa').boundingBox())!
+    expect(faixa.height).toBeLessThanOrEqual(40)
+    // A linha de apoio sai da tela mas fica no title e no leitor de tela.
+    await expect(page.getByTestId('kpi-adherence')).toHaveAttribute('title', /.+/)
+
+    await expect(page.getByText(/sem dado na janela/i)).toHaveCount(0)
+    expect(await page.locator('[title*="Sem dado na janela"]').count()).toBe(0)
+    const aviso = page.getByTestId('inbox-kpi-aviso')
+    await expect(aviso).toHaveCount(1)
+    await expect(aviso).toHaveText(/^Sem treinos sincronizados na janela: .*com o primeiro treino\. Conferir integração$/)
+    await expect(page.getByText(/sem treinos registrados na janela analisada/i)).toHaveCount(0)
+
+    const conteudo = (await page.getByTestId('inbox-detalhe-conteudo').boundingBox())!
+    expect(conteudo.height / 625).toBeGreaterThanOrEqual(0.62)
+
+    await aviso.getByRole('link', { name: 'Conferir integração' }).click()
+    await expect(page).toHaveURL(/#\/coach\/athletes$/)
+  })
+
+  // Com valores, rótulo e valor ficam em linhas separadas quando não cabem lado a lado: ~52px em
+  // 1366 (célula de ~160px úteis) e até ~80px em 1024 (~75px úteis, o valor quebra). Ambos abaixo
+  // dos 93px da faixa anterior; o que não pode acontecer é vazar ou cortar texto.
+  for (const { width, height, alturaMax } of [{ width: 1366, height: 625, alturaMax: 56 }, { width: 1024, height: 640, alturaMax: 84 }]) {
+    test(`com KPIs preenchidos em ${width}×${height}, nenhuma célula vaza e a faixa fica em até ${alturaMax}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height })
+      await mockarDashboard(page)
+      const dia = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10)
+      // Série curta: ACWR sai com "Baixa confiança"; forma "Acumulando fadiga" é o rótulo mais longo.
+      const pmc = Array.from({ length: 10 }, (_, i) => ({ data: dia(9 - i), ctl: 40 + i, atl: 60 + i, tsb: -20, tss: 80, statusForma: 'ACUMULANDO_FADIGA' }))
+      await page.route('**/api/v1/coach/atletas/*/perfil', (route) =>
+        route.fulfill({ json: { ...perfilDe('ana-alerta', 'Ana Fora da Pagina', null), pmc } }),
+      )
+      await page.goto(INBOX_URL)
+      await page.getByRole('button', { name: /ana fora da pagina/i }).click()
+      await expect(page.getByTestId('kpi-form')).toHaveText(/Acumulando fadiga/)
+      await expect(page.getByTestId('kpi-acwr')).toHaveText(/Baixa confiança/)
+      await expect(page.getByTestId('inbox-kpi-aviso')).toHaveCount(0)
+
+      const faixa = (await page.getByTestId('inbox-kpi-faixa').boundingBox())!
+      expect(faixa.height).toBeLessThanOrEqual(alturaMax)
+      const vazando = await page.evaluate(() =>
+        Array.from(document.querySelectorAll('[data-testid^="kpi-"]'))
+          .filter((el) => el.scrollWidth > el.clientWidth + 1)
+          .map((el) => el.getAttribute('data-testid')),
+      )
+      expect(vazando).toEqual([])
+    })
+  }
+
+  test('a aderência da linha da lista tem rótulo', async ({ page }) => {
+    await mockarDashboard(page)
+    await page.goto(INBOX_URL)
+    await page.getByTestId('inbox-cta-primario').waitFor()
+
+    await expect(page.getByTestId('queue-row-aderencia').first()).toHaveText(/^Ader\. (\d+%|—)$/)
   })
 })

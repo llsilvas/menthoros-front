@@ -156,7 +156,7 @@ describe('DiagnosisTabPanel', () => {
      * "adequado". O coach lia "carga 0 km, monotonia 1.00, tudo verde" para um atleta que nunca
      * sincronizou nada. Zero por ausência de dado não é zero medido.
      */
-    it('substitui a grade de métricas por uma mensagem', () => {
+    it('a grade de métricas some, sem banner: a ausência já foi dita abaixo da faixa de KPIs (inbox-kpis-atleta-sem-dado)', () => {
       render(
         <DiagnosisTabPanel
           selected={atleta({ quickStats: { ...atleta().quickStats, hasWindowData: false } })}
@@ -165,7 +165,7 @@ describe('DiagnosisTabPanel', () => {
         />,
       );
 
-      expect(screen.getByText(/sem treinos registrados/i)).toBeInTheDocument();
+      expect(screen.queryByText(/sem treinos registrados na janela analisada/i)).not.toBeInTheDocument();
       expect(screen.queryByText(/carga aguda/i)).not.toBeInTheDocument();
       expect(screen.queryByText(/monotonia/i)).not.toBeInTheDocument();
     });
@@ -187,7 +187,7 @@ describe('DiagnosisTabPanel', () => {
       render(<DiagnosisTabPanel selected={atleta()} pmc={[]} onOpenPlan={vi.fn()} />);
 
       expect(screen.getByText(/carga aguda/i)).toBeInTheDocument();
-      expect(screen.queryByText(/sem treinos registrados/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/sem treinos registrados na janela analisada/i)).not.toBeInTheDocument();
     });
   });
 
@@ -362,5 +362,32 @@ describe('DiagnosisTabPanel', () => {
 
       expect(screen.getByText('Histórico de PMC atualizado')).toBeInTheDocument();
     });
+  });
+});
+
+describe('DiagnosisTabPanel — próximo em atenção (inbox-proximo-em-atencao)', () => {
+  const sinal: CoachAttentionItem = {
+    atletaId: 'a1', athleteName: 'Ana', severity: 'ALTA', priorityScore: 80, primaryReason: 'INATIVIDADE',
+    suggestedAction: 'Entrar em contato', generatedAt: '2026-08-10T12:00:00Z', evidence: [],
+  };
+
+  it('com sinal e próximo: botão com o nome, que chama onNext', async () => {
+    const onNext = vi.fn();
+    render(<DiagnosisTabPanel selected={atleta()} attentionItem={sinal} pmc={[]} onOpenPlan={vi.fn()} nextAthlete={{ atletaId: 'b', nome: 'Bia' }} onNext={onNext} />);
+
+    await userEvent.click(screen.getByRole('button', { name: /próximo em atenção · bia/i }));
+    expect(onNext).toHaveBeenCalledTimes(1);
+  });
+
+  it('com sinal e sem próximo: "Fim da fila de atenção", sem botão', () => {
+    render(<DiagnosisTabPanel selected={atleta()} attentionItem={sinal} pmc={[]} onOpenPlan={vi.fn()} nextAthlete={null} />);
+
+    expect(within(screen.getByTestId('inbox-proximo-em-atencao')).getByText(/fim da fila de atenção/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /próximo em atenção/i })).not.toBeInTheDocument();
+  });
+
+  it('sem sinal não há bloco de próximo', () => {
+    render(<DiagnosisTabPanel selected={atleta()} pmc={[]} onOpenPlan={vi.fn()} nextAthlete={{ atletaId: 'b', nome: 'Bia' }} />);
+    expect(screen.queryByTestId('inbox-proximo-em-atencao')).not.toBeInTheDocument();
   });
 });

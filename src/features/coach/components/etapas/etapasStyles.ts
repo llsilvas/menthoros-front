@@ -1,5 +1,7 @@
-import { surface } from '../../../../theme/tokens';
-import { overlayWhite } from '../../../../theme/overlays';
+import { alpha, type Theme } from '@mui/material/styles';
+import { primary, surface } from '../../../../theme/tokens';
+import { elevation, radius } from '../../../../shared/design-tokens';
+import { overlayBlack, overlayWhite } from '../../../../theme/overlays';
 
 /**
  * Estilos do editor de etapas, compartilhados por `EtapasEditor` e `TreinoAddDialog` — antes cada
@@ -33,5 +35,38 @@ export function fieldSx(accent: string) {
         '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button': {
             WebkitAppearance: 'none',
         },
+    } as const;
+}
+
+/**
+ * Alça de arrastar de um item raiz do editor. Só ela tem `touch-action: none`: no card inteiro o
+ * gesto viraria arrasto e a página pararia de rolar no celular. Abaixo de `sm` a área de toque
+ * sobe para 44px sem mudar o ícone.
+ */
+export const DRAG_HANDLE_SX = (theme: Theme) => ({
+    color: surface[400],
+    cursor: 'grab',
+    touchAction: 'none',
+    ml: -0.75,
+    '&:hover': { color: surface[50], bgcolor: overlayWhite[8] },
+    '&:active': { cursor: 'grabbing' },
+    '&.Mui-disabled': { color: surface[600], cursor: 'default' },
+    [theme.breakpoints.down('sm')]: { width: 44, height: 44, ml: -1.25 },
+}) as const;
+
+/** Item raiz durante o arrasto: sobe um degrau de elevação e ganha a borda de seleção (lime). */
+export function sortableRowSx(arrastando: boolean) {
+    return {
+        position: 'relative',
+        ...(arrastando
+            ? {
+                zIndex: 1,
+                opacity: 0.92,
+                borderRadius: radius.md,
+                bgcolor: elevation.highest,
+                boxShadow: `0 4px 12px ${overlayBlack[25]}, 0 16px 32px ${overlayBlack[40]}`,
+                outline: `1px solid ${alpha(primary[500], 0.45)}`,
+            }
+            : {}),
     } as const;
 }

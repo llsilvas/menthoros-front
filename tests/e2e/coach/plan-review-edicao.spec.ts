@@ -96,6 +96,41 @@ async function mockarApis(page: Page) {
 }
 
 test.describe('revisão do plano — edição de treino', () => {
+  test('mover o treino para sábado: o PATCH leva dataTreino e o card muda de dia (coach-alterar-data-treino)', async ({ page }) => {
+    await mockarApis(page)
+
+    // Backend fake com estado: depois do PATCH a revisão devolve o treino já no sábado.
+    const treino = { ...PLANO.treinosPlanejados[0] }
+    const patches: Record<string, unknown>[] = []
+    await page.route(REVIEW_API, route => {
+      const status = new URL(route.request().url()).searchParams.get('status')
+      route.fulfill({ json: status === 'AGUARDANDO_REVISAO' ? [{ ...PLANO, treinosPlanejados: [treino] }] : [] })
+    })
+    await page.route(PATCH_API, async route => {
+      const body = route.request().postDataJSON() as Record<string, unknown>
+      patches.push(body)
+      if (body.dataTreino === '2026-08-22') Object.assign(treino, { diaSemana: 'SABADO', dataTreino: '2026-08-22' })
+      await route.fulfill({ json: { ...treino, editadoPeloCoach: true } })
+    })
+
+    await autenticarComPkce(page, { roles: ['TECNICO'] })
+    await page.goto(REVIEW_URL)
+
+    await page.getByRole('button', { name: /Atleta Teste/i }).click()
+    await expect(page.getByText('Qui 20/08')).toBeVisible()
+    await page.getByRole('button', { name: 'Editar treino' }).first().click()
+
+    const dia = page.getByLabel('Dia do treino')
+    await expect(dia).toHaveValue('2026-08-20')
+    await dia.selectOption('2026-08-22')
+    await page.getByRole('button', { name: /salvar/i }).click()
+
+    await expect.poll(() => patches.length).toBe(1)
+    expect(patches[0]).toEqual({ dataTreino: '2026-08-22' })
+    await expect(page.getByText('Sáb 22/08')).toBeVisible()
+    await expect(page.getByText('Qui 20/08')).toHaveCount(0)
+  })
+
   test('PATCH preserva a série como bloco em vez de achatar', async ({ page }) => {
     await mockarApis(page)
 
@@ -283,7 +318,7 @@ test.describe('revisão do plano — adição de treino com o editor unificado',
     await expect(page.getByTestId('repeticoes-display-0')).toHaveText('3×')
     await page.getByLabel(/Aumentar repetições da série 1/i).click()
     await page.getByLabel('Tipo da etapa 1 da série 1').selectOption('INTERVALADO')
-    await page.getByLabel('Duração (min)').first().fill('3')
+    await page.getByLabel('Duração (m:ss)').first().fill('3')
 
     await expect(page.getByTestId('workout-profile')).toBeVisible()
     await expect(page.getByTestId('totais-treino')).toContainText('12 min')

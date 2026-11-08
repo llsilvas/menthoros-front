@@ -46,6 +46,7 @@ function canalConectado(t: TreinoPlanejadoResumoDto): boolean | undefined {
     return t.channelConnected ?? t.atletaConectadoIntervalsIcu;
 }
 
+// O resumo não traz `dataTreino`; o editor deriva a data de `semana.inicio + diaSemana` (D6).
 function toDialogTreino(t: TreinoPlanejadoResumoDto): TreinoPlanejadoDto {
     return {
         id: t.id,
@@ -365,6 +366,7 @@ export function CurrentWeekPlan({ plano, atletaId, atletaNome, onGerarPlano, onR
                 <TreinoEditDialog
                     open
                     treino={editingTreino}
+                    semana={{ inicio: plano.semanaInicio, fim: plano.semanaFim }}
                     atletaId={atletaId}
                     atletaNome={atletaNome}
                     isSaving={isSaving}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildAthleteKpis, buildNextRaceHeader } from './athleteKpiAdapters';
+import { avisoSemDado, buildAthleteKpis, buildNextRaceHeader } from './athleteKpiAdapters';
 import type { CoachAthleteRow } from '../types/CoachInbox';
 
 function atleta(over: Partial<CoachAthleteRow> = {}, stats: Partial<CoachAthleteRow['quickStats']> = {}): CoachAthleteRow {
@@ -103,12 +103,29 @@ describe('buildAthleteKpis', () => {
     expect(porChave(atleta({}, { acwr: null })).acwr).toMatchObject({ value: '—', detail: 'Dado insuficiente', tone: 'neutral' });
   });
 
-  it('sem dado na janela (PMC vazio) atinge Carga, Forma e ACWR — a aderência mantém o valor', () => {
+  it('sem dado na janela (PMC vazio) atinge Carga, Forma e ACWR sem linha de apoio — a aderência mantém o valor', () => {
     const kpis = porChave(atleta({}, { hasWindowData: false }));
     for (const key of ['load', 'form', 'acwr']) {
-      expect(kpis[key]).toMatchObject({ value: '—', detail: 'Sem dado na janela', tone: 'neutral', badge: null });
+      expect(kpis[key]).toMatchObject({ value: '—', detail: '', tone: 'neutral', badge: null });
     }
     expect(kpis.adherence).toMatchObject({ value: '31%', detail: '5 de 16 treinos planejados' });
+  });
+});
+
+describe('avisoSemDado', () => {
+  it('sem série e sem km: cita carga, forma e ACWR', () => {
+    expect(avisoSemDado(atleta({}, { hasWindowData: false }))).toBe(
+      'Sem treinos sincronizados na janela: carga, forma e ACWR aparecem com o primeiro treino.',
+    );
+  });
+
+  it('sem série, com km: a carga está na faixa, o aviso cita só forma e ACWR', () => {
+    expect(avisoSemDado(atleta({ distance7d: { lastKm: 5, previousKm: 3.7 } }, { hasWindowData: false }))).toMatch(/^Sem treinos sincronizados na janela: forma e ACWR aparecem/);
+  });
+
+  it('série presente, mesmo com ACWR nulo: sem aviso', () => {
+    expect(avisoSemDado(atleta({}, { acwr: null }))).toBeNull();
+    expect(avisoSemDado(atleta())).toBeNull();
   });
 });
 

@@ -195,6 +195,29 @@ describe('CurrentWeekPlan', () => {
         expect(screen.getByDisplayValue('10')).toBeInTheDocument();
     });
 
+    it('o editor abre com a data derivada do dia e salvar outro campo não manda dataTreino (2.4)', async () => {
+        mockEditarTreino.mockResolvedValue({ id: 'treino-1' });
+
+        render(
+            <CurrentWeekPlan
+                plano={PLANO_AGUARDANDO}
+                onGerarPlano={onGerarPlano}
+                onRevisarPlano={onRevisarPlano}
+                onTreinoEditado={onTreinoEditado}
+            />,
+        );
+
+        fireEvent.click(screen.getAllByRole('button', { name: /editar treino/i })[0]);
+        // Resumo sem dataTreino: segunda da semana que começa em 2026-06-23.
+        expect(screen.getByLabelText('Dia do treino')).toHaveValue('2026-06-23');
+
+        fireEvent.change(screen.getByDisplayValue('10'), { target: { value: '15' } });
+        fireEvent.click(screen.getByRole('button', { name: /salvar/i }));
+
+        await waitFor(() => expect(mockEditarTreino).toHaveBeenCalledTimes(1));
+        expect(mockEditarTreino.mock.calls[0][2]).not.toHaveProperty('dataTreino');
+    });
+
     it('salvar chama editarTreino e onTreinoEditado', async () => {
         mockEditarTreino.mockResolvedValue({ id: 'treino-1' });
 

@@ -223,7 +223,8 @@ describe('CoachInboxPage', () => {
   it('o sinal do atleta aparece na lista principal, com motivo', () => {
     renderPage();
 
-    expect(screen.queryByText(/Fila de atenção/i)).not.toBeInTheDocument();
+    // O título do preview antigo; "Fim da fila de atenção" (inbox-proximo-em-atencao) não conta.
+    expect(screen.queryByText(/^Fila de atenção$/i)).not.toBeInTheDocument();
     expect(screen.getByTestId('queue-row-motivo')).toHaveTextContent(/fadiga/i);
   });
 
@@ -311,6 +312,49 @@ describe('CoachInboxPage', () => {
     });
 
     /**
+     * inbox-kpis-atleta-sem-dado: a ausência de dado é dita uma vez, abaixo da faixa, com o link
+     * para conferir a integração — não três vezes nas células nem de novo no Diagnóstico.
+     */
+    it('sem série na janela: "Sem dado na janela" não aparece (texto nem title) e há um aviso só, com link', () => {
+      renderPage();
+
+      expect(screen.queryByText(/sem dado na janela/i)).not.toBeInTheDocument();
+      expect(document.querySelector('[title*="Sem dado na janela"]')).toBeNull();
+      const avisos = screen.getAllByTestId('inbox-kpi-aviso');
+      expect(avisos).toHaveLength(1);
+      expect(avisos[0]).toHaveTextContent(/^Sem treinos sincronizados na janela: carga, forma e ACWR aparecem com o primeiro treino\. Conferir integração$/);
+      expect(within(avisos[0]).getByRole('link', { name: 'Conferir integração' })).toBeInTheDocument();
+      expect(screen.queryByText(/sem treinos registrados na janela analisada/i)).not.toBeInTheDocument();
+    });
+
+    it('com série na janela não há aviso', () => {
+      vi.mocked(useAthleteProfile).mockReturnValue({
+        profile: makeProfile([
+          { data: '2026-06-20', ctl: 48, atl: 52, tsb: -4, tss: 70 },
+          { data: '2026-06-21', ctl: 49, atl: 54, tsb: -5, tss: 85 },
+        ]),
+        isLoading: false,
+        error: null,
+        errorKind: null,
+        fetchProfile: mockFetchProfile,
+      });
+      renderPage();
+
+      expect(screen.queryByTestId('inbox-kpi-aviso')).not.toBeInTheDocument();
+    });
+
+    it('enquanto o perfil carrega, ou em erro, não há aviso: a ausência ainda não se sabe', () => {
+      vi.mocked(useAthleteProfile).mockReturnValue({ profile: null, isLoading: true, error: null, errorKind: null, fetchProfile: mockFetchProfile });
+      const r1 = renderPage();
+      expect(screen.queryByTestId('inbox-kpi-aviso')).not.toBeInTheDocument();
+      r1.unmount();
+
+      vi.mocked(useAthleteProfile).mockReturnValue({ profile: null, isLoading: false, error: new Error('x'), errorKind: 'unknown', fetchProfile: mockFetchProfile } as never);
+      renderPage();
+      expect(screen.queryByTestId('inbox-kpi-aviso')).not.toBeInTheDocument();
+    });
+
+    /**
      * Reescrito em fix-coach-diagnosis-charts. Antes a aderência dependia de `hasWindowData`, que é
      * do PMC: um zero de aderência só aparecia se houvesse série PMC. Agora a aderência tem
      * disponibilidade própria — o zero legítimo é "0 de 4 treinos", com ou sem PMC.
@@ -327,13 +371,53 @@ describe('CoachInboxPage', () => {
     });
   });
 
-  it('resumo do topo na faixa de KPIs, com ícone por métrica', () => {
-    renderPage();
+  describe('barra única e rodapé fora (inbox-barra-unica-sem-rodape)', () => {
+    it('o topo é uma barra: título "Inbox", resumo em linha e busca; sem faixa de KPIs nem apresentação', () => {
+      renderPage();
 
-    for (const key of ['ativos', 'treinos', 'atencao', 'exibidos']) {
-      expect(within(screen.getByTestId(`inbox-kpi-${key}`)).getByTestId('kpi-icon')).toBeInTheDocument();
-    }
-    expect(within(screen.getByTestId('inbox-kpi-ativos')).getByText('Atletas ativos')).toBeInTheDocument();
+      expect(screen.getByTestId('inbox-titulo')).toHaveTextContent('Inbox');
+      expect(screen.getByTestId('inbox-resumo')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Buscar atleta...')).toBeInTheDocument();
+      expect(screen.queryByTestId('inbox-kpi-ativos')).not.toBeInTheDocument();
+      expect(screen.queryByText(/Assistente do Treinador/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Revisão rápida, ajuste de plano/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Atletas exibidos/i)).not.toBeInTheDocument();
+    });
+
+    it('"em atenção" conta a fila completa, não o emAtencao do resumo', () => {
+      renderPage();
+
+      // O stub tem `kpis.emAtencao: 5` e uma fila com outro tamanho: a barra segue a fila.
+      const fila = DASHBOARD_STUB.attentionQueue.length;
+      expect(fila).not.toBe(DASHBOARD_STUB.summary.kpis.emAtencao);
+      expect(screen.getByTestId('inbox-resumo-atencao')).toHaveTextContent(`${fila} em atenção`);
+      expect(screen.getByTestId('inbox-resumo-ativos')).toHaveTextContent(`${DASHBOARD_STUB.summary.kpis.ativos} ativos de ${DASHBOARD_STUB.summary.kpis.totalAtletas}`);
+    });
+
+    it('sem rodapé: nenhuma ação simulada; "Ajustar plano" fica no cabeçalho e abre a aba Plano', async () => {
+      const user = userEvent.setup();
+      renderPage();
+
+      expect(screen.queryByRole('button', { name: /enviar mensagem/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /mais ações/i })).not.toBeInTheDocument();
+      expect(screen.queryByText(/marcar como prioridade/i)).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: /ajustar plano/i }));
+      expect(screen.getByRole('tab', { name: /^Plano$/i })).toHaveAttribute('aria-selected', 'true');
+    });
+
+    it('com plano aguardando revisão a ordem é CTA, Rejeitar, Ajustar plano', () => {
+      renderPage();
+
+      const cta = screen.getByTestId('inbox-cta-primario');
+      const rejeitar = screen.getByRole('button', { name: /^Rejeitar$/i });
+      const ajustar = screen.getByRole('button', { name: /ajustar plano/i });
+      expect(cta.compareDocumentPosition(rejeitar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(rejeitar.compareDocumentPosition(ajustar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      // Os três no mesmo cabeçalho do atleta, acima do conteúdo rolável.
+      const conteudo = screen.getByTestId('inbox-detalhe-conteudo');
+      expect(ajustar.compareDocumentPosition(conteudo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
   });
 
   describe('cabeçalho e faixa de KPIs (fix-coach-diagnosis-charts)', () => {
@@ -361,10 +445,24 @@ describe('CoachInboxPage', () => {
       expect(prova.getByText(/· em 20 dias$/)).toBeInTheDocument();
     });
 
-    it('sem prova cadastrada, o cabeçalho diz isso', () => {
-      renderPage();
+    /**
+     * inbox-proximo-em-atencao: sem prova nada ocupa o lugar ao lado do CTA; e enquanto o perfil
+     * carrega (ou falhou) a ausência ainda não é conhecida, então também não aparece.
+     */
+    it('sem prova, carregando ou em erro, não há bloco de próxima prova', () => {
+      const { unmount } = renderPage();
+      expect(screen.queryByTestId('inbox-proxima-prova')).not.toBeInTheDocument();
+      expect(screen.queryByText('Sem prova cadastrada')).not.toBeInTheDocument();
+      unmount();
 
-      expect(within(screen.getByTestId('inbox-proxima-prova')).getByText('Sem prova cadastrada')).toBeInTheDocument();
+      vi.mocked(useAthleteProfile).mockReturnValue({ profile: null, isLoading: true, error: null, errorKind: null, fetchProfile: mockFetchProfile });
+      const r2 = renderPage();
+      expect(screen.queryByTestId('inbox-proxima-prova')).not.toBeInTheDocument();
+      r2.unmount();
+
+      vi.mocked(useAthleteProfile).mockReturnValue({ profile: null, isLoading: false, error: new Error('x'), errorKind: 'unknown', fetchProfile: mockFetchProfile } as never);
+      renderPage();
+      expect(screen.queryByTestId('inbox-proxima-prova')).not.toBeInTheDocument();
     });
 
     it('aderência vem das 4 semanas completas do perfil, mesmo com PMC vazio', () => {
@@ -617,46 +715,90 @@ describe('CoachInboxPage', () => {
     });
   });
 
-  describe('filtros na coluna da lista (task 2.11)', () => {
+  describe('header da coluna da lista (inbox-lista-triagem)', () => {
     /**
-     * Os filtros viviam numa barra full-width entre o cabeçalho e os KPIs, mas afetam **só** a
-     * lista de atletas. Controle longe do que ele afeta faz o coach duvidar do que está vendo — e
-     * a barra ainda ocupava uma faixa inteira da altura útil.
+     * Busca, filtro e ordenação JUNTO do que afetam. O filtro é segmentado e a ordenação é um
+     * ícone: dois chips iguais (filtro e ordenação) liam como dois filtros ativos.
      */
-    it('o header da lista traz status e ordenação, e a barra full-width sumiu', () => {
+    it('busca, filtro segmentado e ordenação por ícone vivem no header da coluna; a barra do topo não tem busca', () => {
       renderPage();
 
-      expect(screen.getByRole('button', { name: /filtrar por status/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /ordenar lista/i })).toBeInTheDocument();
-      // A barra antiga usava `Select` com rótulos soltos "Status" e "Ordenar".
-      expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+      const header = screen.getByTestId('inbox-lista-header');
+      expect(within(header).getByPlaceholderText('Buscar atleta...')).toBeInTheDocument();
+      expect(within(header).getByRole('group', { name: /filtrar lista/i })).toBeInTheDocument();
+      expect(within(header).getByRole('button', { name: /^Todos/ })).toHaveAttribute('aria-pressed', 'true');
+      expect(within(header).getByRole('button', { name: /^Em atenção/ })).toBeInTheDocument();
+      expect(within(header).getByRole('button', { name: /^Pausados$/ })).toBeInTheDocument();
+      expect(within(header).getByRole('button', { name: /ordenar lista/i })).toBeInTheDocument();
+      expect(within(screen.getByTestId('inbox-barra')).queryByPlaceholderText('Buscar atleta...')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /filtrar por status/i })).not.toBeInTheDocument();
     });
 
-    it('ordenar pelo chip aplica o sort', async () => {
+    it('"Em atenção" mostra só a fila, sem paginação, e não manda status à API', async () => {
+      renderPage();
+
+      await userEvent.click(screen.getByRole('button', { name: /^Em atenção/ }));
+
+      expect(screen.getByRole('button', { name: /^Em atenção/ })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByTestId('inbox-lista-contagem')).toHaveTextContent(`${DASHBOARD_STUB.attentionQueue.length} em atenção`);
+      expect(screen.queryByText(/página \d+\/\d+/)).not.toBeInTheDocument();
+      expect(document.querySelector('.MuiTablePagination-root')).toBeNull();
+      expect(mockFetchDashboard).toHaveBeenLastCalledWith(expect.objectContaining({ status: undefined }));
+    });
+
+    it('"Pausados" filtra pelo status da API', async () => {
+      renderPage();
+
+      await userEvent.click(screen.getByRole('button', { name: /^Pausados$/ }));
+
+      expect(mockFetchDashboard).toHaveBeenLastCalledWith(expect.objectContaining({ status: 'paused' }));
+    });
+
+    it('ordenar pelo ícone aplica o sort', async () => {
       renderPage();
 
       await userEvent.click(screen.getByRole('button', { name: /ordenar lista/i }));
-      await userEvent.click(screen.getByRole('menuitem', { name: /aderência/i }));
+      await userEvent.click(screen.getByRole('menuitem', { name: /carga/i }));
 
-      expect(screen.getByRole('button', { name: /ordenar lista/i })).toHaveTextContent(/aderência/i);
+      expect(mockFetchDashboard).toHaveBeenLastCalledWith(expect.objectContaining({ sortBy: 'volume' }));
     });
 
-    it('filtrar por status pelo chip aplica o filtro', async () => {
+    it('fila vazia em "Em atenção" é boa notícia, não "ajuste o filtro"', async () => {
+      vi.mocked(useCoachDashboard).mockReturnValue({
+        dashboard: { ...DASHBOARD_STUB, attentionQueue: [] },
+        loading: false,
+        error: null,
+        fetchDashboard: mockFetchDashboard,
+      });
       renderPage();
 
-      await userEvent.click(screen.getByRole('button', { name: /filtrar por status/i }));
-      await userEvent.click(screen.getByRole('menuitem', { name: 'Atenção' }));
+      await userEvent.click(screen.getByRole('button', { name: /^Em atenção/ }));
 
-      expect(screen.getByRole('button', { name: /filtrar por status/i })).toHaveTextContent(/atenção/i);
+      expect(screen.getByText(/ninguém em atenção agora/i)).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: /ver todos/i }));
+      expect(screen.getByRole('button', { name: /^Todos/ })).toHaveAttribute('aria-pressed', 'true');
     });
 
-    /** UX-007: o placeholder prometia busca por treino e prova; a query só filtra o roster. */
+    it('paginação em PT-BR, só com mais de uma página', () => {
+      const { unmount } = renderPage();
+      // O stub tem 24 atletas; a página é de ROSTER_PAGE_SIZE (10).
+      expect(screen.getByText(/1–10 de 24/)).toBeInTheDocument();
+      unmount();
+
+      vi.mocked(useCoachDashboard).mockReturnValue({
+        dashboard: { ...DASHBOARD_STUB, roster: { ...DASHBOARD_STUB.roster, totalElements: 1, totalPages: 1 } },
+        loading: false,
+        error: null,
+        fetchDashboard: mockFetchDashboard,
+      });
+      renderPage();
+      expect(document.querySelector('.MuiTablePagination-root')).toBeNull();
+    });
+
     it('o placeholder da busca não promete o que a tela não faz', () => {
       renderPage();
-
-      const busca = screen.getByPlaceholderText(/buscar atleta/i);
-      expect(busca).toBeInTheDocument();
-      expect(busca.getAttribute('placeholder')).not.toMatch(/treino|prova/i);
+      expect(screen.getByPlaceholderText('Buscar atleta...')).toBeInTheDocument();
+      expect(screen.queryByPlaceholderText(/treino|prova/i)).not.toBeInTheDocument();
     });
   });
 
@@ -705,8 +847,7 @@ describe('CoachInboxPage', () => {
       });
       renderPage();
 
-      await userEvent.click(screen.getByRole('button', { name: /filtrar por status/i }));
-      await userEvent.click(screen.getByRole('menuitem', { name: 'Atenção' }));
+      await userEvent.click(screen.getByRole('button', { name: /^Pausados$/ }));
 
       expect(screen.getByText(/nenhum atleta com este filtro/i)).toBeInTheDocument();
     });
@@ -778,6 +919,79 @@ describe('CoachInboxPage', () => {
 
       await userEvent.click(screen.getByRole('button', { name: /tentar de novo/i }));
       expect(mockFetchProfile).toHaveBeenCalled();
+    });
+  });
+
+  describe('próximo em atenção e atalhos (inbox-proximo-em-atencao)', () => {
+    const BRUNO = {
+      atletaId: 'a2',
+      athleteName: 'Bruno Lima',
+      severity: 'MEDIA' as const,
+      priorityScore: 40,
+      primaryReason: 'ADERENCIA' as const,
+      suggestedAction: 'Conversar sobre a semana',
+      generatedAt: '2026-06-24T13:30:00Z',
+      evidence: [],
+    };
+    const comDoisEmAtencao = () => {
+      vi.mocked(useCoachDashboard).mockReturnValue({
+        dashboard: { ...DASHBOARD_STUB, attentionQueue: [...DASHBOARD_STUB.attentionQueue, BRUNO] },
+        loading: false,
+        error: null,
+        fetchDashboard: mockFetchDashboard,
+      });
+    };
+
+    it('o link no fim do Diagnóstico seleciona o próximo com sinal; no último, "Fim da fila"', async () => {
+      comDoisEmAtencao();
+      renderPage();
+
+      await userEvent.click(screen.getByRole('button', { name: /próximo em atenção · bruno lima/i }));
+
+      expect(within(screen.getByTestId('inbox-lista')).getByRole('button', { name: /bruno lima/i })).toHaveAttribute('aria-current', 'true');
+      expect(screen.getByText(/fim da fila de atenção/i)).toBeInTheDocument();
+    });
+
+    it('tecla N avança; dentro de um campo, com Ctrl ou com dialog aberto, não', async () => {
+      comDoisEmAtencao();
+      renderPage();
+      // Pelo atributo, não pelo papel: com o dialog aberto o MUI põe o resto da página em aria-hidden.
+      const bruno = () => document.querySelector<HTMLElement>('[data-inbox-linha="a2"]')!;
+
+      await userEvent.keyboard('{Control>}n{/Control}');
+      expect(bruno()).not.toHaveAttribute('aria-current');
+
+      await userEvent.click(screen.getByPlaceholderText('Buscar atleta...'));
+      await userEvent.keyboard('n');
+      expect(bruno()).not.toHaveAttribute('aria-current');
+      await userEvent.clear(screen.getByPlaceholderText('Buscar atleta...'));
+
+      await userEvent.click(screen.getByRole('button', { name: /^Rejeitar$/i }));
+      await userEvent.keyboard('n');
+      expect(bruno()).not.toHaveAttribute('aria-current');
+      await userEvent.click(screen.getByRole('button', { name: /^Cancelar$/i }));
+      // O Dialog do MUI sai com transição: a guarda do N o vê até ele desmontar.
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+      await userEvent.click(document.body);
+      await userEvent.keyboard('n');
+      expect(bruno()).toHaveAttribute('aria-current', 'true');
+    });
+
+    it('↓ move foco e seleção para a linha seguinte; na última, nada', async () => {
+      comDoisEmAtencao();
+      renderPage();
+      const linhas = within(screen.getByTestId('inbox-lista')).getAllByRole('button');
+      expect(linhas.length).toBeGreaterThanOrEqual(2);
+
+      linhas[0].focus();
+      await userEvent.keyboard('{ArrowDown}');
+      expect(document.activeElement).toBe(linhas[1]);
+      expect(linhas[1]).toHaveAttribute('aria-current', 'true');
+
+      linhas[linhas.length - 1].focus();
+      await userEvent.keyboard('{ArrowDown}');
+      expect(document.activeElement).toBe(linhas[linhas.length - 1]);
     });
   });
 });

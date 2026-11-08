@@ -10,12 +10,30 @@ const KPIS: AthleteKpi[] = [
 ];
 
 describe('AthleteKpiStrip', () => {
-  it('mostra rótulo, valor e a base do número', () => {
+  it('mostra rótulo e valor; a base do número fica no title e no leitor de tela, não na tela', () => {
     render(<AthleteKpiStrip kpis={KPIS} />);
-    const celula = within(screen.getByTestId('kpi-adherence'));
-    expect(celula.getByText('Aderência')).toBeInTheDocument();
-    expect(celula.getByText('31%')).toBeInTheDocument();
-    expect(celula.getByText('5 de 16 treinos planejados')).toBeInTheDocument();
+    const celula = screen.getByTestId('kpi-adherence');
+    expect(within(celula).getByText('Aderência')).toBeInTheDocument();
+    expect(within(celula).getByText('31%')).toBeInTheDocument();
+    expect(celula).toHaveAttribute('title', '5 de 16 treinos planejados');
+    const oculto = within(celula).getByText('5 de 16 treinos planejados');
+    // `visuallyHidden` do MUI: fora do fluxo e recortado, mas presente para o leitor de tela.
+    expect(getComputedStyle(oculto).position).toBe('absolute');
+    expect(getComputedStyle(oculto).width).toBe('1px');
+    // O E2E "nenhum texto abaixo de 11px" conta texto recortado: tamanho explícito.
+    expect(getComputedStyle(oculto).fontSize).toBe('0.6875rem');
+  });
+
+  it('a faixa tem testid para medir a altura', () => {
+    render(<AthleteKpiStrip kpis={KPIS} />);
+    expect(screen.getByTestId('inbox-kpi-faixa')).toBeInTheDocument();
+  });
+
+  it('célula sem dado: só "—", sem title e sem texto oculto', () => {
+    render(<AthleteKpiStrip kpis={[{ key: 'form', label: 'Forma', qualifier: 'TSB', value: '—', detail: '', tone: 'neutral', badge: null }]} />);
+    const celula = screen.getByTestId('kpi-form');
+    expect(celula).toHaveTextContent(/^Forma · TSB—$/);
+    expect(celula).not.toHaveAttribute('title');
   });
 
   /** O tom não pode viver só na cor (toneMarker): warning tem ícone com rótulo acessível. */
@@ -25,11 +43,11 @@ describe('AthleteKpiStrip', () => {
     expect(within(screen.getByTestId('kpi-acwr')).queryByTitle(/atenção|adequado|crítico/i)).not.toBeInTheDocument();
   });
 
-  it('ACWR de baixa confiança mostra selo e motivo', () => {
+  it('ACWR de baixa confiança mostra o selo; o motivo vai para o title', () => {
     render(<AthleteKpiStrip kpis={KPIS} />);
-    const celula = within(screen.getByTestId('kpi-acwr'));
-    expect(celula.getByText('Baixa confiança')).toBeInTheDocument();
-    expect(celula.getByText(/60 dias sem treinos registrados/)).toBeInTheDocument();
+    const celula = screen.getByTestId('kpi-acwr');
+    expect(within(celula).getByText('Baixa confiança')).toBeInTheDocument();
+    expect(celula).toHaveAttribute('title', expect.stringMatching(/60 dias sem treinos registrados/));
   });
 });
 
@@ -46,10 +64,12 @@ describe('AthleteNextRace', () => {
   });
 });
 
-describe('AthleteKpiStrip — linha de apoio', () => {
-  it('não corta a linha de apoio em uma linha só (quebra em até 2)', () => {
+describe('AthleteKpiStrip — modo denso', () => {
+  it('rótulo e valor dividem a mesma linha; o selo fica ao lado do valor', () => {
     render(<AthleteKpiStrip kpis={KPIS} />);
-    const detalhe = within(screen.getByTestId('kpi-acwr')).getByText(/60 dias sem treinos registrados/);
-    expect(getComputedStyle(detalhe).whiteSpace).not.toBe('nowrap');
+    const celula = screen.getByTestId('kpi-acwr');
+    expect(getComputedStyle(celula).flexDirection).not.toBe('column');
+    const valor = within(celula).getByText('1,97');
+    expect(valor.parentElement).toContainElement(within(celula).getByText('Baixa confiança'));
   });
 });

@@ -61,6 +61,7 @@ export interface EtapaTreino {
   tipoEtapa: string | { value: string; label: string; description?: string; color?: string; order?: number };
   descricaoEtapa?: string;
   duracaoMin?: number;
+  duracaoSeg?: number;
   distanciaKm?: number;
   fcAlvoEtapa?: string; // Faixa de FC alvo da etapa (ex: "60-70% FCmax")
   repeticoes?: number;

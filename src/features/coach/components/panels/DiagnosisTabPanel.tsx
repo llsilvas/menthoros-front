@@ -5,7 +5,6 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { parseISO } from 'date-fns';
 import { content, primary, semantic, surface } from '../../../../theme/tokens';
 import { KpiStrip } from '../KpiStrip';
-import { EmptyMetricState } from '../EmptyMetricState';
 import { AdherenceToneLegend, WeeklyAdherenceLoadChart } from '../WeeklyAdherenceLoadChart';
 import { DiagnosisCard } from '../DiagnosisCard';
 import { PmcChartControls } from '../../../athlete/components/PmcChartControls';
@@ -17,6 +16,7 @@ import type { CoachAttentionItem } from '../../../../types/Coach';
 import { ACTION_BTN_END_ICON_SX } from '../../../../shared/components/actionButtonSx';
 import { buildDiagnosisMetrics } from '../../adapters/diagnosisMetricsAdapters';
 import { DIAGNOSIS_WEEKS } from '../../adapters/diagnosisChartsAdapters';
+import type { NextInAttention } from '../../adapters/coachInboxAdapters';
 import type { CoachAthleteRow } from '../../types/CoachInbox';
 import type { LimiareisInferidosDto } from '../../../../types/AtletaPerfilCoach';
 import type { PMCDataPoint, PMCGap, PMCRange } from '../../../athlete/components/PMCChart';
@@ -103,9 +103,14 @@ interface DiagnosisTabPanelProps {
   /** Série PMC (CTL/ATL/TSB) do atleta selecionado, já mapeada do perfil. */
   pmc: PMCDataPoint[];
   onOpenPlan: () => void;
+  /** Próximo atleta com sinal na lista visível; `null` = fim da fila. Só lido quando há sinal. */
+  nextAthlete?: NextInAttention | null;
+  onNext?: () => void;
 }
 
-export function DiagnosisTabPanel({ selected, attentionItem, attentionRecencyDays = null, limiareisInferidos, pmc, onOpenPlan }: DiagnosisTabPanelProps) {
+export function DiagnosisTabPanel({
+  selected, attentionItem, attentionRecencyDays = null, limiareisInferidos, pmc, onOpenPlan, nextAthlete = null, onNext,
+}: DiagnosisTabPanelProps) {
   const metrics = buildDiagnosisMetrics(selected);
   const statusColor = PLAN_STATUS_COLOR[selected.planStatus];
   const [pmcRange, setPmcRange] = useState<PMCRange>('12w');
@@ -162,24 +167,15 @@ export function DiagnosisTabPanel({ selected, attentionItem, attentionRecencyDay
 
 
 
+      {/*
+        Sem série na janela a grade some: carga cairia para 0 e monotonia para 1,00, ambas em faixa
+        "adequada", e a ausência de dado já foi dita uma vez abaixo da faixa de KPIs do atleta.
+        Sem faixa "ideal" (UX-005): o tom sinaliza o estado, também por ícone; a linha de apoio diz
+        a base de cada número. Mesma faixa do topo do atleta: células planas separadas por linha.
+      */}
       {selected.quickStats.hasWindowData ? (
-        /*
-          Sem faixa "ideal" (UX-005): um intervalo fixo, igual para todo atleta, não é referência.
-          O tom sinaliza o estado, também por ícone; a linha de apoio diz a base de cada número.
-          Mesma faixa do topo do atleta: células planas separadas por linha, não cards soltos.
-        */
         <KpiStrip items={metrics} testIdPrefix="metric" sx={{ border: `1px solid ${content.divider}` }} />
-      ) : (
-        /*
-          Sem série na janela, os números desta grade são fallback: carga cai para 0 e monotonia
-          para 1.00, ambos em faixa "adequada". Exibi-los seria afirmar que o atleta está bem
-          quando o que se sabe é que não há dado nenhum.
-        */
-        <EmptyMetricState
-          mensagem="Sem treinos registrados na janela analisada — os indicadores aparecem com o primeiro treino sincronizado."
-          proximoPasso="Confira a integração do atleta ou registre um treino manualmente."
-        />
-      )}
+      ) : null}
 
       {/*
         Substitui "Adesão nas últimas semanas" (barras S1…Sn sem data) e "Tendência de carga" (que
@@ -255,6 +251,26 @@ export function DiagnosisTabPanel({ selected, attentionItem, attentionRecencyDay
 
       {limiareisInferidos && <LimiareisCard limiares={limiareisInferidos} />}
 
+      {/*
+        Fluxo de triagem: depois de agir, o coach não volta à lista para achar o próximo vermelho.
+        Só aparece para quem está na fila — fora dela não há "próximo" que faça sentido.
+      */}
+      {attentionItem ? (
+        <Box data-testid="inbox-proximo-em-atencao" sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 1, pt: 0.5 }}>
+          {nextAthlete ? (
+            <Button
+              size="small"
+              endIcon={<ArrowForwardIcon fontSize="small" />}
+              onClick={onNext}
+              sx={{ ...ACTION_BTN_END_ICON_SX, color: surface[50], px: 1 }}
+            >
+              Próximo em atenção · {nextAthlete.nome}
+            </Button>
+          ) : (
+            <Typography sx={{ fontSize: '0.8rem', color: surface[400] }}>Fim da fila de atenção</Typography>
+          )}
+        </Box>
+      ) : null}
     </Box>
   );
 }

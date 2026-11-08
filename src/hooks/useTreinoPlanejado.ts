@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { CoachPlanoReviewService } from '../api/services/CoachPlanoReviewService';
+import { DataNaoAplicadaError } from '../features/coach/adapters/mensagemDeErroAoSalvar';
 import type { TreinoPlanejadoAddPayload, TreinoPlanejadoDto, TreinoPlanejadoPatch } from '../types/PlanoReview';
 
 export function useTreinoPlanejado() {
@@ -30,7 +31,13 @@ export function useTreinoPlanejado() {
             setIsSaving(true);
             setSaveError(null);
             try {
-                return await CoachPlanoReviewService.editarTreino(planoId, treinoId, patch);
+                const salvo = await CoachPlanoReviewService.editarTreino(planoId, treinoId, patch);
+                // Backend sem suporte a `dataTreino` ignora o campo e devolve 200 com a data antiga:
+                // sem esta checagem o treinador veria sucesso e o treino continuaria no dia de origem.
+                if (patch.dataTreino && salvo.dataTreino !== patch.dataTreino) {
+                    throw new DataNaoAplicadaError();
+                }
+                return salvo;
             } catch (err) {
                 const e = err instanceof Error ? err : new Error('Erro ao editar treino');
                 setSaveError(e);

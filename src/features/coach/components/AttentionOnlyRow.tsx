@@ -1,14 +1,15 @@
 import { memo } from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, ButtonBase, Typography } from '@mui/material';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import type { AttentionInfo } from '../adapters/coachInboxAdapters';
-import { content, semantic, surface } from '../../../theme/tokens';
-import { REASON_LABEL } from './coachInboxHelpers';
+import type { RowContext } from '../adapters/coachInboxAdapters';
+import { activeTheme } from '../../../theme/activeTheme';
+import { primary, surface } from '../../../theme/tokens';
+import { COR_DO_TOM } from './coachInboxHelpers';
 
 export interface AttentionOnlyRowProps {
   atletaId: string;
   athleteName: string;
-  attention: AttentionInfo;
+  contexto: RowContext;
   selected: boolean;
   onClick: () => void;
 }
@@ -16,57 +17,58 @@ export interface AttentionOnlyRowProps {
 /**
  * Linha de um atleta que veio **só** da fila de atenção — não está na página corrente do roster.
  *
- * Renderiza deliberadamente menos que a `QueueRow`: o DTO da fila de atenção traz nome, severidade,
- * motivo e ação sugerida, e **nenhuma** das métricas (aderência, volume, forma). Preencher esses
- * campos com zero para manter o mesmo desenho exibiria ausência de dado como se fosse medição —
- * um "0% de aderência" que o coach leria como fato.
+ * Mesma linha de ~46px da `QueueRow`, mas sem métricas: o DTO da fila não traz aderência, e
+ * preenchê-la com zero exibiria ausência como medição. O "—" diz isso; o `title` diz por quê.
  */
 export const AttentionOnlyRow = memo(function AttentionOnlyRow({
+  atletaId,
   athleteName,
-  attention,
+  contexto,
   selected,
   onClick,
 }: AttentionOnlyRowProps) {
-  const critico = attention.severity === 'CRITICA' || attention.severity === 'ALTA';
-  const cor = critico ? semantic.danger[500] : semantic.warning[500];
+  const cor = COR_DO_TOM[contexto.tom];
 
   return (
-    <Box
-      component="button"
+    <ButtonBase
       onClick={onClick}
       aria-current={selected ? 'true' : undefined}
+      data-inbox-linha={atletaId}
+      title="Fora da página atual da lista — abra para ver o detalhe completo."
       sx={{
         width: '100%',
         textAlign: 'left',
-        cursor: 'pointer',
-        p: 1.25,
-        borderRadius: 1.5,
         display: 'flex',
-        alignItems: 'flex-start',
+        alignItems: 'center',
         gap: 1,
-        bgcolor: selected ? `${cor}1F` : `${cor}14`,
-        border: `1px solid ${selected ? cor : `${cor}55`}`,
-        '&:hover': { bgcolor: `${cor}1F` },
+        px: 1.25,
+        py: 0.875,
+        borderRadius: 1.5,
+        border: `1px solid ${selected ? primary[500] : `${cor}66`}`,
+        backgroundColor: selected ? `${primary[500]}14` : `${cor}0F`,
+        '&:hover': { borderColor: primary[500] },
       }}
     >
-      <WarningAmberIcon sx={{ fontSize: '1rem', color: cor, mt: '2px', flexShrink: 0 }} />
-      <Box sx={{ minWidth: 0 }}>
-        <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: surface[50] }}>
+      <WarningAmberIcon sx={{ fontSize: '1.1rem', color: cor, flexShrink: 0 }} />
+      <Box sx={{ minWidth: 0, flex: 1 }}>
+        <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700, color: surface[50], lineHeight: 1.15 }} noWrap>
           {athleteName}
         </Typography>
-        <Typography sx={{ fontSize: '0.72rem', color: cor, fontWeight: 600 }}>
-          {REASON_LABEL[attention.reason]}
-          {attention.recencyDays != null ? ` · ${attention.recencyDays}d` : ''}
-        </Typography>
-        <Typography sx={{ fontSize: '0.72rem', color: surface[400] }}>
-          {attention.suggestedAction}
-        </Typography>
-        {/* Diz o que a linha NÃO tem. Sem isso, a ausência das métricas parece bug de carregamento. */}
-        <Typography sx={{ fontSize: '0.6875rem', color: surface[500], borderTop: `1px dashed ${content.divider}`, mt: 0.5, pt: 0.5 }}>
-          Fora da página atual da lista — abra para ver o detalhe completo.
+        <Typography data-testid="queue-row-motivo" sx={{ fontSize: '0.6875rem', lineHeight: 1.3, color: cor, fontWeight: 600 }} noWrap>
+          {contexto.texto}
         </Typography>
       </Box>
-    </Box>
+      <Typography
+        data-testid="queue-row-aderencia"
+        aria-label="Aderência sem dado"
+        sx={{ flex: 'none', fontFamily: activeTheme.font.mono, fontSize: '0.75rem', fontWeight: 600, color: surface[500] }}
+      >
+        <Box component="span" aria-hidden sx={{ fontFamily: activeTheme.font.text, fontWeight: 500, color: surface[400], mr: 0.5 }}>
+          Ader.
+        </Box>{' '}
+        —
+      </Typography>
+    </ButtonBase>
   );
 });
 
