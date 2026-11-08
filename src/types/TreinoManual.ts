@@ -1,3 +1,5 @@
+import type { EtapaRealizadaDetalhe, TempoEmZonasDto } from './TreinoRealizado';
+
 export type TipoTreino =
     | 'CONTINUO'
     | 'INTERVALADO'
@@ -89,6 +91,8 @@ export interface TreinoRealizadoDto {
     status: { value: string; label: string };
     observacao?: string;
     fcMedia?: number;
-    /** Presente apenas em treinos com etapas detalhadas (ex.: importados de .fit) */
-    etapasRealizadas?: unknown[];
+    /** Presente apenas em treinos com etapas detalhadas (ex.: voltas de um .fit). */
+    etapasRealizadas?: EtapaRealizadaDetalhe[];
+    /** Tempo em cada zona de FC; ausente sem amostras de FC ou sem zonas confiáveis. */
+    tempoEmZonas?: TempoEmZonasDto;
 }
