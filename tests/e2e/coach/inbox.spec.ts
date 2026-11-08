@@ -768,6 +768,36 @@ test.describe('Coach — KPIs do atleta em uma linha (inbox-kpis-atleta-sem-dado
     await expect(page).toHaveURL(/#\/coach\/athletes$/)
   })
 
+  // Com valores, rótulo e valor ficam em linhas separadas quando não cabem lado a lado: ~52px em
+  // 1366 (célula de ~160px úteis) e até ~80px em 1024 (~75px úteis, o valor quebra). Ambos abaixo
+  // dos 93px da faixa anterior; o que não pode acontecer é vazar ou cortar texto.
+  for (const { width, height, alturaMax } of [{ width: 1366, height: 625, alturaMax: 56 }, { width: 1024, height: 640, alturaMax: 84 }]) {
+    test(`com KPIs preenchidos em ${width}×${height}, nenhuma célula vaza e a faixa fica em até ${alturaMax}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height })
+      await mockarDashboard(page)
+      const dia = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10)
+      // Série curta: ACWR sai com "Baixa confiança"; forma "Acumulando fadiga" é o rótulo mais longo.
+      const pmc = Array.from({ length: 10 }, (_, i) => ({ data: dia(9 - i), ctl: 40 + i, atl: 60 + i, tsb: -20, tss: 80, statusForma: 'ACUMULANDO_FADIGA' }))
+      await page.route('**/api/v1/coach/atletas/*/perfil', (route) =>
+        route.fulfill({ json: { ...perfilDe('ana-alerta', 'Ana Fora da Pagina', null), pmc } }),
+      )
+      await page.goto(INBOX_URL)
+      await page.getByRole('button', { name: /ana fora da pagina/i }).click()
+      await expect(page.getByTestId('kpi-form')).toHaveText(/Acumulando fadiga/)
+      await expect(page.getByTestId('kpi-acwr')).toHaveText(/Baixa confiança/)
+      await expect(page.getByTestId('inbox-kpi-aviso')).toHaveCount(0)
+
+      const faixa = (await page.getByTestId('inbox-kpi-faixa').boundingBox())!
+      expect(faixa.height).toBeLessThanOrEqual(alturaMax)
+      const vazando = await page.evaluate(() =>
+        Array.from(document.querySelectorAll('[data-testid^="kpi-"]'))
+          .filter((el) => el.scrollWidth > el.clientWidth + 1)
+          .map((el) => el.getAttribute('data-testid')),
+      )
+      expect(vazando).toEqual([])
+    })
+  }
+
   test('a aderência da linha da lista tem rótulo', async ({ page }) => {
     await mockarDashboard(page)
     await page.goto(INBOX_URL)

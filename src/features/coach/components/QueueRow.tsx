@@ -74,7 +74,7 @@ export const QueueRow = memo(function QueueRow({ athlete, contexto, selected, on
           color: athlete.adherenceAvailable ? corDaAderencia(athlete.adherence) : surface[500],
         }}
       >
-        {/* Rótulo: o número solto à direita não dizia o que era (pedido do founder, 2026-11-07). */}
+        {/* Rótulo: o número solto à direita não dizia o que era. */}
         <Box component="span" aria-hidden sx={{ fontFamily: activeTheme.font.text, fontWeight: 500, color: surface[400], mr: 0.5 }}>
           Ader.
         </Box>{' '}

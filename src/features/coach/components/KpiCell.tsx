@@ -1,11 +1,24 @@
 import { Box, Typography } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material';
-import { visuallyHidden } from '@mui/utils';
 import type { ReactNode } from 'react';
 import { semantic, surface } from '../../../theme/tokens';
 import { marcadorDe } from './toneMarker';
 import type { KpiView } from '../types/Kpi';
 import { toneColor } from '../../../theme/toneColor';
+
+/** Só para leitor de tela (mesmo padrão do `visuallyHidden` do MUI, sem depender de `@mui/utils`). */
+// Valores em px por extenso: no `sx`, `width: 1` vira 100% e `margin: -1` vira spacing.
+const SO_LEITOR_DE_TELA = {
+  position: 'absolute',
+  width: '1px',
+  height: '1px',
+  padding: 0,
+  margin: '-1px',
+  border: 0,
+  overflow: 'hidden',
+  clip: 'rect(0 0 0 0)',
+  whiteSpace: 'nowrap',
+} as const;
 
 interface KpiCellProps {
   kpi: KpiView;
@@ -34,8 +47,10 @@ export function KpiCell({ kpi, testId, sx, icon, dense = false }: KpiCellProps) 
       // `detail` vazio = sem linha de apoio (célula sem dado): nem title, nem texto oculto.
       title={dense && kpi.detail ? kpi.detail : undefined}
       sx={[
+        // Densa: rótulo e valor na mesma linha; em célula estreita (1024px, quatro colunas) o valor
+        // desce para a linha de baixo em vez de vazar ou cortar ("Acumulando fadiga" não cabe).
         dense
-          ? { display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 1, minWidth: 0 }
+          ? { display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', columnGap: 1, rowGap: 0.25, minWidth: 0 }
           : { display: 'flex', flexDirection: 'column', gap: 0.5, minWidth: 0 },
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
@@ -53,15 +68,15 @@ export function KpiCell({ kpi, testId, sx, icon, dense = false }: KpiCellProps) 
           {kpi.qualifier ? <Box component="span" sx={{ color: surface[500] }}> · {kpi.qualifier}</Box> : null}
         </span>
       </Typography>
-      <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: dense ? 'nowrap' : 'wrap', gap: 1 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1, minWidth: 0 }}>
         <Typography
           sx={{
-            fontSize: dense ? '1rem' : { xs: '1.25rem', xl: '1.5rem' },
+            // Denso em 14px: 'Acumulando fadiga' cabe numa linha na célula de 1366px (~158px úteis).
+            fontSize: dense ? '0.875rem' : { xs: '1.25rem', xl: '1.5rem' },
             fontWeight: 700,
             lineHeight: 1.15,
             color,
             fontVariantNumeric: 'tabular-nums',
-            whiteSpace: dense ? 'nowrap' : undefined,
           }}
         >
           {marcador ? <marcador.Icone titleAccess={marcador.rotulo} sx={{ fontSize: '0.85em', mr: 0.5, verticalAlign: '-0.1em', color }} /> : null}
@@ -86,8 +101,8 @@ export function KpiCell({ kpi, testId, sx, icon, dense = false }: KpiCellProps) 
         ) : null}
       </Box>
       {!kpi.detail ? null : dense ? (
-        // O E2E "nenhum texto abaixo de 11px" conta texto com `clip`: o tamanho fica explícito.
-        <Box component="span" sx={{ ...visuallyHidden, fontSize: '0.6875rem' }}>
+        // Tamanho explícito: texto oculto também conta como texto da página para o mínimo de 11px.
+        <Box component="span" sx={{ ...SO_LEITOR_DE_TELA, fontSize: '0.6875rem' }}>
           {kpi.detail}
         </Box>
       ) : (
