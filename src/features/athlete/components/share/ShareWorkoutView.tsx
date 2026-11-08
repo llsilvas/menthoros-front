@@ -1,8 +1,11 @@
 import { useState } from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box } from '@mui/material';
+import { formatKm } from '../../../../utils/formatKm';
 import { SHARE_MODEL_DEFAULT_FORMAT, type ShareCardData, type ShareFormat, type ShareModel } from '../../types/ShareCard';
-import { GarminAttribution } from './GarminAttribution';
 import { ShareCardFrame } from './ShareCardFrame';
+import { PlanVsActualCard } from './PlanVsActualCard';
+import { SplitsCard } from './SplitsCard';
+import { WeekCard } from './WeekCard';
 import { ShareSignature } from './ShareSignature';
 import { ShareFormatPicker, ShareModelPicker, ShareOptionSwitch } from './ShareControls';
 
@@ -22,21 +25,21 @@ export function ShareWorkoutView({ data }: ShareWorkoutViewProps) {
     setFormat(SHARE_MODEL_DEFAULT_FORMAT[m]);
   };
 
-  const attribution = model === 'plano' ? data.plano?.attribution
-    : model === 'parciais' ? data.parciais?.attribution
-    : data.semana.attribution;
+  const ariaLabel = model === 'plano' ? `Card Plano × realizado: ${data.plano?.titulo ?? ''}`
+    : model === 'parciais' ? `Card Parciais: ${data.parciais?.splits.length ?? 0} voltas`
+    : `Card Semana: ${formatKm(data.semana.totalKm)} km em ${data.semana.treinos} treino(s)`;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <Box sx={{ display: 'flex', justifyContent: 'center', overflowX: 'auto' }}>
         <ShareCardFrame
           format={format}
-          ariaLabel={`Card ${model} do treino`}
+          ariaLabel={ariaLabel}
           footer={<ShareSignature signature={data.signature} visible={mostrarAssessoria} />}
         >
-          {/* Corpo de cada modelo entra na seção 3; aqui só a atribuição, que é obrigatória. */}
-          <GarminAttribution attribution={attribution ?? null} />
-          <Typography sx={{ fontSize: 12 }} data-fc={mostrarFc}>{model}</Typography>
+          {model === 'plano' && data.plano && <PlanVsActualCard view={data.plano} mostrarFc={mostrarFc} />}
+          {model === 'parciais' && data.parciais && <SplitsCard view={data.parciais} />}
+          {model === 'semana' && <WeekCard view={data.semana} />}
         </ShareCardFrame>
       </Box>
       <ShareModelPicker models={data.availableModels} value={model} onChange={escolherModelo} />
