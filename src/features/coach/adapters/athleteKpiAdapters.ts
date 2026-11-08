@@ -27,12 +27,12 @@ function semDado(key: AthleteKpiKey, label: string, qualifier: string | null): A
  * Aviso único abaixo da faixa quando não há série PMC na janela — a única condição em que Forma e
  * ACWR (e Carga, sem km do backend) ficam sem dado. ACWR nulo com série presente é outro fato
  * ("Dado insuficiente", na célula) e não dispara o aviso. Quem chama garante que o perfil já
- * carregou: a linha do roster tem `hasWindowData: false` fixo.
+ * carregou (a linha do roster tem `hasWindowData: false` fixo) e põe o link "Conferir integração".
  */
 export function avisoSemDado(row: CoachAthleteRow): string | null {
   if (row.quickStats.hasWindowData) return null;
   const celulas = row.distance7d ? 'forma e ACWR aparecem' : 'carga, forma e ACWR aparecem';
-  return `Sem treinos sincronizados na janela: ${celulas} com o primeiro treino. Confira a integração do atleta ou registre um treino manualmente.`;
+  return `Sem treinos sincronizados na janela: ${celulas} com o primeiro treino.`;
 }
 
 function adherenceKpi(row: CoachAthleteRow, rosterFallback: number | null): AthleteKpi {

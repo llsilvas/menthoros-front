@@ -115,7 +115,7 @@ describe('buildAthleteKpis', () => {
 describe('avisoSemDado', () => {
   it('sem série e sem km: cita carga, forma e ACWR', () => {
     expect(avisoSemDado(atleta({}, { hasWindowData: false }))).toBe(
-      'Sem treinos sincronizados na janela: carga, forma e ACWR aparecem com o primeiro treino. Confira a integração do atleta ou registre um treino manualmente.',
+      'Sem treinos sincronizados na janela: carga, forma e ACWR aparecem com o primeiro treino.',
     );
   });
 

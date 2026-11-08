@@ -312,6 +312,49 @@ describe('CoachInboxPage', () => {
     });
 
     /**
+     * inbox-kpis-atleta-sem-dado: a ausência de dado é dita uma vez, abaixo da faixa, com o link
+     * para conferir a integração — não três vezes nas células nem de novo no Diagnóstico.
+     */
+    it('sem série na janela: "Sem dado na janela" não aparece (texto nem title) e há um aviso só, com link', () => {
+      renderPage();
+
+      expect(screen.queryByText(/sem dado na janela/i)).not.toBeInTheDocument();
+      expect(document.querySelector('[title*="Sem dado na janela"]')).toBeNull();
+      const avisos = screen.getAllByTestId('inbox-kpi-aviso');
+      expect(avisos).toHaveLength(1);
+      expect(avisos[0]).toHaveTextContent(/^Sem treinos sincronizados na janela: carga, forma e ACWR aparecem com o primeiro treino\. Conferir integração$/);
+      expect(within(avisos[0]).getByRole('link', { name: 'Conferir integração' })).toBeInTheDocument();
+      expect(screen.queryByText(/sem treinos registrados na janela analisada/i)).not.toBeInTheDocument();
+    });
+
+    it('com série na janela não há aviso', () => {
+      vi.mocked(useAthleteProfile).mockReturnValue({
+        profile: makeProfile([
+          { data: '2026-06-20', ctl: 48, atl: 52, tsb: -4, tss: 70 },
+          { data: '2026-06-21', ctl: 49, atl: 54, tsb: -5, tss: 85 },
+        ]),
+        isLoading: false,
+        error: null,
+        errorKind: null,
+        fetchProfile: mockFetchProfile,
+      });
+      renderPage();
+
+      expect(screen.queryByTestId('inbox-kpi-aviso')).not.toBeInTheDocument();
+    });
+
+    it('enquanto o perfil carrega, ou em erro, não há aviso: a ausência ainda não se sabe', () => {
+      vi.mocked(useAthleteProfile).mockReturnValue({ profile: null, isLoading: true, error: null, errorKind: null, fetchProfile: mockFetchProfile });
+      const r1 = renderPage();
+      expect(screen.queryByTestId('inbox-kpi-aviso')).not.toBeInTheDocument();
+      r1.unmount();
+
+      vi.mocked(useAthleteProfile).mockReturnValue({ profile: null, isLoading: false, error: new Error('x'), errorKind: 'unknown', fetchProfile: mockFetchProfile } as never);
+      renderPage();
+      expect(screen.queryByTestId('inbox-kpi-aviso')).not.toBeInTheDocument();
+    });
+
+    /**
      * Reescrito em fix-coach-diagnosis-charts. Antes a aderência dependia de `hasWindowData`, que é
      * do PMC: um zero de aderência só aparecia se houvesse série PMC. Agora a aderência tem
      * disponibilidade própria — o zero legítimo é "0 de 4 treinos", com ou sem PMC.
