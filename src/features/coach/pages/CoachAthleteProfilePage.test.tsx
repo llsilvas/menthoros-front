@@ -10,6 +10,7 @@ import { useEnviarKudos } from '../../../hooks/useEnviarKudos';
 import { useCoachAthleteRaces } from '../hooks/useCoachAthleteRaces';
 import { useUserInfo } from '../../../hooks/useUserInfo';
 import { ContratoAtletaService } from '../../../api/services/ContratoAtletaService';
+import { CoachAthleteZonesService } from '../../../api/services/CoachAthleteZonesService';
 import type { Prova } from '../../../types/Prova';
 import type { AtletaPerfilCoachDto } from '../../../types/AtletaPerfilCoach';
 import type { RevisaoSemanalOutputDto } from '../../../types/RevisaoSemanal';
@@ -21,6 +22,7 @@ vi.mock('../hooks/useCoachAthleteRaces');
 vi.mock('../../../hooks/useUserInfo');
 vi.mock('../../../api/services/SugestaoService');
 vi.mock('../../../api/services/ContratoAtletaService');
+vi.mock('../../../api/services/CoachAthleteZonesService');
 vi.mock('../../athlete/components/PMCChart', () => ({
     default: () => <div data-testid="pmc-chart" />,
 }));
@@ -106,6 +108,9 @@ describe('CoachAthleteProfilePage', () => {
         vi.mocked(useEnviarKudos).mockReturnValue({ enviar: vi.fn().mockResolvedValue(undefined), loading: false, error: null });
         mockRaces([], []);
         vi.mocked(useUserInfo).mockReturnValue({ roles: ['TECNICO'] });
+        // Sem mock, a requisição real de zonas resolvia depois do teardown e o hook chamava setState
+        // com o jsdom já destruído (run de push em develop, c83dffc).
+        vi.mocked(CoachAthleteZonesService.getZonas).mockRejectedValue(new Error('sem zonas no teste'));
         vi.mocked(SugestaoService.detalhe).mockResolvedValue({
             id: 'sug-1',
             atletaId: 'uuid-1',
