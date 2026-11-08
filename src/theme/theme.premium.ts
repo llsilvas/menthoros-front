@@ -165,6 +165,8 @@ export const font = {
   display: '"Inter", system-ui, sans-serif',
   text:    '"Inter", system-ui, sans-serif',
   mono:    '"JetBrains Mono", ui-monospace, SFMono-Regular, monospace',
+  /** Números grandes dos cards de compartilhamento (athlete-share-cards, D6) — só lá. */
+  displayShare: '"Barlow Condensed", "Inter", system-ui, sans-serif',
 } as const;
 
 // ── WorkoutProfile — geometria e preenchimento do bloco ──────────────────────

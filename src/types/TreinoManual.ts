@@ -1,3 +1,5 @@
+import type { EtapaRealizadaDetalhe, TempoEmZonasDto } from './TreinoRealizado';
+
 export type TipoTreino =
     | 'CONTINUO'
     | 'INTERVALADO'
@@ -56,6 +58,22 @@ export const CALIBRACAO_EXTRAS_DEFAULT: CalibracaoExtras = {
     nivelRecuperacao: 5,
 };
 
+/**
+ * Trajeto GPS simplificado (`GET /me/realizados/{id}/trajeto`). Arrays paralelos: o i-ésimo ponto
+ * da polyline tem `tSeg[i]` e `fc[i]`. Dado de dispositivo Garmin: exibir "Garmin {deviceName}".
+ */
+export interface GpsTrace {
+    v: number;
+    n: number;
+    /** Encoded polyline (Google, precisão 5). */
+    polyline: string;
+    /** Segundos desde o primeiro ponto. */
+    tSeg: number[];
+    /** FC por ponto em bpm; null onde o sensor não registrou. */
+    fc: Array<number | null>;
+    deviceName?: string | null;
+}
+
 /** Resposta retornada pelo backend (campos relevantes para o atleta) */
 export interface TreinoRealizadoDto {
     id: string;
@@ -68,9 +86,13 @@ export interface TreinoRealizadoDto {
     fonteDados: { value: string; label: string };
     /** Modelo do dispositivo (Garmin); ausente quando desconhecido. */
     deviceName?: string | null;
+    /** Se há trajeto GPS em `GET /me/realizados/{id}/trajeto` (add-activity-gps-trace). */
+    temTrajeto?: boolean;
     status: { value: string; label: string };
     observacao?: string;
     fcMedia?: number;
-    /** Presente apenas em treinos com etapas detalhadas (ex.: importados de .fit) */
-    etapasRealizadas?: unknown[];
+    /** Presente apenas em treinos com etapas detalhadas (ex.: voltas de um .fit). */
+    etapasRealizadas?: EtapaRealizadaDetalhe[];
+    /** Tempo em cada zona de FC; ausente sem amostras de FC ou sem zonas confiáveis. */
+    tempoEmZonas?: TempoEmZonasDto;
 }

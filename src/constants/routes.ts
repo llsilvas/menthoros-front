@@ -41,6 +41,11 @@ export function athleteRaceEditRoute(provaId: string): string {
     return `${ROUTES.ATHLETE_RACES}/${provaId}/edit`;
 }
 
+/** Tela de compartilhar um treino realizado (athlete-share-cards, D1). */
+export function athleteShareWorkoutRoute(treinoRealizadoId: string): string {
+    return `/athlete/share/${treinoRealizadoId}`;
+}
+
 export type CoachRoute =
     | '/coach/inbox'
     | '/coach/settings'

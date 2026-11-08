@@ -1,4 +1,4 @@
-import type { TreinoManualInput, TreinoRealizadoDto } from '../../types/TreinoManual';
+import type { GpsTrace, TreinoManualInput, TreinoRealizadoDto } from '../../types/TreinoManual';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -41,6 +41,23 @@ export class ManualTrainingService {
             query: { 'dias': dias },
             errors: {
                 403: 'Acesso negado',
+            },
+        });
+    }
+
+    /**
+     * Trajeto GPS simplificado de um treino realizado do atleta (add-activity-gps-trace).
+     * Chamar só quando `TreinoRealizadoDto.temTrajeto` for true.
+     * @throws ApiError 404 (sem trajeto, de outro atleta ou de outro tenant), 403 (não ATLETA)
+     */
+    public static getTrajeto(treinoId: string): CancelablePromise<GpsTrace> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/atletas/me/realizados/{id}/trajeto',
+            path: { id: treinoId },
+            errors: {
+                403: 'Acesso negado',
+                404: 'Treino sem trajeto GPS',
             },
         });
     }

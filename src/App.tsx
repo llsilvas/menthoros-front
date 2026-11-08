@@ -30,6 +30,7 @@ import CoachAthleteProfilePage from './features/coach/pages/CoachAthleteProfileP
 import AthleteLayout from './features/athlete/layout/AthleteLayout';
 import AthleteHomePage from './features/athlete/pages/AthleteHomePage';
 import AthletePlanPage from './features/athlete/pages/AthletePlanPage';
+import AthleteShareWorkoutPage from './features/athlete/pages/AthleteShareWorkoutPage';
 import AthleteProgressPage from './features/athlete/pages/AthleteProgressPage';
 import AthleteCoachPage from './features/athlete/pages/AthleteCoachPage';
 import AthleteProfilePage from './features/athlete/pages/AthleteProfilePage';
@@ -153,6 +154,7 @@ const router = createHashRouter([
               { path: 'races',         element: <AthleteRacesPage /> },
               { path: 'races/new',     element: <AthleteRaceFormPage /> },
               { path: 'races/:provaId/edit', element: <AthleteRaceFormPage /> },
+              { path: 'share/:treinoId', element: <AthleteShareWorkoutPage /> },
             ],
           },
         ],
