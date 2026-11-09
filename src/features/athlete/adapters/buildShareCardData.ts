@@ -223,8 +223,11 @@ export function buildShareCardData(input: ShareCardInput): ShareCardData {
   if (plano) availableModels.push('plano');
   if (parciais) availableModels.push('parciais');
   if (rota) availableModels.push('rota', 'stickers');
-  // Esteira sem GPS também tem Foto: o adesivo do trajeto vira o selo.
-  if (esteira) availableModels.push(...(rota ? [] : ['stickers' as const]), 'esteira');
+  if (esteira) {
+    // Esteira sem GPS também tem Foto: o adesivo do trajeto vira o selo.
+    if (!rota) availableModels.push('stickers');
+    availableModels.push('esteira');
+  }
   availableModels.push('semana');
   const signature: ShareSignatureView | null = input.assessoriaNome?.trim()
     ? { sigla: siglaDe(input.assessoriaNome), nome: input.assessoriaNome.trim() }

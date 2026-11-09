@@ -2,7 +2,11 @@
 
 export type ShareModel = 'plano' | 'parciais' | 'semana' | 'rota' | 'stickers' | 'esteira';
 
-/** Modelos que desenham o trajeto GPS: exigem o consentimento do atleta (lgpd-trajeto-cards-compartilhamento). */
+/**
+ * Modelos que podem desenhar o trajeto GPS: exigem o consentimento do atleta
+ * (lgpd-trajeto-cards-compartilhamento). Foto só desenha trajeto quando há Rota; na esteira sem GPS
+ * o consentimento não é pedido (athlete-share-cards-esteira).
+ */
 export const MAP_MODELS: ReadonlySet<ShareModel> = new Set<ShareModel>(['rota', 'stickers']);
 export type ShareFormat = 'story' | 'feed' | 'quadrado';
 

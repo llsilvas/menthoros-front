@@ -49,7 +49,8 @@ export function TreadmillBadge() {
 
 /** Corpo do card "Esteira" (v2 I): selo, km ou tempo em destaque, pace e três blocos. */
 export function TreadmillCard({ view, mostrarFc }: TreadmillCardProps) {
-  const temDistancia = view.distanciaKm != null;
+  const km = view.distanciaKm;
+  const temDistancia = km != null;
   return (
     <>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -65,7 +66,7 @@ export function TreadmillCard({ view, mostrarFc }: TreadmillCardProps) {
       <Box sx={{ flex: '1 1 0', minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '14px' }}>
         <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: '6px' }}>
           <Typography component="span" sx={{ ...displayNumberSx, fontSize: temDistancia ? 120 : 76 }}>
-            {temDistancia ? formatKm(view.distanciaKm!) : view.duracao}
+            {km != null ? formatKm(km) : view.duracao}
           </Typography>
           {temDistancia && (
             <Typography component="span" sx={{ ...displayNumberSx, fontSize: 28, color: shareColors.brand, pb: '4px' }}>KM</Typography>

@@ -88,6 +88,8 @@ export function ShareWorkoutView({ data }: ShareWorkoutViewProps) {
   };
 
   const ehStickers = model === 'stickers';
+  // Foto usa a Rota quando há trajeto; na esteira sem GPS, o view do card Esteira.
+  const viewFoto = data.rota ?? data.esteira;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -105,9 +107,9 @@ export function ShareWorkoutView({ data }: ShareWorkoutViewProps) {
           {model === 'semana' && <WeekCard view={data.semana} />}
           {model === 'rota' && data.rota && <RouteCard view={data.rota} mostrarFc={mostrarFc} />}
           {model === 'esteira' && data.esteira && <TreadmillCard view={data.esteira} mostrarFc={mostrarFc} />}
-          {ehStickers && (data.rota ?? data.esteira) && (
+          {ehStickers && viewFoto && (
             <PhotoStickersCard
-              view={(data.rota ?? data.esteira)!}
+              view={viewFoto}
               foto={stickers.foto}
               posicoes={stickers.posicoes}
               onMover={stickers.mover}
