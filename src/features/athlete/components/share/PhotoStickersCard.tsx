@@ -15,6 +15,7 @@ export interface PhotoStickersCardProps {
   foto: string | null;
   posicoes: Record<StickerId, StickerPos>;
   onMover: (id: StickerId, pos: StickerPos) => void;
+  onSoltar: () => void;
   signature: ShareSignatureView | null;
   mostrarAssessoria: boolean;
 }
@@ -27,7 +28,7 @@ const fundoAdesivo = alpha(surface[900], 0.62);
  * A foto em si é o fundo do `ShareCardFrame` (ver {@link PhotoBackground}). A atribuição Garmin fica
  * dentro do adesivo de distância para não poder ser separada dele (guideline Garmin).
  */
-export function PhotoStickersCard({ view, foto, posicoes, onMover, signature, mostrarAssessoria }: PhotoStickersCardProps) {
+export function PhotoStickersCard({ view, foto, posicoes, onMover, onSoltar, signature, mostrarAssessoria }: PhotoStickersCardProps) {
   if (!foto) {
     return (
       <Box sx={{ flex: '1 1 0', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', border: `1px dashed ${alpha(shareColors.text, 0.3)}`, borderRadius: '16px', p: 3 }}>
@@ -37,7 +38,7 @@ export function PhotoStickersCard({ view, foto, posicoes, onMover, signature, mo
   }
   return (
     <Box sx={{ flex: '1 1 0', position: 'relative' }}>
-      <DraggableSticker nome="distância" pos={posicoes.distancia} onMove={(p) => onMover('distancia', p)}>
+      <DraggableSticker nome="distância" pos={posicoes.distancia} onMove={(p) => onMover('distancia', p)} onSoltar={onSoltar}>
         <Box sx={{ bgcolor: fundoAdesivo, borderRadius: '16px', px: 1.75, py: 1.25, display: 'flex', flexDirection: 'column', gap: '2px' }}>
           <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: '4px' }}>
             <Typography component="span" sx={{ ...displayNumberSx, fontSize: 52 }}>
@@ -54,14 +55,14 @@ export function PhotoStickersCard({ view, foto, posicoes, onMover, signature, mo
         </Box>
       </DraggableSticker>
 
-      <DraggableSticker nome="trajeto" pos={posicoes.trajeto} onMove={(p) => onMover('trajeto', p)}>
+      <DraggableSticker nome="trajeto" pos={posicoes.trajeto} onMove={(p) => onMover('trajeto', p)} onSoltar={onSoltar}>
         <Box sx={{ width: 130, height: 130, borderRadius: '50%', bgcolor: fundoAdesivo, p: 2.25 }}>
           <RouteTrace pontos={view.pontos} largura={100} altura={100} espessura={3} />
         </Box>
       </DraggableSticker>
 
       {mostrarAssessoria && signature && (
-        <DraggableSticker nome="assinatura" pos={posicoes.assinatura} onMove={(p) => onMover('assinatura', p)}>
+        <DraggableSticker nome="assinatura" pos={posicoes.assinatura} onMove={(p) => onMover('assinatura', p)} onSoltar={onSoltar}>
           <Box sx={{ bgcolor: fundoAdesivo, borderRadius: '999px', px: 1.25, py: 0.75 }}>
             <ShareSignature signature={signature} visible />
           </Box>

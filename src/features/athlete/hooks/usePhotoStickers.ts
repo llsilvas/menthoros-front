@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { normalizarFoto } from '../utils/normalizarFoto';
 
 export type StickerId = 'distancia' | 'trajeto' | 'assinatura';
@@ -26,17 +26,27 @@ export function usePhotoStickers() {
   const [carregando, setCarregando] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [posicoes, setPosicoes] = useState<Record<StickerId, StickerPos>>(POSICOES_INICIAIS);
+  /**
+   * Muda só quando um adesivo é solto (fim do arraste ou da tecla). Entra na versão da imagem no lugar
+   * das posições: regerar o PNG a cada `pointermove` rasterizaria dezenas de vezes em pixelRatio 3.
+   */
+  const [layoutId, setLayoutId] = useState(0);
+  const pedido = useRef(0);
 
   const escolherFoto = useCallback(async (arquivo: File) => {
+    // Duas escolhas seguidas: só a última pode virar a foto do card.
+    const meu = ++pedido.current;
     setCarregando(true);
     setError(null);
     try {
-      setFoto(await normalizarFoto(arquivo));
+      const normalizada = await normalizarFoto(arquivo);
+      if (meu !== pedido.current) return;
+      setFoto(normalizada);
       setFotoId((n) => n + 1);
     } catch (e) {
-      setError(e instanceof Error ? e : new Error('Foto inválida'));
+      if (meu === pedido.current) setError(e as Error);
     } finally {
-      setCarregando(false);
+      if (meu === pedido.current) setCarregando(false);
     }
   }, []);
 
@@ -44,5 +54,7 @@ export function usePhotoStickers() {
     setPosicoes((atual) => ({ ...atual, [id]: pos }));
   }, []);
 
-  return { foto, fotoId, carregando, error, posicoes, escolherFoto, mover };
+  const soltar = useCallback(() => setLayoutId((n) => n + 1), []);
+
+  return { foto, fotoId, carregando, error, posicoes, layoutId, escolherFoto, mover, soltar };
 }

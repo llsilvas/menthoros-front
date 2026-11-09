@@ -7,6 +7,8 @@ export interface DraggableStickerProps {
   nome: string;
   pos: StickerPos;
   onMove: (pos: StickerPos) => void;
+  /** Adesivo solto (fim do arraste ou tecla liberada): é quando a imagem é regerada. */
+  onSoltar: () => void;
   children: ReactNode;
 }
 
@@ -17,7 +19,7 @@ const PASSO_TECLADO = 2;
  * (athlete-share-cards-mapa, D2). `touch-action: none` impede o navegador de assumir rolagem no meio
  * do gesto; `pointercancel` e `lostpointercapture` encerram o arraste para o adesivo não ficar preso.
  */
-export function DraggableSticker({ nome, pos, onMove, children }: DraggableStickerProps) {
+export function DraggableSticker({ nome, pos, onMove, onSoltar, children }: DraggableStickerProps) {
   const ref = useRef<HTMLDivElement>(null);
   const inicio = useRef<{ px: number; py: number; pos: StickerPos } | null>(null);
 
@@ -43,7 +45,9 @@ export function DraggableSticker({ nome, pos, onMove, children }: DraggableStick
     onMove(limitar(inicio.current.pos.x + dx, inicio.current.pos.y + dy));
   };
   const encerrar = () => {
+    if (!inicio.current) return;
     inicio.current = null;
+    onSoltar();
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -70,6 +74,7 @@ export function DraggableSticker({ nome, pos, onMove, children }: DraggableStick
       onPointerCancel={encerrar}
       onLostPointerCapture={encerrar}
       onKeyDown={onKeyDown}
+      onKeyUp={(e) => { if (e.key.startsWith('Arrow')) onSoltar(); }}
       sx={{
         position: 'absolute', left: `${pos.x}%`, top: `${pos.y}%`,
         touchAction: 'none', cursor: 'grab', userSelect: 'none',

@@ -48,6 +48,9 @@ export function ShareWorkoutView({ data }: ShareWorkoutViewProps) {
   const stickers = usePhotoStickers();
 
   const comMapa = MAP_MODELS.has(model);
+  // Enquanto o estado não chega (ou falha), ninguém é tratado como "sem consentimento": o aviso
+  // apareceria para quem já consentiu. A captura continua bloqueada até `granted` ser lido.
+  const consentimentoConhecido = !consent.loading && !consent.loadError;
   const precisaConsentimento = comMapa && !consent.granted;
   const semFoto = model === 'stickers' && !stickers.foto;
 
@@ -55,7 +58,7 @@ export function ShareWorkoutView({ data }: ShareWorkoutViewProps) {
   const versao = [
     model, format, (model === 'plano' || model === 'rota') && mostrarFc, mostrarAssessoria,
     comMapa && consent.granted, model === 'stickers' ? stickers.fotoId : '',
-    model === 'stickers' ? JSON.stringify(stickers.posicoes) : '',
+    model === 'stickers' ? stickers.layoutId : '',
   ].join('|');
   // Lido logo antes da captura (D4): modelo com mapa sem consentimento, ou Foto sem foto, não vira PNG.
   const imagem = useShareImage(cardRef, versao, () => !precisaConsentimento && !semFoto);
@@ -104,6 +107,7 @@ export function ShareWorkoutView({ data }: ShareWorkoutViewProps) {
               foto={stickers.foto}
               posicoes={stickers.posicoes}
               onMover={stickers.mover}
+              onSoltar={stickers.soltar}
               signature={data.signature}
               mostrarAssessoria={mostrarAssessoria}
             />
@@ -130,8 +134,13 @@ export function ShareWorkoutView({ data }: ShareWorkoutViewProps) {
       <ShareDestinations
         {...imagem}
         fileName={`menthoros-${model}-${format}.png`}
-        onPedirConsentimento={precisaConsentimento && !semFoto ? () => { consent.limparErro(); setAvisoAberto(true); } : undefined}
+        onPedirConsentimento={precisaConsentimento && consentimentoConhecido && !semFoto ? () => { consent.limparErro(); setAvisoAberto(true); } : undefined}
       />
+      {comMapa && consent.loadError && (
+        <Alert severity="error" action={<Button color="inherit" onClick={() => void consent.fetchConsent()}>Tentar de novo</Button>}>
+          Não deu para conferir sua permissão de mostrar o trajeto.
+        </Alert>
+      )}
 
       <TrajectoryShareConsentDialog
         open={avisoAberto}

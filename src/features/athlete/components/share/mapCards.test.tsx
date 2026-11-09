@@ -140,4 +140,36 @@ describe('modelos com mapa', () => {
     await userEvent.upload(screen.getByTestId('input-foto'), new File(['x'], 'quebrada.jpg', { type: 'image/jpeg' }));
     expect(await screen.findByText('Não deu para usar esta foto — tente outra.')).toBeInTheDocument();
   });
+
+  it('estado do consentimento ainda carregando: o aviso não abre para quem talvez já consentiu', async () => {
+    vi.mocked(TrajetoShareConsentService.obter).mockReturnValue(new Promise(() => {}) as never);
+    renderView();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Salvar' })).toBeDisabled());
+    expect(toBlob).not.toHaveBeenCalled();
+  });
+
+  it('falha ao conferir o consentimento: mostra o erro com "Tentar de novo" e não gera a Rota', async () => {
+    vi.mocked(TrajetoShareConsentService.obter).mockRejectedValue(new Error('rede'));
+    renderView();
+    expect(await screen.findByText('Não deu para conferir sua permissão de mostrar o trajeto.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Salvar' })).toBeDisabled();
+    expect(toBlob).not.toHaveBeenCalled();
+  });
+
+  it('Foto: mover o adesivo regera a imagem uma vez, ao soltar — não a cada passo', async () => {
+    consentimento(true);
+    vi.mocked(normalizarFoto).mockResolvedValue('data:image/jpeg;base64,AAAA');
+    renderView();
+    await userEvent.click(screen.getByRole('radio', { name: 'Foto' }));
+    await userEvent.upload(screen.getByTestId('input-foto'), new File(['x'], 'corrida.jpg', { type: 'image/jpeg' }));
+    const adesivo = await screen.findByRole('button', { name: /Adesivo trajeto/ });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Salvar' })).toBeEnabled());
+    const antes = vi.mocked(toBlob).mock.calls.length;
+
+    adesivo.focus();
+    await userEvent.keyboard('{ArrowDown>3/}');
+
+    await waitFor(() => expect(vi.mocked(toBlob).mock.calls.length).toBe(antes + 1));
+  });
 });
+
