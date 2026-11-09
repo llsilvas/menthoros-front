@@ -150,9 +150,17 @@ describe('buildShareCardData — esteira (athlete-share-cards-esteira)', () => {
 
   it('esteira: true → modelo Esteira antes de Semana, com km, pace, FC e TSS (CA1)', () => {
     const d = buildShareCardData({ ...base, realizado: realizado({ esteira: true, tipoTreino: 'CONTINUO', duracaoMin: '50:30', distanciaKm: 10, fcMedia: 146, tssCalculado: 58 }) });
-    expect(d.availableModels).toEqual(['stickers', 'esteira', 'semana']);
+    expect(d.availableModels).toEqual(['esteira', 'stickers', 'semana']);
     expect(d.esteira).toMatchObject({ titulo: 'Corrida Fácil', distanciaKm: 10, duracao: '50:30', paceMedio: '5:03', fcMedia: 146, tss: 58 });
     expect(d.esteira?.attribution?.label).toBe('GARMIN FORERUNNER 265');
+  });
+
+  it('esteira com trajeto GPS: Rota e Foto vêm antes e a Foto usa a rota (CA7)', () => {
+    const gpsTrace = { v: 1, n: 3, polyline: '_p~iF~ps|U_ulLnnqC_mqNvxq`@', tSeg: [0, 1, 2], fc: [null, null, null] };
+    const d = buildShareCardData({ ...base, realizado: realizado({ esteira: true, temTrajeto: true }), gpsTrace });
+    expect(d.availableModels).toEqual(['rota', 'stickers', 'esteira', 'semana']);
+    expect(d.rota?.kind).toBe('rota');
+    expect(d.esteira?.kind).toBe('esteira');
   });
 
   it('esteira false ou ausente → sem modelo Esteira (CA1)', () => {

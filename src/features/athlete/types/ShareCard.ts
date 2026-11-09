@@ -79,6 +79,7 @@ export interface WeekView {
 
 /** Trajeto e números dos modelos com mapa (Rota e Stickers). */
 export interface RouteView {
+  kind: 'rota';
   titulo: string;
   dataLabel: string;
   /** Trajeto decodificado: [lat, lng]. A projeção é feita no tamanho de cada card. */
@@ -92,6 +93,7 @@ export interface RouteView {
 
 /** Card Esteira (athlete-share-cards-esteira, v2 I): km ou tempo em destaque, pace e três blocos. */
 export interface TreadmillView {
+  kind: 'esteira';
   titulo: string;
   dataLabel: string;
   distanciaKm?: number;

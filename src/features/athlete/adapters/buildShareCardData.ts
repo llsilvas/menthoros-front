@@ -224,9 +224,10 @@ export function buildShareCardData(input: ShareCardInput): ShareCardData {
   if (parciais) availableModels.push('parciais');
   if (rota) availableModels.push('rota', 'stickers');
   if (esteira) {
-    // Esteira sem GPS também tem Foto: o adesivo do trajeto vira o selo.
-    if (!rota) availableModels.push('stickers');
     availableModels.push('esteira');
+    // Esteira sem GPS também tem Foto (o adesivo do trajeto vira o selo), depois do card pronto:
+    // o modelo inicial é o primeiro da lista e a Foto abre sem imagem.
+    if (!rota) availableModels.push('stickers');
   }
   availableModels.push('semana');
   const signature: ShareSignatureView | null = input.assessoriaNome?.trim()
@@ -243,6 +244,7 @@ function buildRota(input: ShareCardInput): RouteView | null {
   if (pontos.length < 2) return null;
   const seg = segundosDe(realizado.duracaoMin) ?? 0;
   return {
+    kind: 'rota',
     titulo: tipoTreinoLabel(realizado.tipoTreino),
     dataLabel: dataLabel(realizado.dataTreino),
     pontos,
@@ -260,6 +262,7 @@ function buildEsteira(input: ShareCardInput): TreadmillView | null {
   if (realizado.esteira !== true) return null;
   const seg = segundosDe(realizado.duracaoMin) ?? 0;
   return {
+    kind: 'esteira',
     titulo: tipoTreinoLabel(realizado.tipoTreino),
     dataLabel: dataLabel(realizado.dataTreino),
     distanciaKm: realizado.distanciaKm,
