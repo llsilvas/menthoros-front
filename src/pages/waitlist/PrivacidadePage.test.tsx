@@ -48,8 +48,8 @@ describe('PrivacidadePage', () => {
     // Guard-rail do bump: `POLITICA_VERSAO` precisa bater com `app.lgpd.policy-version` no backend.
     // Se a data por extenso e a técnica divergirem, o coach aceita uma versão que não leu.
     renderPage();
-    expect(POLITICA_VERSAO).toBe('2026-10-26');
-    expect(POLITICA_ATUALIZADA_EM).toBe('26 de outubro de 2026');
+    expect(POLITICA_VERSAO).toBe('2026-11-09');
+    expect(POLITICA_ATUALIZADA_EM).toBe('9 de novembro de 2026');
     expect(screen.getByText(`Última atualização: ${POLITICA_ATUALIZADA_EM}`)).toBeInTheDocument();
   });
 
@@ -57,5 +57,13 @@ describe('PrivacidadePage', () => {
     renderPage();
     expect(screen.getByText(/Transparência sobre dados do Garmin/)).toHaveTextContent(/não são usados para treinar, ajustar ou avaliar modelos/);
     expect(screen.getByText(/Transferência ao Garmin/)).toHaveTextContent(/autoriza expressamente/);
+  });
+
+  it('cobre a imagem de treino gerada a pedido do atleta, com trajeto completo inclusive início e fim (CA1)', () => {
+    renderPage();
+    expect(screen.getByText(/Gerar, a pedido do atleta, imagens do treino/)).toBeInTheDocument();
+    expect(screen.getByText('6.4 Compartilhamento feito pelo próprio atleta')).toBeInTheDocument();
+    expect(screen.getByText(/trajeto completo do treino, incluindo os pontos de início e fim/)).toBeInTheDocument();
+    expect(screen.getByRole('cell', { name: /Imagem do treino com trajeto GPS/ })).toBeInTheDocument();
   });
 });
