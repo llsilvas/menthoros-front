@@ -11,6 +11,8 @@ export interface TrajectoryShareConsentDialogProps {
   onConfirmar: () => void;
   /** Sair sem mapa: no compartilhamento troca o modelo; no perfil só fecha. */
   onRecusar: () => void;
+  /** Fechar sem escolher (clique fora, Esc). Padrão: o mesmo que recusar. */
+  onFechar?: () => void;
   rotuloRecusar: string;
   rotuloConfirmar?: string;
 }
@@ -20,10 +22,10 @@ export interface TrajectoryShareConsentDialogProps {
  * Texto curto e literal sobre início e fim — é o que o atleta precisa entender para decidir.
  */
 export function TrajectoryShareConsentDialog({
-  open, salvando, desatualizado, erro, onConfirmar, onRecusar, rotuloRecusar, rotuloConfirmar = 'Entendi, compartilhar',
+  open, salvando, desatualizado, erro, onConfirmar, onRecusar, onFechar, rotuloRecusar, rotuloConfirmar = 'Entendi, compartilhar',
 }: TrajectoryShareConsentDialogProps) {
   return (
-    <Dialog open={open} onClose={onRecusar} aria-labelledby="trajeto-consent-titulo" maxWidth="xs" fullWidth>
+    <Dialog open={open} onClose={onFechar ?? onRecusar} aria-labelledby="trajeto-consent-titulo" maxWidth="xs" fullWidth>
       <DialogTitle id="trajeto-consent-titulo">Seu trajeto vai aparecer na imagem</DialogTitle>
       <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
         <Typography variant="body1">

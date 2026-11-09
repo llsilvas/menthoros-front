@@ -3,7 +3,7 @@ import { ApiError } from '../../../api/core/ApiError';
 import { ManualTrainingService } from '../../../api/services/ManualTrainingService';
 import { PlanoSemanalService } from '../../../api/services/PlanoSemanalService';
 import { UsuarioService } from '../../../api/services/UsuarioService';
-import type { TreinoRealizadoDto } from '../../../types/TreinoManual';
+import type { GpsTrace, TreinoRealizadoDto } from '../../../types/TreinoManual';
 import type { PlanoSemanal } from '../../../types/PlanoSemanal';
 import type { TreinoPlanejado } from '../../../types/TreinoPlanejado';
 import { buildShareCardData } from '../adapters/buildShareCardData';
@@ -42,12 +42,16 @@ export function useShareWorkout(treinoId: string | undefined) {
         setNotFound(true);
         return;
       }
-      const planejado = me.atletaId ? await buscarPlanejado(me.atletaId, treinoId) : null;
+      const [planejado, gpsTrace] = await Promise.all([
+        me.atletaId ? buscarPlanejado(me.atletaId, treinoId) : Promise.resolve(null),
+        realizado.temTrajeto ? buscarTrajeto(treinoId) : Promise.resolve(null),
+      ]);
       setData(buildShareCardData({
         realizado,
         planejado,
         recentes,
         assessoriaNome: me.assessoria?.nome ?? null,
+        gpsTrace,
       }));
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Erro ao carregar o treino'));
@@ -57,6 +61,15 @@ export function useShareWorkout(treinoId: string | undefined) {
   }, [treinoId]);
 
   return { data, loading, error, notFound, fetchData };
+}
+
+/** O mapa é aditivo: sem trajeto os modelos com mapa somem e o resto da tela continua (D6). */
+async function buscarTrajeto(treinoId: string): Promise<GpsTrace | null> {
+  try {
+    return await ManualTrainingService.getTrajeto(treinoId);
+  } catch {
+    return null;
+  }
 }
 
 /** Planejado cujo realizado é este treino; sem plano aprovado (404) é só "sem planejado". */

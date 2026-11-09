@@ -1,6 +1,9 @@
 /** View models dos cards de compartilhamento (athlete-share-cards). Montados por `buildShareCardData`. */
 
-export type ShareModel = 'plano' | 'parciais' | 'semana';
+export type ShareModel = 'plano' | 'parciais' | 'semana' | 'rota' | 'stickers';
+
+/** Modelos que desenham o trajeto GPS: exigem o consentimento do atleta (lgpd-trajeto-cards-compartilhamento). */
+export const MAP_MODELS: ReadonlySet<ShareModel> = new Set<ShareModel>(['rota', 'stickers']);
 export type ShareFormat = 'story' | 'feed' | 'quadrado';
 
 /** Atribuição exigida pela Garmin (API Brand Guidelines, Visual and Social Media). */
@@ -70,12 +73,26 @@ export interface WeekView {
   attribution: GarminAttributionView | null;
 }
 
+/** Trajeto e números dos modelos com mapa (Rota e Stickers). */
+export interface RouteView {
+  titulo: string;
+  dataLabel: string;
+  /** Trajeto decodificado: [lat, lng]. A projeção é feita no tamanho de cada card. */
+  pontos: [number, number][];
+  distanciaKm?: number;
+  duracao: string;
+  paceMedio?: string;
+  fcMedia?: number;
+  attribution: GarminAttributionView | null;
+}
+
 export interface ShareCardData {
   availableModels: ShareModel[];
   signature: ShareSignatureView | null;
   plano: PlanVsActualView | null;
   parciais: SplitsView | null;
   semana: WeekView;
+  rota: RouteView | null;
 }
 
 export const SHARE_FORMAT_SIZE: Record<ShareFormat, { width: number; height: number }> = {
@@ -88,4 +105,6 @@ export const SHARE_MODEL_DEFAULT_FORMAT: Record<ShareModel, ShareFormat> = {
   plano: 'story',
   parciais: 'feed',
   semana: 'quadrado',
+  rota: 'story',
+  stickers: 'story',
 };

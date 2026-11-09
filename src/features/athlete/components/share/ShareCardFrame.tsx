@@ -10,6 +10,8 @@ export interface ShareCardFrameProps {
   children: ReactNode;
   /** Rodapé (assinatura da assessoria). */
   footer?: ReactNode;
+  /** Fundo que ocupa o card inteiro, por trás da marca e do conteúdo (foto do card Stickers). */
+  background?: ReactNode;
 }
 
 /**
@@ -17,7 +19,7 @@ export interface ShareCardFrameProps {
  * rasterizado na exportação — por isso sem `backdrop-filter` nem filtros SVG (design D5).
  */
 export const ShareCardFrame = forwardRef<HTMLDivElement, ShareCardFrameProps>(function ShareCardFrame(
-  { format, ariaLabel, children, footer },
+  { format, ariaLabel, children, footer, background },
   ref,
 ) {
   return (
@@ -35,11 +37,16 @@ export const ShareCardFrame = forwardRef<HTMLDivElement, ShareCardFrameProps>(fu
         flexDirection: 'column',
         gap: '12px',
         overflow: 'hidden',
+        position: 'relative',
+        '& > :not([data-share-bg])': { position: 'relative', zIndex: 1 },
         color: shareColors.text,
         bgcolor: shareColors.canvas,
         backgroundImage: `radial-gradient(circle at 85% 12%, ${shareColors.glow}, transparent 50%), radial-gradient(circle at 8% 92%, ${shareColors.glowSoft}, transparent 45%)`,
       }}
     >
+      {background && (
+        <Box data-share-bg aria-hidden sx={{ position: 'absolute', inset: 0, zIndex: 0 }}>{background}</Box>
+      )}
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '5px' }}>
         <Box component="svg" width={13} height={13} viewBox="0 0 24 24" aria-hidden sx={{ fill: 'none', stroke: shareColors.brand, strokeWidth: 2.8, strokeLinecap: 'round', strokeLinejoin: 'round' }}>
           <path d="M3 19V6l9 9 9-9v13" />

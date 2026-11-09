@@ -7,9 +7,10 @@ import { POLITICA_VERSAO } from '../../../pages/waitlist/politicaPrivacidadeCont
  * Consentimento do atleta para o trajeto GPS aparecer nos cards (lgpd-trajeto-cards-compartilhamento, D3).
  * Lido do servidor a cada montagem, sem cache local: revogar em um aparelho vale no outro.
  */
-export function useTrajectoryShareConsent() {
+/** `enabled` falso não consulta o servidor (tela sem modelo com mapa). */
+export function useTrajectoryShareConsent(enabled = true) {
   const [granted, setGranted] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
   const [salvando, setSalvando] = useState(false);
   /** Falha ao ler o estado: a chave não pode ser mostrada, porque "desligado" seria um palpite. */
   const [loadError, setLoadError] = useState<Error | null>(null);
@@ -31,8 +32,8 @@ export function useTrajectoryShareConsent() {
   }, []);
 
   useEffect(() => {
-    void fetchConsent();
-  }, [fetchConsent]);
+    if (enabled) void fetchConsent();
+  }, [enabled, fetchConsent]);
 
   /** Envia a versão que o aviso apresentou — o servidor recusa se não for a vigente. */
   const confirmar = useCallback(async (): Promise<boolean> => {
