@@ -7,6 +7,7 @@ const MODEL_LABEL: Record<ShareModel, string> = {
   semana: 'Semana',
   rota: 'Rota',
   stickers: 'Foto',
+  esteira: 'Esteira',
 };
 
 const FORMAT_LABEL: Record<ShareFormat, string> = {

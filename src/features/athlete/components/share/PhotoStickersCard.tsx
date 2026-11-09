@@ -2,16 +2,18 @@ import { Box, Typography } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { surface } from '../../../../theme/tokens';
 import { formatKm } from '../../../../utils/formatKm';
-import type { RouteView, ShareSignatureView } from '../../types/ShareCard';
+import type { RouteView, ShareSignatureView, TreadmillView } from '../../types/ShareCard';
 import type { StickerId, StickerPos } from '../../hooks/usePhotoStickers';
 import { DraggableSticker } from './DraggableSticker';
 import { GarminAttribution } from './GarminAttribution';
 import { RouteTrace } from './RouteTrace';
 import { ShareSignature } from './ShareSignature';
+import { TreadmillBadge } from './TreadmillCard';
 import { displayNumberSx, shareColors } from './shareCardStyle';
 
 export interface PhotoStickersCardProps {
-  view: RouteView;
+  /** Rota (com trajeto) ou Esteira (sem GPS: o adesivo do trajeto vira o selo). */
+  view: RouteView | TreadmillView;
   foto: string | null;
   posicoes: Record<StickerId, StickerPos>;
   onMover: (id: StickerId, pos: StickerPos) => void;
@@ -55,11 +57,17 @@ export function PhotoStickersCard({ view, foto, posicoes, onMover, onSoltar, sig
         </Box>
       </DraggableSticker>
 
-      <DraggableSticker nome="trajeto" pos={posicoes.trajeto} onMove={(p) => onMover('trajeto', p)} onSoltar={onSoltar}>
-        <Box sx={{ width: 130, height: 130, borderRadius: '50%', bgcolor: fundoAdesivo, p: 2.25 }}>
-          <RouteTrace pontos={view.pontos} largura={100} altura={100} espessura={3} />
-        </Box>
-      </DraggableSticker>
+      {view.kind === 'rota' ? (
+        <DraggableSticker nome="trajeto" pos={posicoes.trajeto} onMove={(p) => onMover('trajeto', p)} onSoltar={onSoltar}>
+          <Box sx={{ width: 130, height: 130, borderRadius: '50%', bgcolor: fundoAdesivo, p: 2.25 }}>
+            <RouteTrace pontos={view.pontos} largura={100} altura={100} espessura={3} />
+          </Box>
+        </DraggableSticker>
+      ) : (
+        <DraggableSticker nome="esteira" pos={posicoes.trajeto} onMove={(p) => onMover('trajeto', p)} onSoltar={onSoltar}>
+          <TreadmillBadge />
+        </DraggableSticker>
+      )}
 
       {mostrarAssessoria && signature && (
         <DraggableSticker nome="assinatura" pos={posicoes.assinatura} onMove={(p) => onMover('assinatura', p)} onSoltar={onSoltar}>

@@ -10,6 +10,7 @@ import { PlanVsActualCard } from './PlanVsActualCard';
 import { SplitsCard } from './SplitsCard';
 import { WeekCard } from './WeekCard';
 import { RouteCard } from './RouteCard';
+import { TreadmillCard } from './TreadmillCard';
 import { PhotoBackground, PhotoStickersCard } from './PhotoStickersCard';
 import { ShareSignature } from './ShareSignature';
 import { ShareFormatPicker, ShareModelPicker, ShareOptionSwitch } from './ShareControls';
@@ -29,6 +30,7 @@ function descricaoDoCard(model: ShareModel, data: ShareCardData): string {
     case 'parciais': return `Card Parciais: ${data.parciais?.splits.length ?? 0} voltas`;
     case 'rota': return `Card Rota: trajeto de ${data.rota?.distanciaKm != null ? `${formatKm(data.rota.distanciaKm)} km` : data.rota?.duracao ?? ''}`;
     case 'stickers': return 'Card Foto: sua foto com adesivos do treino';
+    case 'esteira': return `Card Esteira: ${data.esteira?.distanciaKm != null ? `${formatKm(data.esteira.distanciaKm)} km` : data.esteira?.duracao ?? ''} na esteira`;
     default: return `Card Semana: ${formatKm(data.semana.totalKm)} km em ${data.semana.treinos} treino(s)`;
   }
 }
@@ -47,16 +49,17 @@ export function ShareWorkoutView({ data }: ShareWorkoutViewProps) {
   const consent = useTrajectoryShareConsent(temMapa);
   const stickers = usePhotoStickers();
 
-  const comMapa = MAP_MODELS.has(model);
+  // Foto de esteira não desenha trajeto: não pede consentimento.
+  const comMapa = MAP_MODELS.has(model) && temMapa;
   // Enquanto o estado não chega (ou falha), ninguém é tratado como "sem consentimento": o aviso
   // apareceria para quem já consentiu. A captura continua bloqueada até `granted` ser lido.
   const consentimentoConhecido = !consent.loading && !consent.loadError;
   const precisaConsentimento = comMapa && !consent.granted;
   const semFoto = model === 'stickers' && !stickers.foto;
 
-  // FC só muda os cards Plano e Rota. Consentimento e foto entram na versão: concedido, a imagem é gerada.
+  // FC só muda os cards Plano, Rota e Esteira. Consentimento e foto entram na versão: concedido, a imagem é gerada.
   const versao = [
-    model, format, (model === 'plano' || model === 'rota') && mostrarFc, mostrarAssessoria,
+    model, format, (model === 'plano' || model === 'rota' || model === 'esteira') && mostrarFc, mostrarAssessoria,
     comMapa && consent.granted, model === 'stickers' ? stickers.fotoId : '',
     model === 'stickers' ? stickers.layoutId : '',
   ].join('|');
@@ -85,6 +88,8 @@ export function ShareWorkoutView({ data }: ShareWorkoutViewProps) {
   };
 
   const ehStickers = model === 'stickers';
+  // Foto usa a Rota quando há trajeto; na esteira sem GPS, o view do card Esteira.
+  const viewFoto = data.rota ?? data.esteira;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -101,9 +106,10 @@ export function ShareWorkoutView({ data }: ShareWorkoutViewProps) {
           {model === 'parciais' && data.parciais && <SplitsCard view={data.parciais} />}
           {model === 'semana' && <WeekCard view={data.semana} />}
           {model === 'rota' && data.rota && <RouteCard view={data.rota} mostrarFc={mostrarFc} />}
-          {ehStickers && data.rota && (
+          {model === 'esteira' && data.esteira && <TreadmillCard view={data.esteira} mostrarFc={mostrarFc} />}
+          {ehStickers && viewFoto && (
             <PhotoStickersCard
-              view={data.rota}
+              view={viewFoto}
               foto={stickers.foto}
               posicoes={stickers.posicoes}
               onMover={stickers.mover}

@@ -40,6 +40,7 @@ const DATA: ShareCardData = {
   plano: null,
   parciais: null,
   rota: null,
+  esteira: null,
   semana: { rangeLabel: '3–9 de nov', totalKm: 10, dias: [], treinos: 1, tempoTotal: '50 min', attribution: null },
 };
 

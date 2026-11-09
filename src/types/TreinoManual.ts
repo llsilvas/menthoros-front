@@ -88,6 +88,8 @@ export interface TreinoRealizadoDto {
     deviceName?: string | null;
     /** Se há trajeto GPS em `GET /me/realizados/{id}/trajeto` (add-activity-gps-trace). */
     temTrajeto?: boolean;
+    /** Corrida na esteira, só com evidência da fonte (add-activity-treadmill-flag). */
+    esteira?: boolean;
     status: { value: string; label: string };
     observacao?: string;
     fcMedia?: number;
