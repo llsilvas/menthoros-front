@@ -8,6 +8,11 @@ export interface ShareDestinationsProps {
   generating: boolean;
   error: Error | null;
   fileName: string;
+  /**
+   * Modelo com mapa sem consentimento (athlete-share-cards-mapa, D4): os destinos ficam habilitados,
+   * mas o clique chama isto — que abre o aviso — em vez de compartilhar. Não há imagem para compartilhar.
+   */
+  onPedirConsentimento?: () => void;
 }
 
 function podeCompartilharArquivos(): boolean {
@@ -17,11 +22,12 @@ function podeCompartilharArquivos(): boolean {
 }
 
 /** Destinos da imagem pronta: share sheet nativo (quando o navegador aceita arquivos) e download. */
-export function ShareDestinations({ blob, generating, error, fileName }: ShareDestinationsProps) {
+export function ShareDestinations({ blob, generating, error, fileName, onPedirConsentimento }: ShareDestinationsProps) {
   const suportaShare = useMemo(podeCompartilharArquivos, []);
   const [falhaShare, setFalhaShare] = useState(false);
 
   const compartilhar = async () => {
+    if (onPedirConsentimento) return onPedirConsentimento();
     if (!blob) return;
     setFalhaShare(false);
     try {
@@ -33,6 +39,7 @@ export function ShareDestinations({ blob, generating, error, fileName }: ShareDe
   };
 
   const salvar = () => {
+    if (onPedirConsentimento) return onPedirConsentimento();
     if (!blob) return;
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -49,7 +56,7 @@ export function ShareDestinations({ blob, generating, error, fileName }: ShareDe
       {falhaShare && <Alert severity="warning">Não deu para compartilhar — use Salvar.</Alert>}
       <Box sx={{ display: 'flex', gap: 1 }}>
         {suportaShare && (
-          <Button variant="contained" fullWidth startIcon={<IosShareIcon />} disabled={!blob} onClick={compartilhar} sx={{ minHeight: 44 }}>
+          <Button variant="contained" fullWidth startIcon={<IosShareIcon />} disabled={!blob && !onPedirConsentimento} onClick={compartilhar} sx={{ minHeight: 44 }}>
             {generating ? 'Gerando imagem…' : 'Compartilhar'}
           </Button>
         )}
@@ -57,7 +64,7 @@ export function ShareDestinations({ blob, generating, error, fileName }: ShareDe
           variant={suportaShare ? 'outlined' : 'contained'}
           fullWidth
           startIcon={<DownloadIcon />}
-          disabled={!blob}
+          disabled={!blob && !onPedirConsentimento}
           onClick={salvar}
           sx={{ minHeight: 44 }}
         >
