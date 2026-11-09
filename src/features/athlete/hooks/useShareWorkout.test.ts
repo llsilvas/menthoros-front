@@ -110,4 +110,35 @@ describe('useShareWorkout', () => {
     expect(r.current.error?.message).toBe('rede');
     expect(r.current.loading).toBe(false);
   });
+
+  it('treino com trajeto: busca o GPS e libera Rota e Foto (CA2)', async () => {
+    vi.mocked(ManualTrainingService.listarRecentes).mockResolvedValue([{ ...REALIZADO, temTrajeto: true }]);
+    vi.mocked(PlanoSemanalService.listarPlanosPorAtleta).mockResolvedValue([PLANO]);
+    vi.mocked(ManualTrainingService.getTrajeto).mockResolvedValue({ v: 1, n: 3, polyline: '_p~iF~ps|U_ulLnnqC_mqNvxq`@', tSeg: [0, 1, 2], fc: [null, null, null] });
+
+    const r = await carregar('r1');
+
+    expect(ManualTrainingService.getTrajeto).toHaveBeenCalledWith('r1');
+    expect(r.current.data?.availableModels).toEqual(['plano', 'parciais', 'rota', 'stickers', 'semana']);
+  });
+
+  it('falha ao buscar o trajeto: sem modelos com mapa, sem erro na tela', async () => {
+    vi.mocked(ManualTrainingService.listarRecentes).mockResolvedValue([{ ...REALIZADO, temTrajeto: true }]);
+    vi.mocked(PlanoSemanalService.listarPlanosPorAtleta).mockResolvedValue([PLANO]);
+    vi.mocked(ManualTrainingService.getTrajeto).mockRejectedValue(new Error('500'));
+
+    const r = await carregar('r1');
+
+    expect(r.current.error).toBeNull();
+    expect(r.current.data?.availableModels).not.toContain('rota');
+  });
+
+  it('sem temTrajeto: nem chama o endpoint do trajeto', async () => {
+    vi.mocked(ManualTrainingService.listarRecentes).mockResolvedValue([REALIZADO]);
+    vi.mocked(PlanoSemanalService.listarPlanosPorAtleta).mockResolvedValue([PLANO]);
+
+    await carregar('r1');
+
+    expect(ManualTrainingService.getTrajeto).not.toHaveBeenCalled();
+  });
 });

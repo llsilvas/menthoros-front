@@ -1,6 +1,7 @@
 import { addDays, format, parseISO, startOfWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import type { TreinoRealizadoDto } from '../../../types/TreinoManual';
+import type { GpsTrace, TreinoRealizadoDto } from '../../../types/TreinoManual';
+import { decodePolyline } from './buildRouteFromGpsTrace';
 import type { EtapaRealizadaDetalhe } from '../../../types/TreinoRealizado';
 import type { EtapaTreino, TreinoPlanejado } from '../../../types/TreinoPlanejado';
 import { activeTheme, workoutTypeColor } from '../../../theme/activeTheme';
@@ -9,6 +10,7 @@ import { formatPace } from '../../coach/adapters/zoneAnchors';
 import type {
   GarminAttributionView,
   PlanVsActualView,
+  RouteView,
   PlannedBlockView,
   ShareCardData,
   ShareModel,
@@ -24,6 +26,8 @@ export interface ShareCardInput {
   /** Realizados recentes do atleta; o adapter recorta a semana do treino. */
   recentes: TreinoRealizadoDto[];
   assessoriaNome: string | null;
+  /** Trajeto do realizado; ausente quando o treino não tem GPS ou a busca falhou. */
+  gpsTrace?: GpsTrace | null;
 }
 
 const DIAS_CURTOS = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'];
@@ -212,12 +216,33 @@ function buildSemana(input: ShareCardInput): WeekView {
 export function buildShareCardData(input: ShareCardInput): ShareCardData {
   const plano = buildPlano(input);
   const parciais = buildParciais(input);
+  const rota = buildRota(input);
   const availableModels: ShareModel[] = [];
   if (plano) availableModels.push('plano');
   if (parciais) availableModels.push('parciais');
+  if (rota) availableModels.push('rota', 'stickers');
   availableModels.push('semana');
   const signature: ShareSignatureView | null = input.assessoriaNome?.trim()
     ? { sigla: siglaDe(input.assessoriaNome), nome: input.assessoriaNome.trim() }
     : null;
-  return { availableModels, signature, plano, parciais, semana: buildSemana(input) };
+  return { availableModels, signature, plano, parciais, semana: buildSemana(input), rota };
+}
+
+/** Rota e Stickers só existem com pelo menos 2 pontos de trajeto (CA2 de athlete-share-cards-mapa). */
+function buildRota(input: ShareCardInput): RouteView | null {
+  const { realizado, gpsTrace } = input;
+  if (!gpsTrace?.polyline) return null;
+  const pontos = decodePolyline(gpsTrace.polyline);
+  if (pontos.length < 2) return null;
+  const seg = segundosDe(realizado.duracaoMin) ?? 0;
+  return {
+    titulo: tipoTreinoLabel(realizado.tipoTreino),
+    dataLabel: dataLabel(realizado.dataTreino),
+    pontos,
+    distanciaKm: realizado.distanciaKm,
+    duracao: formatarDuracao(seg),
+    paceMedio: realizado.distanciaKm && seg ? paceDe(seg, realizado.distanciaKm) : undefined,
+    fcMedia: realizado.fcMedia,
+    attribution: garminAttributionFor([realizado]),
+  };
 }
