@@ -8,6 +8,7 @@ import type { WorkoutAnalysisView } from '../adapters/buildWorkoutAnalysisView';
 import { WorkoutAnalysisCard } from './WorkoutAnalysisCard';
 import { WorkoutVerdictChip } from './WorkoutVerdictChip';
 import { FonteAttribution } from '../../../components/common/FonteAttribution';
+import { ShareWorkoutButton } from './share/ShareWorkoutButton';
 
 export interface TodayCompletedCardProps {
   realizado: AthleteRealizadoHoje;
@@ -49,6 +50,7 @@ export function TodayCompletedCard({ realizado, sensacoes = [], comentario, anal
         <Typography variant="body2" sx={{ color: surface[300], fontStyle: 'italic' }}>{comentario}</Typography>
       )}
       {analysisView && <WorkoutAnalysisCard view={analysisView} embedded />}
+      <ShareWorkoutButton treinoRealizadoId={realizado.id} />
     </Card>
   );
 }

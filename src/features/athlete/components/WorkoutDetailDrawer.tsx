@@ -14,6 +14,7 @@ import { rpeLabel } from '../../../types/Rpe';
 import { useAthleteWorkoutAnalysis } from '../hooks/useAthleteWorkoutAnalysis';
 import { buildWorkoutAnalysisView } from '../adapters/buildWorkoutAnalysisView';
 import { WorkoutAnalysisCard } from './WorkoutAnalysisCard';
+import { ShareWorkoutButton } from './share/ShareWorkoutButton';
 import type { AgendaDay } from '../adapters/buildWeekAgenda';
 
 export interface WorkoutDetailDrawerProps {
@@ -103,6 +104,8 @@ export function WorkoutDetailDrawer({ dia, onClose, onRegister }: WorkoutDetailD
               </Box>
             ))}
           </Box>
+
+          {treinoRealizadoId && <ShareWorkoutButton treinoRealizadoId={treinoRealizadoId} onClick={onClose} />}
 
           {dia.isToday && (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
