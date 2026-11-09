@@ -16,6 +16,7 @@ import type {
   ShareModel,
   ShareSignatureView,
   SplitsView,
+  TreadmillView,
   WeekView,
 } from '../types/ShareCard';
 
@@ -217,15 +218,18 @@ export function buildShareCardData(input: ShareCardInput): ShareCardData {
   const plano = buildPlano(input);
   const parciais = buildParciais(input);
   const rota = buildRota(input);
+  const esteira = buildEsteira(input);
   const availableModels: ShareModel[] = [];
   if (plano) availableModels.push('plano');
   if (parciais) availableModels.push('parciais');
   if (rota) availableModels.push('rota', 'stickers');
+  // Esteira sem GPS também tem Foto: o adesivo do trajeto vira o selo.
+  if (esteira) availableModels.push(...(rota ? [] : ['stickers' as const]), 'esteira');
   availableModels.push('semana');
   const signature: ShareSignatureView | null = input.assessoriaNome?.trim()
     ? { sigla: siglaDe(input.assessoriaNome), nome: input.assessoriaNome.trim() }
     : null;
-  return { availableModels, signature, plano, parciais, semana: buildSemana(input), rota };
+  return { availableModels, signature, plano, parciais, semana: buildSemana(input), rota, esteira };
 }
 
 /** Rota e Stickers só existem com pelo menos 2 pontos de trajeto (CA2 de athlete-share-cards-mapa). */
@@ -243,6 +247,23 @@ function buildRota(input: ShareCardInput): RouteView | null {
     duracao: formatarDuracao(seg),
     paceMedio: realizado.distanciaKm && seg ? paceDe(seg, realizado.distanciaKm) : undefined,
     fcMedia: realizado.fcMedia,
+    attribution: garminAttributionFor([realizado]),
+  };
+}
+
+/** Esteira só com evidência positiva da fonte (CA1 de athlete-share-cards-esteira). */
+function buildEsteira(input: ShareCardInput): TreadmillView | null {
+  const { realizado } = input;
+  if (realizado.esteira !== true) return null;
+  const seg = segundosDe(realizado.duracaoMin) ?? 0;
+  return {
+    titulo: tipoTreinoLabel(realizado.tipoTreino),
+    dataLabel: dataLabel(realizado.dataTreino),
+    distanciaKm: realizado.distanciaKm,
+    duracao: formatarDuracao(seg),
+    paceMedio: realizado.distanciaKm && seg ? paceDe(seg, realizado.distanciaKm) : undefined,
+    fcMedia: realizado.fcMedia,
+    tss: realizado.tssCalculado,
     attribution: garminAttributionFor([realizado]),
   };
 }

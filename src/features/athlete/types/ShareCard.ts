@@ -1,6 +1,6 @@
 /** View models dos cards de compartilhamento (athlete-share-cards). Montados por `buildShareCardData`. */
 
-export type ShareModel = 'plano' | 'parciais' | 'semana' | 'rota' | 'stickers';
+export type ShareModel = 'plano' | 'parciais' | 'semana' | 'rota' | 'stickers' | 'esteira';
 
 /** Modelos que desenham o trajeto GPS: exigem o consentimento do atleta (lgpd-trajeto-cards-compartilhamento). */
 export const MAP_MODELS: ReadonlySet<ShareModel> = new Set<ShareModel>(['rota', 'stickers']);
@@ -86,6 +86,18 @@ export interface RouteView {
   attribution: GarminAttributionView | null;
 }
 
+/** Card Esteira (athlete-share-cards-esteira, v2 I): km ou tempo em destaque, pace e três blocos. */
+export interface TreadmillView {
+  titulo: string;
+  dataLabel: string;
+  distanciaKm?: number;
+  duracao: string;
+  paceMedio?: string;
+  fcMedia?: number;
+  tss?: number;
+  attribution: GarminAttributionView | null;
+}
+
 export interface ShareCardData {
   availableModels: ShareModel[];
   signature: ShareSignatureView | null;
@@ -93,6 +105,7 @@ export interface ShareCardData {
   parciais: SplitsView | null;
   semana: WeekView;
   rota: RouteView | null;
+  esteira: TreadmillView | null;
 }
 
 export const SHARE_FORMAT_SIZE: Record<ShareFormat, { width: number; height: number }> = {
@@ -107,4 +120,5 @@ export const SHARE_MODEL_DEFAULT_FORMAT: Record<ShareModel, ShareFormat> = {
   semana: 'quadrado',
   rota: 'story',
   stickers: 'story',
+  esteira: 'story',
 };

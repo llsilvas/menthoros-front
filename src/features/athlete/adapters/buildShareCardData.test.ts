@@ -144,3 +144,28 @@ describe('buildShareCardData', () => {
     expect(s.totalKm).toBe(10.4);
   });
 });
+
+describe('buildShareCardData — esteira (athlete-share-cards-esteira)', () => {
+  const base = { planejado: null, recentes: [], assessoriaNome: null };
+
+  it('esteira: true → modelo Esteira antes de Semana, com km, pace, FC e TSS (CA1)', () => {
+    const d = buildShareCardData({ ...base, realizado: realizado({ esteira: true, tipoTreino: 'CONTINUO', duracaoMin: '50:30', distanciaKm: 10, fcMedia: 146, tssCalculado: 58 }) });
+    expect(d.availableModels).toEqual(['stickers', 'esteira', 'semana']);
+    expect(d.esteira).toMatchObject({ titulo: 'Corrida Fácil', distanciaKm: 10, duracao: '50:30', paceMedio: '5:03', fcMedia: 146, tss: 58 });
+    expect(d.esteira?.attribution?.label).toBe('GARMIN FORERUNNER 265');
+  });
+
+  it('esteira false ou ausente → sem modelo Esteira (CA1)', () => {
+    expect(buildShareCardData({ ...base, realizado: realizado({ esteira: false }) }).esteira).toBeNull();
+    expect(buildShareCardData({ ...base, realizado: realizado() }).availableModels).not.toContain('esteira');
+  });
+
+  it('sem distância, TSS ou FC → campos ausentes e pace ausente (CA2)', () => {
+    const d = buildShareCardData({ ...base, realizado: realizado({ esteira: true, distanciaKm: undefined, fcMedia: undefined }) });
+    expect(d.esteira).toMatchObject({ duracao: '50:38' });
+    expect(d.esteira?.distanciaKm).toBeUndefined();
+    expect(d.esteira?.paceMedio).toBeUndefined();
+    expect(d.esteira?.fcMedia).toBeUndefined();
+    expect(d.esteira?.tss).toBeUndefined();
+  });
+});
