@@ -12,6 +12,7 @@ vi.mock('../components/ConnectionCard', () => ({
   ConnectionCard: ({ plataforma }: { plataforma: string }) => <div>conexões:{plataforma}</div>,
 }));
 vi.mock('../hooks/useAthleteWatchBrand');
+vi.mock('../components/privacy/TrajectoryPrivacyCard', () => ({ TrajectoryPrivacyCard: () => <section>privacidade</section> }));
 vi.mock('../../../config/env', () => ({ runtimeConfig: config }));
 
 function stubMarca(marca: DispositivoMarca | undefined, loading = false) {
@@ -72,5 +73,10 @@ describe('AthleteProfilePage', () => {
     renderPage();
 
     expect(screen.getByText('conexões:INTERVALS_ICU')).toBeInTheDocument();
+  });
+
+  it('tem a seção Privacidade, onde o atleta revoga o trajeto nos cards (CA7)', () => {
+    renderPage();
+    expect(screen.getByText('privacidade')).toBeInTheDocument();
   });
 });

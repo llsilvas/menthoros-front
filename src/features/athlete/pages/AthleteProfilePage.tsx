@@ -7,6 +7,7 @@ import { useAthleteWatchBrand } from '../hooks/useAthleteWatchBrand';
 import { runtimeConfig } from '../../../config/env';
 import { LogoutButton } from '../../../shared/components/LogoutButton';
 import { radius } from '../../../shared/design-tokens/density';
+import { TrajectoryPrivacyCard } from '../components/privacy/TrajectoryPrivacyCard';
 
 // Layout previsto: dados do perfil do atleta, metas, configurações de notificação
 // Nota na tela de Configurações: "Tema claro chegará em breve" (spec dark-first)
@@ -32,6 +33,8 @@ export default function AthleteProfilePage() {
       </Box>
 
       {!aguardandoMarca && <ConnectionCard plataforma={garminDireto ? 'GARMIN' : 'INTERVALS_ICU'} />}
+
+      <TrajectoryPrivacyCard />
 
       {/* "Sair" saiu da barra inferior (era o sexto alvo e não é destino): fica aqui, com a mesma confirmação. */}
       <Box sx={{ bgcolor: elevation.card, border: `1px solid ${surface[700]}`, borderRadius: radius.lg, p: 1 }}>
