@@ -33,7 +33,7 @@ export function TrajectoryShareConsentDialog({
         <Typography variant="body2" sx={{ color: surface[400] }}>
           Depois de publicada, a imagem fica fora do controle da Menthoros. Você pode revogar esta
           confirmação a qualquer momento no Perfil, em Privacidade.{' '}
-          <Link component={RouterLink} to={ROUTES.PRIVACIDADE} target="_blank" rel="noopener">
+          <Link component={RouterLink} to={ROUTES.PRIVACIDADE} target="_blank" rel="noopener noreferrer">
             Ver a Política de Privacidade (item 6.4)
           </Link>
         </Typography>

@@ -94,4 +94,27 @@ describe('TrajectoryPrivacyCard', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Agora não' }));
     expect(TrajetoShareConsentService.conceder).not.toHaveBeenCalled();
   });
+
+  it('falha ao carregar: não mostra a chave (seria palpite) e oferece tentar de novo', async () => {
+    vi.mocked(TrajetoShareConsentService.obter).mockRejectedValueOnce(new Error('rede')).mockResolvedValueOnce(estado(true) as never);
+    renderComRouter(<TrajectoryPrivacyCard />);
+
+    expect(await screen.findByText('Não deu para carregar esta preferência.')).toBeInTheDocument();
+    expect(screen.queryByRole('switch')).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Tentar de novo' }));
+
+    expect(await screen.findByRole('switch', { name: /Mostrar meu trajeto/ })).toBeChecked();
+  });
+
+  it('falha ao revogar: avisa e a chave continua ligada', async () => {
+    vi.mocked(TrajetoShareConsentService.obter).mockResolvedValue(estado(true) as never);
+    vi.mocked(TrajetoShareConsentService.revogar).mockRejectedValue(new Error('500'));
+    renderComRouter(<TrajectoryPrivacyCard />);
+
+    await userEvent.click(await screen.findByRole('switch', { name: /Mostrar meu trajeto/ }));
+
+    expect(await screen.findByText('Não deu para atualizar agora. Tente de novo.')).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: /Mostrar meu trajeto/ })).toBeChecked();
+  });
 });
+

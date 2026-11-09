@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Box, FormControlLabel, Skeleton, Switch, Typography } from '@mui/material';
+import { Alert, Box, Button, FormControlLabel, Skeleton, Switch, Typography } from '@mui/material';
 import { surface } from '../../../../theme/tokens';
 import { elevation } from '../../../../shared/design-tokens';
 import { radius } from '../../../../shared/design-tokens/density';
@@ -15,6 +15,7 @@ export function TrajectoryPrivacyCard() {
   const [avisoAberto, setAvisoAberto] = useState(false);
 
   const alternar = async (ligar: boolean) => {
+    consent.limparErro();
     if (ligar) setAvisoAberto(true);
     else await consent.revogar();
   };
@@ -29,6 +30,10 @@ export function TrajectoryPrivacyCard() {
       <Typography id="privacidade-titulo" variant="subtitle1" sx={{ fontWeight: 700 }}>Privacidade</Typography>
       {consent.loading ? (
         <Skeleton variant="rounded" height={44} />
+      ) : consent.loadError ? (
+        <Alert severity="error" action={<Button color="inherit" onClick={() => void consent.fetchConsent()}>Tentar de novo</Button>}>
+          Não deu para carregar esta preferência.
+        </Alert>
       ) : (
         <FormControlLabel
           control={<Switch checked={consent.granted} disabled={consent.salvando} onChange={(_, v) => void alternar(v)} />}
@@ -39,12 +44,12 @@ export function TrajectoryPrivacyCard() {
       <Typography variant="body2" sx={{ color: surface[400] }}>
         Com isso desligado, você continua compartilhando cards sem mapa.
       </Typography>
-      {consent.error && !avisoAberto && <Alert severity="error">Não deu para atualizar agora. Tente de novo.</Alert>}
+      {consent.actionError && !avisoAberto && <Alert severity="error">Não deu para atualizar agora. Tente de novo.</Alert>}
       <TrajectoryShareConsentDialog
         open={avisoAberto}
         salvando={consent.salvando}
         desatualizado={consent.desatualizado}
-        erro={consent.error}
+        erro={consent.actionError}
         onConfirmar={() => void confirmar()}
         onRecusar={() => setAvisoAberto(false)}
         rotuloRecusar="Agora não"
