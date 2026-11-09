@@ -22,10 +22,10 @@ export const CONTATO_EMAIL = 'contato@menthoros.com';
  * carimba a versão no registro de consentimento — se as duas divergirem, o sistema grava que o
  * coach aceitou uma versão diferente da que leu aqui.
  */
-export const POLITICA_VERSAO = '2026-10-26';
+export const POLITICA_VERSAO = '2026-11-09';
 
 /** Mesma data de `POLITICA_VERSAO`, por extenso para exibição. */
-export const POLITICA_ATUALIZADA_EM = '26 de outubro de 2026';
+export const POLITICA_ATUALIZADA_EM = '9 de novembro de 2026';
 
 export interface Tabela {
   /** Rótulo acessível da tabela — vira `aria-label`. */
@@ -116,6 +116,7 @@ export const POLITICA_SECOES: Secao[] = [
           'Importar atividades de dispositivos e plataformas autorizadas pelo usuário',
           'Projetar desempenho em provas (tempo estimado, pace alvo)',
           'Gerar relatórios, gráficos e indicadores de performance',
+          'Gerar, a pedido do atleta, imagens do treino para ele compartilhar fora da Plataforma',
           'Prevenir fraudes e garantir a segurança da Plataforma',
           'Cumprir obrigações legais e regulatórias',
           'Enviar comunicações operacionais e, mediante consentimento específico, comunicações de marketing',
@@ -170,6 +171,11 @@ export const POLITICA_SECOES: Secao[] = [
               'Integrações (Strava, Garmin, Intervals.icu, Health Connect)',
               'Consentimento — autorizado pelo usuário na plataforma de origem',
               'Sim — desconecte a integração',
+            ],
+            [
+              'Imagem do treino com trajeto GPS, gerada a pedido do atleta para compartilhamento',
+              'Consentimento específico e destacado (Art. 11, I), colhido no momento do compartilhamento',
+              'Sim — a imagem passa a ser oferecida só em modelos sem mapa',
             ],
             [
               'Convite de atleta (envio de e-mail)',
@@ -263,6 +269,14 @@ export const POLITICA_SECOES: Secao[] = [
         subtitulo: '6.3 Não comercializamos dados',
         paragrafos: [
           'A Menthoros não vende, aluga ou compartilha dados pessoais com terceiros para fins de marketing ou publicidade.',
+        ],
+      },
+      {
+        subtitulo: '6.4 Compartilhamento feito pelo próprio atleta',
+        paragrafos: [
+          'O atleta pode gerar uma imagem de um treino realizado para publicar onde quiser, como redes sociais e aplicativos de mensagem. A imagem é gerada somente quando o atleta pede, no próprio aparelho dele, e a Menthoros não publica nada em nome do atleta.',
+          'Nos modelos com mapa, a imagem mostra o trajeto completo do treino, incluindo os pontos de início e fim, que podem revelar locais frequentados pelo atleta, como a casa ou o trabalho. Antes da primeira imagem com mapa, o atleta vê um aviso e confirma; a confirmação é registrada com a data e a versão desta Política.',
+          'A publicação é um ato do próprio atleta e fica fora do controle da Menthoros: depois de compartilhada, a imagem segue as regras do serviço onde foi publicada. Há sempre modelos sem mapa, e o atleta pode revogar a confirmação a qualquer momento no perfil, em Privacidade.',
         ],
       },
     ],
