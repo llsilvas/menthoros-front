@@ -42,6 +42,9 @@ export function PhotoStickersCard({ view, foto, posicoes, onMover, onSoltar, sig
     <Box sx={{ flex: '1 1 0', position: 'relative' }}>
       <DraggableSticker nome="distância" pos={posicoes.distancia} onMove={(p) => onMover('distancia', p)} onSoltar={onSoltar}>
         <Box sx={{ bgcolor: fundoAdesivo, borderRadius: '16px', px: 1.75, py: 1.25, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          {view.kind === 'esteira' && (
+            <Typography component="span" sx={{ fontSize: 12, fontWeight: 700, lineHeight: 1.15, mb: '4px' }}>{view.titulo}</Typography>
+          )}
           <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: '4px' }}>
             <Typography component="span" sx={{ ...displayNumberSx, fontSize: 52 }}>
               {view.distanciaKm != null ? formatKm(view.distanciaKm) : view.duracao}
