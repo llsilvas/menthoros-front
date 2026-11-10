@@ -9,7 +9,7 @@ import { GarminAttribution } from './GarminAttribution';
 import { RouteTrace } from './RouteTrace';
 import { ShareSignature } from './ShareSignature';
 import { TreadmillBadge } from './TreadmillCard';
-import { displayNumberSx, shareColors } from './shareCardStyle';
+import { displayNumberSx, monoSx, shareColors } from './shareCardStyle';
 
 export interface PhotoStickersCardProps {
   /** Rota (com trajeto) ou Esteira (sem GPS: o adesivo do trajeto vira o selo). */
@@ -24,6 +24,18 @@ export interface PhotoStickersCardProps {
 
 /** Fundo escuro dos adesivos: contraste sobre qualquer foto, sem `backdrop-filter` (não exporta). */
 const fundoAdesivo = alpha(surface[900], 0.62);
+
+/** Bloco de dados dos artboards v2 Stickers / v2 K: verde da marca, levemente girado, com sombra. */
+const blocoDados = {
+  bgcolor: shareColors.brand,
+  color: shareColors.canvas,
+  borderRadius: '20px',
+  px: '16px',
+  pt: '12px',
+  pb: '10px',
+  transform: 'rotate(-2deg)',
+  boxShadow: `0 12px 32px ${alpha(surface[900], 0.4)}`,
+} as const;
 
 /**
  * Corpo do card "Foto" (Stickers, athlete-share-cards-mapa D5): os adesivos sobre a foto do atleta.
@@ -41,22 +53,32 @@ export function PhotoStickersCard({ view, foto, posicoes, onMover, onSoltar, sig
   return (
     <Box sx={{ flex: '1 1 0', position: 'relative' }}>
       <DraggableSticker nome="distância" pos={posicoes.distancia} onMove={(p) => onMover('distancia', p)} onSoltar={onSoltar}>
-        <Box sx={{ bgcolor: fundoAdesivo, borderRadius: '16px', px: 1.75, py: 1.25, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        <Box sx={{ ...blocoDados, display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {view.kind === 'esteira' && (
-            <Typography component="span" sx={{ fontSize: 12, fontWeight: 700, lineHeight: 1.15, mb: '4px' }}>{view.titulo}</Typography>
+            <Typography component="span" sx={{ fontSize: 12, fontWeight: 700, lineHeight: 1.15, letterSpacing: '-0.01em' }}>{view.titulo}</Typography>
           )}
-          <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: '4px' }}>
-            <Typography component="span" sx={{ ...displayNumberSx, fontSize: 52 }}>
+          <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: '6px' }}>
+            <Typography component="span" sx={{ ...displayNumberSx, fontSize: 84, letterSpacing: '-0.04em' }}>
               {view.distanciaKm != null ? formatKm(view.distanciaKm) : view.duracao}
             </Typography>
             {view.distanciaKm != null && (
-              <Typography component="span" sx={{ ...displayNumberSx, fontSize: 16, color: shareColors.brand, pb: '3px' }}>KM</Typography>
+              <Typography component="span" sx={{ ...displayNumberSx, fontWeight: 700, fontSize: 23, lineHeight: 1, pb: '4px' }}>KM</Typography>
             )}
           </Box>
-          <Typography component="span" sx={{ fontSize: 12, color: shareColors.textSecondary }}>
-            {[view.duracao, view.paceMedio ? `${view.paceMedio}/km` : null].filter(Boolean).join(' · ')}
-          </Typography>
-          <GarminAttribution attribution={view.attribution} />
+          <Box sx={{ display: 'flex', gap: '12px' }}>
+            {[view.duracao, view.paceMedio ? `${view.paceMedio} /km` : null].filter(Boolean).map((t) => (
+              <Typography key={t} component="span" sx={{ ...monoSx, fontSize: 12 }}>{t}</Typography>
+            ))}
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '14px', pt: '6px', borderTop: `1px solid ${alpha(shareColors.canvas, 0.15)}` }}>
+            <GarminAttribution attribution={view.attribution} color={shareColors.canvas} />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: 11, fontWeight: 700 }}>
+              <Box component="svg" width={12} height={12} viewBox="0 0 24 24" aria-hidden sx={{ fill: 'none', stroke: shareColors.canvas, strokeWidth: 3, strokeLinecap: 'round', strokeLinejoin: 'round' }}>
+                <path d="M3 19V6l9 9 9-9v13" />
+              </Box>
+              menthoros
+            </Box>
+          </Box>
         </Box>
       </DraggableSticker>
 

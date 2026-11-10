@@ -10,9 +10,9 @@ export interface StickerPos {
 }
 
 const POSICOES_INICIAIS: Record<StickerId, StickerPos> = {
-  distancia: { x: 6, y: 60 },
+  distancia: { x: 6, y: 48 },
   trajeto: { x: 52, y: 4 },
-  assinatura: { x: 6, y: 86 },
+  assinatura: { x: 6, y: 78 },
 };
 
 /**
