@@ -1,4 +1,6 @@
 import { Box, Typography } from '@mui/material';
+import { alpha } from '@mui/material/styles';
+import { surface } from '../../../../theme/tokens';
 import { formatKm } from '../../../../utils/formatKm';
 import type { TreadmillView } from '../../types/ShareCard';
 import { GarminAttribution } from './GarminAttribution';
@@ -11,9 +13,9 @@ export interface TreadmillCardProps {
 }
 
 /** Ícone da esteira (SVG inline, sem dependência nova). */
-function TreadmillIcon() {
+function TreadmillIcon({ tamanho }: { tamanho: number }) {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width={tamanho} height={tamanho} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M3 18h15l3-8" />
       <path d="M6 18l-1 3M17 18l1 3" />
       <path d="M8 14h9" />
@@ -21,8 +23,13 @@ function TreadmillIcon() {
   );
 }
 
+export interface TreadmillBadgeProps {
+  /** Adesivo do card Foto (v2 K): maior, girado e com sombra, como os demais adesivos do artboard. */
+  adesivo?: boolean;
+}
+
 /** Selo "ESTEIRA" (card Esteira e adesivo do card Foto sem trajeto). */
-export function TreadmillBadge() {
+export function TreadmillBadge({ adesivo = false }: TreadmillBadgeProps) {
   return (
     <Box
       data-testid="selo-esteira"
@@ -30,18 +37,19 @@ export function TreadmillBadge() {
         ...displayNumberSx,
         display: 'inline-flex',
         alignItems: 'center',
-        gap: '6px',
-        px: '12px',
-        py: '7px',
+        gap: adesivo ? '8px' : '6px',
+        px: adesivo ? '16px' : '12px',
+        py: adesivo ? '10px' : '7px',
         borderRadius: '999px',
         bgcolor: shareColors.brand,
         color: shareColors.canvas,
-        fontSize: 20,
+        fontSize: adesivo ? 28 : 20,
         lineHeight: 1,
         letterSpacing: '0.02em',
+        ...(adesivo && { transform: 'rotate(6deg)', boxShadow: `0 8px 24px ${alpha(surface[900], 0.35)}` }),
       }}
     >
-      <TreadmillIcon />
+      <TreadmillIcon tamanho={adesivo ? 24 : 18} />
       ESTEIRA
     </Box>
   );
