@@ -65,7 +65,7 @@ export function PhotoStickersCard({ view, foto, posicoes, onMover, onSoltar, sig
         </DraggableSticker>
       ) : (
         <DraggableSticker nome="esteira" pos={posicoes.trajeto} onMove={(p) => onMover('trajeto', p)} onSoltar={onSoltar}>
-          <TreadmillBadge />
+          <TreadmillBadge adesivo />
         </DraggableSticker>
       )}
 
