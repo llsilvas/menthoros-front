@@ -27,7 +27,7 @@ async function mockar(page: Page, grantedInicial: boolean) {
     chamadas.push(req)
     if (req.method() === 'POST') granted = true
     if (req.method() === 'DELETE') granted = false
-    route.fulfill(json({ granted, policyVersion: '2026-11-09', registradoEm: null }, req.method() === 'POST' ? 201 : 200))
+    route.fulfill(json({ granted, policyVersion: '2026-11-15', registradoEm: null }, req.method() === 'POST' ? 201 : 200))
   })
   return chamadas
 }
@@ -52,7 +52,7 @@ test.describe('Atleta — consentimento do trajeto nos cards', () => {
     await expect(aviso).toBeHidden()
     await expect(chave).toBeChecked()
     const post = chamadas.find((r) => r.method() === 'POST')
-    expect(post?.postDataJSON()).toEqual({ policyVersion: '2026-11-09' })
+    expect(post?.postDataJSON()).toEqual({ policyVersion: '2026-11-15' })
 
     await chave.click()
     await expect(chave).not.toBeChecked()
@@ -75,6 +75,6 @@ test.describe('Atleta — consentimento do trajeto nos cards', () => {
     await page.goto('/#/privacidade')
     await expect(page.getByText('6.4 Compartilhamento feito pelo próprio atleta')).toBeVisible()
     await expect(page.getByText(/trajeto completo do treino, incluindo os pontos de início e fim/)).toBeVisible()
-    await expect(page.getByText('Última atualização: 9 de novembro de 2026')).toBeVisible()
+    await expect(page.getByText('Última atualização: 15 de novembro de 2026')).toBeVisible()
   })
 })

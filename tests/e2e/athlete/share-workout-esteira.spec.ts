@@ -35,7 +35,7 @@ async function mockar(page: Page, esteira: boolean) {
   }])))
   await page.route('**/api/v1/atletas/me/consentimentos/trajeto-compartilhamento', (route) => {
     consultouConsentimento = true
-    route.fulfill(json({ granted: false, policyVersion: '2026-11-09' }))
+    route.fulfill(json({ granted: false, policyVersion: '2026-11-15' }))
   })
   return () => consultouConsentimento
 }
