@@ -42,7 +42,9 @@ interface SeasonTabPanelProps {
   plan: SeasonPlan | null;
   loading: boolean;
   generating: boolean;
-  error: Error | null;
+  /** A leitura falhou: não se sabe se há temporada, então não se oferece gerar. */
+  loadError: Error | null;
+  generateError: Error | null;
   /** Atleta tem prova-alvo não cancelada (do perfil). */
   hasTargetRace: boolean;
   onGenerate: () => void;
@@ -50,34 +52,35 @@ interface SeasonTabPanelProps {
   hoje?: Date;
 }
 
-export function SeasonTabPanel({ plan, loading, generating, error, hasTargetRace, onGenerate, onRetry, hoje = new Date() }: SeasonTabPanelProps) {
+export function SeasonTabPanel({ plan, loading, generating, loadError, generateError, hasTargetRace, onGenerate, onRetry, hoje = new Date() }: SeasonTabPanelProps) {
   if (loading) {
     return (
-      <Box data-testid="season-loading">
+      <Box data-testid="season-loading" role="status" aria-label="Carregando temporada">
         <Skeleton variant="rounded" height={64} sx={{ mb: 1 }} />
         <Skeleton variant="rounded" height={200} />
       </Box>
     );
   }
 
-  const errorAlert = error ? (
-    <Alert
-      severity="error"
-      sx={{ mb: 1 }}
-      action={
-        <Button size="small" onClick={onRetry} disabled={generating} sx={ACTION_BTN_SX}>
-          Tentar de novo
-        </Button>
-      }
-    >
-      {error.message}
-    </Alert>
-  ) : null;
+  if (loadError) {
+    return (
+      <Alert
+        severity="error"
+        action={
+          <Button size="small" onClick={onRetry} sx={ACTION_BTN_SX}>
+            Tentar de novo
+          </Button>
+        }
+      >
+        {loadError.message}
+      </Alert>
+    );
+  }
 
   if (!plan) {
     return (
       <SectionCard title="Temporada">
-        {errorAlert}
+        {generateError ? <Alert severity="error" sx={{ mb: 1 }}>{generateError.message}</Alert> : null}
         {hasTargetRace ? (
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, flexWrap: 'wrap' }}>
             <Typography sx={{ fontSize: '0.8125rem', color: surface[200] }}>
@@ -98,7 +101,6 @@ export function SeasonTabPanel({ plan, loading, generating, error, hasTargetRace
 
   return (
     <Box sx={{ display: 'grid', gap: 1 }}>
-      {errorAlert}
       {plan.seasonStatus === 'PROPOSED' ? (
         <Alert severity="info">
           Proposta de temporada até {plan.provaNome}. Ainda não foi aprovada.
@@ -122,7 +124,7 @@ export function SeasonTabPanel({ plan, loading, generating, error, hasTargetRace
                 <TableRow key={w.weekIndex}>
                   <TableCell sx={CELL_SX}>{w.weekIndex}</TableCell>
                   <TableCell sx={CELL_SX}>{format(parseISO(w.weekStart), 'dd/MM')}</TableCell>
-                  <TableCell sx={CELL_SX}>{PHASE_LABEL[w.phase]}</TableCell>
+                  <TableCell sx={CELL_SX}>{PHASE_LABEL[w.phase] ?? w.phase}</TableCell>
                   <TableCell sx={CELL_SX} align="right">{`${formatKmPt(w.targetVolumeKm)} km`}</TableCell>
                   <TableCell sx={CELL_SX} align="right">{Math.round(w.targetTss)}</TableCell>
                 </TableRow>

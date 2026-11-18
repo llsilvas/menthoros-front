@@ -162,6 +162,8 @@ function renderPage() {
 describe('CoachInboxPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // clearAllMocks não desfaz implementação: sem isto o 404 da flag vaza para os testes seguintes.
+    vi.mocked(SeasonPlanService.buscarAtual).mockResolvedValue(undefined);
     vi.mocked(SugestaoService.detalhe).mockResolvedValue({
       id: 's1',
       atletaId: 'a1',

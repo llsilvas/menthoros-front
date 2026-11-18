@@ -34,7 +34,7 @@ describe('useSeasonPlan', () => {
 
         await waitFor(() => expect(result.current.loading).toBe(false));
         expect(result.current.plan).toBeNull();
-        expect(result.current.error).toBeNull();
+        expect(result.current.loadError).toBeNull();
     });
 
     it('404 com SEASON_PLAN_DISABLED marca disabled, sem erro', async () => {
@@ -42,14 +42,14 @@ describe('useSeasonPlan', () => {
         const { result } = renderHook(() => useSeasonPlan('a1'));
 
         await waitFor(() => expect(result.current.disabled).toBe(true));
-        expect(result.current.error).toBeNull();
+        expect(result.current.loadError).toBeNull();
     });
 
     it('404 comum é erro, não disabled', async () => {
         vi.mocked(SeasonPlanService.buscarAtual).mockRejectedValue(apiError(404, { message: 'Atleta não encontrado' }));
         const { result } = renderHook(() => useSeasonPlan('a1'));
 
-        await waitFor(() => expect(result.current.error?.message).toBe('Atleta não encontrado'));
+        await waitFor(() => expect(result.current.loadError?.message).toBe('Atleta não encontrado'));
         expect(result.current.disabled).toBe(false);
     });
 
@@ -57,7 +57,7 @@ describe('useSeasonPlan', () => {
         vi.mocked(SeasonPlanService.buscarAtual).mockRejectedValue(new Error('boom'));
         const { result } = renderHook(() => useSeasonPlan('a1'));
 
-        await waitFor(() => expect(result.current.error?.message).toBe('boom'));
+        await waitFor(() => expect(result.current.loadError?.message).toBe('boom'));
     });
 
     it('generate grava a proposta; 422 mostra a mensagem do backend', async () => {
@@ -67,13 +67,27 @@ describe('useSeasonPlan', () => {
         await waitFor(() => expect(result.current.loading).toBe(false));
 
         await act(async () => { await result.current.generate(); });
-        expect(result.current.error?.message).toBe('Atleta sem prova-alvo');
+        expect(result.current.generateError?.message).toBe('Atleta sem prova-alvo');
 
         vi.mocked(SeasonPlanService.gerar).mockResolvedValueOnce(PLAN);
         await act(async () => { await result.current.generate(); });
         expect(result.current.plan).toEqual(PLAN);
-        expect(result.current.error).toBeNull();
+        expect(result.current.generateError).toBeNull();
         expect(result.current.generating).toBe(false);
+    });
+
+    it('resposta atrasada do atleta anterior não sobrescreve a do atual', async () => {
+        let resolveA: (p: SeasonPlan) => void = () => {};
+        vi.mocked(SeasonPlanService.buscarAtual)
+            .mockImplementationOnce(() => new Promise<SeasonPlan>((r) => { resolveA = r; }) as never)
+            .mockResolvedValueOnce(undefined);
+        const { result, rerender } = renderHook(({ id }) => useSeasonPlan(id), { initialProps: { id: 'a1' } });
+
+        rerender({ id: 'b1' });
+        await waitFor(() => expect(result.current.loading).toBe(false));
+        await act(async () => { resolveA(PLAN); });
+
+        expect(result.current.plan).toBeNull();
     });
 
     it('sem atletaId não chama o backend', () => {

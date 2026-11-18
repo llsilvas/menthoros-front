@@ -16,7 +16,7 @@ const PLAN: SeasonPlan = {
 
 const HOJE = new Date(2026, 10, 25);
 
-const base = { plan: null, loading: false, generating: false, error: null, hasTargetRace: true, onGenerate: vi.fn(), onRetry: vi.fn(), hoje: HOJE };
+const base = { plan: null, loading: false, generating: false, loadError: null, generateError: null, hasTargetRace: true, onGenerate: vi.fn(), onRetry: vi.fn(), hoje: HOJE };
 
 describe('SeasonTabPanel', () => {
   it('proposta: faixa, KPIs e uma linha por semana', () => {
@@ -62,16 +62,17 @@ describe('SeasonTabPanel', () => {
     expect(screen.getByTestId('season-loading')).toBeInTheDocument();
   });
 
-  it('erro na leitura: mensagem e Tentar de novo recarrega', async () => {
+  it('erro na leitura: mensagem, Tentar de novo recarrega e não oferece gerar', async () => {
     const onRetry = vi.fn();
-    render(<SeasonTabPanel {...base} plan={PLAN} error={new Error('Falhou')} onRetry={onRetry} />);
+    render(<SeasonTabPanel {...base} loadError={new Error('Falhou')} onRetry={onRetry} />);
     expect(screen.getByText('Falhou')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Gerar temporada' })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Tentar de novo' }));
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
 
   it('erro ao gerar: mensagem do backend e o botão de gerar continua', () => {
-    render(<SeasonTabPanel {...base} error={new Error('Atleta sem base de carga')} />);
+    render(<SeasonTabPanel {...base} generateError={new Error('Atleta sem base de carga')} />);
     expect(screen.getByText('Atleta sem base de carga')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Gerar temporada' })).toBeEnabled();
   });
