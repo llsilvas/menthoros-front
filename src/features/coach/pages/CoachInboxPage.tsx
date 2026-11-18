@@ -30,6 +30,7 @@ import {
   NotificationsNone as NotificationsNoneIcon,
   Search as SearchIcon,
   Sort as SortIcon,
+  Timeline as TimelineIcon,
   Tune as TuneIcon,
 } from '@mui/icons-material';
 import { CoachDialog } from '../../../shared/components/CoachDialog';
@@ -41,6 +42,9 @@ import { statusPalette } from '../components/coachInboxHelpers';
 import { DiagnosisTabPanel } from '../components/panels/DiagnosisTabPanel';
 import { PlanTabPanel } from '../components/panels/PlanTabPanel';
 import { RacesSuggestionsTabPanel } from '../components/panels/RacesSuggestionsTabPanel';
+import { SeasonTabPanel } from '../components/panels/SeasonTabPanel';
+import { useSeasonPlan } from '../hooks/useSeasonPlan';
+import { extractStatusKey } from '../../../types/Prova';
 import { useCoachDashboard } from '../../../hooks/useCoachDashboard';
 import { useAthleteProfile } from '../../../hooks/useAthleteProfile';
 import { useDashboardFilters } from '../hooks/useDashboardFilters';
@@ -64,7 +68,7 @@ import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
 import type { CoachAtletaResumo } from '../../../types/Coach';
 import { ROUTES } from '../../../constants/routes';
 
-type TabKey = 'diagnosis' | 'plan' | 'races';
+type TabKey = 'diagnosis' | 'season' | 'plan' | 'races';
 
 /** Tecla desenhada na legenda de atalhos da barra. */
 const KBD_SX = {
@@ -97,6 +101,7 @@ const SORT_OPTIONS: Array<{ key: SortKey; label: string }> = [
 
 const TABS: Array<{ key: TabKey; label: string; icon: ReactElement }> = [
   { key: 'diagnosis', label: 'Diagnóstico', icon: <NotificationsNoneIcon fontSize="small" /> },
+  { key: 'season', label: 'Temporada', icon: <TimelineIcon fontSize="small" /> },
   { key: 'plan', label: 'Plano', icon: <TuneIcon fontSize="small" /> },
   { key: 'races', label: 'Provas & sugestões', icon: <CalendarMonthIcon fontSize="small" /> },
 ];
@@ -170,6 +175,14 @@ function CoachInboxPage() {
     if (!selectedRosterItem) return null;
     return buildSelectedAthleteFromDashboard(selectedRosterItem, selectedProfile);
   }, [selectedProfile, selectedRosterItem]);
+  const season = useSeasonPlan(selectedRosterItem?.atletaId);
+  const hasTargetRace = useMemo(() => {
+    const provas = selectedProfile?.provas ?? (selectedProfile?.proximaProva ? [selectedProfile.proximaProva] : []);
+    return provas.some((p) => p.provaAlvo && extractStatusKey(p.statusProva) !== 'CANCELADA');
+  }, [selectedProfile]);
+  // Flag desligada no backend: a aba some e quem estava nela volta ao Diagnóstico.
+  const visibleTabs = season.disabled ? TABS.filter((t) => t.key !== 'season') : TABS;
+  const currentTab: TabKey = season.disabled && activeTab === 'season' ? 'diagnosis' : activeTab;
   // Série PMC (CTL/ATL/TSB) do atleta selecionado — já vem no perfil agregado, sem fetch extra.
   const selectedPmc = useMemo(() => buildPmcDataPoints(selectedProfile?.pmc ?? []), [selectedProfile?.pmc]);
   const {
@@ -875,7 +888,7 @@ function CoachInboxPage() {
 
               <Box sx={{ px: { xs: 1.1, sm: 1.2, lg: 1.3, xl: 2 }, pt: { xs: 0.35, sm: 0.45, lg: 0.5, xl: 0.8 }, borderBottom: `1px solid ${content.divider}` }}>
                 <Tabs
-                  value={activeTab}
+                  value={currentTab}
                   onChange={(_, value) => setActiveTab(value as TabKey)}
                   variant="scrollable"
                   scrollButtons="auto"
@@ -895,7 +908,7 @@ function CoachInboxPage() {
                     '& .MuiTabs-indicator': { backgroundColor: surface[50] },
                   }}
                 >
-                  {TABS.map((tab) => (
+                  {visibleTabs.map((tab) => (
                     <Tab key={tab.key} value={tab.key} icon={tab.icon} iconPosition="start" label={tab.label} />
                   ))}
                 </Tabs>
@@ -939,7 +952,7 @@ function CoachInboxPage() {
                   </Alert>
                 ) : null}
 
-                {activeTab === 'diagnosis' ? (
+                {currentTab === 'diagnosis' ? (
                   <DiagnosisTabPanel
                     selected={selected}
                     attentionItem={selectedAttentionItem}
@@ -952,7 +965,19 @@ function CoachInboxPage() {
                   />
                 ) : null}
 
-                {activeTab === 'plan' ? (
+                {currentTab === 'season' ? (
+                  <SeasonTabPanel
+                    plan={season.plan}
+                    loading={season.loading}
+                    generating={season.generating}
+                    error={season.error}
+                    hasTargetRace={hasTargetRace}
+                    onGenerate={() => void season.generate()}
+                    onRetry={() => void season.fetchPlan()}
+                  />
+                ) : null}
+
+                {currentTab === 'plan' ? (
                   <PlanTabPanel
                     selectedProfile={selectedProfile}
                     reloadDashboard={reloadDashboard}
@@ -961,7 +986,7 @@ function CoachInboxPage() {
                   />
                 ) : null}
 
-                {activeTab === 'races' ? (
+                {currentTab === 'races' ? (
                   <RacesSuggestionsTabPanel
                     selected={selected}
                     selectedProfile={selectedProfile}
