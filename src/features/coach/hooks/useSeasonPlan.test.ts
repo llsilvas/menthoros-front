@@ -11,6 +11,7 @@ const PLAN: SeasonPlan = {
     id: 's1', seasonStatus: 'PROPOSED', provaId: 'p1', provaNome: 'Maratona SP', provaData: '2027-04-04',
     shortPreparation: false, totalWeeks: 1, initialCtl: 40, peakVolumeKm: 50,
     weeks: [{ weekIndex: 1, weekStart: '2027-03-29', phase: 'RACE_WEEK', targetVolumeKm: 20, targetTss: 164, deload: false, valueSource: 'ENGINE' }],
+    milestones: [], validations: [],
 };
 
 const apiError = (status: number, body: unknown) =>

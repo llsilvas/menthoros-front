@@ -1,3 +1,5 @@
+import type { DistanciaProvaObj } from './Prova';
+
 /** Fases da temporada (`TrainingPhase` no backend). */
 export type TrainingPhase = 'BASE' | 'BUILD' | 'PEAK' | 'TAPER' | 'RACE_WEEK';
 
@@ -16,6 +18,29 @@ export interface SeasonWeek {
     valueSource: 'ENGINE' | 'COACH' | 'AI_ACCEPTED';
 }
 
+/** Prova preparatória ancorada numa semana (`SeasonPlanResponseDto.Milestone`). */
+export interface SeasonMilestone {
+    weekIndex: number;
+    provaId: string;
+    name: string;
+    /** yyyy-MM-dd */
+    date: string;
+    distance?: DistanciaProvaObj;
+}
+
+/** Regras do `SeasonPlanValidator` no backend. */
+export type SeasonValidationRule = 'RAMP' | 'LONG_RUN_SHARE' | 'DELOAD_CADENCE' | 'TAPER_DEPTH';
+
+/** Alerta brando da temporada; não bloqueia a aprovação. */
+export interface SeasonValidation {
+    rule: SeasonValidationRule;
+    severity: 'WARN';
+    weekIndex: number;
+    measured: number;
+    limit: number;
+    message: string;
+}
+
 /** `SeasonPlanResponseDto` — temporada até a prova-alvo. */
 export interface SeasonPlan {
     id: string;
@@ -28,4 +53,6 @@ export interface SeasonPlan {
     initialCtl: number;
     peakVolumeKm: number;
     weeks: SeasonWeek[];
+    milestones: SeasonMilestone[];
+    validations: SeasonValidation[];
 }
