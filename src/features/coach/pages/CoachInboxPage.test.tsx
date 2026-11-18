@@ -7,6 +7,7 @@ import * as reactRouter from 'react-router';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import CoachInboxPage from './CoachInboxPage';
 import { SugestaoService } from '../../../api/services/SugestaoService';
+import { SeasonPlanService } from '../../../api/services/SeasonPlanService';
 import { ApiError } from '../../../api/core/ApiError';
 import { useCoachDashboard } from '../../../hooks/useCoachDashboard';
 import { useAthleteProfile } from '../../../hooks/useAthleteProfile';
@@ -20,6 +21,7 @@ vi.mock('react-router', async () => {
 });
 
 vi.mock('../../../api/services/SugestaoService');
+vi.mock('../../../api/services/SeasonPlanService');
 vi.mock('../../../hooks/useCoachDashboard');
 vi.mock('../../../hooks/useAthleteProfile');
 // PMCChart usa recharts (ResponsiveContainer colapsa em jsdom) — stub para isolar a aba.
@@ -160,6 +162,8 @@ function renderPage() {
 describe('CoachInboxPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // clearAllMocks não desfaz implementação: sem isto o 404 da flag vaza para os testes seguintes.
+    vi.mocked(SeasonPlanService.buscarAtual).mockResolvedValue(undefined);
     vi.mocked(SugestaoService.detalhe).mockResolvedValue({
       id: 's1',
       atletaId: 'a1',
@@ -228,16 +232,27 @@ describe('CoachInboxPage', () => {
     expect(screen.getByTestId('queue-row-motivo')).toHaveTextContent(/fadiga/i);
   });
 
-  it('expõe exatamente 3 abas no drill-down do atleta', () => {
+  it('expõe exatamente 4 abas no drill-down do atleta, Temporada entre Diagnóstico e Plano', () => {
     renderPage();
 
     expect(screen.getByRole('tab', { name: /Diagnóstico/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Temporada/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /^Plano$/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /Provas & sugestões/i })).toBeInTheDocument();
-    expect(screen.getAllByRole('tab')).toHaveLength(3);
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Diagnóstico', 'Temporada', 'Plano', 'Provas & sugestões']);
     // abas antigas não existem mais
     expect(screen.queryByRole('tab', { name: /Status do treinamento/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: /Calendário de provas/i })).not.toBeInTheDocument();
+  });
+
+  it('flag de temporada desligada no backend esconde a aba Temporada', async () => {
+    vi.mocked(SeasonPlanService.buscarAtual).mockRejectedValue(
+      new ApiError({ method: 'GET', url: '' }, { url: '', ok: false, status: 404, statusText: '', body: { code: 'SEASON_PLAN_DISABLED' } }, 'erro'),
+    );
+    renderPage();
+
+    await waitFor(() => expect(screen.queryByRole('tab', { name: /Temporada/i })).not.toBeInTheDocument());
+    expect(screen.getAllByRole('tab')).toHaveLength(3);
   });
 
   it('mostra o diagnóstico do ATLETA na aba Diagnóstico (não insights globais)', () => {
