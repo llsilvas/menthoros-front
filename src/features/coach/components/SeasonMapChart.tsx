@@ -21,9 +21,15 @@ interface SeasonMapChartProps {
 }
 
 /** Resumo do mapa para leitor de tela; a tabela de semanas é a alternativa completa. */
-function describeMap(weeks: SeasonWeek[], milestones: SeasonMilestone[], peakVolumeKm: number): string {
+function describeMap(
+  weeks: SeasonWeek[],
+  milestones: SeasonMilestone[],
+  peakVolumeKm: number,
+  currentWeekIndex?: number,
+): string {
   const descargas = weeks.filter((w) => w.deload).map((w) => w.weekIndex);
   const partes = [`Mapa da temporada: ${weeks.length} semanas, pico de ${formatKmPt(peakVolumeKm)} km`];
+  if (currentWeekIndex) partes.push(`semana atual ${currentWeekIndex}`);
   if (descargas.length) partes.push(`descargas nas semanas ${descargas.join(', ')}`);
   if (milestones.length) partes.push(`marcos: ${milestones.map((m) => `${m.name} na semana ${m.weekIndex}`).join(', ')}`);
   return partes.join('; ');
@@ -32,10 +38,11 @@ function describeMap(weeks: SeasonWeek[], milestones: SeasonMilestone[], peakVol
 /** Volume planejado por semana, colorido pela fase; descarga esmaecida, marcos em linha vertical. */
 export function SeasonMapChart({ weeks, milestones, peakVolumeKm, currentWeekIndex }: SeasonMapChartProps) {
   return (
-    <Box role="img" aria-label={describeMap(weeks, milestones, peakVolumeKm)}>
+    <Box role="img" aria-label={describeMap(weeks, milestones, peakVolumeKm, currentWeekIndex)}>
       <Box sx={{ height: 140 }} aria-hidden>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={weeks} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+          {/* Decorativo: sem a camada acessível o SVG não recebe foco dentro do aria-hidden. */}
+          <BarChart data={weeks} accessibilityLayer={false} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
             <XAxis dataKey="weekIndex" tick={{ fill: surface[400], fontSize: 12 }} tickLine={false} axisLine={false} />
             <YAxis hide />
             {milestones.map((m) => (

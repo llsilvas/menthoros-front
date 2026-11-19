@@ -55,7 +55,7 @@ describe('SeasonTabPanel', () => {
         {...base}
         plan={{
           ...PLAN,
-          milestones: [{ weekIndex: 2, provaId: 'p2', name: 'Meia de teste', date: '2026-11-29' }],
+          milestones: [{ weekIndex: 2, provaId: 'p2', name: 'Meia de teste', date: '2026-11-29', distance: { value: '21K', label: '21 km (Meia Maratona)', short: '21K', order: 3 } }],
           validations: [{ rule: 'RAMP', severity: 'WARN', weekIndex: 2, measured: 27.8, limit: 10, message: 'Volume sobe 27,8% sobre a semana anterior (teto 10%)' }],
         }}
       />,

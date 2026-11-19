@@ -25,7 +25,7 @@ export interface SeasonMilestone {
     name: string;
     /** yyyy-MM-dd */
     date: string;
-    distance?: DistanciaProvaObj;
+    distance: DistanciaProvaObj;
 }
 
 /** Regras do `SeasonPlanValidator` no backend. */
