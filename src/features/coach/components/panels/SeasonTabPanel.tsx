@@ -5,17 +5,9 @@ import { KpiStrip } from '../KpiStrip';
 import { SeasonMapChart } from '../SeasonMapChart';
 import { SectionCard } from '../SectionCard';
 import { formatKmPt, plural } from '../../adapters/format';
-import type { SeasonPlan, SeasonWeek, TrainingPhase } from '../../../../types/SeasonPlan';
+import { TRAINING_PHASE_LABEL } from '../../../../types/SeasonPlan';
+import type { SeasonPlan, SeasonWeek } from '../../../../types/SeasonPlan';
 import type { KpiView } from '../../types/Kpi';
-
-// PhaseIndicator não tem PEAK nem RACE_WEEK.
-const PHASE_LABEL: Record<TrainingPhase, string> = {
-  BASE: 'Base',
-  BUILD: 'Construção',
-  PEAK: 'Pico',
-  TAPER: 'Polimento',
-  RACE_WEEK: 'Semana da prova',
-};
 
 const CELL_SX = { fontSize: '0.8125rem', color: surface[100], borderColor: content.divider, py: 0.75 } as const;
 const HEAD_SX = { ...CELL_SX, fontSize: '0.75rem', fontWeight: 700, color: surface[400] } as const;
@@ -37,7 +29,7 @@ function buildKpis(plan: SeasonPlan, hoje: Date): Array<KpiView & { key: string 
   return [
     kpi('weeks', 'Semanas', String(plan.totalWeeks), plan.shortPreparation ? 'Preparação curta' : ''),
     kpi('days', 'Dias até a prova', String(Math.max(dias, 0)), format(parseISO(plan.provaData), 'dd/MM/yyyy')),
-    kpi('phase', 'Fase atual', fase ? PHASE_LABEL[fase.phase] : '—', fase ? `Semana ${fase.weekIndex}` : ''),
+    kpi('phase', 'Fase atual', fase ? TRAINING_PHASE_LABEL[fase.phase] : '—', fase ? `Semana ${fase.weekIndex}` : ''),
     kpi('peak', 'Volume de pico', `${formatKmPt(plan.peakVolumeKm)} km`),
   ];
 }
@@ -177,7 +169,7 @@ export function SeasonTabPanel({ plan, loading, generating, loadError, generateE
                   <TableCell sx={CELL_SX}>{w.weekIndex}</TableCell>
                   <TableCell sx={CELL_SX}>{format(parseISO(w.weekStart), 'dd/MM')}</TableCell>
                   <TableCell sx={CELL_SX}>
-                    {`${PHASE_LABEL[w.phase] ?? w.phase}${w.deload ? ' · descarga' : ''}`}
+                    {`${TRAINING_PHASE_LABEL[w.phase] ?? w.phase}${w.deload ? ' · descarga' : ''}`}
                   </TableCell>
                   <TableCell sx={CELL_SX} align="right">{`${formatKmPt(w.targetVolumeKm)} km`}</TableCell>
                   <TableCell sx={CELL_SX} align="right">

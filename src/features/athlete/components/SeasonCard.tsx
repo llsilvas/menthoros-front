@@ -3,15 +3,8 @@ import { format, parseISO } from 'date-fns';
 import { surface } from '../../../theme/tokens';
 import { Card } from '../../../shared/components/Card';
 import { plural } from '../../coach/adapters/format';
-import type { AthleteSeasonPlan, TrainingPhase } from '../../../types/SeasonPlan';
-
-const PHASE_LABEL: Record<TrainingPhase, string> = {
-  BASE: 'Base',
-  BUILD: 'Construção',
-  PEAK: 'Pico',
-  TAPER: 'Polimento',
-  RACE_WEEK: 'Semana da prova',
-};
+import { TRAINING_PHASE_LABEL } from '../../../types/SeasonPlan';
+import type { AthleteSeasonPlan } from '../../../types/SeasonPlan';
 
 const MAX_MARCOS = 3;
 
@@ -32,7 +25,7 @@ export function SeasonCard({ season }: SeasonCardProps) {
       </Typography>
       <Typography variant="body2" sx={{ color: surface[200] }}>
         {season.daysToRace === 0 ? 'É hoje' : `Faltam ${plural(season.daysToRace, 'dia', 'dias')}`}
-        {season.currentPhase ? ` · Fase: ${PHASE_LABEL[season.currentPhase]}` : ''}
+        {season.currentPhase ? ` · Fase: ${TRAINING_PHASE_LABEL[season.currentPhase]}` : ''}
       </Typography>
       {marcos.length ? (
         <Box component="ul" aria-label="Próximos marcos" sx={{ m: 0, pl: 2.5, display: 'grid', gap: 0.25 }}>

@@ -28,6 +28,8 @@ export const useSeasonPlan = (atletaId: string | undefined) => {
     const [approveError, setApproveError] = useState<Error | null>(null);
     // Cada requisição recebe um número; resposta de requisição superada (ex.: atleta anterior) é descartada.
     const requestRef = useRef(0);
+    const atletaRef = useRef(atletaId);
+    const fetchPlanRef = useRef<() => Promise<void>>(async () => {});
 
     const fetchPlan = useCallback(async () => {
         const request = ++requestRef.current;
@@ -79,6 +81,8 @@ export const useSeasonPlan = (atletaId: string | undefined) => {
         try {
             const result = await SeasonPlanService.aprovar(atletaId, plan.id);
             if (request === requestRef.current) setPlan(result);
+            // Superada por troca de atleta (A → B → A): a leitura nova pode ter chegado antes da aprovação.
+            else if (atletaRef.current === atletaId) void fetchPlanRef.current();
         } catch (err) {
             if (request !== requestRef.current) return;
             if (isDisabled(err)) setDisabled(true);
@@ -89,8 +93,10 @@ export const useSeasonPlan = (atletaId: string | undefined) => {
     }, [atletaId, plan]);
 
     useEffect(() => {
+        atletaRef.current = atletaId;
+        fetchPlanRef.current = fetchPlan;
         void fetchPlan();
-    }, [fetchPlan]);
+    }, [atletaId, fetchPlan]);
 
     return { plan, loading, generating, approving, disabled, loadError, generateError, approveError, fetchPlan, generate, approve };
 };

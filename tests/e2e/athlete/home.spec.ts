@@ -190,9 +190,12 @@ test.describe('Atleta — Home', () => {
 
     await page.unroute('**/api/v1/atletas/me/season-plan')
     await page.route('**/api/v1/atletas/me/season-plan', (route) => route.fulfill({ status: 204, body: '' }))
+    const leitura = page.waitForResponse('**/api/v1/atletas/me/season-plan')
     await page.reload()
+    expect((await leitura).status()).toBe(204)
     await expect(page.getByRole('button', { name: /registrar treino/i })).toBeVisible()
     await expect(page.getByRole('region', { name: 'Minha temporada' })).toHaveCount(0)
+    await expect(page.getByRole('alert')).toHaveCount(0)
   })
 
   test('barra inferior tem cinco destinos; "Sair" vive no Perfil com confirmação', async ({ page }) => {

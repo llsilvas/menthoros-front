@@ -96,6 +96,26 @@ describe('useSeasonPlan', () => {
         expect(result.current.approving).toBe(false);
     });
 
+    it('aprovação superada por A → B → A relê a temporada de A', async () => {
+        let resolveAprovar: (p: SeasonPlan) => void = () => {};
+        vi.mocked(SeasonPlanService.aprovar).mockImplementationOnce(
+            () => new Promise<SeasonPlan>((r) => { resolveAprovar = r; }) as never);
+        vi.mocked(SeasonPlanService.buscarAtual).mockResolvedValue(PLAN);
+        const { result, rerender } = renderHook(({ id }) => useSeasonPlan(id), { initialProps: { id: 'a1' } });
+        await waitFor(() => expect(result.current.plan).toEqual(PLAN));
+
+        let aprovando: Promise<void> = Promise.resolve();
+        act(() => { aprovando = result.current.approve(); });
+        rerender({ id: 'b1' });
+        rerender({ id: 'a1' });
+        await waitFor(() => expect(result.current.loading).toBe(false));
+        const aprovada = { ...PLAN, seasonStatus: 'ACTIVE' as const };
+        vi.mocked(SeasonPlanService.buscarAtual).mockResolvedValue(aprovada);
+        await act(async () => { resolveAprovar(aprovada); await aprovando; });
+
+        await waitFor(() => expect(result.current.plan).toEqual(aprovada));
+    });
+
     it('resposta atrasada do atleta anterior não sobrescreve a do atual', async () => {
         let resolveA: (p: SeasonPlan) => void = () => {};
         vi.mocked(SeasonPlanService.buscarAtual)

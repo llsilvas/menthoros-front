@@ -137,6 +137,7 @@ test.describe('Coach — aba Temporada do inbox', () => {
     await page.route(SEASON_CURRENT_API, (route) => route.fulfill({ json: TEMPORADA }))
     let aprovacoes = 0
     await page.route('**/api/v1/atletas/ana/season-plans/season-1/approve', (route) => {
+      if (route.request().method() !== 'POST') return route.fulfill({ status: 405 })
       aprovacoes += 1
       return route.fulfill({ json: { ...TEMPORADA, seasonStatus: 'ACTIVE', approvedAt: '2026-11-20T13:00:00Z' } })
     })
