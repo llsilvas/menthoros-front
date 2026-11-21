@@ -17,6 +17,8 @@ async function mockarApis(page: Page) {
   const chamadas = { rascunhos: [] as Record<string, unknown>[], conclusao: undefined as Record<string, unknown> | undefined }
   await page.route('**/api/**', (r) => r.fulfill(json([])))
   await page.route('**/api/v1/users/me**', (r) => r.fulfill(json(ME)))
+  // `[]` do coringa viraria uma temporada inválida no card; sem temporada = 204.
+  await page.route('**/api/v1/atletas/me/season-plan', (r) => r.fulfill({ status: 204, body: '' }))
   await page.route('**/api/v1/atletas/*/onboarding', (r) => {
     if (r.request().method() === 'POST') {
       const corpo = r.request().postDataJSON()

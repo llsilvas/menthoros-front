@@ -18,7 +18,7 @@ const PLAN: SeasonPlan = {
 
 const HOJE = new Date(2026, 10, 25);
 
-const base = { plan: null, loading: false, generating: false, loadError: null, generateError: null, hasTargetRace: true, onGenerate: vi.fn(), onRetry: vi.fn(), hoje: HOJE };
+const base = { plan: null, loading: false, generating: false, loadError: null, generateError: null, approving: false, approveError: null, hasTargetRace: true, onGenerate: vi.fn(), onApprove: vi.fn(), onRetry: vi.fn(), hoje: HOJE };
 
 describe('SeasonTabPanel', () => {
   it('proposta: faixa, KPIs e uma linha por semana', () => {
@@ -72,9 +72,28 @@ describe('SeasonTabPanel', () => {
     expect(screen.getByText('Sem provas preparatórias na janela.')).toBeInTheDocument();
   });
 
-  it('temporada ativa não mostra a faixa de proposta', () => {
+  it('temporada ativa não mostra a faixa de proposta nem o botão de aprovar', () => {
     render(<SeasonTabPanel {...base} plan={{ ...PLAN, seasonStatus: 'ACTIVE' }} />);
     expect(screen.queryByText(/Proposta de temporada/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Aprovar temporada' })).not.toBeInTheDocument();
+  });
+
+  it('proposta: botão aprova', async () => {
+    const onApprove = vi.fn();
+    render(<SeasonTabPanel {...base} plan={PLAN} onApprove={onApprove} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Aprovar temporada' }));
+    expect(onApprove).toHaveBeenCalledTimes(1);
+  });
+
+  it('aprovando: botão desabilitado', () => {
+    render(<SeasonTabPanel {...base} plan={PLAN} approving />);
+    expect(screen.getByRole('button', { name: 'Aprovando…' })).toBeDisabled();
+  });
+
+  it('erro ao aprovar: mensagem do backend e o botão continua', () => {
+    render(<SeasonTabPanel {...base} plan={PLAN} approveError={new Error('A prova-alvo foi cancelada')} />);
+    expect(screen.getByText('A prova-alvo foi cancelada')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Aprovar temporada' })).toBeEnabled();
   });
 
   it('sem prova-alvo: orienta e não oferece gerar', () => {

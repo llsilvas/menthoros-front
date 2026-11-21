@@ -972,8 +972,11 @@ function CoachInboxPage() {
                     generating={season.generating}
                     loadError={season.loadError}
                     generateError={season.generateError}
+                    approving={season.approving}
+                    approveError={season.approveError}
                     hasTargetRace={hasTargetRace}
                     onGenerate={() => void season.generate()}
+                    onApprove={() => void season.approve()}
                     onRetry={() => void season.fetchPlan()}
                   />
                 ) : null}

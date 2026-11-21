@@ -132,6 +132,26 @@ test.describe('Coach — aba Temporada do inbox', () => {
     expect(posts).toBe(1)
   })
 
+  test('treinador aprova a proposta: a faixa e o botão somem', async ({ page }) => {
+    await mockarApi(page)
+    await page.route(SEASON_CURRENT_API, (route) => route.fulfill({ json: TEMPORADA }))
+    let aprovacoes = 0
+    await page.route('**/api/v1/atletas/ana/season-plans/season-1/approve', (route) => {
+      if (route.request().method() !== 'POST') return route.fulfill({ status: 405 })
+      aprovacoes += 1
+      return route.fulfill({ json: { ...TEMPORADA, seasonStatus: 'ACTIVE', approvedAt: '2026-11-20T13:00:00Z' } })
+    })
+
+    await page.goto(INBOX_URL)
+    await page.getByRole('tab', { name: /Temporada/i }).click()
+    await page.getByRole('button', { name: 'Aprovar temporada' }).click()
+
+    await expect(page.getByText(/Proposta de temporada até/)).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Aprovar temporada' })).toHaveCount(0)
+    await expect(page.getByRole('table', { name: 'Semanas da temporada' })).toBeVisible()
+    expect(aprovacoes).toBe(1)
+  })
+
   test('flag desligada no backend: a aba não aparece', async ({ page }) => {
     await mockarApi(page)
     await page.route(SEASON_CURRENT_API, (route) =>

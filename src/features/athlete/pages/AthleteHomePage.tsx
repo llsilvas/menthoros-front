@@ -36,6 +36,8 @@ import { useAthleteReadiness } from '../../../hooks/useAthleteReadiness';
 import { useAthleteProvas } from '../../../hooks/useAthleteProvas';
 import { useCheckinAtual } from '../../../hooks/useCheckinAtual';
 import { useKudosRecentes } from '../../../hooks/useKudosRecentes';
+import { useAthleteSeasonPlan } from '../../../hooks/useAthleteSeasonPlan';
+import { SeasonCard } from '../components/SeasonCard';
 import { useManualTraining } from '../../../hooks/useManualTraining';
 import { useRegistrarCheckin } from '../../../hooks/useRegistrarCheckin';
 import { useUserInfo } from '../../../hooks/useUserInfo';
@@ -66,6 +68,7 @@ export default function AthleteHomePage() {
   const { registrar, loading: registrando, error: registrarError } = useRegistrarCheckin();
   const { checkinHoje, error: checkinAtualError, fetchCheckinAtual } = useCheckinAtual();
   const { kudos, error: kudosError, fetchKudos } = useKudosRecentes();
+  const { season, error: seasonError, fetchSeason } = useAthleteSeasonPlan();
   const { plano, loading: planoLoading, error: planoError, fetchPlano } = useAthletePlan();
   const { enviar: enviarFeedback, enviando: feedbackEnviando, error: feedbackError } = useAthleteFeedback();
   const { status: calibracaoStatus, justExited: calibracaoJustExited, error: calibracaoError, fetchStatus: fetchCalibracao, dismissJustExited } = useCalibracao();
@@ -98,6 +101,7 @@ export default function AthleteHomePage() {
     { label: 'reconhecimentos do coach', error: kudosError, refetch: fetchKudos },
     { label: 'status da semana', error: planoError, refetch: fetchPlano },
     { label: 'calibração', error: calibracaoError, refetch: fetchCalibracao },
+    { label: 'temporada', error: seasonError, refetch: fetchSeason },
   ]);
 
   const inline = useInlineCheckin({
@@ -119,7 +123,8 @@ export default function AthleteHomePage() {
     fetchPlano();
     fetchCalibracao();
     fetchCurrentUser();
-  }, [fetchHome, fetchReadiness, fetchTreinos, fetchProvas, fetchCheckinAtual, fetchKudos, fetchPlano, fetchCalibracao, fetchCurrentUser]);
+    fetchSeason();
+  }, [fetchHome, fetchReadiness, fetchTreinos, fetchProvas, fetchCheckinAtual, fetchKudos, fetchPlano, fetchCalibracao, fetchCurrentUser, fetchSeason]);
 
   async function handleCheckInSubmit(data: QuickCheckInData) {
     await registrar(data);
@@ -283,6 +288,8 @@ export default function AthleteHomePage() {
       )}
 
       {!treinosLoading && !treinosError && <WeekOverviewCard overview={overview} provaConhecida={!provasLoading && !provasError} />}
+
+      <SeasonCard season={season} />
 
       <KudosCard kudos={kudos} />
 

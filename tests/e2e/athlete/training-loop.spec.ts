@@ -46,6 +46,8 @@ async function mockarBase(page: Page) {
     route.fulfill({ status: 200, contentType: 'application/json', body: objeto ? '{}' : '[]' })
   })
   await page.route('**/api/v1/users/me**', (route) => route.fulfill(json(ME)))
+  // `[]` do coringa viraria uma temporada inválida no card; sem temporada = 204.
+  await page.route('**/api/v1/atletas/me/season-plan', (route) => route.fulfill({ status: 204, body: '' }))
 }
 
 test.use({ viewport: { width: 390, height: 844 } })
