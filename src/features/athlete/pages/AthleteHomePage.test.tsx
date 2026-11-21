@@ -10,6 +10,7 @@ import { useAthleteReadiness } from '../../../hooks/useAthleteReadiness';
 import { useAthleteProvas } from '../../../hooks/useAthleteProvas';
 import { useCheckinAtual } from '../../../hooks/useCheckinAtual';
 import { useKudosRecentes } from '../../../hooks/useKudosRecentes';
+import { useAthleteSeasonPlan } from '../../../hooks/useAthleteSeasonPlan';
 import { useManualTraining } from '../../../hooks/useManualTraining';
 import { useRegistrarCheckin } from '../../../hooks/useRegistrarCheckin';
 import { useUserInfo } from '../../../hooks/useUserInfo';
@@ -17,6 +18,7 @@ import { useAthletePlan } from '../../../hooks/useAthletePlan';
 import { useCalibracao } from '../../../hooks/useCalibracao';
 import { useCurrentUser } from '../../../hooks/useCurrentUser';
 import type { PlanoSemanal } from '../../../types/PlanoSemanal';
+import type { AthleteSeasonPlan } from '../../../types/SeasonPlan';
 import type { CheckinProntidaoOutput } from '../../../types/Checkin';
 
 // Links usam o router real (href em hash); só o `navigate` do botão é espiado — a navegação de
@@ -34,6 +36,7 @@ vi.mock('../../../hooks/useAthleteReadiness');
 vi.mock('../../../hooks/useAthleteProvas');
 vi.mock('../../../hooks/useCheckinAtual');
 vi.mock('../../../hooks/useKudosRecentes');
+vi.mock('../../../hooks/useAthleteSeasonPlan');
 vi.mock('../../../hooks/useManualTraining');
 vi.mock('../../../hooks/useRegistrarCheckin');
 vi.mock('../../../hooks/useUserInfo');
@@ -97,6 +100,10 @@ function renderPage() {
   return render(<RouterProvider router={router} />);
 }
 
+function mockSeason(season: AthleteSeasonPlan | null) {
+  vi.mocked(useAthleteSeasonPlan).mockReturnValue({ season, loading: false, error: null, fetchSeason: vi.fn().mockResolvedValue(undefined) });
+}
+
 describe('AthleteHomePage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -124,6 +131,7 @@ describe('AthleteHomePage', () => {
     vi.mocked(useKudosRecentes).mockReturnValue({
       kudos: [], loading: false, error: null, fetchKudos: vi.fn().mockResolvedValue(undefined),
     });
+    mockSeason(null);
     mockPlano(null);
     vi.mocked(useCalibracao).mockReturnValue({
       status: null, justExited: false, loading: false, error: null,
@@ -494,6 +502,47 @@ describe('AthleteHomePage', () => {
       vi.mocked(useKudosRecentes).mockReturnValue({ kudos: [], loading: false, error: new Error('x'), fetchKudos: noop });
       renderPage();
       expect(screen.getByRole('alert')).toHaveTextContent(/reconhecimentos do coach/i);
+    });
+  });
+
+  describe('minha temporada', () => {
+    const DIST = { value: '42K', label: '42 km (Maratona)', short: '42K', order: 5 };
+
+    it('sem temporada aprovada, o card não existe', () => {
+      mockHome();
+      renderPage();
+      expect(screen.queryByRole('region', { name: 'Minha temporada' })).not.toBeInTheDocument();
+    });
+
+    it('com temporada aprovada: prova, dias, fase, próximos marcos e nota de previsão', () => {
+      mockHome();
+      mockSeason({
+        raceName: 'Maratona de SP', raceDate: '2027-04-04', distance: DIST, daysToRace: 139, currentPhase: 'BUILD',
+        upcomingMilestones: [{ name: 'Meia de teste', date: '2026-12-27', distance: { ...DIST, value: '21K' } }],
+      });
+      renderPage();
+      const card = screen.getByRole('region', { name: 'Minha temporada' });
+      expect(card).toHaveTextContent('Maratona de SP · 04/04/2027');
+      expect(card).toHaveTextContent('Faltam 139 dias · Fase: Construção');
+      expect(within(card).getByRole('list', { name: 'Próximos marcos' })).toHaveTextContent('Meia de teste · 27/12');
+      expect(card).toHaveTextContent(/semanas futuras são uma previsão/);
+    });
+
+    it('sem marcos e fora do horizonte: sem lista e sem fase', () => {
+      mockHome();
+      mockSeason({ raceName: 'Maratona de SP', raceDate: '2027-04-04', distance: DIST, daysToRace: 139, upcomingMilestones: [] });
+      renderPage();
+      const card = screen.getByRole('region', { name: 'Minha temporada' });
+      expect(within(card).queryByRole('list')).not.toBeInTheDocument();
+      expect(card).not.toHaveTextContent('Fase');
+    });
+
+    it('erro na leitura: sem card e aviso com retry', () => {
+      mockHome();
+      vi.mocked(useAthleteSeasonPlan).mockReturnValue({ season: null, loading: false, error: new Error('x'), fetchSeason: noop });
+      renderPage();
+      expect(screen.queryByRole('region', { name: 'Minha temporada' })).not.toBeInTheDocument();
+      expect(screen.getByRole('alert')).toHaveTextContent(/temporada/i);
     });
   });
 

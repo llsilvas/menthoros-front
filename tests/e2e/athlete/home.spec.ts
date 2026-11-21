@@ -42,6 +42,8 @@ const json = (body: unknown, status = 200) => ({ status, contentType: 'applicati
 interface Opcoes {
   kudosStatus?: number
   provasStatus?: number
+  /** Temporada aprovada (`/atletas/me/season-plan`); ausente = 204. */
+  temporada?: unknown
 }
 
 /** Home com dados mínimos e reais de contrato; a prontidão muda depois do POST do check-in. */
@@ -85,6 +87,9 @@ async function mockarHome(page: Page, opcoes: Opcoes = {}) {
   )
   await page.route('**/api/v1/planos/atleta-uuid**', (route) => route.fulfill(json([])))
   await page.route('**/api/v1/atletas/atleta-uuid/calibracao**', (route) => route.fulfill({ status: 204, body: '' }))
+  await page.route('**/api/v1/atletas/me/season-plan', (route) =>
+    route.fulfill(opcoes.temporada ? json(opcoes.temporada) : { status: 204, body: '' }),
+  )
 }
 
 test.use({ viewport: { width: 390, height: 844 } })
@@ -165,6 +170,29 @@ test.describe('Atleta — Home', () => {
     await expect(alertas.first()).toContainText(/reconhecimentos do coach/i)
     await expect(page.getByRole('button', { name: /recarregar/i })).toBeVisible()
     await expect(page.getByText(/peça ao seu coach/i)).toHaveCount(0)
+  })
+
+  test('temporada aprovada aparece como "Minha temporada"; sem ela, o card não existe', async ({ page }) => {
+    await mockarHome(page, {
+      temporada: {
+        raceName: 'Maratona de São Paulo', raceDate: '2027-04-04', daysToRace: 135, currentPhase: 'BASE',
+        distance: { value: '42K', label: '42 km (Maratona)', short: '42K', order: 5 },
+        upcomingMilestones: [{ name: 'Meia de teste', date: '2027-03-27', distance: { value: '21K', label: '21 km (Meia Maratona)', short: '21K', order: 3 } }],
+      },
+    })
+    await page.goto(HOME_URL)
+
+    const card = page.getByRole('region', { name: 'Minha temporada' })
+    await expect(card).toContainText('Maratona de São Paulo · 04/04/2027')
+    await expect(card).toContainText('Faltam 135 dias · Fase: Base')
+    await expect(card.getByRole('list', { name: 'Próximos marcos' })).toContainText('Meia de teste · 27/03')
+    await expect(card).toContainText(/semanas futuras são uma previsão/)
+
+    await page.unroute('**/api/v1/atletas/me/season-plan')
+    await page.route('**/api/v1/atletas/me/season-plan', (route) => route.fulfill({ status: 204, body: '' }))
+    await page.reload()
+    await expect(page.getByRole('button', { name: /registrar treino/i })).toBeVisible()
+    await expect(page.getByRole('region', { name: 'Minha temporada' })).toHaveCount(0)
   })
 
   test('barra inferior tem cinco destinos; "Sair" vive no Perfil com confirmação', async ({ page }) => {
