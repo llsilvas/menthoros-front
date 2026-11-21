@@ -42,7 +42,7 @@ async function mockar(page: Page, { temTrajeto, granted }: { temTrajeto: boolean
     const req = route.request()
     chamadasConsent.push(req)
     if (req.method() === 'POST') concedido = true
-    route.fulfill(json({ granted: concedido, policyVersion: '2026-11-09' }, req.method() === 'POST' ? 201 : 200))
+    route.fulfill(json({ granted: concedido, policyVersion: '2026-11-15' }, req.method() === 'POST' ? 201 : 200))
   })
   return chamadasConsent
 }
@@ -75,7 +75,7 @@ test.describe('Atleta — cards com mapa', () => {
 
     await aviso.getByRole('button', { name: 'Entendi, compartilhar' }).click()
     await expect(aviso).toBeHidden()
-    expect(chamadas.find((r) => r.method() === 'POST')?.postDataJSON()).toEqual({ policyVersion: '2026-11-09' })
+    expect(chamadas.find((r) => r.method() === 'POST')?.postDataJSON()).toEqual({ policyVersion: '2026-11-15' })
 
     await expect(salvar).toBeEnabled({ timeout: 20_000 })
     const [download] = await Promise.all([page.waitForEvent('download'), salvar.click()])

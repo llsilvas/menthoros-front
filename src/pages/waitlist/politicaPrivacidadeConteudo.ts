@@ -8,7 +8,9 @@
  * ajustada em 8 de outubro de 2026 ("corrida de rua e modalidades de endurance" -> "corrida",
  * alinhada ao posicionamento "IA para assessorias de corrida"), e a seção 3.1 ganhou, em 26 de outubro de
  * 2026, a declaração de transparência de IA e a transferência de treinos ao Garmin (garmin-connection).
- * Ao alterar o texto, atualize
+ * Em 15 de novembro de 2026 a seção 3.1 e as tabelas deixaram de citar versão de modelo e passaram a
+ * dizer que a análise pós-treino também usa a OpenAI (migrate-openai-retired-models e
+ * consolidate-llm-on-openai). Ao alterar o texto, atualize
  * também `POLITICA_ATUALIZADA_EM` e siga o procedimento de bump descrito em `PrivacidadePage.tsx`.
  */
 
@@ -22,10 +24,10 @@ export const CONTATO_EMAIL = 'contato@menthoros.com';
  * carimba a versão no registro de consentimento — se as duas divergirem, o sistema grava que o
  * coach aceitou uma versão diferente da que leu aqui.
  */
-export const POLITICA_VERSAO = '2026-11-09';
+export const POLITICA_VERSAO = '2026-11-15';
 
 /** Mesma data de `POLITICA_VERSAO`, por extenso para exibição. */
-export const POLITICA_ATUALIZADA_EM = '9 de novembro de 2026';
+export const POLITICA_ATUALIZADA_EM = '15 de novembro de 2026';
 
 export interface Tabela {
   /** Rótulo acessível da tabela — vira `aria-label`. */
@@ -126,8 +128,8 @@ export const POLITICA_SECOES: Secao[] = [
         subtitulo: '3.1 Inteligência Artificial',
         paragrafos: [
           'O Menthoros utiliza inteligência artificial para duas finalidades distintas, ambas sob o princípio coach-in-the-loop: as sugestões geradas por IA são sempre revisadas pelo treinador antes de chegarem ao atleta.',
-          'Geração de planos de treino (OpenAI — GPT-4o): são enviados ao modelo o perfil do atleta (idade, sexo, peso, nível de experiência), histórico de treinos e métricas de carga (TSS, CTL, ATL, TSB), zonas de treino e limiares fisiológicos, provas futuras e objetivos, e informações sobre lesões e histórico.',
-          'Análise pós-treino (Anthropic — Claude): são enviados ao modelo os dados do treino realizado versus planejado, métricas de execução (pace, FC, potência, cadência) e frequência cardíaca média e máxima do treino.',
+          'Geração de planos de treino (OpenAI): são enviados ao modelo o perfil do atleta (idade, sexo, peso, nível de experiência), histórico de treinos e métricas de carga (TSS, CTL, ATL, TSB), zonas de treino e limiares fisiológicos, provas futuras e objetivos, e informações sobre lesões e histórico.',
+          'Análise pós-treino (Anthropic e OpenAI): são enviados ao modelo os dados do treino realizado versus planejado, métricas de execução (pace, FC, potência, cadência) e frequência cardíaca média e máxima do treino. A análise é feita pela Anthropic; a tradução do texto da análise para o português e a mensagem ao atleta são processadas pela OpenAI.',
           'Tanto a OpenAI quanto a Anthropic não utilizam dados enviados via API para treinar seus modelos. Os dados são processados exclusivamente para gerar a resposta e descartados em até 30 dias (OpenAI) ou imediatamente (Anthropic). Ambos os provedores mantêm certificações de segurança compatíveis com a legislação brasileira (ISO 27001, SOC 2 Type II).',
           'Durante a fase atual de MVP, o processamento por IA utiliza contas de desenvolvedor. A Menthoros se compromete a formalizar Data Processing Agreements (DPAs) com ambos os provedores antes do lançamento comercial, incluindo cláusulas contratuais padrão (SCCs) para transferência internacional conforme o Art. 33 da LGPD.',
           'Sem o consentimento para IA, o Menthoros continua funcionando, mas os planos de treino são gerados manualmente pelo treinador e as análises pós-treino automáticas são desabilitadas.',
@@ -163,7 +165,7 @@ export const POLITICA_SECOES: Secao[] = [
             ],
             ['Geração de planos por IA (OpenAI)', 'Consentimento (Art. 7º, I)', 'Sim — planos passam a ser manuais'],
             [
-              'Análise pós-treino por IA (Anthropic)',
+              'Análise pós-treino por IA (Anthropic e OpenAI)',
               'Consentimento (Art. 7º, I)',
               'Sim — análises automáticas são desabilitadas',
             ],
@@ -236,8 +238,8 @@ export const POLITICA_SECOES: Secao[] = [
             ],
             [
               'OpenAI',
-              'Processamento de IA — geração de planos',
-              'Perfil, histórico, métricas, provas, lesões',
+              'Processamento de IA — geração de planos; tradução da análise pós-treino e mensagem ao atleta',
+              'Perfil, histórico, métricas, provas, lesões; texto da análise do treino',
               'EUA',
               'A ser formalizado antes do lançamento',
             ],

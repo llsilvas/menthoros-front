@@ -48,8 +48,8 @@ describe('PrivacidadePage', () => {
     // Guard-rail do bump: `POLITICA_VERSAO` precisa bater com `app.lgpd.policy-version` no backend.
     // Se a data por extenso e a técnica divergirem, o coach aceita uma versão que não leu.
     renderPage();
-    expect(POLITICA_VERSAO).toBe('2026-11-09');
-    expect(POLITICA_ATUALIZADA_EM).toBe('9 de novembro de 2026');
+    expect(POLITICA_VERSAO).toBe('2026-11-15');
+    expect(POLITICA_ATUALIZADA_EM).toBe('15 de novembro de 2026');
     expect(screen.getByText(`Última atualização: ${POLITICA_ATUALIZADA_EM}`)).toBeInTheDocument();
   });
 
