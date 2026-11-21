@@ -13,13 +13,13 @@ import {
   ehRecusaDeLoginSilencioso,
   ehRetornoDeAutorizacao,
   jaTentouRestaurar,
+  limparLoginDireto,
   limparParametrosDeAutorizacao,
   limparTentativaDeRestauracao,
   marcarTentativaDeRestauracao,
   liberarTrocaDeCodigo,
   trocarCodigoUmaVez,
   userManager,
-  ehRotaPublica,
   guardarRotaDeOrigem,
   lerRotaDeOrigem,
 } from './userManager';
@@ -50,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const aplicarUsuario = useCallback((user: User | null) => {
     if (user && !user.expired) {
       definirUsuario(user);
+      limparLoginDireto();
       setIsAuthenticated(true);
       return;
     }
@@ -78,15 +79,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (ativo) {
             aplicarUsuario(null);
             /**
-             * Rota pública volta para onde estava; rota protegida vai para o login.
+             * Volta para a rota de onde a restauração partiu.
              *
-             * Mandar todo mundo para o login quebra o auto-cadastro: quem abre `/#/cadastro` sem
-             * sessão é exatamente quem **não tem conta**, e cairia numa tela pedindo que entrasse.
-             * Encontrado pelo E2E do cadastro — nenhum teste de componente veria, porque o desvio
-             * acontece no retorno do provedor.
+             * Rota pública (ex.: `/#/cadastro`) simplesmente reabre — quem está lá é exatamente quem
+             * **não tem conta**. Rota protegida também volta para si: o guard a leva ao login já com
+             * o destino, e o login redireciona ao Keycloak. Mandar direto para `#/auth/login` perdia
+             * a rota de origem, e o usuário terminava na home da role em vez de onde queria ir.
              */
             const origem = lerRotaDeOrigem();
-            window.location.hash = ehRotaPublica(origem) ? origem || '#/' : '#/auth/login';
+            window.location.hash = origem || '#/';
           }
           return;
         }
