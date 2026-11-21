@@ -49,14 +49,17 @@ interface SeasonTabPanelProps {
   /** A leitura falhou: não se sabe se há temporada, então não se oferece gerar. */
   loadError: Error | null;
   generateError: Error | null;
+  approving: boolean;
+  approveError: Error | null;
   /** Atleta tem prova-alvo não cancelada (do perfil). */
   hasTargetRace: boolean;
   onGenerate: () => void;
+  onApprove: () => void;
   onRetry: () => void;
   hoje?: Date;
 }
 
-export function SeasonTabPanel({ plan, loading, generating, loadError, generateError, hasTargetRace, onGenerate, onRetry, hoje = new Date() }: SeasonTabPanelProps) {
+export function SeasonTabPanel({ plan, loading, generating, loadError, generateError, approving, approveError, hasTargetRace, onGenerate, onApprove, onRetry, hoje = new Date() }: SeasonTabPanelProps) {
   if (loading) {
     return (
       <Box data-testid="season-loading" role="status" aria-label="Carregando temporada">
@@ -105,9 +108,17 @@ export function SeasonTabPanel({ plan, loading, generating, loadError, generateE
 
   return (
     <Box sx={{ display: 'grid', gap: 1 }}>
+      {approveError ? <Alert severity="error">{approveError.message}</Alert> : null}
       {plan.seasonStatus === 'PROPOSED' ? (
-        <Alert severity="info">
-          Proposta de temporada até {plan.provaNome}. Ainda não foi aprovada.
+        <Alert
+          severity="info"
+          action={
+            <Button variant="contained" size="small" onClick={onApprove} disabled={approving} sx={ACTION_BTN_SX}>
+              {approving ? 'Aprovando…' : 'Aprovar temporada'}
+            </Button>
+          }
+        >
+          Proposta de temporada até {plan.provaNome}. Ainda não foi aprovada; o atleta só a vê depois de aprovada.
         </Alert>
       ) : null}
       <KpiStrip items={buildKpis(plan, hoje)} testIdPrefix="season-kpi" />

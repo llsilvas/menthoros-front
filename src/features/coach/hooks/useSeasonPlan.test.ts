@@ -77,6 +77,25 @@ describe('useSeasonPlan', () => {
         expect(result.current.generating).toBe(false);
     });
 
+    it('approve troca a proposta pela aprovada; 422 mostra a mensagem do backend', async () => {
+        vi.mocked(SeasonPlanService.buscarAtual).mockResolvedValue(PLAN);
+        vi.mocked(SeasonPlanService.aprovar).mockRejectedValueOnce(apiError(422, { message: 'Prova cancelada' }));
+        const { result } = renderHook(() => useSeasonPlan('a1'));
+        await waitFor(() => expect(result.current.plan).toEqual(PLAN));
+
+        await act(async () => { await result.current.approve(); });
+        expect(result.current.approveError?.message).toBe('Prova cancelada');
+        expect(result.current.plan).toEqual(PLAN);
+
+        const aprovada = { ...PLAN, seasonStatus: 'ACTIVE' as const, approvedAt: '2026-11-20T13:00:00Z' };
+        vi.mocked(SeasonPlanService.aprovar).mockResolvedValueOnce(aprovada);
+        await act(async () => { await result.current.approve(); });
+        expect(SeasonPlanService.aprovar).toHaveBeenLastCalledWith('a1', 's1');
+        expect(result.current.plan).toEqual(aprovada);
+        expect(result.current.approveError).toBeNull();
+        expect(result.current.approving).toBe(false);
+    });
+
     it('resposta atrasada do atleta anterior não sobrescreve a do atual', async () => {
         let resolveA: (p: SeasonPlan) => void = () => {};
         vi.mocked(SeasonPlanService.buscarAtual)

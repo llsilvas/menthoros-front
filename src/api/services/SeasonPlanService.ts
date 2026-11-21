@@ -1,4 +1,4 @@
-import type { SeasonPlan } from '../../types/SeasonPlan';
+import type { AthleteSeasonPlan, SeasonPlan } from '../../types/SeasonPlan';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -39,6 +39,39 @@ export class SeasonPlanService {
                 404: 'Não encontrado',
                 409: 'Já existe uma temporada em aberto para este atleta',
                 422: 'Não foi possível gerar a temporada',
+            },
+        });
+    }
+
+    /**
+     * Aprova a temporada proposta: vira ACTIVE. Aprovar uma ACTIVE devolve a mesma (idempotente).
+     * @throws ApiError 409 (arquivada ou outra ativa), 422 (prova cancelada ou deixou de ser alvo)
+     */
+    public static aprovar(atletaId: string, seasonPlanId: string): CancelablePromise<SeasonPlan> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/atletas/{atletaId}/season-plans/{seasonPlanId}/approve',
+            path: { atletaId, seasonPlanId },
+            errors: {
+                403: 'Acesso negado (requer treinador)',
+                404: 'Não encontrado',
+                409: 'A temporada não pode mais ser aprovada',
+                422: 'A prova-alvo foi cancelada ou deixou de ser alvo',
+            },
+        });
+    }
+
+    /**
+     * Temporada aprovada do atleta autenticado (`/api/v1/atletas/me/season-plan`, papel ATLETA).
+     * @returns a temporada, ou `undefined` quando não há aprovada visível (204, inclusive com a flag desligada)
+     */
+    public static buscarMinha(): CancelablePromise<AthleteSeasonPlan | undefined> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/atletas/me/season-plan',
+            errors: {
+                403: 'Acesso negado (requer atleta)',
+                404: 'Atleta não encontrado',
             },
         });
     }
