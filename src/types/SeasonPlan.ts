@@ -3,6 +3,15 @@ import type { DistanciaProvaObj } from './Prova';
 /** Fases da temporada (`TrainingPhase` no backend). */
 export type TrainingPhase = 'BASE' | 'BUILD' | 'PEAK' | 'TAPER' | 'RACE_WEEK';
 
+/** Nome da fase para o treinador e para o atleta (o `PhaseIndicator` não tem PEAK nem RACE_WEEK). */
+export const TRAINING_PHASE_LABEL: Record<TrainingPhase, string> = {
+    BASE: 'Base',
+    BUILD: 'Construção',
+    PEAK: 'Pico',
+    TAPER: 'Polimento',
+    RACE_WEEK: 'Semana da prova',
+};
+
 /** Ciclo de vida da temporada (`SeasonPlanStatus` no backend). */
 export type SeasonPlanStatus = 'PROPOSED' | 'ACTIVE' | 'ARCHIVED' | 'COMPLETED';
 
@@ -45,6 +54,8 @@ export interface SeasonValidation {
 export interface SeasonPlan {
     id: string;
     seasonStatus: SeasonPlanStatus;
+    /** Instante da aprovação (ISO); ausente enquanto PROPOSED. */
+    approvedAt?: string;
     provaId: string;
     provaNome: string;
     provaData: string;
@@ -55,4 +66,16 @@ export interface SeasonPlan {
     weeks: SeasonWeek[];
     milestones: SeasonMilestone[];
     validations: SeasonValidation[];
+}
+
+/** `AthleteSeasonPlanDto` — temporada aprovada vista pelo atleta, sem validações nem dados do treinador. */
+export interface AthleteSeasonPlan {
+    raceName: string;
+    /** yyyy-MM-dd */
+    raceDate: string;
+    distance: DistanciaProvaObj;
+    daysToRace: number;
+    /** Ausente fora do horizonte da temporada. */
+    currentPhase?: TrainingPhase;
+    upcomingMilestones: Array<{ name: string; date: string; distance: DistanciaProvaObj }>;
 }
