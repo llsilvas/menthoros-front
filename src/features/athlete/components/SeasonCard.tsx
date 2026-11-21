@@ -14,7 +14,8 @@ export interface SeasonCardProps {
 
 /** "Minha temporada": para onde a preparação vai. Ausente sem temporada aprovada (A7). */
 export function SeasonCard({ season }: SeasonCardProps) {
-  if (!season) return null;
+  // Resposta fora do contrato não pode derrubar a home inteira: o card some.
+  if (!season?.raceName || !season.raceDate || !Array.isArray(season.upcomingMilestones)) return null;
   const marcos = season.upcomingMilestones.slice(0, MAX_MARCOS);
 
   return (
