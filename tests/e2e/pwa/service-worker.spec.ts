@@ -70,8 +70,9 @@ test.describe('PWA — service worker do app-shell', () => {
 
     // Navega pelo shell público sob controle do SW; sem rota de runtime, nada além do precache
     // pode entrar no Cache Storage — inclusive se algum request a /api ou /auth acontecesse.
-    await page.goto('/#/auth/login')
-    await page.waitForFunction(() => window.location.hash === '#/auth/login')
+    // Não a rota de login: sem sessão ela redireciona sozinha ao IdP e a página sairia do origin.
+    await page.goto('/#/privacidade')
+    await page.waitForFunction(() => window.location.hash === '#/privacidade')
 
     const urls = await urlsEmCache(page)
     expect(urls.length).toBeGreaterThan(0) // o precache do shell existe

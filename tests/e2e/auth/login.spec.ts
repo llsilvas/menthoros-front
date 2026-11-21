@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { aguardarFluxoEstavel, autenticarComPkce, semSessaoNoProvedor } from '../../fixtures/pkceAuth'
 import { TOKEN_KEY } from '../../fixtures/auth'
+import { REDIRECT_URI } from '../../fixtures/idp'
 
 /**
  * E2E de autenticação — Authorization Code + PKCE.
@@ -17,20 +18,37 @@ const ROTA_PROTEGIDA = '/#/atletas'
 const LOGIN = '/#/auth/login'
 
 test.describe('Autenticação', () => {
-  test('a tela de entrada não pede senha', async ({ page }) => {
-    // Sem sessão no provedor: a restauração é recusada com `login_required` e o app conclui anônimo.
+  /**
+   * `fix-login-direct-keycloak-redirect`: não existe mais tela intermediária com botão. Recusada a
+   * restauração silenciosa, o app pede o login interativo sozinho — e leva junto a rota que o
+   * usuário abriu, para devolvê-lo a ela.
+   */
+  test('rota protegida sem sessão vai direto ao provedor e volta na rota aberta', async ({ page }) => {
+    await semSessaoNoProvedor(page)
+    await page.goto(ROTA_PROTEGIDA)
+
+    await page.waitForURL(/\/protocol\/openid-connect\/auth\?/)
+    const pedido = new URL(page.url())
+    // Interativo: com `prompt=none` o provedor recusaria de novo, sem mostrar a tela de senha.
+    expect(pedido.searchParams.has('prompt')).toBe(false)
+    expect(pedido.searchParams.get('response_type')).toBe('code')
+
+    // O usuário "digita a senha": o provedor devolve o code com o mesmo state.
+    await autenticarComPkce(page)
+    const state = pedido.searchParams.get('state') ?? ''
+    await page.goto(`${REDIRECT_URI}?code=codigo-de-teste&state=${encodeURIComponent(state)}`)
+
+    await expect(page).toHaveURL(/#\/atletas/)
+    expect(page.url()).not.toContain('error=')
+  })
+
+  /** O "Entrar" da landing aponta para a rota de login, que não espera um segundo clique. */
+  test('a rota de login redireciona sozinha ao provedor, sem botão', async ({ page }) => {
     await semSessaoNoProvedor(page)
     await page.goto(LOGIN)
 
-    // Recusada a restauração, o usuário tem de chegar ao login — e não à landing pública, que é o
-    // que a raiz serve. A URL também não pode exibir o erro técnico de um fluxo invisível para ele.
-    await expect(page).toHaveURL(/#\/auth\/login/)
-    expect(page.url()).not.toContain('error=')
-
-    await expect(page.getByRole('heading', { name: /bem-vindo/i })).toBeVisible()
-    // O ponto central da migração: a aplicação não coleta mais credenciais.
-    await expect(page.getByLabel(/senha/i)).toHaveCount(0)
-    await expect(page.getByRole('button', { name: /entrar/i })).toBeVisible()
+    await page.waitForURL(/\/protocol\/openid-connect\/auth\?/)
+    expect(new URL(page.url()).searchParams.has('prompt')).toBe(false)
   })
 
   test('com sessão no provedor, a rota protegida abre sem passar pelo login', async ({ page }) => {

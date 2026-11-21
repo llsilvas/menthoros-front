@@ -142,6 +142,40 @@ export function limparTentativaDeRestauracao(): void {
 }
 
 /**
+ * Guarda contra laço do login automático.
+ *
+ * A `LoginPage` redireciona ao Keycloak sozinha. Se o usuário voltar a ela sem sessão (botão voltar
+ * na tela do Keycloak, ou um login que não fechou), redirecionar de novo prenderia o navegador num
+ * vai-e-volta. Com a marca presente, a página cai para o botão manual. Só um login concluído a limpa.
+ */
+const CHAVE_LOGIN_DIRETO = 'menthoros:login-direto-tentado';
+
+export function jaTentouLoginDireto(): boolean {
+  try {
+    return sessionStorage.getItem(CHAVE_LOGIN_DIRETO) === '1';
+  } catch {
+    // Sem sessionStorage não há como evitar o laço; falha fechado no botão manual.
+    return true;
+  }
+}
+
+export function marcarLoginDireto(): void {
+  try {
+    sessionStorage.setItem(CHAVE_LOGIN_DIRETO, '1');
+  } catch {
+    // Ignorado: o `jaTentouLoginDireto` já falha fechado.
+  }
+}
+
+export function limparLoginDireto(): void {
+  try {
+    sessionStorage.removeItem(CHAVE_LOGIN_DIRETO);
+  } catch {
+    // Nada a limpar.
+  }
+}
+
+/**
  * Remove `code`/`state` da barra de endereço depois de processar o retorno.
  *
  * Sem isso, um reload reenviaria o mesmo `code` — que o Keycloak já invalidou —, e o usuário veria
