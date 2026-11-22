@@ -44,6 +44,7 @@ import { PlanTabPanel } from '../components/panels/PlanTabPanel';
 import { RacesSuggestionsTabPanel } from '../components/panels/RacesSuggestionsTabPanel';
 import { SeasonTabPanel } from '../components/panels/SeasonTabPanel';
 import { useSeasonPlan } from '../hooks/useSeasonPlan';
+import { useAthleteCalibration } from '../hooks/useAthleteCalibration';
 import { extractStatusKey } from '../../../types/Prova';
 import { useCoachDashboard } from '../../../hooks/useCoachDashboard';
 import { useAthleteProfile } from '../../../hooks/useAthleteProfile';
@@ -176,6 +177,7 @@ function CoachInboxPage() {
     return buildSelectedAthleteFromDashboard(selectedRosterItem, selectedProfile);
   }, [selectedProfile, selectedRosterItem]);
   const season = useSeasonPlan(selectedRosterItem?.atletaId);
+  const { status: calibration } = useAthleteCalibration(season.disabled ? undefined : selectedRosterItem?.atletaId);
   const hasTargetRace = useMemo(() => {
     const provas = selectedProfile?.provas ?? (selectedProfile?.proximaProva ? [selectedProfile.proximaProva] : []);
     return provas.some((p) => p.provaAlvo && extractStatusKey(p.statusProva) !== 'CANCELADA');
@@ -975,6 +977,7 @@ function CoachInboxPage() {
                     approving={season.approving}
                     approveError={season.approveError}
                     hasTargetRace={hasTargetRace}
+                    calibration={calibration}
                     onGenerate={() => void season.generate()}
                     onApprove={() => void season.approve()}
                     onRetry={() => void season.fetchPlan()}

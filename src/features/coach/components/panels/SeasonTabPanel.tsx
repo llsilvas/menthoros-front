@@ -7,6 +7,7 @@ import { SectionCard } from '../SectionCard';
 import { formatKmPt, plural } from '../../adapters/format';
 import { TRAINING_PHASE_LABEL } from '../../../../types/SeasonPlan';
 import type { SeasonPlan, SeasonWeek } from '../../../../types/SeasonPlan';
+import type { CalibrationStatus } from '../../../../types/Calibracao';
 import type { KpiView } from '../../types/Kpi';
 
 const CELL_SX = { fontSize: '0.8125rem', color: surface[100], borderColor: content.divider, py: 0.75 } as const;
@@ -45,13 +46,15 @@ interface SeasonTabPanelProps {
   approveError: Error | null;
   /** Atleta tem prova-alvo não cancelada (do perfil). */
   hasTargetRace: boolean;
+  /** Atleta em calibração: a temporada espera a graduação (o backend recusa com 422). */
+  calibration?: CalibrationStatus | null;
   onGenerate: () => void;
   onApprove: () => void;
   onRetry: () => void;
   hoje?: Date;
 }
 
-export function SeasonTabPanel({ plan, loading, generating, loadError, generateError, approving, approveError, hasTargetRace, onGenerate, onApprove, onRetry, hoje = new Date() }: SeasonTabPanelProps) {
+export function SeasonTabPanel({ plan, loading, generating, loadError, generateError, approving, approveError, hasTargetRace, calibration = null, onGenerate, onApprove, onRetry, hoje = new Date() }: SeasonTabPanelProps) {
   if (loading) {
     return (
       <Box data-testid="season-loading" role="status" aria-label="Carregando temporada">
@@ -83,9 +86,11 @@ export function SeasonTabPanel({ plan, loading, generating, loadError, generateE
         {hasTargetRace ? (
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, flexWrap: 'wrap' }}>
             <Typography sx={{ fontSize: '0.8125rem', color: surface[200] }}>
-              Este atleta tem prova-alvo e ainda não tem temporada.
+              {calibration
+                ? `Atleta em calibração (semana ${calibration.weekNumber}): a temporada fica disponível quando ele concluir a calibração.`
+                : 'Este atleta tem prova-alvo e ainda não tem temporada.'}
             </Typography>
-            <Button variant="contained" onClick={onGenerate} disabled={generating} sx={ACTION_BTN_SX}>
+            <Button variant="contained" onClick={onGenerate} disabled={generating || !!calibration} sx={ACTION_BTN_SX}>
               {generating ? 'Gerando…' : 'Gerar temporada'}
             </Button>
           </Box>
