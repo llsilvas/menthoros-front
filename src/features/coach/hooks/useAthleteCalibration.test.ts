@@ -15,7 +15,7 @@ describe('useAthleteCalibration', () => {
         vi.mocked(OnboardingService.obterStatusCalibracao).mockResolvedValue(STATUS);
         const { result } = renderHook(() => useAthleteCalibration('a1'));
 
-        await waitFor(() => expect(result.current).toEqual(STATUS));
+        await waitFor(() => expect(result.current.status).toEqual(STATUS));
         expect(OnboardingService.obterStatusCalibracao).toHaveBeenCalledWith('a1');
     });
 
@@ -23,22 +23,23 @@ describe('useAthleteCalibration', () => {
         vi.mocked(OnboardingService.obterStatusCalibracao).mockResolvedValue(undefined);
         const { result } = renderHook(() => useAthleteCalibration('a1'));
 
-        await waitFor(() => expect(OnboardingService.obterStatusCalibracao).toHaveBeenCalled());
-        expect(result.current).toBeNull();
+        await waitFor(() => expect(result.current.loading).toBe(false));
+        expect(result.current.status).toBeNull();
+        expect(result.current.error).toBeNull();
     });
 
     it('erro trata como fora de calibração: o backend responde 422 se for o caso', async () => {
         vi.mocked(OnboardingService.obterStatusCalibracao).mockRejectedValue(new Error('falhou'));
         const { result } = renderHook(() => useAthleteCalibration('a1'));
 
-        await waitFor(() => expect(OnboardingService.obterStatusCalibracao).toHaveBeenCalled());
-        expect(result.current).toBeNull();
+        await waitFor(() => expect(result.current.error?.message).toBe('falhou'));
+        expect(result.current.status).toBeNull();
     });
 
     it('sem atleta não consulta', () => {
         const { result } = renderHook(() => useAthleteCalibration(undefined));
 
-        expect(result.current).toBeNull();
+        expect(result.current.status).toBeNull();
         expect(OnboardingService.obterStatusCalibracao).not.toHaveBeenCalled();
     });
 
@@ -54,6 +55,6 @@ describe('useAthleteCalibration', () => {
         resolverA(STATUS);
         await new Promise((r) => setTimeout(r, 0));
 
-        expect(result.current).toBeNull();
+        expect(result.current.status).toBeNull();
     });
 });

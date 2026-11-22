@@ -90,7 +90,7 @@ export function SeasonTabPanel({ plan, loading, generating, loadError, generateE
                 ? `Atleta em calibração (semana ${calibration.weekNumber}): a temporada fica disponível quando ele concluir a calibração.`
                 : 'Este atleta tem prova-alvo e ainda não tem temporada.'}
             </Typography>
-            <Button variant="contained" onClick={onGenerate} disabled={generating || calibration !== null} sx={ACTION_BTN_SX}>
+            <Button variant="contained" onClick={onGenerate} disabled={generating || !!calibration} sx={ACTION_BTN_SX}>
               {generating ? 'Gerando…' : 'Gerar temporada'}
             </Button>
           </Box>

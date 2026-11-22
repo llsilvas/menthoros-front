@@ -177,7 +177,7 @@ function CoachInboxPage() {
     return buildSelectedAthleteFromDashboard(selectedRosterItem, selectedProfile);
   }, [selectedProfile, selectedRosterItem]);
   const season = useSeasonPlan(selectedRosterItem?.atletaId);
-  const calibration = useAthleteCalibration(season.disabled ? undefined : selectedRosterItem?.atletaId);
+  const { status: calibration } = useAthleteCalibration(season.disabled ? undefined : selectedRosterItem?.atletaId);
   const hasTargetRace = useMemo(() => {
     const provas = selectedProfile?.provas ?? (selectedProfile?.proximaProva ? [selectedProfile.proximaProva] : []);
     return provas.some((p) => p.provaAlvo && extractStatusKey(p.statusProva) !== 'CANCELADA');

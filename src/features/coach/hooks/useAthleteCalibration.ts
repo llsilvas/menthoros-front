@@ -4,21 +4,31 @@ import type { CalibrationStatus } from '../../../types/Calibracao';
 
 /**
  * Status de calibração do atleta selecionado, para travar "Gerar temporada" na aba Temporada.
- * `null` = fora de calibração (204), sem atleta ou consulta falhou: na dúvida a ação fica habilitada,
- * porque o backend é a fonte de verdade e responde 422 se o atleta estiver calibrando.
+ * `status === null` = fora de calibração (204), sem atleta ou consulta falhou. Com `error`, a ação fica
+ * habilitada de propósito: o backend é a fonte de verdade e responde 422 se o atleta estiver calibrando.
  */
-export const useAthleteCalibration = (atletaId: string | undefined): CalibrationStatus | null => {
+export const useAthleteCalibration = (atletaId: string | undefined) => {
     const [status, setStatus] = useState<CalibrationStatus | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<Error | null>(null);
 
     useEffect(() => {
         setStatus(null);
-        if (!atletaId) return;
+        setError(null);
+        if (!atletaId) {
+            setLoading(false);
+            return;
+        }
         let atual = true;
+        setLoading(true);
         OnboardingService.obterStatusCalibracao(atletaId)
             .then((s) => { if (atual) setStatus(s ?? null); })
-            .catch(() => { if (atual) setStatus(null); });
+            .catch((err: unknown) => {
+                if (atual) setError(err instanceof Error ? err : new Error('Erro ao consultar a calibração'));
+            })
+            .finally(() => { if (atual) setLoading(false); });
         return () => { atual = false; };
     }, [atletaId]);
 
-    return status;
+    return { status, loading, error };
 };
