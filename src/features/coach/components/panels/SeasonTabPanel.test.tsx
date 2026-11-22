@@ -133,4 +133,21 @@ describe('SeasonTabPanel', () => {
     expect(screen.getByText('Atleta sem base de carga')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Gerar temporada' })).toBeEnabled();
   });
+
+  it('atleta em calibração: botão desabilitado com o motivo e a semana', () => {
+    render(
+      <SeasonTabPanel
+        {...base}
+        calibration={{ phase: 'CALIBRATION', stage: 'STABILIZATION', weekNumber: 5, confidenceScore: 40 }}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Gerar temporada' })).toBeDisabled();
+    expect(screen.getByText(/em calibração \(semana 5\)/)).toBeInTheDocument();
+  });
+
+  it('fora de calibração: botão habilitado, sem aviso', () => {
+    render(<SeasonTabPanel {...base} calibration={null} />);
+    expect(screen.getByRole('button', { name: 'Gerar temporada' })).toBeEnabled();
+    expect(screen.queryByText(/em calibração/)).not.toBeInTheDocument();
+  });
 });

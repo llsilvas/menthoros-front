@@ -9,6 +9,7 @@ import { autenticarComPkce } from '../../fixtures/pkceAuth'
 const INBOX_URL = '/#/coach/inbox'
 const SEASON_API = '**/api/v1/atletas/ana/season-plans'
 const SEASON_CURRENT_API = '**/api/v1/atletas/ana/season-plans/current'
+const CALIBRACAO_API = '**/api/v1/atletas/ana/calibracao'
 
 const ME = {
   id: 'coach-uuid',
@@ -96,6 +97,7 @@ async function mockarApi(page: Page) {
   await page.route('**/api/v1/atletas/**', (route) => route.fulfill({ json: {} }))
   await page.route('**/api/v1/coach/atletas/*/perfil', (route) => route.fulfill({ json: PERFIL }))
   await page.route(SEASON_CURRENT_API, (route) => route.fulfill({ status: 204 }))
+  await page.route(CALIBRACAO_API, (route) => route.fulfill({ status: 204 }))
 }
 
 test.describe('Coach — aba Temporada do inbox', () => {
@@ -130,6 +132,19 @@ test.describe('Coach — aba Temporada do inbox', () => {
     await expect(page.getByRole('list', { name: 'Marcos' })).toContainText('Meia de teste · Semana 1 · 27/03')
     await expect(page.getByRole('list', { name: 'Validações' })).toContainText('a curva de polimento pede 55,5%')
     expect(posts).toBe(1)
+  })
+
+  test('atleta em calibração: "Gerar temporada" desabilitada com a semana', async ({ page }) => {
+    await mockarApi(page)
+    await page.route(CALIBRACAO_API, (route) =>
+      route.fulfill({ json: { phase: 'CALIBRATION', stage: 'CALIBRATION', weekNumber: 2, confidenceScore: 40 } }),
+    )
+
+    await page.goto(INBOX_URL)
+    await page.getByRole('tab', { name: /Temporada/i }).click()
+
+    await expect(page.getByText(/Atleta em calibração \(semana 2\)/)).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Gerar temporada' })).toBeDisabled()
   })
 
   test('treinador aprova a proposta: a faixa e o botão somem', async ({ page }) => {
