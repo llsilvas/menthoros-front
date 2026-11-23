@@ -8,6 +8,7 @@ import {
   jaTentouLoginDireto,
   limparLoginDireto,
   marcarLoginDireto,
+  voltouPeloHistorico,
 } from '../../context/auth/userManager';
 import { gradients, glassAzulSx, transitions, primary, surface } from '../../theme/tokens';
 import { overlayWhite } from '../../theme/overlays';
@@ -44,7 +45,8 @@ function Aguarde({ rotulo }: { rotulo: string }) {
  *
  * O card com o botão "Entrar" é só fallback, para quando redirecionar sozinho não dá ou não deve:
  * falha ao iniciar o fluxo, navegador offline (o redirect terminaria na página de erro do navegador)
- * e retorno sem sessão logo após uma tentativa automática (evita laço — ver `jaTentouLoginDireto`).
+ * e retorno sem sessão pelo voltar do navegador logo após uma tentativa automática (evita laço — ver
+ * `jaTentouLoginDireto` e `voltouPeloHistorico`). Abrir o login de novo na mesma aba redireciona.
  *
  * As roles são lidas de forma síncrona (`getRoles`) porque a decisão de destino acontece no corpo do
  * render, logo depois de a sessão ser estabelecida.
@@ -52,7 +54,9 @@ function Aguarde({ rotulo }: { rotulo: string }) {
 export default function LoginPage() {
   const { isAuthenticated, carregando, login } = useAuth();
   const location = useLocation();
-  const [manual] = useState(() => !navigator.onLine || jaTentouLoginDireto());
+  const [manual] = useState(
+    () => !navigator.onLine || (jaTentouLoginDireto() && voltouPeloHistorico()),
+  );
   const disparou = useRef(false);
   const [entrando, setEntrando] = useState(false);
   const [erro, setErro] = useState('');
