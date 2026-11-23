@@ -1,15 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ApiError } from '../../../api/core/ApiError';
 import { SeasonPlanService } from '../../../api/services/SeasonPlanService';
 import type { SeasonPlan } from '../../../types/SeasonPlan';
-
-const isDisabled = (err: unknown) =>
-    err instanceof ApiError && err.status === 404 && err.body?.code === 'SEASON_PLAN_DISABLED';
-
-const toError = (err: unknown, fallback: string) =>
-    err instanceof ApiError && typeof err.body?.message === 'string'
-        ? new Error(err.body.message)
-        : err instanceof Error ? err : new Error(fallback);
+import { isSeasonPlanDisabled as isDisabled, seasonPlanError as toError } from '../adapters/seasonPlanError';
 
 /**
  * Temporada aberta do atleta para a aba Temporada do inbox. `plan === null` sem erro = atleta sem
@@ -26,6 +18,8 @@ export const useSeasonPlan = (atletaId: string | undefined) => {
     const [generateError, setGenerateError] = useState<Error | null>(null);
     const [approving, setApproving] = useState(false);
     const [approveError, setApproveError] = useState<Error | null>(null);
+    const [adjusting, setAdjusting] = useState(false);
+    const [adjustError, setAdjustError] = useState<Error | null>(null);
     // Cada requisição recebe um número; resposta de requisição superada (ex.: atleta anterior) é descartada.
     const requestRef = useRef(0);
     const atletaRef = useRef(atletaId);
@@ -39,6 +33,8 @@ export const useSeasonPlan = (atletaId: string | undefined) => {
         setGenerating(false);
         setApproveError(null);
         setApproving(false);
+        setAdjustError(null);
+        setAdjusting(false);
         if (!atletaId) {
             setLoading(false);
             return;
@@ -92,11 +88,35 @@ export const useSeasonPlan = (atletaId: string | undefined) => {
         }
     }, [atletaId, plan]);
 
+    /**
+     * Abre o ajuste da temporada ACTIVE: reaproveita o já aberto (`openDraftId`) ou cria um. Devolve o id
+     * do rascunho para a tela navegar, ou `null` se não deu.
+     */
+    const adjust = useCallback(async (): Promise<string | null> => {
+        if (!atletaId || !plan || plan.seasonStatus !== 'ACTIVE') return null;
+        if (plan.openDraftId) return plan.openDraftId;
+        setAdjusting(true);
+        setAdjustError(null);
+        try {
+            const draft = await SeasonPlanService.criarAjuste(atletaId, plan.id);
+            return draft.id;
+        } catch (err) {
+            if (isDisabled(err)) setDisabled(true);
+            else setAdjustError(toError(err, 'Erro ao abrir o ajuste da temporada'));
+            return null;
+        } finally {
+            setAdjusting(false);
+        }
+    }, [atletaId, plan]);
+
     useEffect(() => {
         atletaRef.current = atletaId;
         fetchPlanRef.current = fetchPlan;
         void fetchPlan();
     }, [atletaId, fetchPlan]);
 
-    return { plan, loading, generating, approving, disabled, loadError, generateError, approveError, fetchPlan, generate, approve };
+    return {
+        plan, loading, generating, approving, adjusting, disabled, loadError, generateError, approveError, adjustError,
+        fetchPlan, generate, approve, adjust,
+    };
 };

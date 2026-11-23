@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactElement } from 'react';
-import { Link as RouterLink, useNavigate, useOutletContext } from 'react-router';
+import { Link as RouterLink, useLocation, useNavigate, useOutletContext } from 'react-router';
 import {
   Alert,
   Box,
@@ -116,11 +116,13 @@ function CoachInboxPage() {
     // que a última ação falhou.
     reviewIsActing, reviewActionStatus,
   } = useOutletContext<CoachLayoutOutletContext>();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Volta do ajuste da temporada (add-season-plan-adjust-v2): reabre o atleta na aba Temporada.
+  const retorno = useLocation().state as { atletaId?: string; tab?: TabKey } | null;
+  const [selectedId, setSelectedId] = useState<string | null>(retorno?.atletaId ?? null);
   /** Rascunho de contato exibido quando a área de transferência não está disponível. */
   const [rascunhoContato, setRascunhoContato] = useState<string | null>(null);
   const [sortMenuAnchor, setSortMenuAnchor] = useState<null | HTMLElement>(null);
-  const [activeTab, setActiveTab] = useState<TabKey>('diagnosis');
+  const [activeTab, setActiveTab] = useState<TabKey>(retorno?.tab ?? 'diagnosis');
   const [feedback, setFeedback] = useState<string | null>(null);
   const {
     dashboard,
@@ -177,6 +179,11 @@ function CoachInboxPage() {
     return buildSelectedAthleteFromDashboard(selectedRosterItem, selectedProfile);
   }, [selectedProfile, selectedRosterItem]);
   const season = useSeasonPlan(selectedRosterItem?.atletaId);
+  const abrirAjusteDaTemporada = async () => {
+    const atletaId = selectedRosterItem?.atletaId;
+    const draftId = await season.adjust();
+    if (atletaId && draftId) navigate(`/coach/athletes/${atletaId}/season/${draftId}/adjust`);
+  };
   const { status: calibration } = useAthleteCalibration(season.disabled ? undefined : selectedRosterItem?.atletaId);
   const hasTargetRace = useMemo(() => {
     const provas = selectedProfile?.provas ?? (selectedProfile?.proximaProva ? [selectedProfile.proximaProva] : []);
@@ -978,8 +985,11 @@ function CoachInboxPage() {
                     approveError={season.approveError}
                     hasTargetRace={hasTargetRace}
                     calibration={calibration}
+                    adjusting={season.adjusting}
+                    adjustError={season.adjustError}
                     onGenerate={() => void season.generate()}
                     onApprove={() => void season.approve()}
+                    onAdjust={() => void abrirAjusteDaTemporada()}
                     onRetry={() => void season.fetchPlan()}
                   />
                 ) : null}

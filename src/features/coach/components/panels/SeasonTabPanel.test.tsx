@@ -8,9 +8,9 @@ const PLAN: SeasonPlan = {
   id: 's1', seasonStatus: 'PROPOSED', provaId: 'p1', provaNome: 'Maratona SP', provaData: '2027-04-04',
   shortPreparation: false, totalWeeks: 3, initialCtl: 40, peakVolumeKm: 52,
   weeks: [
-    { weekIndex: 1, weekStart: '2026-11-16', phase: 'BASE', targetVolumeKm: 40.7, targetTss: 285, deload: false, longRunKm: 11.4, valueSource: 'ENGINE' },
-    { weekIndex: 2, weekStart: '2026-11-23', phase: 'PEAK', targetVolumeKm: 52, targetTss: 364, deload: false, longRunKm: 14.6, valueSource: 'ENGINE' },
-    { weekIndex: 3, weekStart: '2026-11-30', phase: 'RACE_WEEK', targetVolumeKm: 23.4, targetTss: 164, deload: false, valueSource: 'ENGINE' },
+    { weekIndex: 1, weekStart: '2026-11-16', phase: 'BASE', targetVolumeKm: 40.7, targetTss: 285, deload: false, longRunKm: 11.4, valueSource: 'ENGINE', locked: false },
+    { weekIndex: 2, weekStart: '2026-11-23', phase: 'PEAK', targetVolumeKm: 52, targetTss: 364, deload: false, longRunKm: 14.6, valueSource: 'ENGINE', locked: false },
+    { weekIndex: 3, weekStart: '2026-11-30', phase: 'RACE_WEEK', targetVolumeKm: 23.4, targetTss: 164, deload: false, valueSource: 'ENGINE', locked: false },
   ],
   milestones: [],
   validations: [],
@@ -42,6 +42,34 @@ describe('SeasonTabPanel', () => {
 
     const rows = within(screen.getByRole('table', { name: 'Semanas da temporada' })).getAllByRole('row');
     expect(rows[1]).toHaveTextContent(/Base · descarga/);
+  });
+
+  it('ativa: botão Ajustar temporada chama onAdjust', async () => {
+    const onAdjust = vi.fn();
+    render(<SeasonTabPanel {...base} plan={{ ...PLAN, seasonStatus: 'ACTIVE', version: 2 }} onAdjust={onAdjust} />);
+
+    expect(screen.getByText(/versão 2/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Ajustar temporada' }));
+    expect(onAdjust).toHaveBeenCalledTimes(1);
+  });
+
+  it('ativa com ajuste aberto oferece Continuar ajuste', () => {
+    render(<SeasonTabPanel {...base} plan={{ ...PLAN, seasonStatus: 'ACTIVE', openDraftId: 'v2' }} onAdjust={vi.fn()} />);
+
+    expect(screen.getByRole('button', { name: 'Continuar ajuste' })).toBeInTheDocument();
+  });
+
+  it('proposta não oferece ajuste', () => {
+    render(<SeasonTabPanel {...base} plan={PLAN} onAdjust={vi.fn()} />);
+
+    expect(screen.queryByRole('button', { name: 'Ajustar temporada' })).not.toBeInTheDocument();
+  });
+
+  it('erro ao abrir o ajuste aparece na aba', () => {
+    render(<SeasonTabPanel {...base} plan={{ ...PLAN, seasonStatus: 'ACTIVE' }} onAdjust={vi.fn()}
+      adjustError={new Error('O atleta já tem outra temporada proposta')} />);
+
+    expect(screen.getByText('O atleta já tem outra temporada proposta')).toBeInTheDocument();
   });
 
   it('mapa da temporada com resumo acessível', () => {

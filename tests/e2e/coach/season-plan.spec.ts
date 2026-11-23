@@ -3,7 +3,8 @@ import { autenticarComPkce } from '../../fixtures/pkceAuth'
 
 /**
  * Aba Temporada do inbox (add-season-plan-generate-tracer): atleta com prova-alvo e sem temporada
- * → "Gerar temporada" → POST → tabela de semanas. API interceptada.
+ * → "Gerar temporada" → POST → tabela de semanas; e o ajuste da temporada ativa até a versão 2
+ * (add-season-plan-adjust-v2). API interceptada.
  */
 
 const INBOX_URL = '/#/coach/inbox'
@@ -65,8 +66,8 @@ const TEMPORADA = {
   initialCtl: 40,
   peakVolumeKm: 52,
   weeks: [
-    { weekIndex: 1, weekStart: '2027-03-22', phase: 'TAPER', targetVolumeKm: 31.2, targetTss: 218, deload: false, longRunKm: 8.7, valueSource: 'ENGINE' },
-    { weekIndex: 2, weekStart: '2027-03-29', phase: 'RACE_WEEK', targetVolumeKm: 23.4, targetTss: 164, deload: false, valueSource: 'ENGINE' },
+    { weekIndex: 1, weekStart: '2027-03-22', phase: 'TAPER', targetVolumeKm: 31.2, targetTss: 218, deload: false, longRunKm: 8.7, valueSource: 'ENGINE', locked: false },
+    { weekIndex: 2, weekStart: '2027-03-29', phase: 'RACE_WEEK', targetVolumeKm: 23.4, targetTss: 164, deload: false, valueSource: 'ENGINE', locked: true, lockReason: 'RACE_WEEK' },
   ],
   milestones: [{ weekIndex: 1, provaId: 'prova-2', name: 'Meia de teste', date: '2027-03-27', distance: { value: '21K', label: '21 km (Meia Maratona)', short: '21K', order: 3 } }],
   validations: [
@@ -165,6 +166,69 @@ test.describe('Coach — aba Temporada do inbox', () => {
     await expect(page.getByRole('button', { name: 'Aprovar temporada' })).toHaveCount(0)
     await expect(page.getByRole('table', { name: 'Semanas da temporada' })).toBeVisible()
     expect(aprovacoes).toBe(1)
+  })
+
+  test('ajusta a temporada ativa: edita uma semana futura, aprova com motivo e vê a versão 2 na aba', async ({ page }) => {
+    await mockarApi(page)
+    const semanas = [
+      { weekIndex: 1, weekStart: '2027-03-15', phase: 'BUILD', targetVolumeKm: 40, targetTss: 300, deload: false, longRunKm: 14, valueSource: 'ENGINE', locked: true, lockReason: 'IN_PROGRESS' },
+      { weekIndex: 2, weekStart: '2027-03-22', phase: 'TAPER', targetVolumeKm: 31.2, targetTss: 218, deload: false, longRunKm: 8.7, valueSource: 'ENGINE', locked: false },
+      { weekIndex: 3, weekStart: '2027-03-29', phase: 'RACE_WEEK', targetVolumeKm: 23.4, targetTss: 164, deload: false, valueSource: 'ENGINE', locked: true, lockReason: 'RACE_WEEK' },
+    ]
+    const ATIVA = { ...TEMPORADA, seasonStatus: 'ACTIVE', approvedAt: '2026-11-20T13:00:00Z', totalWeeks: 3, version: 1, weeks: semanas }
+    const RASCUNHO = { ...ATIVA, id: 'season-2', seasonStatus: 'PROPOSED', approvedAt: undefined, version: 2, baseSeasonPlanId: 'season-1' }
+    const EDITADO = {
+      ...RASCUNHO,
+      weeks: semanas.map((w) => (w.weekIndex === 2 ? { ...w, targetVolumeKm: 28, keySessions: '4x1km', valueSource: 'COACH' } : w)),
+    }
+    let aprovada = false
+    let edicao: unknown = null
+    let motivo: unknown = null
+    await page.route(SEASON_CURRENT_API, (route) =>
+      route.fulfill({ json: aprovada ? { ...EDITADO, seasonStatus: 'ACTIVE', approvedAt: '2027-03-16T12:00:00Z' } : ATIVA }),
+    )
+    await page.route('**/api/v1/atletas/ana/season-plans/season-1/draft', (route) =>
+      route.fulfill({ status: 201, json: RASCUNHO }),
+    )
+    await page.route('**/api/v1/atletas/ana/season-plans/season-2', (route) =>
+      route.fulfill({ json: edicao ? EDITADO : RASCUNHO }),
+    )
+    await page.route('**/api/v1/atletas/ana/season-plans/season-2/weeks/2', (route) => {
+      edicao = route.request().postDataJSON()
+      return route.fulfill({ json: EDITADO })
+    })
+    await page.route('**/api/v1/atletas/ana/season-plans/season-2/approve', (route) => {
+      motivo = route.request().postDataJSON()
+      aprovada = true
+      return route.fulfill({ json: { ...EDITADO, seasonStatus: 'ACTIVE', approvedAt: '2027-03-16T12:00:00Z' } })
+    })
+
+    await page.goto(INBOX_URL)
+    await page.getByRole('tab', { name: /Temporada/i }).click()
+    await page.getByRole('button', { name: 'Ajustar temporada' }).click()
+
+    await expect(page.getByRole('heading', { name: 'Ajuste da temporada' })).toBeVisible()
+    const tabela = page.getByRole('table', { name: 'Semanas do ajuste' })
+    await expect(tabela.getByTestId('adjust-week-1')).toContainText('Em andamento')
+    await expect(page.getByRole('button', { name: 'Editar semana 1' })).toHaveCount(0)
+
+    await page.getByRole('button', { name: 'Editar semana 2' }).click()
+    const volume = tabela.getByTestId('adjust-week-2').getByLabel('Volume (km)')
+    await volume.fill('28')
+    await tabela.getByTestId('adjust-week-2').getByLabel('Sessões-chave').fill('4x1km')
+    await tabela.getByTestId('adjust-week-2').getByRole('button', { name: 'Salvar' }).click()
+    await expect(tabela.getByTestId('adjust-week-2')).toContainText('4x1km')
+    expect(edicao).toMatchObject({ targetVolumeKm: 28, keySessions: '4x1km' })
+
+    const aprovar = page.getByRole('button', { name: 'Aprovar nova versão' })
+    await expect(aprovar).toBeDisabled()
+    await page.getByLabel(/Motivo do ajuste/).fill('Atleta perdeu uma semana por gripe')
+    await aprovar.click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Aprovar' }).click()
+
+    await expect(page.getByText('Temporada aprovada · versão 2.')).toBeVisible()
+    await expect(page.getByRole('table', { name: 'Semanas da temporada' })).toBeVisible()
+    expect(motivo).toEqual({ reason: 'Atleta perdeu uma semana por gripe' })
   })
 
   test('flag desligada no backend: a aba não aparece', async ({ page }) => {

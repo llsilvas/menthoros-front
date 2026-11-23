@@ -10,7 +10,7 @@ vi.mock('../../../api/services/SeasonPlanService');
 const PLAN: SeasonPlan = {
     id: 's1', seasonStatus: 'PROPOSED', provaId: 'p1', provaNome: 'Maratona SP', provaData: '2027-04-04',
     shortPreparation: false, totalWeeks: 1, initialCtl: 40, peakVolumeKm: 50,
-    weeks: [{ weekIndex: 1, weekStart: '2027-03-29', phase: 'RACE_WEEK', targetVolumeKm: 20, targetTss: 164, deload: false, valueSource: 'ENGINE' }],
+    weeks: [{ weekIndex: 1, weekStart: '2027-03-29', phase: 'RACE_WEEK', targetVolumeKm: 20, targetTss: 164, deload: false, valueSource: 'ENGINE', locked: false }],
     milestones: [], validations: [],
 };
 
@@ -133,5 +133,58 @@ describe('useSeasonPlan', () => {
     it('sem atletaId não chama o backend', () => {
         renderHook(() => useSeasonPlan(undefined));
         expect(SeasonPlanService.buscarAtual).not.toHaveBeenCalled();
+    });
+    describe('adjust', () => {
+        const ATIVA = { ...PLAN, seasonStatus: 'ACTIVE' as const };
+
+        it('com ajuste aberto devolve o openDraftId sem criar outro', async () => {
+            vi.mocked(SeasonPlanService.buscarAtual).mockResolvedValue({ ...ATIVA, openDraftId: 'v2' });
+            const { result } = renderHook(() => useSeasonPlan('a1'));
+            await waitFor(() => expect(result.current.plan).not.toBeNull());
+
+            let id: string | null = null;
+            await act(async () => { id = await result.current.adjust(); });
+
+            expect(id).toBe('v2');
+            expect(SeasonPlanService.criarAjuste).not.toHaveBeenCalled();
+        });
+
+        it('sem ajuste aberto cria o rascunho e devolve o id dele', async () => {
+            vi.mocked(SeasonPlanService.buscarAtual).mockResolvedValue(ATIVA);
+            vi.mocked(SeasonPlanService.criarAjuste).mockResolvedValue({ ...PLAN, id: 'v2' });
+            const { result } = renderHook(() => useSeasonPlan('a1'));
+            await waitFor(() => expect(result.current.plan).not.toBeNull());
+
+            let id: string | null = null;
+            await act(async () => { id = await result.current.adjust(); });
+
+            expect(id).toBe('v2');
+            expect(SeasonPlanService.criarAjuste).toHaveBeenCalledWith('a1', 's1');
+        });
+
+        it('409 ao criar expõe adjustError e devolve null', async () => {
+            vi.mocked(SeasonPlanService.buscarAtual).mockResolvedValue(ATIVA);
+            vi.mocked(SeasonPlanService.criarAjuste).mockRejectedValue(apiError(409, { message: 'Outra proposta aberta' }));
+            const { result } = renderHook(() => useSeasonPlan('a1'));
+            await waitFor(() => expect(result.current.plan).not.toBeNull());
+
+            let id: string | null = 'x';
+            await act(async () => { id = await result.current.adjust(); });
+
+            expect(id).toBeNull();
+            expect(result.current.adjustError?.message).toBe('Outra proposta aberta');
+        });
+
+        it('proposta (PROPOSED) não abre ajuste', async () => {
+            vi.mocked(SeasonPlanService.buscarAtual).mockResolvedValue(PLAN);
+            const { result } = renderHook(() => useSeasonPlan('a1'));
+            await waitFor(() => expect(result.current.plan).not.toBeNull());
+
+            let id: string | null = 'x';
+            await act(async () => { id = await result.current.adjust(); });
+
+            expect(id).toBeNull();
+            expect(SeasonPlanService.criarAjuste).not.toHaveBeenCalled();
+        });
     });
 });
