@@ -4,7 +4,10 @@ import { useNavigate, useParams } from 'react-router';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { SectionCard } from '../components/SectionCard';
 import { SeasonAdjustTable } from '../components/SeasonAdjustTable';
+import { SeasonDiffList } from '../components/SeasonDiffList';
+import { SeasonParametersForm } from '../components/SeasonParametersForm';
 import { useSeasonAdjustment } from '../hooks/useSeasonAdjustment';
+import { countPhaseWeeks } from '../adapters/seasonAdjust';
 import { surface } from '../../../theme/tokens';
 import type { InboxReturnState } from '../types/InboxReturnState';
 
@@ -15,15 +18,17 @@ const ITEM_SX = { fontSize: '0.8125rem', color: surface[100] } as const;
 const REASON_MAX = 255;
 
 /**
- * Ajuste da temporada aprovada (add-season-plan-adjust-v2): o treinador edita as semanas futuras do
- * rascunho, aprova a nova versão com motivo ou descarta. Volta para a aba Temporada do atleta no inbox.
+ * Ajuste da temporada aprovada (add-season-plan-adjust-v2, add-season-plan-version-diff): o treinador
+ * edita as semanas futuras do rascunho ou recalcula pelos parâmetros, vê o que muda contra a versão ativa,
+ * aprova a nova versão com motivo ou descarta. Volta para a aba Temporada do atleta no inbox. Se a ativa
+ * mudou no meio (409 na aprovação), o motivo fica no campo e ele pode descartar e recomeçar.
  */
 export default function CoachSeasonAdjustPage() {
   const { atletaId, seasonPlanId } = useParams();
   const navigate = useNavigate();
   const ajuste = useSeasonAdjustment(atletaId, seasonPlanId);
   const [reason, setReason] = useState('');
-  const [confirmar, setConfirmar] = useState<'approve' | 'discard' | null>(null);
+  const [confirmar, setConfirmar] = useState<'approve' | 'discard' | 'restart' | null>(null);
 
   const voltar = () => navigate('/coach/inbox', { state: { atletaId, tab: 'season' } satisfies InboxReturnState });
 
@@ -57,6 +62,11 @@ export default function CoachSeasonAdjustPage() {
   const descartar = async () => {
     if (await ajuste.discard()) voltar();
   };
+  const recomecar = async () => {
+    setConfirmar(null);
+    const novo = await ajuste.restart();
+    if (novo) navigate(`/coach/athletes/${atletaId}/season/${novo}/adjust`);
+  };
 
   return (
     <Box sx={{ p: { xs: 1, md: 2 }, display: 'grid', gap: 1 }}>
@@ -80,13 +90,36 @@ export default function CoachSeasonAdjustPage() {
       <SectionCard title="Semanas">
         <SeasonAdjustTable
           weeks={plan.weeks}
-          readOnly={!emAjuste}
+          readOnly={!emAjuste || ajuste.recalculating}
           savingWeek={ajuste.savingWeek}
           saveError={ajuste.saveError?.message ?? null}
           onSaveWeek={ajuste.saveWeek}
           onCloseEdit={ajuste.clearErrors}
+          diff={emAjuste ? ajuste.diff : []}
         />
       </SectionCard>
+
+      {emAjuste ? (
+        <SectionCard title="Parâmetros">
+          <SeasonParametersForm
+            // Renasce quando a contagem por fase muda (ex.: fase trocada no diálogo da semana), senão recalcula com fases velhas.
+            key={`${plan.id}:${Object.values(countPhaseWeeks(plan.weeks)).join('-')}`}
+            weeks={plan.weeks}
+            totalWeeks={plan.totalWeeks}
+            initialVolumeKm={plan.initialVolumeKm}
+            recalculating={ajuste.recalculating || ajuste.savingWeek !== null}
+            error={ajuste.recalcError?.message ?? null}
+            onRecalculate={ajuste.recalculate}
+            onCloseConfirm={ajuste.clearErrors}
+          />
+        </SectionCard>
+      ) : null}
+
+      {emAjuste ? (
+        <SectionCard title="Alterações">
+          <SeasonDiffList diff={ajuste.diff} baseVersion={versao - 1} error={ajuste.diffError?.message ?? null} />
+        </SectionCard>
+      ) : null}
 
       <SectionCard title="Validações">
         {plan.validations.length ? (
@@ -113,8 +146,22 @@ export default function CoachSeasonAdjustPage() {
             slotProps={{ htmlInput: { maxLength: REASON_MAX } }}
             helperText={`O motivo fica registrado na nova versão · ${reason.length}/${REASON_MAX}`}
           />
+          {ajuste.approveConflict ? (
+            <Alert
+              severity="warning"
+              sx={{ mt: 1 }}
+              action={(
+                <Button size="small" sx={ACTION_BTN_SX} disabled={ajuste.restarting} onClick={() => setConfirmar('restart')}>
+                  Descartar e recomeçar
+                </Button>
+              )}
+            >
+              Este ajuste não pode mais ser aprovado: a temporada ativa mudou ou o ajuste foi fechado em outra sessão.
+              Descarte e recomece a partir da versão ativa atual. O motivo continua no campo.
+            </Alert>
+          ) : null}
           <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap' }}>
-            <Button variant="contained" sx={ACTION_BTN_SX} disabled={!reason.trim() || ajuste.approving}
+            <Button variant="contained" sx={ACTION_BTN_SX} disabled={!reason.trim() || ajuste.approving || ajuste.approveConflict}
               onClick={() => setConfirmar('approve')}>
               Aprovar nova versão
             </Button>
@@ -126,7 +173,7 @@ export default function CoachSeasonAdjustPage() {
       ) : null}
 
       <ConfirmDialog
-        open={confirmar === 'approve'}
+        open={confirmar === 'approve' && !ajuste.approveConflict}
         title="Aprovar nova versão?"
         message={`A versão ${versao - 1} será arquivada e a versão ${versao} passa a guiar os planos semanais. O atleta passa a ver a nova versão.`}
         confirmLabel="Aprovar"
@@ -145,6 +192,17 @@ export default function CoachSeasonAdjustPage() {
         errorMessage={ajuste.discardError?.message ?? null}
         onClose={() => { setConfirmar(null); ajuste.clearErrors(); }}
         onConfirm={descartar}
+      />
+      <ConfirmDialog
+        open={confirmar === 'restart'}
+        title="Descartar e recomeçar?"
+        message="As edições deste ajuste serão descartadas e um ajuste novo começa a partir da versão ativa atual."
+        confirmLabel="Descartar e recomeçar"
+        severity="danger"
+        loading={ajuste.restarting}
+        errorMessage={ajuste.restartError?.message ?? null}
+        onClose={() => setConfirmar(null)}
+        onConfirm={recomecar}
       />
     </Box>
   );

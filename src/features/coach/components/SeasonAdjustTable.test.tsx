@@ -76,4 +76,19 @@ describe('SeasonAdjustTable', () => {
     await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancelar' }));
     expect(onCloseEdit).toHaveBeenCalled();
   });
+
+  it('célula alterada mostra o valor da ativa riscado e a semana mostra a origem', () => {
+    render(<SeasonAdjustTable weeks={WEEKS} savingWeek={null} onSaveWeek={vi.fn()} diff={[
+      { weekIndex: 3, field: 'longRunKm', before: 10, after: 12, source: 'ENGINE' },
+      { weekIndex: 3, field: 'deload', before: true, after: false, source: 'ENGINE' },
+    ]} />);
+
+    // O "antes:" é texto só para leitor de tela dentro do <del>.
+    const riscado = (texto: string) => (_: string, el: Element | null) => el?.tagName === 'DEL' && el.textContent === texto;
+    expect(within(linha(3)).getByText(riscado('antes: 10,0 km'))).toBeInTheDocument();
+    expect(within(linha(3)).getByText(riscado('antes: Construção · descarga'))).toBeInTheDocument();
+    expect(linha(3)).toHaveTextContent('motor');
+    expect(linha(2)).not.toHaveTextContent('motor');
+    expect(linha(2).querySelector('del')).toBeNull();
+  });
 });
