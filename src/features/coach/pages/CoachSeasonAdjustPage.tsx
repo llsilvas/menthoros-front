@@ -6,6 +6,7 @@ import { SectionCard } from '../components/SectionCard';
 import { SeasonAdjustTable } from '../components/SeasonAdjustTable';
 import { useSeasonAdjustment } from '../hooks/useSeasonAdjustment';
 import { surface } from '../../../theme/tokens';
+import type { InboxReturnState } from '../types/InboxReturnState';
 
 const ACTION_BTN_SX = { minHeight: 40, textTransform: 'none' } as const;
 const LIST_SX = { m: 0, pl: 2.5, display: 'grid', gap: 0.5 } as const;
@@ -24,7 +25,7 @@ export default function CoachSeasonAdjustPage() {
   const [reason, setReason] = useState('');
   const [confirmar, setConfirmar] = useState<'approve' | 'discard' | null>(null);
 
-  const voltar = () => navigate('/coach/inbox', { state: { atletaId, tab: 'season' } });
+  const voltar = () => navigate('/coach/inbox', { state: { atletaId, tab: 'season' } satisfies InboxReturnState });
 
   if (ajuste.loading && !ajuste.plan) {
     return (
@@ -75,21 +76,23 @@ export default function CoachSeasonAdjustPage() {
       ) : (
         <Alert severity="warning">Este ajuste já foi aprovado ou descartado e não pode mais ser editado.</Alert>
       )}
-      {ajuste.saveError ? <Alert severity="error">{ajuste.saveError.message}</Alert> : null}
 
       <SectionCard title="Semanas">
         <SeasonAdjustTable
-          weeks={emAjuste ? plan.weeks : plan.weeks.map((w) => ({ ...w, locked: true }))}
+          weeks={plan.weeks}
+          readOnly={!emAjuste}
           savingWeek={ajuste.savingWeek}
+          saveError={ajuste.saveError?.message ?? null}
           onSaveWeek={ajuste.saveWeek}
+          onCloseEdit={ajuste.clearErrors}
         />
       </SectionCard>
 
       <SectionCard title="Validações">
         {plan.validations.length ? (
           <Box component="ul" aria-label="Validações" sx={LIST_SX}>
-            {plan.validations.map((v) => (
-              <Box component="li" key={`${v.rule}-${v.weekIndex}`} sx={ITEM_SX}>{`Semana ${v.weekIndex}: ${v.message}`}</Box>
+            {plan.validations.map((v, i) => (
+              <Box component="li" key={`${v.rule}-${v.weekIndex}-${i}`} sx={ITEM_SX}>{`Semana ${v.weekIndex}: ${v.message}`}</Box>
             ))}
           </Box>
         ) : (
@@ -99,7 +102,6 @@ export default function CoachSeasonAdjustPage() {
 
       {emAjuste ? (
         <SectionCard title="Aprovar nova versão">
-          {ajuste.discardError ? <Alert severity="error" sx={{ mb: 1 }}>{ajuste.discardError.message}</Alert> : null}
           <TextField
             label="Motivo do ajuste"
             required
@@ -108,7 +110,7 @@ export default function CoachSeasonAdjustPage() {
             minRows={2}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            inputProps={{ maxLength: REASON_MAX }}
+            slotProps={{ htmlInput: { maxLength: REASON_MAX } }}
             helperText={`O motivo fica registrado na nova versão · ${reason.length}/${REASON_MAX}`}
           />
           <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap' }}>
@@ -130,7 +132,7 @@ export default function CoachSeasonAdjustPage() {
         confirmLabel="Aprovar"
         loading={ajuste.approving}
         errorMessage={ajuste.approveError?.message ?? null}
-        onClose={() => setConfirmar(null)}
+        onClose={() => { setConfirmar(null); ajuste.clearErrors(); }}
         onConfirm={aprovar}
       />
       <ConfirmDialog
@@ -141,7 +143,7 @@ export default function CoachSeasonAdjustPage() {
         severity="danger"
         loading={ajuste.discarding}
         errorMessage={ajuste.discardError?.message ?? null}
-        onClose={() => setConfirmar(null)}
+        onClose={() => { setConfirmar(null); ajuste.clearErrors(); }}
         onConfirm={descartar}
       />
     </Box>

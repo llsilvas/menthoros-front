@@ -70,7 +70,28 @@ describe('useSeasonAdjustment', () => {
 
         expect(SeasonPlanService.aprovar).toHaveBeenCalledWith('a1', 'v2', 'Atleta lesionou');
         expect(aprovada).not.toBeNull();
-        expect(result.current.plan?.seasonStatus).toBe('ACTIVE');
+        // A página navega; a temporada exibida não vira ACTIVE (sem piscar "já aprovado").
+        expect(result.current.plan?.seasonStatus).toBe('PROPOSED');
+    });
+
+    it('resposta do salvar de um rascunho anterior não sobrescreve o atual', async () => {
+        let resolver: (p: SeasonPlan) => void = () => {};
+        vi.mocked(SeasonPlanService.atualizarSemana).mockImplementationOnce(
+            () => new Promise<SeasonPlan>((r) => { resolver = r; }) as never);
+        const outro = { ...DRAFT, id: 'v3' };
+        const { result, rerender } = renderHook(({ id }) => useSeasonAdjustment('a1', id), { initialProps: { id: 'v2' } });
+        await waitFor(() => expect(result.current.plan).not.toBeNull());
+
+        let salvando: Promise<boolean> = Promise.resolve(false);
+        act(() => { salvando = result.current.saveWeek(2, { targetVolumeKm: 55 }); });
+        vi.mocked(SeasonPlanService.buscarPorId).mockResolvedValue(outro);
+        rerender({ id: 'v3' });
+        await waitFor(() => expect(result.current.plan?.id).toBe('v3'));
+        let ok = true;
+        await act(async () => { resolver({ ...DRAFT, peakVolumeKm: 99 }); ok = await salvando; });
+
+        expect(ok).toBe(false);
+        expect(result.current.plan?.id).toBe('v3');
     });
 
     it('409 ao aprovar expõe o erro e não devolve temporada', async () => {

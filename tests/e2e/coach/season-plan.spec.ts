@@ -213,10 +213,11 @@ test.describe('Coach — aba Temporada do inbox', () => {
     await expect(page.getByRole('button', { name: 'Editar semana 1' })).toHaveCount(0)
 
     await page.getByRole('button', { name: 'Editar semana 2' }).click()
-    const volume = tabela.getByTestId('adjust-week-2').getByLabel('Volume (km)')
-    await volume.fill('28')
-    await tabela.getByTestId('adjust-week-2').getByLabel('Sessões-chave').fill('4x1km')
-    await tabela.getByTestId('adjust-week-2').getByRole('button', { name: 'Salvar' }).click()
+    const dialogo = page.getByRole('dialog', { name: 'Semana 2' })
+    await dialogo.getByLabel(/Volume \(km\)/).fill('28')
+    await dialogo.getByLabel('Sessões-chave').fill('4x1km')
+    await dialogo.getByRole('button', { name: 'Salvar' }).click()
+    await expect(dialogo).toHaveCount(0)
     await expect(tabela.getByTestId('adjust-week-2')).toContainText('4x1km')
     expect(edicao).toMatchObject({ targetVolumeKm: 28, keySessions: '4x1km' })
 
@@ -229,6 +230,43 @@ test.describe('Coach — aba Temporada do inbox', () => {
     await expect(page.getByText('Temporada aprovada · versão 2.')).toBeVisible()
     await expect(page.getByRole('table', { name: 'Semanas da temporada' })).toBeVisible()
     expect(motivo).toEqual({ reason: 'Atleta perdeu uma semana por gripe' })
+  })
+
+  test('celular: a edição abre em tela cheia e descartar o ajuste volta à aba com a versão 1', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await mockarApi(page)
+    const semanas = [
+      { weekIndex: 1, weekStart: '2027-03-22', phase: 'TAPER', targetVolumeKm: 31.2, targetTss: 218, deload: false, longRunKm: 8.7, valueSource: 'ENGINE', locked: false },
+      { weekIndex: 2, weekStart: '2027-03-29', phase: 'RACE_WEEK', targetVolumeKm: 23.4, targetTss: 164, deload: false, valueSource: 'ENGINE', locked: true, lockReason: 'RACE_WEEK' },
+    ]
+    const ATIVA = { ...TEMPORADA, seasonStatus: 'ACTIVE', approvedAt: '2026-11-20T13:00:00Z', version: 1, weeks: semanas }
+    let descartado = false
+    await page.route(SEASON_CURRENT_API, (route) =>
+      route.fulfill({ json: descartado ? ATIVA : { ...ATIVA, openDraftId: 'season-2' } }),
+    )
+    await page.route('**/api/v1/atletas/ana/season-plans/season-2', (route) => {
+      if (route.request().method() === 'DELETE') {
+        descartado = true
+        return route.fulfill({ status: 204 })
+      }
+      return route.fulfill({ json: { ...ATIVA, id: 'season-2', seasonStatus: 'PROPOSED', version: 2, baseSeasonPlanId: 'season-1' } })
+    })
+
+    await page.goto(INBOX_URL)
+    await page.getByRole('tab', { name: /Temporada/i }).click()
+    await page.getByRole('button', { name: 'Continuar ajuste' }).click()
+
+    await page.getByRole('button', { name: 'Editar semana 1' }).click()
+    const dialogo = page.getByRole('dialog', { name: 'Semana 1' })
+    const caixa = await dialogo.boundingBox()
+    expect(caixa?.width).toBeGreaterThanOrEqual(380)
+    await dialogo.getByRole('button', { name: 'Cancelar' }).click()
+
+    await page.getByRole('button', { name: 'Descartar ajuste' }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Descartar' }).click()
+
+    await expect(page.getByRole('button', { name: 'Ajustar temporada' })).toBeVisible()
+    expect(descartado).toBe(true)
   })
 
   test('flag desligada no backend: a aba não aparece', async ({ page }) => {

@@ -24,46 +24,56 @@ describe('SeasonAdjustTable', () => {
     expect(screen.getByRole('button', { name: 'Editar semana 3' })).toBeInTheDocument();
   });
 
-  it('editar uma semana futura e salvar manda os valores lidos com vírgula e fecha a edição', async () => {
+  it('somente leitura não oferece edição nem nas semanas livres', () => {
+    render(<SeasonAdjustTable weeks={WEEKS} savingWeek={null} readOnly onSaveWeek={vi.fn()} />);
+
+    expect(screen.queryByRole('button', { name: /Editar semana/ })).not.toBeInTheDocument();
+  });
+
+  it('editar abre o diálogo com foco no volume; salvar manda os valores e fecha', async () => {
     const onSaveWeek = vi.fn().mockResolvedValue(true);
     render(<SeasonAdjustTable weeks={WEEKS} savingWeek={null} onSaveWeek={onSaveWeek} />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Editar semana 3' }));
-    const volume = within(linha(3)).getByLabelText('Volume (km)');
+    const dialogo = screen.getByRole('dialog');
+    const volume = within(dialogo).getByLabelText(/Volume \(km\)/);
+    expect(volume).toHaveFocus();
     await userEvent.clear(volume);
     await userEvent.type(volume, '45,5');
-    const sessoes = within(linha(3)).getByLabelText('Sessões-chave');
+    const sessoes = within(dialogo).getByLabelText('Sessões-chave');
     await userEvent.clear(sessoes);
     await userEvent.type(sessoes, ' 6x1km ');
-    await userEvent.click(within(linha(3)).getByRole('checkbox', { name: 'Descarga' }));
-    await userEvent.click(within(linha(3)).getByRole('button', { name: 'Salvar' }));
+    await userEvent.click(within(dialogo).getByRole('checkbox', { name: 'Semana de descarga' }));
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Salvar' }));
 
     expect(onSaveWeek).toHaveBeenCalledWith(3, {
       phase: 'BUILD', targetVolumeKm: 45.5, longRunKm: 12, targetTss: 310, deload: true, keySessions: '6x1km',
     });
-    expect(await screen.findByRole('button', { name: 'Editar semana 3' })).toBeInTheDocument();
+    await vi.waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
-  it('valor negativo bloqueia o salvar', async () => {
-    const onSaveWeek = vi.fn();
-    render(<SeasonAdjustTable weeks={WEEKS} savingWeek={null} onSaveWeek={onSaveWeek} />);
+  it('campo vazio ou negativo bloqueia o salvar com a mensagem', async () => {
+    render(<SeasonAdjustTable weeks={WEEKS} savingWeek={null} onSaveWeek={vi.fn()} />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Editar semana 3' }));
-    const longao = within(linha(3)).getByLabelText('Longão (km)');
-    await userEvent.clear(longao);
-    await userEvent.type(longao, '-2');
+    const dialogo = screen.getByRole('dialog');
+    await userEvent.clear(within(dialogo).getByLabelText(/Longão \(km\)/));
 
-    expect(within(linha(3)).getByRole('button', { name: 'Salvar' })).toBeDisabled();
-    expect(onSaveWeek).not.toHaveBeenCalled();
+    expect(within(dialogo).getByRole('button', { name: 'Salvar' })).toBeDisabled();
+    expect(within(dialogo).getByText('Informe um número maior ou igual a zero')).toBeInTheDocument();
   });
 
-  it('falha ao salvar mantém a edição aberta', async () => {
+  it('falha ao salvar mantém o diálogo aberto com o erro; fechar avisa a página', async () => {
+    const onCloseEdit = vi.fn();
     const onSaveWeek = vi.fn().mockResolvedValue(false);
-    render(<SeasonAdjustTable weeks={WEEKS} savingWeek={null} onSaveWeek={onSaveWeek} />);
+    const { rerender } = render(<SeasonAdjustTable weeks={WEEKS} savingWeek={null} onSaveWeek={onSaveWeek} onCloseEdit={onCloseEdit} />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Editar semana 3' }));
-    await userEvent.click(within(linha(3)).getByRole('button', { name: 'Salvar' }));
+    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Salvar' }));
+    rerender(<SeasonAdjustTable weeks={WEEKS} savingWeek={null} saveError="A semana 3 é a da prova-alvo" onSaveWeek={onSaveWeek} onCloseEdit={onCloseEdit} />);
 
-    expect(within(linha(3)).getByLabelText('Volume (km)')).toBeInTheDocument();
+    expect(within(screen.getByRole('dialog')).getByText('A semana 3 é a da prova-alvo')).toBeInTheDocument();
+    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancelar' }));
+    expect(onCloseEdit).toHaveBeenCalled();
   });
 });
