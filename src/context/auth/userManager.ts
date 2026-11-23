@@ -159,6 +159,17 @@ export function jaTentouLoginDireto(): boolean {
   }
 }
 
+/**
+ * O documento foi carregado pelo voltar/avançar do navegador.
+ *
+ * A marca sozinha não distingue "voltei do Keycloak sem logar" (laço real) de "abri o login de novo
+ * na mesma aba" (deve redirecionar). Só o primeiro chega por histórico. Sem a API, falha fechado.
+ */
+export function voltouPeloHistorico(): boolean {
+  const [nav] = (performance.getEntriesByType?.('navigation') ?? []) as PerformanceNavigationTiming[];
+  return nav ? nav.type === 'back_forward' : true;
+}
+
 export function marcarLoginDireto(): void {
   try {
     sessionStorage.setItem(CHAVE_LOGIN_DIRETO, '1');

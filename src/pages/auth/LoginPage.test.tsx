@@ -64,6 +64,12 @@ function renderLogin(ctx: Partial<AuthContextData>, estadoDaRota: unknown = unde
 
 const MARCA_LOGIN_DIRETO = 'menthoros:login-direto-tentado';
 
+function simularNavegacao(type: NavigationTimingType) {
+  vi.spyOn(performance, 'getEntriesByType').mockReturnValue([
+    { type } as PerformanceNavigationTiming,
+  ]);
+}
+
 describe('LoginPage', () => {
   beforeEach(() => {
     limparUsuario();
@@ -128,6 +134,7 @@ describe('LoginPage', () => {
     it('retorno sem sessão após tentativa automática não redireciona de novo, e consome a marca', async () => {
       const user = userEvent.setup();
       sessionStorage.setItem(MARCA_LOGIN_DIRETO, '1');
+      simularNavegacao('back_forward');
       const ctx = renderLogin({});
 
       expect(ctx.login).not.toHaveBeenCalled();
@@ -135,6 +142,17 @@ describe('LoginPage', () => {
 
       await user.click(screen.getByRole('button', { name: /entrar/i }));
       expect(ctx.login).toHaveBeenCalledTimes(1);
+    });
+
+    // A marca sobra na aba depois de uma tentativa; abrir o login de novo (link, URL digitada) não é
+    // laço e não pode cair no botão — era o que acontecia na segunda visita em develop.
+    it('marca de tentativa anterior com navegação normal redireciona de novo', async () => {
+      sessionStorage.setItem(MARCA_LOGIN_DIRETO, '1');
+      simularNavegacao('navigate');
+      const ctx = renderLogin({});
+
+      await waitFor(() => expect(ctx.login).toHaveBeenCalledTimes(1));
+      expect(screen.queryByRole('button', { name: /entrar/i })).not.toBeInTheDocument();
     });
   });
 
