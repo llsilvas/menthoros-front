@@ -4,7 +4,8 @@ import { autenticarComPkce } from '../../fixtures/pkceAuth'
 /**
  * Aba Temporada do inbox (add-season-plan-generate-tracer): atleta com prova-alvo e sem temporada
  * → "Gerar temporada" → POST → tabela de semanas; e o ajuste da temporada ativa até a versão 2
- * (add-season-plan-adjust-v2). API interceptada.
+ * (add-season-plan-adjust-v2), com parâmetros, diff e conflito na aprovação (add-season-plan-version-diff).
+ * API interceptada.
  */
 
 const INBOX_URL = '/#/coach/inbox'
@@ -99,6 +100,7 @@ async function mockarApi(page: Page) {
   await page.route('**/api/v1/coach/atletas/*/perfil', (route) => route.fulfill({ json: PERFIL }))
   await page.route(SEASON_CURRENT_API, (route) => route.fulfill({ status: 204 }))
   await page.route(CALIBRACAO_API, (route) => route.fulfill({ status: 204 }))
+  await page.route('**/api/v1/atletas/ana/season-plans/*/diff', (route) => route.fulfill({ json: [] }))
 }
 
 test.describe('Coach — aba Temporada do inbox', () => {
@@ -267,6 +269,121 @@ test.describe('Coach — aba Temporada do inbox', () => {
 
     await expect(page.getByRole('button', { name: 'Ajustar temporada' })).toBeVisible()
     expect(descartado).toBe(true)
+  })
+
+  test('recalcula pelos parâmetros preservando a semana editada e vê o diff antes de aprovar', async ({ page }) => {
+    await mockarApi(page)
+    const semanas = [
+      { weekIndex: 1, weekStart: '2027-03-08', phase: 'BUILD', targetVolumeKm: 40, targetTss: 300, deload: false, longRunKm: 14, valueSource: 'ENGINE', locked: true, lockReason: 'IN_PROGRESS' },
+      { weekIndex: 2, weekStart: '2027-03-15', phase: 'BUILD', targetVolumeKm: 44, targetTss: 330, deload: false, longRunKm: 16, valueSource: 'ENGINE', locked: false },
+      { weekIndex: 3, weekStart: '2027-03-22', phase: 'TAPER', targetVolumeKm: 30, targetTss: 210, deload: false, longRunKm: 10, valueSource: 'COACH', keySessions: '4x1km', locked: false },
+      { weekIndex: 4, weekStart: '2027-03-29', phase: 'RACE_WEEK', targetVolumeKm: 23.4, targetTss: 164, deload: false, valueSource: 'ENGINE', locked: true, lockReason: 'RACE_WEEK' },
+    ]
+    const RASCUNHO = {
+      ...TEMPORADA, id: 'season-2', seasonStatus: 'PROPOSED', totalWeeks: 4, version: 2, baseSeasonPlanId: 'season-1',
+      initialVolumeKm: 38.5, weeks: semanas,
+    }
+    const RECALCULADO = {
+      ...RASCUNHO, initialVolumeKm: 42,
+      weeks: semanas.map((w) => (w.weekIndex === 2 ? { ...w, targetVolumeKm: 47, longRunKm: 17 } : w)),
+    }
+    const DIFF_INICIAL = [{ weekIndex: 3, field: 'keySessions', before: null, after: '4x1km', source: 'COACH' }]
+    const DIFF_RECALCULADO = [
+      { weekIndex: 2, field: 'targetVolumeKm', before: 44, after: 47, source: 'ENGINE' },
+      { weekIndex: 2, field: 'longRunKm', before: 16, after: 17, source: 'ENGINE' },
+      ...DIFF_INICIAL,
+    ]
+    let recalculo: unknown = null
+    await page.route(SEASON_CURRENT_API, (route) =>
+      route.fulfill({ json: { ...TEMPORADA, seasonStatus: 'ACTIVE', version: 1, openDraftId: 'season-2' } }),
+    )
+    await page.route('**/api/v1/atletas/ana/season-plans/season-2', (route) =>
+      route.fulfill({ json: recalculo ? RECALCULADO : RASCUNHO }),
+    )
+    await page.route('**/api/v1/atletas/ana/season-plans/season-2/diff', (route) =>
+      route.fulfill({ json: recalculo ? DIFF_RECALCULADO : DIFF_INICIAL }),
+    )
+    await page.route('**/api/v1/atletas/ana/season-plans/season-2/recalculate', (route) => {
+      recalculo = route.request().postDataJSON()
+      return route.fulfill({ json: RECALCULADO })
+    })
+
+    await page.goto(INBOX_URL)
+    await page.getByRole('tab', { name: /Temporada/i }).click()
+    await page.getByRole('button', { name: 'Continuar ajuste' }).click()
+
+    const alteracoes = page.getByRole('list', { name: 'Alterações' })
+    await expect(alteracoes).toContainText('Semana 3 · Sessões-chave: — → 4x1km (treinador)')
+    await expect(page.getByLabel('Construção')).toHaveValue('2')
+    await expect(page.getByLabel('Polimento')).toHaveValue('1')
+    await expect(page.getByLabel('Volume de partida (km)')).toHaveValue('38,5')
+
+    await page.getByLabel('Construção').fill('3')
+    await expect(page.getByText(/o ciclo tem 4\. Tire 1 semana\./)).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Recalcular' })).toBeDisabled()
+    await page.getByLabel('Construção').fill('2')
+    await page.getByLabel('Volume de partida (km)').fill('42')
+    await page.getByRole('button', { name: 'Recalcular' }).click()
+
+    const confirmacao = page.getByRole('dialog')
+    await expect(confirmacao).toContainText('O motor regenera a semana 2.')
+    await expect(confirmacao).toContainText('A semana editada por você (3) fica como está.')
+    await confirmacao.getByRole('button', { name: 'Recalcular' }).click()
+    await expect(confirmacao).toHaveCount(0)
+    expect(recalculo).toEqual({ phaseWeeks: { BASE: 0, BUILD: 2, PEAK: 0, TAPER: 1 }, startVolumeKm: 42 })
+
+    const tabela = page.getByRole('table', { name: 'Semanas do ajuste' })
+    await expect(tabela.getByTestId('adjust-week-2')).toContainText('47,0 km')
+    await expect(tabela.getByTestId('adjust-week-2').getByLabel('antes: 44,0 km')).toBeVisible()
+    await expect(tabela.getByTestId('adjust-week-2')).toContainText('motor')
+    await expect(tabela.getByTestId('adjust-week-3')).toContainText('4x1km')
+    await expect(alteracoes).toContainText('Semana 2 · Volume: 44,0 km → 47,0 km (motor)')
+    await expect(alteracoes.getByRole('listitem')).toHaveCount(3)
+  })
+
+  test('409 na aprovação: mantém o motivo e "Descartar e recomeçar" abre o ajuste da ativa nova', async ({ page }) => {
+    await mockarApi(page)
+    const RASCUNHO = { ...TEMPORADA, id: 'season-2', seasonStatus: 'PROPOSED', version: 2, baseSeasonPlanId: 'season-1', initialVolumeKm: 30 }
+    const ATIVA_NOVA = { ...TEMPORADA, id: 'season-3', seasonStatus: 'ACTIVE', version: 3, baseSeasonPlanId: 'season-1' }
+    const NOVO = { ...RASCUNHO, id: 'season-4', version: 4, baseSeasonPlanId: 'season-3' }
+    let descartado = false
+    let criado = false
+    await page.route(SEASON_CURRENT_API, (route) =>
+      route.fulfill({ json: descartado ? ATIVA_NOVA : { ...TEMPORADA, seasonStatus: 'ACTIVE', version: 1, openDraftId: 'season-2' } }),
+    )
+    await page.route('**/api/v1/atletas/ana/season-plans/season-2', (route) => {
+      if (route.request().method() === 'DELETE') {
+        descartado = true
+        return route.fulfill({ status: 204 })
+      }
+      return route.fulfill({ json: RASCUNHO })
+    })
+    await page.route('**/api/v1/atletas/ana/season-plans/season-2/approve', (route) =>
+      route.fulfill({ status: 409, json: { status: 409, message: 'A temporada ativa mudou depois deste ajuste' } }),
+    )
+    await page.route('**/api/v1/atletas/ana/season-plans/season-3/draft', (route) => {
+      criado = true
+      return route.fulfill({ status: 201, json: NOVO })
+    })
+    await page.route('**/api/v1/atletas/ana/season-plans/season-4', (route) => route.fulfill({ json: NOVO }))
+
+    await page.goto(INBOX_URL)
+    await page.getByRole('tab', { name: /Temporada/i }).click()
+    await page.getByRole('button', { name: 'Continuar ajuste' }).click()
+
+    await page.getByLabel(/Motivo do ajuste/).fill('Atleta mudou de prova')
+    await page.getByRole('button', { name: 'Aprovar nova versão' }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Aprovar' }).click()
+
+    await expect(page.getByText(/A temporada ativa mudou depois que este ajuste começou/)).toBeVisible()
+    await expect(page.getByLabel(/Motivo do ajuste/)).toHaveValue('Atleta mudou de prova')
+    await page.getByRole('button', { name: 'Descartar e recomeçar' }).click()
+
+    await expect(page.getByText('Maratona de São Paulo · versão 4')).toBeVisible()
+    await expect(page).toHaveURL(/season\/season-4\/adjust/)
+    await expect(page.getByLabel(/Motivo do ajuste/)).toHaveValue('Atleta mudou de prova')
+    expect(descartado).toBe(true)
+    expect(criado).toBe(true)
   })
 
   test('flag desligada no backend: a aba não aparece', async ({ page }) => {
