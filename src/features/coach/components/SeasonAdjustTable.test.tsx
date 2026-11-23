@@ -76,4 +76,17 @@ describe('SeasonAdjustTable', () => {
     await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancelar' }));
     expect(onCloseEdit).toHaveBeenCalled();
   });
+
+  it('célula alterada mostra o valor da ativa riscado e a semana mostra a origem', () => {
+    render(<SeasonAdjustTable weeks={WEEKS} savingWeek={null} onSaveWeek={vi.fn()} diff={[
+      { weekIndex: 3, field: 'longRunKm', before: 10, after: 12, source: 'ENGINE' },
+      { weekIndex: 3, field: 'deload', before: true, after: false, source: 'ENGINE' },
+    ]} />);
+
+    expect(within(linha(3)).getByLabelText('antes: 10,0 km')).toHaveTextContent('10,0 km');
+    expect(within(linha(3)).getByLabelText('antes: Construção · descarga')).toBeInTheDocument();
+    expect(linha(3)).toHaveTextContent('motor');
+    expect(linha(2)).not.toHaveTextContent('motor');
+    expect(within(linha(2)).queryByLabelText(/^antes:/)).not.toBeInTheDocument();
+  });
 });

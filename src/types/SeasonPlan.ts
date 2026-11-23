@@ -13,7 +13,7 @@ export const TRAINING_PHASE_LABEL: Record<TrainingPhase, string> = {
 };
 
 /** Fases que o treinador pode escolher no ajuste (RACE_WEEK é só da semana da prova, travada). */
-export const EDITABLE_PHASES: TrainingPhase[] = ['BASE', 'BUILD', 'PEAK', 'TAPER'];
+export const EDITABLE_PHASES: EditablePhase[] = ['BASE', 'BUILD', 'PEAK', 'TAPER'];
 
 /** Por que a semana é somente leitura no ajuste (`SeasonWeekLock.Reason` no backend). */
 export type SeasonWeekLockReason = 'COMPLETED' | 'IN_PROGRESS' | 'RACE_WEEK';
@@ -54,6 +54,28 @@ export interface SeasonWeekUpdate {
     keySessions?: string;
 }
 
+/** Fases que o recálculo distribui; a semana da prova é sempre 1. */
+export type EditablePhase = 'BASE' | 'BUILD' | 'PEAK' | 'TAPER';
+
+/** Parâmetros do recálculo do ajuste (`SeasonPlanRecalculateInputDto`). */
+export interface SeasonPlanRecalculate {
+    phaseWeeks: Record<EditablePhase, number>;
+    startVolumeKm: number;
+}
+
+/** Campo comparado no diff do ajuste (`SeasonPlanDiff.CAMPOS` no backend). */
+export type SeasonDiffField = 'phase' | 'targetVolumeKm' | 'targetTss' | 'longRunKm' | 'deload' | 'keySessions';
+
+/** Campo alterado do rascunho em relação à temporada ativa (`SeasonPlanDiffDto`). */
+export interface SeasonPlanDiffEntry {
+    weekIndex: number;
+    field: SeasonDiffField;
+    /** Valor na ativa; `null` quando a ativa não tinha valor. */
+    before: string | number | boolean | null;
+    after: string | number | boolean | null;
+    source: SeasonWeek['valueSource'];
+}
+
 /** Prova preparatória ancorada numa semana (`SeasonPlanResponseDto.Milestone`). */
 export interface SeasonMilestone {
     weekIndex: number;
@@ -89,6 +111,8 @@ export interface SeasonPlan {
     shortPreparation: boolean;
     totalWeeks: number;
     initialCtl: number;
+    /** Volume de partida (km) da geração ou do último recálculo; ausente em temporadas anteriores à V121. */
+    initialVolumeKm?: number;
     peakVolumeKm: number;
     weeks: SeasonWeek[];
     milestones: SeasonMilestone[];

@@ -4,6 +4,8 @@ import { useNavigate, useParams } from 'react-router';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { SectionCard } from '../components/SectionCard';
 import { SeasonAdjustTable } from '../components/SeasonAdjustTable';
+import { SeasonDiffList } from '../components/SeasonDiffList';
+import { SeasonParametersForm } from '../components/SeasonParametersForm';
 import { useSeasonAdjustment } from '../hooks/useSeasonAdjustment';
 import { surface } from '../../../theme/tokens';
 import type { InboxReturnState } from '../types/InboxReturnState';
@@ -15,8 +17,10 @@ const ITEM_SX = { fontSize: '0.8125rem', color: surface[100] } as const;
 const REASON_MAX = 255;
 
 /**
- * Ajuste da temporada aprovada (add-season-plan-adjust-v2): o treinador edita as semanas futuras do
- * rascunho, aprova a nova versão com motivo ou descarta. Volta para a aba Temporada do atleta no inbox.
+ * Ajuste da temporada aprovada (add-season-plan-adjust-v2, add-season-plan-version-diff): o treinador
+ * edita as semanas futuras do rascunho ou recalcula pelos parâmetros, vê o que muda contra a versão ativa,
+ * aprova a nova versão com motivo ou descarta. Volta para a aba Temporada do atleta no inbox. Se a ativa
+ * mudou no meio (409 na aprovação), o motivo fica no campo e ele pode descartar e recomeçar.
  */
 export default function CoachSeasonAdjustPage() {
   const { atletaId, seasonPlanId } = useParams();
@@ -57,6 +61,11 @@ export default function CoachSeasonAdjustPage() {
   const descartar = async () => {
     if (await ajuste.discard()) voltar();
   };
+  const recomecar = async () => {
+    setConfirmar(null);
+    const novo = await ajuste.restart();
+    if (novo) navigate(`/coach/athletes/${atletaId}/season/${novo}/adjust`);
+  };
 
   return (
     <Box sx={{ p: { xs: 1, md: 2 }, display: 'grid', gap: 1 }}>
@@ -85,8 +94,30 @@ export default function CoachSeasonAdjustPage() {
           saveError={ajuste.saveError?.message ?? null}
           onSaveWeek={ajuste.saveWeek}
           onCloseEdit={ajuste.clearErrors}
+          diff={emAjuste ? ajuste.diff : []}
         />
       </SectionCard>
+
+      {emAjuste ? (
+        <SectionCard title="Parâmetros">
+          <SeasonParametersForm
+            key={plan.id}
+            weeks={plan.weeks}
+            totalWeeks={plan.totalWeeks}
+            initialVolumeKm={plan.initialVolumeKm}
+            recalculating={ajuste.recalculating}
+            error={ajuste.recalcError?.message ?? null}
+            onRecalculate={ajuste.recalculate}
+            onCloseConfirm={ajuste.clearErrors}
+          />
+        </SectionCard>
+      ) : null}
+
+      {emAjuste ? (
+        <SectionCard title="Alterações">
+          <SeasonDiffList diff={ajuste.diff} baseVersion={versao - 1} error={ajuste.diffError?.message ?? null} />
+        </SectionCard>
+      ) : null}
 
       <SectionCard title="Validações">
         {plan.validations.length ? (
@@ -113,8 +144,23 @@ export default function CoachSeasonAdjustPage() {
             slotProps={{ htmlInput: { maxLength: REASON_MAX } }}
             helperText={`O motivo fica registrado na nova versão · ${reason.length}/${REASON_MAX}`}
           />
+          {ajuste.approveConflict ? (
+            <Alert
+              severity="warning"
+              sx={{ mt: 1 }}
+              action={(
+                <Button size="small" sx={ACTION_BTN_SX} disabled={ajuste.restarting} onClick={() => void recomecar()}>
+                  Descartar e recomeçar
+                </Button>
+              )}
+            >
+              A temporada ativa mudou depois que este ajuste começou. Este ajuste não pode mais ser aprovado:
+              descarte e recomece a partir da versão ativa atual. O motivo continua no campo.
+              {ajuste.restartError ? <Box sx={{ mt: 0.5 }}>{ajuste.restartError.message}</Box> : null}
+            </Alert>
+          ) : null}
           <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap' }}>
-            <Button variant="contained" sx={ACTION_BTN_SX} disabled={!reason.trim() || ajuste.approving}
+            <Button variant="contained" sx={ACTION_BTN_SX} disabled={!reason.trim() || ajuste.approving || ajuste.approveConflict}
               onClick={() => setConfirmar('approve')}>
               Aprovar nova versão
             </Button>
@@ -126,7 +172,7 @@ export default function CoachSeasonAdjustPage() {
       ) : null}
 
       <ConfirmDialog
-        open={confirmar === 'approve'}
+        open={confirmar === 'approve' && !ajuste.approveConflict}
         title="Aprovar nova versão?"
         message={`A versão ${versao - 1} será arquivada e a versão ${versao} passa a guiar os planos semanais. O atleta passa a ver a nova versão.`}
         confirmLabel="Aprovar"
