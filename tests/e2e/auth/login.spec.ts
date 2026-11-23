@@ -51,6 +51,31 @@ test.describe('Autenticação', () => {
     expect(new URL(page.url()).searchParams.has('prompt')).toBe(false)
   })
 
+  /**
+   * A marca anti-laço sobra no sessionStorage da aba depois da primeira tentativa. Abrir o login de
+   * novo não é laço: antes desta correção, a segunda visita caía no botão "Entrar".
+   */
+  test('segunda visita ao login na mesma aba também redireciona sozinha', async ({ page }) => {
+    await semSessaoNoProvedor(page)
+    await page.goto(LOGIN)
+    await page.waitForURL(/\/protocol\/openid-connect\/auth\?/)
+
+    await page.goto(LOGIN)
+
+    await page.waitForURL(/\/protocol\/openid-connect\/auth\?/)
+  })
+
+  /** Voltar do provedor sem logar e ser mandado de novo a ele prenderia o navegador num vai-e-volta. */
+  test('voltar do provedor sem sessão mostra o botão em vez de redirecionar de novo', async ({ page }) => {
+    await semSessaoNoProvedor(page)
+    await page.goto(LOGIN)
+    await page.waitForURL(/\/protocol\/openid-connect\/auth\?/)
+
+    await page.goBack()
+
+    await expect(page.getByRole('button', { name: /entrar/i })).toBeVisible()
+  })
+
   test('com sessão no provedor, a rota protegida abre sem passar pelo login', async ({ page }) => {
     await autenticarComPkce(page)
 
