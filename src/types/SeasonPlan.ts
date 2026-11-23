@@ -12,6 +12,18 @@ export const TRAINING_PHASE_LABEL: Record<TrainingPhase, string> = {
     RACE_WEEK: 'Semana da prova',
 };
 
+/** Fases que o treinador pode escolher no ajuste (RACE_WEEK é só da semana da prova, travada). */
+export const EDITABLE_PHASES: TrainingPhase[] = ['BASE', 'BUILD', 'PEAK', 'TAPER'];
+
+/** Por que a semana é somente leitura no ajuste (`SeasonWeekLock.Reason` no backend). */
+export type SeasonWeekLockReason = 'COMPLETED' | 'IN_PROGRESS' | 'RACE_WEEK';
+
+export const SEASON_WEEK_LOCK_LABEL: Record<SeasonWeekLockReason, string> = {
+    COMPLETED: 'Concluída',
+    IN_PROGRESS: 'Em andamento',
+    RACE_WEEK: 'Semana da prova',
+};
+
 /** Ciclo de vida da temporada (`SeasonPlanStatus` no backend). */
 export type SeasonPlanStatus = 'PROPOSED' | 'ACTIVE' | 'ARCHIVED' | 'COMPLETED';
 
@@ -25,6 +37,21 @@ export interface SeasonWeek {
     deload: boolean;
     longRunKm?: number;
     valueSource: 'ENGINE' | 'COACH' | 'AI_ACCEPTED';
+    /** Sessões-chave da semana, texto do treinador. */
+    keySessions?: string;
+    /** Somente leitura no ajuste (concluída, em andamento ou da prova). */
+    locked: boolean;
+    lockReason?: SeasonWeekLockReason;
+}
+
+/** Edição de uma semana do ajuste (`SeasonWeekUpdateInputDto`); campo ausente não muda, `keySessions: ''` limpa. */
+export interface SeasonWeekUpdate {
+    phase?: TrainingPhase;
+    targetTss?: number;
+    targetVolumeKm?: number;
+    longRunKm?: number;
+    deload?: boolean;
+    keySessions?: string;
 }
 
 /** Prova preparatória ancorada numa semana (`SeasonPlanResponseDto.Milestone`). */
@@ -66,6 +93,12 @@ export interface SeasonPlan {
     weeks: SeasonWeek[];
     milestones: SeasonMilestone[];
     validations: SeasonValidation[];
+    /** 1 na proposta original, +1 a cada ajuste aprovado. */
+    version?: number;
+    /** Temporada ACTIVE da qual este ajuste foi copiado; ausente na versão 1. */
+    baseSeasonPlanId?: string;
+    /** Ajuste aberto a partir desta temporada ACTIVE. */
+    openDraftId?: string;
 }
 
 /** `AthleteSeasonPlanDto` — temporada aprovada vista pelo atleta, sem validações nem dados do treinador. */

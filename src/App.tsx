@@ -27,6 +27,7 @@ import CoachSettingsPage from './features/coach/pages/CoachSettingsPage';
 import CoachAssessoriaSettingsPage from './features/coach/pages/CoachAssessoriaSettingsPage';
 import CoachPlanReviewPage from './features/coach/pages/CoachPlanReviewPage';
 import CoachAthleteProfilePage from './features/coach/pages/CoachAthleteProfilePage';
+import CoachSeasonAdjustPage from './features/coach/pages/CoachSeasonAdjustPage';
 import AthleteLayout from './features/athlete/layout/AthleteLayout';
 import AthleteHomePage from './features/athlete/pages/AthleteHomePage';
 import AthletePlanPage from './features/athlete/pages/AthletePlanPage';
@@ -127,6 +128,7 @@ const router = createHashRouter([
           { path: 'athletes', element: <CoachAthletesPage /> },
           { path: 'athletes/:atletaId', element: <CoachAthleteProfilePage /> },
           { path: 'athletes/:atletaId/onboarding', element: <AthleteOnboardingPage /> },
+          { path: 'athletes/:atletaId/season/:seasonPlanId/adjust', element: <CoachSeasonAdjustPage /> },
           { path: 'calendar', element: <CoachCalendarPage /> },
           { path: 'insights', element: <CoachInsightsPage /> },
           { path: 'settings', element: <CoachSettingsPage /> },

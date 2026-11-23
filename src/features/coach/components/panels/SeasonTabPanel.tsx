@@ -48,13 +48,18 @@ interface SeasonTabPanelProps {
   hasTargetRace: boolean;
   /** Atleta em calibração: a temporada espera a graduação (o backend recusa com 422). */
   calibration?: CalibrationStatus | null;
+  /** Abrindo o ajuste da temporada ativa (criando o rascunho). */
+  adjusting?: boolean;
+  adjustError?: Error | null;
   onGenerate: () => void;
   onApprove: () => void;
+  /** Ajustar a temporada ativa (cria ou reabre o rascunho da próxima versão). */
+  onAdjust?: () => void;
   onRetry: () => void;
   hoje?: Date;
 }
 
-export function SeasonTabPanel({ plan, loading, generating, loadError, generateError, approving, approveError, hasTargetRace, calibration = null, onGenerate, onApprove, onRetry, hoje = new Date() }: SeasonTabPanelProps) {
+export function SeasonTabPanel({ plan, loading, generating, loadError, generateError, approving, approveError, hasTargetRace, calibration = null, adjusting = false, adjustError = null, onGenerate, onApprove, onAdjust, onRetry, hoje = new Date() }: SeasonTabPanelProps) {
   if (loading) {
     return (
       <Box data-testid="season-loading" role="status" aria-label="Carregando temporada">
@@ -117,6 +122,19 @@ export function SeasonTabPanel({ plan, loading, generating, loadError, generateE
         >
           Proposta de temporada até {plan.provaNome}. Ainda não foi aprovada; o atleta só a vê depois de aprovada.
         </Alert>
+      ) : null}
+      {adjustError ? <Alert severity="error">{adjustError.message}</Alert> : null}
+      {plan.seasonStatus === 'ACTIVE' && onAdjust ? (
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, flexWrap: 'wrap' }}>
+          <Typography sx={{ fontSize: '0.8125rem', color: surface[200] }}>
+            {plan.openDraftId
+              ? 'Há um ajuste desta temporada em aberto, ainda não aprovado.'
+              : `Temporada aprovada${plan.version && plan.version > 1 ? ` · versão ${plan.version}` : ''}.`}
+          </Typography>
+          <Button variant="outlined" onClick={onAdjust} disabled={adjusting} sx={ACTION_BTN_SX}>
+            {adjusting ? 'Abrindo…' : plan.openDraftId ? 'Continuar ajuste' : 'Ajustar temporada'}
+          </Button>
+        </Box>
       ) : null}
       <KpiStrip items={buildKpis(plan, hoje)} testIdPrefix="season-kpi" />
       <SectionCard title="Mapa da temporada">
