@@ -7,6 +7,7 @@ import { SeasonAdjustTable } from '../components/SeasonAdjustTable';
 import { SeasonDiffList } from '../components/SeasonDiffList';
 import { SeasonParametersForm } from '../components/SeasonParametersForm';
 import { useSeasonAdjustment } from '../hooks/useSeasonAdjustment';
+import { countPhaseWeeks } from '../adapters/seasonAdjust';
 import { surface } from '../../../theme/tokens';
 import type { InboxReturnState } from '../types/InboxReturnState';
 
@@ -27,7 +28,7 @@ export default function CoachSeasonAdjustPage() {
   const navigate = useNavigate();
   const ajuste = useSeasonAdjustment(atletaId, seasonPlanId);
   const [reason, setReason] = useState('');
-  const [confirmar, setConfirmar] = useState<'approve' | 'discard' | null>(null);
+  const [confirmar, setConfirmar] = useState<'approve' | 'discard' | 'restart' | null>(null);
 
   const voltar = () => navigate('/coach/inbox', { state: { atletaId, tab: 'season' } satisfies InboxReturnState });
 
@@ -89,7 +90,7 @@ export default function CoachSeasonAdjustPage() {
       <SectionCard title="Semanas">
         <SeasonAdjustTable
           weeks={plan.weeks}
-          readOnly={!emAjuste}
+          readOnly={!emAjuste || ajuste.recalculating}
           savingWeek={ajuste.savingWeek}
           saveError={ajuste.saveError?.message ?? null}
           onSaveWeek={ajuste.saveWeek}
@@ -101,11 +102,12 @@ export default function CoachSeasonAdjustPage() {
       {emAjuste ? (
         <SectionCard title="Parâmetros">
           <SeasonParametersForm
-            key={plan.id}
+            // Renasce quando a contagem por fase muda (ex.: fase trocada no diálogo da semana), senão recalcula com fases velhas.
+            key={`${plan.id}:${Object.values(countPhaseWeeks(plan.weeks)).join('-')}`}
             weeks={plan.weeks}
             totalWeeks={plan.totalWeeks}
             initialVolumeKm={plan.initialVolumeKm}
-            recalculating={ajuste.recalculating}
+            recalculating={ajuste.recalculating || ajuste.savingWeek !== null}
             error={ajuste.recalcError?.message ?? null}
             onRecalculate={ajuste.recalculate}
             onCloseConfirm={ajuste.clearErrors}
@@ -149,14 +151,13 @@ export default function CoachSeasonAdjustPage() {
               severity="warning"
               sx={{ mt: 1 }}
               action={(
-                <Button size="small" sx={ACTION_BTN_SX} disabled={ajuste.restarting} onClick={() => void recomecar()}>
+                <Button size="small" sx={ACTION_BTN_SX} disabled={ajuste.restarting} onClick={() => setConfirmar('restart')}>
                   Descartar e recomeçar
                 </Button>
               )}
             >
-              A temporada ativa mudou depois que este ajuste começou. Este ajuste não pode mais ser aprovado:
-              descarte e recomece a partir da versão ativa atual. O motivo continua no campo.
-              {ajuste.restartError ? <Box sx={{ mt: 0.5 }}>{ajuste.restartError.message}</Box> : null}
+              Este ajuste não pode mais ser aprovado: a temporada ativa mudou ou o ajuste foi fechado em outra sessão.
+              Descarte e recomece a partir da versão ativa atual. O motivo continua no campo.
             </Alert>
           ) : null}
           <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap' }}>
@@ -191,6 +192,17 @@ export default function CoachSeasonAdjustPage() {
         errorMessage={ajuste.discardError?.message ?? null}
         onClose={() => { setConfirmar(null); ajuste.clearErrors(); }}
         onConfirm={descartar}
+      />
+      <ConfirmDialog
+        open={confirmar === 'restart'}
+        title="Descartar e recomeçar?"
+        message="As edições deste ajuste serão descartadas e um ajuste novo começa a partir da versão ativa atual."
+        confirmLabel="Descartar e recomeçar"
+        severity="danger"
+        loading={ajuste.restarting}
+        errorMessage={ajuste.restartError?.message ?? null}
+        onClose={() => setConfirmar(null)}
+        onConfirm={recomecar}
       />
     </Box>
   );

@@ -334,7 +334,7 @@ test.describe('Coach — aba Temporada do inbox', () => {
 
     const tabela = page.getByRole('table', { name: 'Semanas do ajuste' })
     await expect(tabela.getByTestId('adjust-week-2')).toContainText('47,0 km')
-    await expect(tabela.getByTestId('adjust-week-2').getByLabel('antes: 44,0 km')).toBeVisible()
+    await expect(tabela.getByTestId('adjust-week-2').getByText('antes: 44,0 km')).toBeVisible()
     await expect(tabela.getByTestId('adjust-week-2')).toContainText('motor')
     await expect(tabela.getByTestId('adjust-week-3')).toContainText('4x1km')
     await expect(alteracoes).toContainText('Semana 2 · Volume: 44,0 km → 47,0 km (motor)')
@@ -375,9 +375,10 @@ test.describe('Coach — aba Temporada do inbox', () => {
     await page.getByRole('button', { name: 'Aprovar nova versão' }).click()
     await page.getByRole('dialog').getByRole('button', { name: 'Aprovar' }).click()
 
-    await expect(page.getByText(/A temporada ativa mudou depois que este ajuste começou/)).toBeVisible()
+    await expect(page.getByText(/Este ajuste não pode mais ser aprovado/)).toBeVisible()
     await expect(page.getByLabel(/Motivo do ajuste/)).toHaveValue('Atleta mudou de prova')
     await page.getByRole('button', { name: 'Descartar e recomeçar' }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Descartar e recomeçar' }).click()
 
     await expect(page.getByText('Maratona de São Paulo · versão 4')).toBeVisible()
     await expect(page).toHaveURL(/season\/season-4\/adjust/)

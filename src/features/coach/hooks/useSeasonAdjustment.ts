@@ -50,7 +50,11 @@ export const useSeasonAdjustment = (atletaId: string | undefined, seasonPlanId: 
             const lido = await SeasonPlanService.buscarDiff(atletaId, atual.id);
             if (valida()) setDiff(lido);
         } catch (err) {
-            if (valida()) setDiffError(seasonPlanError(err, 'Erro ao carregar as alterações'));
+            if (valida()) {
+                // O diff anterior não corresponde mais ao rascunho: sem ele a tabela não risca valor errado.
+                setDiff([]);
+                setDiffError(seasonPlanError(err, 'Erro ao carregar as alterações'));
+            }
         }
     }, [atletaId]);
 

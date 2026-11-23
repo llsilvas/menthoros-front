@@ -67,7 +67,7 @@ describe('CoachSeasonAdjustPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Aprovar nova versão' }));
     await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Aprovar' }));
 
-    expect(await screen.findByText(/A temporada ativa mudou depois que este ajuste começou/)).toBeInTheDocument();
+    expect(await screen.findByText(/Este ajuste não pode mais ser aprovado/)).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(screen.getByLabelText(/Motivo do ajuste/)).toHaveValue('Atleta gripou');
     expect(screen.getByRole('button', { name: 'Aprovar nova versão' })).toBeDisabled();
@@ -86,11 +86,13 @@ describe('CoachSeasonAdjustPage', () => {
     vi.mocked(SeasonPlanService.buscarPorId).mockResolvedValue({ ...DRAFT, id: 'v4', version: 4, baseSeasonPlanId: 'v3' });
 
     await userEvent.click(await screen.findByRole('button', { name: 'Descartar e recomeçar' }));
+    expect(SeasonPlanService.descartar).not.toHaveBeenCalled();
+    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Descartar e recomeçar' }));
 
     expect(await screen.findByText('Maratona SP · versão 4')).toBeInTheDocument();
     expect(SeasonPlanService.descartar).toHaveBeenCalledWith('a1', 'v2');
     expect(SeasonPlanService.buscarPorId).toHaveBeenLastCalledWith('a1', 'v4');
-    expect(screen.queryByText(/A temporada ativa mudou depois/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Este ajuste não pode mais ser aprovado/)).not.toBeInTheDocument();
     expect(screen.getByLabelText(/Motivo do ajuste/)).toHaveValue('Atleta gripou');
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
@@ -103,7 +105,7 @@ describe('CoachSeasonAdjustPage', () => {
 
     const lista = await screen.findByRole('list', { name: 'Alterações' });
     expect(lista).toHaveTextContent('Semana 2 · Longão: 10,0 km → 12,0 km (motor)');
-    expect(within(screen.getByTestId('adjust-week-2')).getByLabelText('antes: 10,0 km')).toBeInTheDocument();
+    expect(screen.getByTestId('adjust-week-2').querySelector('del')).toHaveTextContent('antes: 10,0 km');
   });
 
   it('recalcular pelos parâmetros troca o rascunho exibido', async () => {
@@ -125,6 +127,20 @@ describe('CoachSeasonAdjustPage', () => {
       phaseWeeks: { BASE: 2, BUILD: 0, PEAK: 0, TAPER: 0 }, startVolumeKm: 38.5,
     });
     expect(SeasonPlanService.buscarDiff).toHaveBeenCalledTimes(2);
+  });
+
+  it('mudar a fase de uma semana pelo diálogo atualiza as contagens dos parâmetros', async () => {
+    vi.mocked(SeasonPlanService.atualizarSemana).mockResolvedValue({
+      ...DRAFT, weeks: [DRAFT.weeks[0], { ...DRAFT.weeks[1], phase: 'BUILD', valueSource: 'COACH' }],
+    });
+    montar();
+    expect(await screen.findByLabelText('Base')).toHaveValue('2');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Editar semana 2' }));
+    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Salvar' }));
+
+    await waitFor(() => expect(screen.getByLabelText('Base')).toHaveValue('1'));
+    expect(screen.getByLabelText('Construção')).toHaveValue('1');
   });
 
   it('descartar com confirmação volta ao inbox', async () => {

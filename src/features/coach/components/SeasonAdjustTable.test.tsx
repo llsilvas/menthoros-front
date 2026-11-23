@@ -83,10 +83,12 @@ describe('SeasonAdjustTable', () => {
       { weekIndex: 3, field: 'deload', before: true, after: false, source: 'ENGINE' },
     ]} />);
 
-    expect(within(linha(3)).getByLabelText('antes: 10,0 km')).toHaveTextContent('10,0 km');
-    expect(within(linha(3)).getByLabelText('antes: Construção · descarga')).toBeInTheDocument();
+    // O "antes:" é texto só para leitor de tela dentro do <del>.
+    const riscado = (texto: string) => (_: string, el: Element | null) => el?.tagName === 'DEL' && el.textContent === texto;
+    expect(within(linha(3)).getByText(riscado('antes: 10,0 km'))).toBeInTheDocument();
+    expect(within(linha(3)).getByText(riscado('antes: Construção · descarga'))).toBeInTheDocument();
     expect(linha(3)).toHaveTextContent('motor');
     expect(linha(2)).not.toHaveTextContent('motor');
-    expect(within(linha(2)).queryByLabelText(/^antes:/)).not.toBeInTheDocument();
+    expect(linha(2).querySelector('del')).toBeNull();
   });
 });

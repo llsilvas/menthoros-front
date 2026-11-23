@@ -161,6 +161,18 @@ describe('useSeasonAdjustment', () => {
         expect(SeasonPlanService.buscarDiff).toHaveBeenCalledTimes(2);
     });
 
+    it('falha ao reler o diff limpa o diff anterior', async () => {
+        vi.mocked(SeasonPlanService.atualizarSemana).mockResolvedValue(DRAFT);
+        const { result } = renderHook(() => useSeasonAdjustment('a1', 'v2'));
+        await waitFor(() => expect(result.current.diff).toEqual(DIFF));
+        vi.mocked(SeasonPlanService.buscarDiff).mockRejectedValue(apiError(500, {}));
+
+        await act(async () => { await result.current.saveWeek(2, { deload: true }); });
+
+        await waitFor(() => expect(result.current.diffError).not.toBeNull());
+        expect(result.current.diff).toEqual([]);
+    });
+
     it('recalcular troca o rascunho e relê o diff', async () => {
         const recalculado = { ...DRAFT, initialVolumeKm: 40 };
         vi.mocked(SeasonPlanService.recalcular).mockResolvedValue(recalculado);

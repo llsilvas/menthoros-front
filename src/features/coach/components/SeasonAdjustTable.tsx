@@ -14,6 +14,11 @@ const HEAD_SX = { ...CELL_SX, fontSize: '0.75rem', fontWeight: 700, color: surfa
 const ACTION_BTN_SX = { minHeight: 40, textTransform: 'none' } as const;
 const BEFORE_SX = { color: surface[400], mr: 0.5 } as const;
 const SOURCE_SX = { display: 'block', fontSize: '0.6875rem', color: surface[400] } as const;
+/** Só para leitor de tela (mesmo padrão do `KpiCell`): `aria-label` em `<del>` não é anunciado de forma confiável. */
+const SO_LEITOR_DE_TELA = {
+  position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', border: 0,
+  overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap',
+} as const;
 
 const faseTexto = (phase: TrainingPhase, deload: boolean) => `${TRAINING_PHASE_LABEL[phase] ?? phase}${deload ? ' · descarga' : ''}`;
 
@@ -21,7 +26,7 @@ const faseTexto = (phase: TrainingPhase, deload: boolean) => `${TRAINING_PHASE_L
 const comAnterior = (atual: string, anterior: string | null): ReactNode =>
   anterior === null ? atual : (
     <>
-      <Box component="del" sx={BEFORE_SX} aria-label={`antes: ${anterior}`}>{anterior}</Box>
+      <Box component="del" sx={BEFORE_SX}><Box component="span" sx={SO_LEITOR_DE_TELA}>antes: </Box>{anterior}</Box>
       {atual}
     </>
   );
