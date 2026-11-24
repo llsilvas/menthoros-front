@@ -116,6 +116,7 @@ function CoachInboxPage() {
     // O inbox não consumia estes dois: sem eles, o CTA não sabia que havia mutação em voo nem por
     // que a última ação falhou.
     reviewIsActing, reviewActionStatus,
+    refetchQueue,
   } = useOutletContext<CoachLayoutOutletContext>();
   // Volta do ajuste da temporada (add-season-plan-adjust-v2): reabre o atleta na aba Temporada.
   const location = useLocation();
@@ -333,6 +334,12 @@ function CoachInboxPage() {
 
   // Fluxo de triagem: o próximo com sinal entre as linhas visíveis (inbox-proximo-em-atencao).
   const proximoEmAtencao = useMemo(() => findNextInAttention(inboxQueue.rows, selectedId), [inboxQueue.rows, selectedId]);
+
+  // A fila da inbox vem do dashboard; a do layout só alimenta o badge do shell. As duas mudam com a ciência.
+  function handleCienteRegistrado() {
+    reloadDashboard();
+    void refetchQueue?.();
+  }
   const detalheRef = useRef<HTMLDivElement | null>(null);
   const irParaProximoEmAtencao = useCallback(() => {
     if (!proximoEmAtencao) return;
@@ -1017,6 +1024,7 @@ function CoachInboxPage() {
                     onOpenCalendar={() => navigate('/coach/calendar')}
                     onOpenSuggestions={() => navigate('/coach/sugestoes')}
                     onDecisao={() => void fetchSelectedProfile()}
+                    onCienteRegistrado={handleCienteRegistrado}
                   />
                 ) : null}
               </Box>

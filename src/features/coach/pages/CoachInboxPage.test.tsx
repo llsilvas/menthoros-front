@@ -2,18 +2,20 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { format, startOfWeek, subDays, subWeeks } from 'date-fns';
+import { addDays, format, startOfWeek, subDays, subWeeks } from 'date-fns';
 import * as reactRouter from 'react-router';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import CoachInboxPage from './CoachInboxPage';
 import { SugestaoService } from '../../../api/services/SugestaoService';
 import { SeasonPlanService } from '../../../api/services/SeasonPlanService';
+import { ProvaService } from '../../../api/services/ProvaService';
 import { ApiError } from '../../../api/core/ApiError';
 import { useCoachDashboard } from '../../../hooks/useCoachDashboard';
 import { useAthleteProfile } from '../../../hooks/useAthleteProfile';
 import type { CoachDashboard } from '../../../types/Coach';
 import type { AtletaPerfilCoachDto, PmcPontoRaw } from '../../../types/AtletaPerfilCoach';
 import type { CoachLayoutOutletContext } from '../layout/CoachLayout';
+import type { Prova } from '../../../types/Prova';
 
 vi.mock('react-router', async () => {
   const actual = await vi.importActual<typeof import('react-router')>('react-router');
@@ -22,6 +24,7 @@ vi.mock('react-router', async () => {
 
 vi.mock('../../../api/services/SugestaoService');
 vi.mock('../../../api/services/SeasonPlanService');
+vi.mock('../../../api/services/ProvaService');
 vi.mock('../../../hooks/useCoachDashboard');
 vi.mock('../../../hooks/useAthleteProfile');
 // PMCChart usa recharts (ResponsiveContainer colapsa em jsdom) — stub para isolar a aba.
@@ -164,6 +167,8 @@ describe('CoachInboxPage', () => {
     vi.clearAllMocks();
     // clearAllMocks não desfaz implementação: sem isto o 404 da flag vaza para os testes seguintes.
     vi.mocked(SeasonPlanService.buscarAtual).mockResolvedValue(undefined);
+    vi.mocked(ProvaService.listarProvas).mockResolvedValue([]);
+    vi.mocked(ProvaService.listarPendentesRevisao).mockResolvedValue([]);
     vi.mocked(SugestaoService.detalhe).mockResolvedValue({
       id: 's1',
       atletaId: 'a1',
@@ -592,6 +597,66 @@ describe('CoachInboxPage', () => {
     expect(await screen.findByText(/Reduzir intensidade do treino de quinta/i)).toBeInTheDocument();
     // calendário agregado do dashboard não aparece mais no drill-down
     expect(screen.queryByText(/Calendário semanal do dashboard/i)).not.toBeInTheDocument();
+  });
+
+  describe('ciência de prova do atleta pela aba Provas & sugestões', () => {
+    const PROVA_PENDENTE: Prova = {
+      id: 'p1',
+      nomeProva: 'Maratona SP',
+      dataProva: format(addDays(new Date(), 90), 'yyyy-MM-dd'),
+      tipoProva: 'MARATONA',
+      distancia: 'KM_42',
+      provaAlvo: true,
+      revisadaPeloCoach: false,
+      motivoRevisao: 'NOVA',
+    };
+
+    beforeEach(() => {
+      vi.mocked(ProvaService.listarProvas).mockResolvedValue([PROVA_PENDENTE]);
+      vi.mocked(ProvaService.listarPendentesRevisao).mockResolvedValue([PROVA_PENDENTE]);
+    });
+
+    it('mostra a prova pendente com o motivo e o botão Ciente', async () => {
+      renderPage();
+
+      fireEvent.click(screen.getByRole('tab', { name: /Provas & sugestões/i }));
+
+      expect(await screen.findByText('Maratona SP')).toBeInTheDocument();
+      expect(screen.getByText('Nova')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^Ciente$/i })).toBeInTheDocument();
+      expect(ProvaService.listarPendentesRevisao).toHaveBeenCalledWith('a1');
+    });
+
+    it('Ciente registra a ciência e recarrega a fila da inbox e a do layout', async () => {
+      vi.mocked(ProvaService.marcarCiente).mockResolvedValue({ ...PROVA_PENDENTE, revisadaPeloCoach: true });
+      renderPage();
+      fireEvent.click(screen.getByRole('tab', { name: /Provas & sugestões/i }));
+      const ciente = await screen.findByRole('button', { name: /^Ciente$/i });
+      mockFetchDashboard.mockClear();
+      vi.mocked(ProvaService.listarPendentesRevisao).mockResolvedValue([]);
+      vi.mocked(ProvaService.listarProvas).mockResolvedValue([{ ...PROVA_PENDENTE, revisadaPeloCoach: true }]);
+
+      await userEvent.click(ciente);
+
+      expect(ProvaService.marcarCiente).toHaveBeenCalledWith('a1', 'p1');
+      await waitFor(() => expect(mockFetchDashboard).toHaveBeenCalledTimes(1));
+      expect(mockRefetchQueue).toHaveBeenCalled();
+      await waitFor(() => expect(screen.queryByRole('button', { name: /^Ciente$/i })).not.toBeInTheDocument());
+      expect(screen.getByText('Maratona SP')).toBeInTheDocument();
+    });
+
+    it('falha no Ciente mostra erro com Tentar novamente e não derruba o resto da aba', async () => {
+      vi.mocked(ProvaService.marcarCiente).mockRejectedValue(new Error('boom'));
+      renderPage();
+      fireEvent.click(screen.getByRole('tab', { name: /Provas & sugestões/i }));
+      mockFetchDashboard.mockClear();
+
+      await userEvent.click(await screen.findByRole('button', { name: /^Ciente$/i }));
+
+      expect(await screen.findByRole('button', { name: /Tentar novamente/i })).toBeInTheDocument();
+      expect(screen.getByText(/Sugestões recentes/i)).toBeInTheDocument();
+      expect(mockFetchDashboard).not.toHaveBeenCalled();
+    });
   });
 
   describe('decisão sobre sugestão pela aba Provas & sugestões', () => {
