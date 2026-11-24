@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -656,6 +656,130 @@ describe('CoachInboxPage', () => {
       expect(await screen.findByRole('button', { name: /Tentar novamente/i })).toBeInTheDocument();
       expect(screen.getByText(/Sugestões recentes/i)).toBeInTheDocument();
       expect(mockFetchDashboard).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('aba inicial por motivo e seleção retida após Ciente', () => {
+    const PROVA_PENDENTE: Prova = {
+      id: 'p2',
+      nomeProva: 'Meia do Rio',
+      dataProva: format(addDays(new Date(), 60), 'yyyy-MM-dd'),
+      tipoProva: 'MEIA',
+      distancia: 'KM_21',
+      revisadaPeloCoach: false,
+      motivoRevisao: 'NOVA',
+    };
+    const ITEM_PROVA_BRUNO = {
+      atletaId: 'a2',
+      athleteName: 'Bruno Costa',
+      severity: 'ALTA' as const,
+      priorityScore: 95,
+      primaryReason: 'PROVA_ATLETA' as const,
+      suggestedAction: 'Revisar a prova cadastrada pelo atleta.',
+      generatedAt: '2026-06-24T13:30:00Z',
+      evidence: [],
+    };
+    const comFila = (attentionQueue: CoachDashboard['attentionQueue']): CoachDashboard => ({ ...DASHBOARD_STUB, attentionQueue });
+    const abaSelecionada = () => screen.getAllByRole('tab').find((t) => t.getAttribute('aria-selected') === 'true')?.textContent;
+
+    /** Dashboard que só troca de conteúdo depois de `armar()` — o fetch da montagem não conta. */
+    function mockDashboardQueRecarrega(antes: CoachDashboard, depois: CoachDashboard) {
+      const estado: { armado: boolean; set?: (d: CoachDashboard) => void } = { armado: false };
+      vi.mocked(useCoachDashboard).mockImplementation(() => {
+        const [dashboard, setDashboard] = useState(antes);
+        estado.set = setDashboard;
+        // Estável como o useCallback do hook real: senão cada render dispararia um novo fetch.
+        const [fetchDashboard] = useState(() => async () => {
+          mockFetchDashboard();
+          if (estado.armado) setDashboard(depois);
+        });
+        return { dashboard, loading: false, error: null, fetchDashboard };
+      });
+      return {
+        armar: () => { estado.armado = true; },
+        recarregarAgora: () => act(() => { estado.set?.(depois); }),
+      };
+    }
+
+    beforeEach(() => {
+      vi.mocked(useAthleteProfile).mockImplementation((id?: string) => ({
+        profile: id === 'a2' ? { ...makeProfile(), atletaId: 'a2', nomeAtleta: 'Bruno Costa' } : makeProfile(),
+        isLoading: false,
+        error: null,
+        errorKind: null,
+        fetchProfile: mockFetchProfile,
+      }));
+      vi.mocked(ProvaService.listarProvas).mockResolvedValue([PROVA_PENDENTE]);
+      vi.mocked(ProvaService.listarPendentesRevisao).mockResolvedValue([PROVA_PENDENTE]);
+    });
+
+    it('atleta com motivo PROVA_ATLETA selecionado automaticamente abre em Provas & sugestões', async () => {
+      vi.mocked(useCoachDashboard).mockReturnValue({ dashboard: comFila([ITEM_PROVA_BRUNO]), loading: false, error: null, fetchDashboard: mockFetchDashboard });
+      renderPage();
+
+      await waitFor(() => expect(screen.getByTestId('inbox-nome-atleta')).toHaveTextContent('Bruno Costa'));
+      expect(abaSelecionada()).toBe('Provas & sugestões');
+    });
+
+    it('atleta com outro motivo abre em Diagnóstico, e clicar no de prova troca para Provas & sugestões', async () => {
+      const filaAna = DASHBOARD_STUB.attentionQueue[0];
+      vi.mocked(useCoachDashboard).mockReturnValue({
+        dashboard: comFila([{ ...filaAna, priorityScore: 99 }, ITEM_PROVA_BRUNO]),
+        loading: false, error: null, fetchDashboard: mockFetchDashboard,
+      });
+      renderPage();
+
+      await waitFor(() => expect(screen.getByTestId('inbox-nome-atleta')).toHaveTextContent('Ana Silva'));
+      expect(abaSelecionada()).toBe('Diagnóstico');
+
+      fireEvent.click(screen.getByText('Bruno Costa'));
+      await waitFor(() => expect(screen.getByTestId('inbox-nome-atleta')).toHaveTextContent('Bruno Costa'));
+      expect(abaSelecionada()).toBe('Provas & sugestões');
+    });
+
+    it('retorno de outra tela com aba explícita prevalece sobre o motivo', async () => {
+      vi.mocked(useCoachDashboard).mockReturnValue({ dashboard: comFila([ITEM_PROVA_BRUNO]), loading: false, error: null, fetchDashboard: mockFetchDashboard });
+      render(
+        <MemoryRouter initialEntries={[{ pathname: '/coach/inbox', state: { atletaId: 'a2', tab: 'plan' } }]}>
+          <Routes>
+            <Route path="/coach/inbox" element={<CoachInboxPage />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      await waitFor(() => expect(screen.getByTestId('inbox-nome-atleta')).toHaveTextContent('Bruno Costa'));
+      expect(abaSelecionada()).toBe('Plano');
+    });
+
+    it('troca manual de aba não é desfeita quando a fila recarrega', async () => {
+      const { recarregarAgora } = mockDashboardQueRecarrega(comFila([ITEM_PROVA_BRUNO]), comFila([{ ...ITEM_PROVA_BRUNO, priorityScore: 80 }]));
+      renderPage();
+      await waitFor(() => expect(abaSelecionada()).toBe('Provas & sugestões'));
+
+      fireEvent.click(screen.getByRole('tab', { name: /^Plano$/i }));
+      recarregarAgora();
+
+      expect(abaSelecionada()).toBe('Plano');
+      expect(screen.getByTestId('inbox-nome-atleta')).toHaveTextContent('Bruno Costa');
+    });
+
+    it('Ciente que tira o atleta da fila mantém a seleção e a aba nele', async () => {
+      const { armar } = mockDashboardQueRecarrega(comFila([ITEM_PROVA_BRUNO]), comFila([]));
+      vi.mocked(ProvaService.marcarCiente).mockResolvedValue({ ...PROVA_PENDENTE, revisadaPeloCoach: true });
+      renderPage();
+      const ciente = await screen.findByRole('button', { name: /^Ciente$/i });
+      expect(screen.getByTestId('inbox-nome-atleta')).toHaveTextContent('Bruno Costa');
+      armar();
+      vi.mocked(ProvaService.listarPendentesRevisao).mockResolvedValue([]);
+      vi.mocked(ProvaService.listarProvas).mockResolvedValue([{ ...PROVA_PENDENTE, revisadaPeloCoach: true }]);
+
+      await userEvent.click(ciente);
+
+      await waitFor(() => expect(screen.queryByText('Revisar a prova cadastrada pelo atleta.')).not.toBeInTheDocument());
+      expect(mockFetchDashboard).toHaveBeenCalledTimes(2);
+      expect(screen.getByTestId('inbox-nome-atleta')).toHaveTextContent('Bruno Costa');
+      expect(abaSelecionada()).toBe('Provas & sugestões');
+      expect(screen.queryByRole('button', { name: /^Ciente$/i })).not.toBeInTheDocument();
     });
   });
 
