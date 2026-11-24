@@ -74,6 +74,27 @@ describe('useCoachAthleteRaces', () => {
         expect(result.current.loading).toBe(false);
     });
 
+    it('Ciente de A que falha depois da troca para B não deixa erro nem acting em B', async () => {
+        let rejeitarA: (e: Error) => void = () => {};
+        vi.mocked(ProvaService.marcarCiente).mockImplementation(
+            () => new Promise((_, rej) => { rejeitarA = rej; }) as never);
+        const { result, rerender } = renderHook(({ id }) => useCoachAthleteRaces(id), { initialProps: { id: 'atleta-a' } });
+        await waitFor(() => expect(result.current.loading).toBe(false));
+
+        let cienteA: Promise<void> = Promise.resolve();
+        act(() => { cienteA = result.current.marcarCiente('p1'); });
+        expect(result.current.acting).toBe(true);
+        rerender({ id: 'atleta-b' });
+        expect(result.current.acting).toBe(false);
+        await act(async () => {
+            rejeitarA(new Error('boom'));
+            await cienteA.catch(() => {});
+        });
+
+        expect(result.current.error).toBeNull();
+        expect(result.current.acting).toBe(false);
+    });
+
     it('falha na carga expõe error', async () => {
         vi.mocked(ProvaService.listarProvas).mockRejectedValue(new Error('boom'));
         const { result } = renderHook(() => useCoachAthleteRaces('atleta-1'));

@@ -134,6 +134,8 @@ function CoachInboxPage() {
    * cair no primeiro da lista.
    */
   const [retido, setRetido] = useState<{ atletaId: string; nome: string } | null>(null);
+  // Vale só até o coach escolher outro atleta — inclusive um "Ciente" que termina já com outro selecionado.
+  if (retido && retido.atletaId !== selectedId) setRetido(null);
   // O estado já foi consumido acima: tirá-lo do histórico evita reabrir a aba antiga no F5 ou no voltar.
   useEffect(() => {
     if (retorno) navigate(location.pathname, { replace: true, state: null });

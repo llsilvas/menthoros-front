@@ -21,6 +21,7 @@ export const useCoachAthleteRaces = (atletaId: string | undefined) => {
         setProvas([]);
         setPendentes([]);
         setError(null);
+        setActing(false);
     }
     const atletaAtualRef = useRef(atletaId);
     useEffect(() => {
@@ -51,16 +52,17 @@ export const useCoachAthleteRaces = (atletaId: string | undefined) => {
 
     const marcarCiente = useCallback(async (provaId: string) => {
         if (!atletaId) return;
+        const obsoleta = () => atletaAtualRef.current !== atletaId;
         try {
             setActing(true);
             setError(null);
             await ProvaService.marcarCiente(atletaId, provaId);
             await fetchRaces();
         } catch (err) {
-            setError(err instanceof Error ? err : new Error('Erro ao registrar ciência'));
+            if (!obsoleta()) setError(err instanceof Error ? err : new Error('Erro ao registrar ciência'));
             throw err;
         } finally {
-            setActing(false);
+            if (!obsoleta()) setActing(false);
         }
     }, [atletaId, fetchRaces]);
 

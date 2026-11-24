@@ -645,6 +645,17 @@ describe('CoachInboxPage', () => {
       expect(screen.getByText('Maratona SP')).toBeInTheDocument();
     });
 
+    it('falha ao carregar as provas mostra erro com Tentar novamente, que recarrega', async () => {
+      vi.mocked(ProvaService.listarProvas).mockRejectedValueOnce(new Error('boom'));
+      renderPage();
+      fireEvent.click(screen.getByRole('tab', { name: /Provas & sugestões/i }));
+
+      await userEvent.click(await screen.findByRole('button', { name: /Tentar novamente/i }));
+
+      expect(await screen.findByRole('button', { name: /^Ciente$/i })).toBeInTheDocument();
+      expect(screen.getByText(/Sugestões recentes/i)).toBeInTheDocument();
+    });
+
     it('falha no Ciente mostra erro com Tentar novamente e não derruba o resto da aba', async () => {
       vi.mocked(ProvaService.marcarCiente).mockRejectedValue(new Error('boom'));
       renderPage();
