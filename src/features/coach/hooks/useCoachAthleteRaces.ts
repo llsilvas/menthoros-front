@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ProvaService } from '../../../api/services/ProvaService';
 import type { Prova } from '../../../types/Prova';
 
@@ -13,9 +13,23 @@ export const useCoachAthleteRaces = (atletaId: string | undefined) => {
     const [loading, setLoading] = useState(false);
     const [acting, setActing] = useState(false);
     const [error, setError] = useState<Error | null>(null);
+    // Na inbox o atleta muda sem desmontar o painel: provas do anterior não podem aparecer sob o
+    // novo, nem um "Ciente" sair com o id de prova de outro atleta.
+    const [atletaExibido, setAtletaExibido] = useState(atletaId);
+    if (atletaExibido !== atletaId) {
+        setAtletaExibido(atletaId);
+        setProvas([]);
+        setPendentes([]);
+        setError(null);
+    }
+    const atletaAtualRef = useRef(atletaId);
+    useEffect(() => {
+        atletaAtualRef.current = atletaId;
+    }, [atletaId]);
 
     const fetchRaces = useCallback(async () => {
         if (!atletaId) return;
+        const obsoleta = () => atletaAtualRef.current !== atletaId;
         try {
             setLoading(true);
             setError(null);
@@ -23,13 +37,15 @@ export const useCoachAthleteRaces = (atletaId: string | undefined) => {
                 ProvaService.listarProvas(atletaId),
                 ProvaService.listarPendentesRevisao(atletaId),
             ]);
+            if (obsoleta()) return;
             // Resposta fora do contrato (não-lista) não pode derrubar a página inteira do perfil.
             setProvas(Array.isArray(lista) ? lista : []);
             setPendentes(Array.isArray(pendentesLista) ? pendentesLista : []);
         } catch (err) {
+            if (obsoleta()) return;
             setError(err instanceof Error ? err : new Error('Erro ao buscar provas do atleta'));
         } finally {
-            setLoading(false);
+            if (!obsoleta()) setLoading(false);
         }
     }, [atletaId]);
 
