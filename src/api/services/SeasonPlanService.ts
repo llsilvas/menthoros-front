@@ -1,4 +1,6 @@
-import type { AthleteSeasonPlan, SeasonPlan } from '../../types/SeasonPlan';
+import type {
+    AthleteSeasonPlan, SeasonPlan, SeasonPlanDiffEntry, SeasonPlanRecalculate, SeasonWeekUpdate,
+} from '../../types/SeasonPlan';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -45,18 +47,129 @@ export class SeasonPlanService {
 
     /**
      * Aprova a temporada proposta: vira ACTIVE. Aprovar uma ACTIVE devolve a mesma (idempotente).
-     * @throws ApiError 409 (arquivada ou outra ativa), 422 (prova cancelada ou deixou de ser alvo)
+     * Um ajuste (versão 2 em diante) exige `reason` e arquiva a ACTIVE anterior.
+     * @throws ApiError 409 (arquivada, outra ativa, ou a ativa mudou depois do ajuste), 422 (prova
+     *         cancelada, atleta em calibração, ou motivo ausente/longo demais)
      */
-    public static aprovar(atletaId: string, seasonPlanId: string): CancelablePromise<SeasonPlan> {
+    public static aprovar(atletaId: string, seasonPlanId: string, reason?: string): CancelablePromise<SeasonPlan> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/v1/atletas/{atletaId}/season-plans/{seasonPlanId}/approve',
             path: { atletaId, seasonPlanId },
+            body: reason === undefined ? undefined : { reason },
+            mediaType: 'application/json',
             errors: {
                 403: 'Acesso negado (requer treinador)',
                 404: 'Não encontrado',
                 409: 'A temporada não pode mais ser aprovada',
-                422: 'A prova-alvo foi cancelada ou deixou de ser alvo',
+                422: 'A temporada não pode ser aprovada',
+            },
+        });
+    }
+
+    /**
+     * Cria o ajuste (rascunho da próxima versão) da temporada ACTIVE (201), ou devolve o já aberto (200).
+     * @throws ApiError 409 (a temporada não é a ativa, ou há outra proposta aberta)
+     */
+    public static criarAjuste(atletaId: string, seasonPlanId: string): CancelablePromise<SeasonPlan> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/atletas/{atletaId}/season-plans/{seasonPlanId}/draft',
+            path: { atletaId, seasonPlanId },
+            errors: {
+                403: 'Acesso negado (requer treinador)',
+                404: 'Não encontrado',
+                409: 'Não foi possível ajustar esta temporada',
+            },
+        });
+    }
+
+    /** Qualquer versão da temporada do atleta, inclusive o ajuste em aberto. */
+    public static buscarPorId(atletaId: string, seasonPlanId: string): CancelablePromise<SeasonPlan> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/atletas/{atletaId}/season-plans/{seasonPlanId}',
+            path: { atletaId, seasonPlanId },
+            errors: {
+                403: 'Acesso negado (requer treinador)',
+                404: 'Temporada não encontrada',
+            },
+        });
+    }
+
+    /**
+     * Edita uma semana do ajuste; devolve a temporada inteira com as validações recalculadas.
+     * @throws ApiError 409 (não está em ajuste), 422 (semana travada, fase ou valor inválido)
+     */
+    public static atualizarSemana(atletaId: string, seasonPlanId: string, weekIndex: number,
+                                  body: SeasonWeekUpdate): CancelablePromise<SeasonPlan> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/v1/atletas/{atletaId}/season-plans/{seasonPlanId}/weeks/{weekIndex}',
+            path: { atletaId, seasonPlanId, weekIndex },
+            body,
+            mediaType: 'application/json',
+            errors: {
+                403: 'Acesso negado (requer treinador)',
+                404: 'Semana não encontrada',
+                409: 'A temporada não está mais em ajuste',
+                422: 'Não foi possível salvar a semana',
+            },
+        });
+    }
+
+    /**
+     * Recalcula o ajuste com as semanas por fase e o volume de partida. Semanas travadas e as editadas pelo
+     * treinador ficam como estão; devolve a temporada inteira.
+     * @throws ApiError 409 (não está em ajuste), 422 (soma das fases, volume inválido, fase de semana travada)
+     */
+    public static recalcular(atletaId: string, seasonPlanId: string,
+                             body: SeasonPlanRecalculate): CancelablePromise<SeasonPlan> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/atletas/{atletaId}/season-plans/{seasonPlanId}/recalculate',
+            path: { atletaId, seasonPlanId },
+            body,
+            mediaType: 'application/json',
+            errors: {
+                403: 'Acesso negado (requer treinador)',
+                404: 'Não encontrado',
+                409: 'A temporada não está mais em ajuste',
+                422: 'Não foi possível recalcular o ajuste',
+            },
+        });
+    }
+
+    /**
+     * Campos do ajuste que mudaram em relação à temporada ativa, por semana; vazio quando nada mudou.
+     * @throws ApiError 409 (não está em ajuste)
+     */
+    public static buscarDiff(atletaId: string, seasonPlanId: string): CancelablePromise<SeasonPlanDiffEntry[]> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/atletas/{atletaId}/season-plans/{seasonPlanId}/diff',
+            path: { atletaId, seasonPlanId },
+            errors: {
+                403: 'Acesso negado (requer treinador)',
+                404: 'Não encontrado',
+                409: 'A temporada não está mais em ajuste',
+            },
+        });
+    }
+
+    /**
+     * Descarta o ajuste (vira ARCHIVED); a temporada ativa continua.
+     * @throws ApiError 409 (não é um ajuste em aberto)
+     */
+    public static descartar(atletaId: string, seasonPlanId: string): CancelablePromise<void> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/atletas/{atletaId}/season-plans/{seasonPlanId}',
+            path: { atletaId, seasonPlanId },
+            errors: {
+                403: 'Acesso negado (requer treinador)',
+                404: 'Não encontrado',
+                409: 'O ajuste já foi aprovado ou descartado',
             },
         });
     }

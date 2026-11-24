@@ -146,6 +146,7 @@ export async function aguardarFluxoEstavel(page: Page) {
  * Sem isto, o app tentaria restaurar contra o Keycloak real — e o resultado do teste passaria a
  * depender de haver ou não sessão naquele servidor, que é estado externo e mutável. Com
  * `prompt=none` e sem sessão, o provedor responde `login_required`; é essa resposta que se imita.
+ * O pedido interativo para numa tela de login falsa.
  */
 export async function semSessaoNoProvedor(page: Page) {
   await page.route(`${ISSUER}/.well-known/openid-configuration`, async (route) => {
@@ -167,6 +168,19 @@ export async function semSessaoNoProvedor(page: Page) {
   await page.route(`${ISSUER}/protocol/openid-connect/auth*`, async (route) => {
     const url = new URL(route.request().url())
     const state = url.searchParams.get('state') ?? ''
+
+    // Só a tentativa silenciosa é recusada. O pedido interativo (sem `prompt=none`) é o app mandando
+    // o usuário digitar a senha: um provedor de verdade mostra a tela de login e **fica nela**.
+    // Devolver `login_required` também aqui esconderia o redirect automático da rota de login.
+    if (url.searchParams.get('prompt') !== 'none') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'text/html',
+        body: '<h1>Tela de login do provedor (falsa)</h1>',
+      })
+      return
+    }
+
     await route.fulfill({
       status: 302,
       headers: { location: `${REDIRECT}?error=login_required&state=${encodeURIComponent(state)}` },

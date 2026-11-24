@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { afterEach, describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router';
 import LoginPage from './LoginPage';
@@ -13,6 +13,9 @@ import { definirUsuario, limparUsuario } from '../../context/auth/session';
  * repositório** na task 5.4 da change. Esse fluxo deixou de existir: a senha passou a ser digitada na
  * tela do Keycloak e nunca trafega pela aplicação. Os testes de destino por role continuam, porque a
  * regra é a mesma.
+ *
+ * Em `fix-login-direct-keycloak-redirect` a tela deixou de esperar o clique: redireciona sozinha, e o
+ * botão ficou só como fallback (erro, offline, retorno sem sessão).
  */
 
 function fakeToken(roles: string[]): string {
@@ -59,44 +62,98 @@ function renderLogin(ctx: Partial<AuthContextData>, estadoDaRota: unknown = unde
   return valor;
 }
 
+const MARCA_LOGIN_DIRETO = 'menthoros:login-direto-tentado';
+
+function simularNavegacao(type: NavigationTimingType) {
+  vi.spyOn(performance, 'getEntriesByType').mockReturnValue([
+    { type } as PerformanceNavigationTiming,
+  ]);
+}
+
 describe('LoginPage', () => {
   beforeEach(() => {
     limparUsuario();
+    sessionStorage.clear();
   });
 
-  // O ponto central da migração: a aplicação não vê mais a senha do usuário.
-  it('não coleta credenciais', () => {
-    renderLogin({});
-
-    expect(screen.queryByLabelText(/senha/i)).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(/usuário|email/i)).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /entrar/i })).toBeInTheDocument();
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
-  it('dispara o fluxo de autorização ao clicar em Entrar', async () => {
-    const user = userEvent.setup();
+  // A tela com botão era um passo morto: sem sessão, a rota redireciona sozinha ao Keycloak.
+  it('sem sessão, inicia o login sozinha — sem clique e sem mostrar o botão', async () => {
     const ctx = renderLogin({});
 
-    await user.click(screen.getByRole('button', { name: /entrar/i }));
-
-    expect(ctx.login).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(ctx.login).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole('button', { name: /entrar/i })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Redirecionando para o login')).toBeInTheDocument();
+    // O ponto central da migração para PKCE continua valendo: a aplicação não vê a senha.
+    expect(screen.queryByLabelText(/senha/i)).not.toBeInTheDocument();
   });
 
   // Sem isto, quem foi interrompido em #/coach/inbox volta para a raiz e cai na landing.
   it('preserva a rota que o guard interrompeu', async () => {
-    const user = userEvent.setup();
     const ctx = renderLogin({}, { de: '/coach/inbox' });
 
-    await user.click(screen.getByRole('button', { name: /entrar/i }));
-
-    expect(ctx.login).toHaveBeenCalledWith('#/coach/inbox');
+    await waitFor(() => expect(ctx.login).toHaveBeenCalledWith('#/coach/inbox'));
   });
 
-  it('enquanto o estado de sessão é desconhecido, não mostra o botão', () => {
-    renderLogin({ carregando: true });
+  it('enquanto o estado de sessão é desconhecido, não redireciona nem mostra o botão', () => {
+    const ctx = renderLogin({ carregando: true });
 
+    expect(ctx.login).not.toHaveBeenCalled();
     expect(screen.queryByRole('button', { name: /entrar/i })).not.toBeInTheDocument();
     expect(screen.getByLabelText('Verificando sessão')).toBeInTheDocument();
+  });
+
+  describe('fallback manual', () => {
+    it('falha ao iniciar o login mostra o erro e o botão para tentar de novo', async () => {
+      const user = userEvent.setup();
+      const login = vi.fn().mockRejectedValueOnce(new Error('provedor fora do ar'));
+      renderLogin({ login });
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('provedor fora do ar');
+      // A página não saiu do lugar: a marca não pode sobrar e travar a próxima entrada.
+      expect(sessionStorage.getItem(MARCA_LOGIN_DIRETO)).toBeNull();
+
+      login.mockResolvedValueOnce(undefined);
+      await user.click(screen.getByRole('button', { name: /entrar/i }));
+      expect(login).toHaveBeenCalledTimes(2);
+    });
+
+    // Offline, o redirect é navegação de página inteira e terminaria na página de erro do navegador.
+    it('offline não redireciona sozinha; mostra o botão', () => {
+      vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+      const ctx = renderLogin({});
+
+      expect(ctx.login).not.toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: /entrar/i })).toBeInTheDocument();
+    });
+
+    // Voltar do Keycloak sem sessão e redirecionar de novo prenderia o navegador num vai-e-volta.
+    it('retorno sem sessão após tentativa automática não redireciona de novo, e consome a marca', async () => {
+      const user = userEvent.setup();
+      sessionStorage.setItem(MARCA_LOGIN_DIRETO, '1');
+      simularNavegacao('back_forward');
+      const ctx = renderLogin({});
+
+      expect(ctx.login).not.toHaveBeenCalled();
+      expect(sessionStorage.getItem(MARCA_LOGIN_DIRETO)).toBeNull();
+
+      await user.click(screen.getByRole('button', { name: /entrar/i }));
+      expect(ctx.login).toHaveBeenCalledTimes(1);
+    });
+
+    // A marca sobra na aba depois de uma tentativa; abrir o login de novo (link, URL digitada) não é
+    // laço e não pode cair no botão — era o que acontecia na segunda visita em develop.
+    it('marca de tentativa anterior com navegação normal redireciona de novo', async () => {
+      sessionStorage.setItem(MARCA_LOGIN_DIRETO, '1');
+      simularNavegacao('navigate');
+      const ctx = renderLogin({});
+
+      await waitFor(() => expect(ctx.login).toHaveBeenCalledTimes(1));
+      expect(screen.queryByRole('button', { name: /entrar/i })).not.toBeInTheDocument();
+    });
   });
 
   describe('destino por role', () => {

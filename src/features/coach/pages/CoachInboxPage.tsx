@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactElement } from 'react';
-import { Link as RouterLink, useNavigate, useOutletContext } from 'react-router';
+import { Link as RouterLink, useLocation, useNavigate, useOutletContext } from 'react-router';
 import {
   Alert,
   Box,
@@ -43,7 +43,9 @@ import { DiagnosisTabPanel } from '../components/panels/DiagnosisTabPanel';
 import { PlanTabPanel } from '../components/panels/PlanTabPanel';
 import { RacesSuggestionsTabPanel } from '../components/panels/RacesSuggestionsTabPanel';
 import { SeasonTabPanel } from '../components/panels/SeasonTabPanel';
+import type { InboxReturnState } from '../types/InboxReturnState';
 import { useSeasonPlan } from '../hooks/useSeasonPlan';
+import { useAthleteCalibration } from '../hooks/useAthleteCalibration';
 import { extractStatusKey } from '../../../types/Prova';
 import { useCoachDashboard } from '../../../hooks/useCoachDashboard';
 import { useAthleteProfile } from '../../../hooks/useAthleteProfile';
@@ -115,11 +117,18 @@ function CoachInboxPage() {
     // que a última ação falhou.
     reviewIsActing, reviewActionStatus,
   } = useOutletContext<CoachLayoutOutletContext>();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Volta do ajuste da temporada (add-season-plan-adjust-v2): reabre o atleta na aba Temporada.
+  const location = useLocation();
+  const retorno = location.state as InboxReturnState | null;
+  const [selectedId, setSelectedId] = useState<string | null>(retorno?.atletaId ?? null);
   /** Rascunho de contato exibido quando a área de transferência não está disponível. */
   const [rascunhoContato, setRascunhoContato] = useState<string | null>(null);
   const [sortMenuAnchor, setSortMenuAnchor] = useState<null | HTMLElement>(null);
-  const [activeTab, setActiveTab] = useState<TabKey>('diagnosis');
+  const [activeTab, setActiveTab] = useState<TabKey>(retorno?.tab ?? 'diagnosis');
+  // O estado já foi consumido acima: tirá-lo do histórico evita reabrir a aba antiga no F5 ou no voltar.
+  useEffect(() => {
+    if (retorno) navigate(location.pathname, { replace: true, state: null });
+  }, [retorno, navigate, location.pathname]);
   const [feedback, setFeedback] = useState<string | null>(null);
   const {
     dashboard,
@@ -176,6 +185,12 @@ function CoachInboxPage() {
     return buildSelectedAthleteFromDashboard(selectedRosterItem, selectedProfile);
   }, [selectedProfile, selectedRosterItem]);
   const season = useSeasonPlan(selectedRosterItem?.atletaId);
+  const abrirAjusteDaTemporada = async () => {
+    const atletaId = selectedRosterItem?.atletaId;
+    const draftId = await season.adjust();
+    if (atletaId && draftId) navigate(`/coach/athletes/${atletaId}/season/${draftId}/adjust`);
+  };
+  const { status: calibration } = useAthleteCalibration(season.disabled ? undefined : selectedRosterItem?.atletaId);
   const hasTargetRace = useMemo(() => {
     const provas = selectedProfile?.provas ?? (selectedProfile?.proximaProva ? [selectedProfile.proximaProva] : []);
     return provas.some((p) => p.provaAlvo && extractStatusKey(p.statusProva) !== 'CANCELADA');
@@ -252,13 +267,14 @@ function CoachInboxPage() {
   // mesmo clique — o coach clicava no atleta em alerta e abria o detalhe de outro.
   useEffect(() => {
     if (inboxQueue.rows.length === 0) {
-      setSelectedId(null);
+      // Fila ainda carregando (ex.: volta do ajuste da temporada): não apaga a seleção vinda da navegação.
+      if (!dashboardLoading) setSelectedId(null);
       return;
     }
     if (!selectedId || !inboxQueue.rows.some((linha) => linha.atletaId === selectedId)) {
       setSelectedId(inboxQueue.rows[0].atletaId);
     }
-  }, [inboxQueue.rows, selectedId]);
+  }, [inboxQueue.rows, selectedId, dashboardLoading]);
 
   useEffect(() => {
     const maxPage = Math.max(0, rosterPageCount - 1);
@@ -975,8 +991,12 @@ function CoachInboxPage() {
                     approving={season.approving}
                     approveError={season.approveError}
                     hasTargetRace={hasTargetRace}
+                    calibration={calibration}
+                    adjusting={season.adjusting}
+                    adjustError={season.adjustError}
                     onGenerate={() => void season.generate()}
                     onApprove={() => void season.approve()}
+                    onAdjust={() => void abrirAjusteDaTemporada()}
                     onRetry={() => void season.fetchPlan()}
                   />
                 ) : null}
