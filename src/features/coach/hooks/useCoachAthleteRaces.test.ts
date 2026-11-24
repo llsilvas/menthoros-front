@@ -57,9 +57,9 @@ describe('useCoachAthleteRaces', () => {
         const PROVA_B: Prova = { ...PROVA, id: 'pB', nomeProva: 'Meia do Rio' };
         let resolverA: (v: Prova[]) => void = () => {};
         vi.mocked(ProvaService.listarProvas).mockImplementation((id: string) =>
-            id === 'atleta-a' ? new Promise<Prova[]>((r) => { resolverA = r; }) : Promise.resolve([PROVA_B]));
+            (id === 'atleta-a' ? new Promise<Prova[]>((r) => { resolverA = r; }) : Promise.resolve([PROVA_B])) as never);
         vi.mocked(ProvaService.listarPendentesRevisao).mockImplementation((id: string) =>
-            Promise.resolve(id === 'atleta-a' ? [PROVA] : []));
+            Promise.resolve(id === 'atleta-a' ? [PROVA] : []) as never);
 
         const { result, rerender } = renderHook(({ id }) => useCoachAthleteRaces(id), { initialProps: { id: 'atleta-a' } });
         rerender({ id: 'atleta-b' });
