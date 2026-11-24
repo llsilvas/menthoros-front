@@ -116,6 +116,7 @@ function CoachInboxPage() {
     // O inbox não consumia estes dois: sem eles, o CTA não sabia que havia mutação em voo nem por
     // que a última ação falhou.
     reviewIsActing, reviewActionStatus,
+    refetchQueue,
   } = useOutletContext<CoachLayoutOutletContext>();
   // Volta do ajuste da temporada (add-season-plan-adjust-v2): reabre o atleta na aba Temporada.
   const location = useLocation();
@@ -125,6 +126,16 @@ function CoachInboxPage() {
   const [rascunhoContato, setRascunhoContato] = useState<string | null>(null);
   const [sortMenuAnchor, setSortMenuAnchor] = useState<null | HTMLElement>(null);
   const [activeTab, setActiveTab] = useState<TabKey>(retorno?.tab ?? 'diagnosis');
+  // O state da navegação é apagado logo abaixo; a regra da aba inicial ainda precisa dele.
+  const retornoInicialRef = useRef(retorno);
+  /**
+   * Atleta que deu "Ciente" continua no detalhe mesmo se sair da fila (filtro "Em atenção", ou
+   * fixado pela fila fora da página do roster): o coach vê o resultado da própria ação em vez de
+   * cair no primeiro da lista.
+   */
+  const [retido, setRetido] = useState<{ atletaId: string; nome: string } | null>(null);
+  // Vale só até o coach escolher outro atleta — inclusive um "Ciente" que termina já com outro selecionado.
+  if (retido && retido.atletaId !== selectedId) setRetido(null);
   // O estado já foi consumido acima: tirá-lo do histórico evita reabrir a aba antiga no F5 ou no voltar.
   useEffect(() => {
     if (retorno) navigate(location.pathname, { replace: true, state: null });
@@ -171,8 +182,19 @@ function CoachInboxPage() {
       } satisfies CoachAtletaResumo;
     }
 
+    if (retido && retido.atletaId === selectedId) {
+      // Saiu do roster visível e da fila: só a identidade é conhecida, o resto vem do perfil.
+      return {
+        atletaId: retido.atletaId,
+        nome: retido.nome,
+        status: 'active',
+        weeklyVolume: 0,
+        hasPendingSuggestion: false,
+      } satisfies CoachAtletaResumo;
+    }
+
     return rosterItems[0] ?? null;
-  }, [dashboardAttentionQueue, rosterItems, selectedId]);
+  }, [dashboardAttentionQueue, rosterItems, selectedId, retido]);
   // Defesa em profundidade: o hook já descarta resposta obsoleta, mas o painel combina roster e
   // perfil, e os dois só podem se juntar se forem do mesmo atleta. Perfil de outro atleta conta como
   // detalhe ainda a caminho — `selected` segue montado pelo roster, onde vivem erro e retry.
@@ -266,15 +288,16 @@ function CoachInboxPage() {
   // não está em `rosterItems`, e comparar com ele revertia a seleção para o primeiro do roster no
   // mesmo clique — o coach clicava no atleta em alerta e abria o detalhe de outro.
   useEffect(() => {
+    const selecaoRetida = selectedId !== null && retido?.atletaId === selectedId;
     if (inboxQueue.rows.length === 0) {
       // Fila ainda carregando (ex.: volta do ajuste da temporada): não apaga a seleção vinda da navegação.
-      if (!dashboardLoading) setSelectedId(null);
+      if (!dashboardLoading && !selecaoRetida) setSelectedId(null);
       return;
     }
-    if (!selectedId || !inboxQueue.rows.some((linha) => linha.atletaId === selectedId)) {
+    if (!selectedId || (!selecaoRetida && !inboxQueue.rows.some((linha) => linha.atletaId === selectedId))) {
       setSelectedId(inboxQueue.rows[0].atletaId);
     }
-  }, [inboxQueue.rows, selectedId, dashboardLoading]);
+  }, [inboxQueue.rows, selectedId, dashboardLoading, retido]);
 
   useEffect(() => {
     const maxPage = Math.max(0, rosterPageCount - 1);
@@ -333,6 +356,27 @@ function CoachInboxPage() {
 
   // Fluxo de triagem: o próximo com sinal entre as linhas visíveis (inbox-proximo-em-atencao).
   const proximoEmAtencao = useMemo(() => findNextInAttention(inboxQueue.rows, selectedId), [inboxQueue.rows, selectedId]);
+
+  /**
+   * Aba inicial por atleta: prova pendente abre direto onde está o "Ciente". Só reage à troca de
+   * atleta — recarga da fila ou ciência não podem desfazer a aba que o coach escolheu.
+   */
+  const abaAplicadaParaRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!selectedId || abaAplicadaParaRef.current === selectedId || inboxQueue.rows.length === 0) return;
+    const primeiraSelecao = abaAplicadaParaRef.current === null;
+    abaAplicadaParaRef.current = selectedId;
+    const retornoInicial = retornoInicialRef.current;
+    if (primeiraSelecao && retornoInicial?.tab && retornoInicial.atletaId === selectedId) return;
+    setActiveTab(selectedAttention?.reason === 'PROVA_ATLETA' ? 'races' : 'diagnosis');
+  }, [selectedId, selectedAttention, inboxQueue.rows.length]);
+
+  // A fila da inbox vem do dashboard; a do layout só alimenta o badge do shell. As duas mudam com a ciência.
+  function handleCienteRegistrado(atletaId: string) {
+    if (selected?.id === atletaId) setRetido({ atletaId, nome: selected.name });
+    reloadDashboard();
+    void refetchQueue?.();
+  }
   const detalheRef = useRef<HTMLDivElement | null>(null);
   const irParaProximoEmAtencao = useCallback(() => {
     if (!proximoEmAtencao) return;
@@ -1017,6 +1061,7 @@ function CoachInboxPage() {
                     onOpenCalendar={() => navigate('/coach/calendar')}
                     onOpenSuggestions={() => navigate('/coach/sugestoes')}
                     onDecisao={() => void fetchSelectedProfile()}
+                    onCienteRegistrado={handleCienteRegistrado}
                   />
                 ) : null}
               </Box>

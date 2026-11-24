@@ -53,6 +53,48 @@ describe('useCoachAthleteRaces', () => {
         expect(result.current.acting).toBe(false);
     });
 
+    it('troca de atleta zera as provas e descarta a resposta atrasada do anterior', async () => {
+        const PROVA_B: Prova = { ...PROVA, id: 'pB', nomeProva: 'Meia do Rio' };
+        let resolverA: (v: Prova[]) => void = () => {};
+        vi.mocked(ProvaService.listarProvas).mockImplementation((id: string) =>
+            (id === 'atleta-a' ? new Promise<Prova[]>((r) => { resolverA = r; }) : Promise.resolve([PROVA_B])) as never);
+        vi.mocked(ProvaService.listarPendentesRevisao).mockImplementation((id: string) =>
+            Promise.resolve(id === 'atleta-a' ? [PROVA] : []) as never);
+
+        const { result, rerender } = renderHook(({ id }) => useCoachAthleteRaces(id), { initialProps: { id: 'atleta-a' } });
+        rerender({ id: 'atleta-b' });
+        expect(result.current.provas).toEqual([]);
+        expect(result.current.pendentes).toEqual([]);
+
+        await waitFor(() => expect(result.current.provas).toEqual([PROVA_B]));
+        await act(async () => { resolverA([PROVA]); });
+
+        expect(result.current.provas).toEqual([PROVA_B]);
+        expect(result.current.pendentes).toEqual([]);
+        expect(result.current.loading).toBe(false);
+    });
+
+    it('Ciente de A que falha depois da troca para B não deixa erro nem acting em B', async () => {
+        let rejeitarA: (e: Error) => void = () => {};
+        vi.mocked(ProvaService.marcarCiente).mockImplementation(
+            () => new Promise((_, rej) => { rejeitarA = rej; }) as never);
+        const { result, rerender } = renderHook(({ id }) => useCoachAthleteRaces(id), { initialProps: { id: 'atleta-a' } });
+        await waitFor(() => expect(result.current.loading).toBe(false));
+
+        let cienteA: Promise<void> = Promise.resolve();
+        act(() => { cienteA = result.current.marcarCiente('p1'); });
+        expect(result.current.acting).toBe(true);
+        rerender({ id: 'atleta-b' });
+        expect(result.current.acting).toBe(false);
+        await act(async () => {
+            rejeitarA(new Error('boom'));
+            await cienteA.catch(() => {});
+        });
+
+        expect(result.current.error).toBeNull();
+        expect(result.current.acting).toBe(false);
+    });
+
     it('falha na carga expõe error', async () => {
         vi.mocked(ProvaService.listarProvas).mockRejectedValue(new Error('boom'));
         const { result } = renderHook(() => useCoachAthleteRaces('atleta-1'));

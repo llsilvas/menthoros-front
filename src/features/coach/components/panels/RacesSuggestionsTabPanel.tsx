@@ -1,7 +1,11 @@
-import { Box, Button, Chip, Typography } from '@mui/material';
-import { content, primary, semantic, surface } from '../../../../theme/tokens';
+import { useMemo } from 'react';
+import { Box, Button, Typography } from '@mui/material';
+import { content, surface } from '../../../../theme/tokens';
 import { SectionCard } from '../SectionCard';
 import { RecentSuggestionsPanel } from '../RecentSuggestionsPanel';
+import { AthleteRacesPanel } from '../AthleteRacesPanel';
+import { useCoachAthleteRaces } from '../../hooks/useCoachAthleteRaces';
+import { buildCoachRaceList } from '../../adapters/coachRaceAdapters';
 import { formVariantColor, formVariantLabel } from '../../types/AthleteForm';
 import type { CoachAthleteRow } from '../../types/CoachInbox';
 import type { AtletaPerfilCoachDto } from '../../../../types/AtletaPerfilCoach';
@@ -12,9 +16,24 @@ interface RacesSuggestionsTabPanelProps {
   onOpenCalendar: () => void;
   onOpenSuggestions: () => void;
   onDecisao?: () => void;
+  /** Chamado após a ciência ser registrada, para a página recarregar a fila de atenção. */
+  onCienteRegistrado?: (atletaId: string) => void;
 }
 
-export function RacesSuggestionsTabPanel({ selected, selectedProfile, onOpenCalendar, onOpenSuggestions, onDecisao }: RacesSuggestionsTabPanelProps) {
+export function RacesSuggestionsTabPanel({ selected, selectedProfile, onOpenCalendar, onOpenSuggestions, onDecisao, onCienteRegistrado }: RacesSuggestionsTabPanelProps) {
+  const { provas, pendentes, loading, acting, error, fetchRaces, marcarCiente } = useCoachAthleteRaces(selected.id);
+  const races = useMemo(() => buildCoachRaceList(provas, pendentes), [provas, pendentes]);
+
+  async function handleCiente(provaId: string) {
+    try {
+      await marcarCiente(provaId);
+    } catch {
+      // o erro já fica exposto pelo hook e renderizado no painel
+      return;
+    }
+    onCienteRegistrado?.(selected.id);
+  }
+
   return (
     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', xl: '1fr 1.1fr' }, gap: { xs: 0.9, sm: 1, lg: 1.1, xl: 2 } }}>
       <SectionCard
@@ -25,58 +44,14 @@ export function RacesSuggestionsTabPanel({ selected, selectedProfile, onOpenCale
           </Button>
         }
       >
-        {selected.raceCalendar.length === 0 ? (
-          <Typography sx={{ fontSize: '0.82rem', color: surface[400] }}>Nenhuma prova cadastrada para este atleta.</Typography>
-        ) : (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 0.75, sm: 0.85, lg: 0.95, xl: 1.1 } }}>
-            {selected.raceCalendar.map((race) => (
-              <Box
-                key={`${selected.id}-${race.date}`}
-                sx={{
-                  p: { xs: 0.8, sm: 0.9, lg: 1, xl: 1.2 },
-                  borderRadius: 1.5,
-                  border: `1px solid ${content.cardBorder}`,
-                  backgroundColor: `${surface[0]}06`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: { xs: 0.85, sm: 0.95, lg: 1, xl: 1.2 },
-                }}
-              >
-                <Box
-                  sx={{
-                    width: { xs: 44, sm: 48, lg: 52, xl: 60 },
-                    height: { xs: 44, sm: 48, lg: 52, xl: 60 },
-                    borderRadius: 1.5,
-                    border: `1px solid ${content.cardBorder}`,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: `${surface[0]}10`,
-                    flexShrink: 0,
-                  }}
-                >
-                  <Typography sx={{ fontSize: '0.7rem', color: surface[400], fontWeight: 700 }}>{race.date.split(' ')[0]}</Typography>
-                  <Typography sx={{ fontSize: '0.78rem', color: surface[200], fontWeight: 700 }}>{race.date.split(' ')[1]}</Typography>
-                </Box>
-                <Box sx={{ minWidth: 0, flex: 1 }}>
-                  <Typography sx={{ fontSize: { xs: '0.74rem', sm: '0.8rem', lg: '0.84rem', xl: '0.9rem' }, fontWeight: 700, color: surface[50] }} noWrap>
-                    {race.label}
-                  </Typography>
-                  <Typography sx={{ fontSize: { xs: '0.6875rem', sm: '0.6875rem', lg: '0.72rem', xl: '0.78rem' }, color: surface[400] }}>Prova {race.tag.toLowerCase()}</Typography>
-                </Box>
-                <Chip
-                  size="small"
-                  label={race.tag}
-                  sx={{
-                    bgcolor: race.tag === 'ALVO' ? `${semantic.success[500]}14` : race.tag === 'PRINCIPAL' ? `${primary[500]}14` : `${surface[500]}14`,
-                    color: race.tag === 'ALVO' ? semantic.success[500] : race.tag === 'PRINCIPAL' ? primary[500] : surface[300],
-                  }}
-                />
-              </Box>
-            ))}
-          </Box>
-        )}
+        <AthleteRacesPanel
+          races={races}
+          loading={loading}
+          error={error}
+          acting={acting}
+          onCiente={handleCiente}
+          onRetry={() => { void fetchRaces(); }}
+        />
 
         {selected.racePrediction && (
           <Box sx={{ mt: 1.5, p: 1.5, border: `1px solid ${content.cardBorder}`, borderRadius: 2, backgroundColor: `${surface[0]}06` }}>
