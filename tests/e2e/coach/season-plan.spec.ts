@@ -170,6 +170,60 @@ test.describe('Coach — aba Temporada do inbox', () => {
     expect(aprovacoes).toBe(1)
   })
 
+  test('proposta v1: vê a partida e recalcula volume e longão antes de aprovar', async ({ page }) => {
+    await mockarApi(page)
+    const V1 = {
+      ...TEMPORADA,
+      version: 1,
+      firstProposal: true,
+      weeks: TEMPORADA.weeks.map((w) => ({ ...w, locked: false, lockReason: undefined })),
+      initialVolumeKm: 20.8,
+      proposedVolumeKm: 20.8,
+      initialLongRunKm: 7.4,
+      initialVolumeSource: 'MEDIAN',
+      volumeHistory: [
+        ['2026-09-21', 29.2], ['2026-09-28', 30], ['2026-10-05', 25.3], ['2026-10-12', 18.2],
+        ['2026-10-19', 3.7], ['2026-10-26', 23.4], ['2026-11-02', 16.2], ['2026-11-09', 6.8],
+      ].map(([weekStart, km]) => ({ weekStart, km })),
+    }
+    const RECALCULADA = {
+      ...V1,
+      initialVolumeKm: 30,
+      initialLongRunKm: 10,
+      initialVolumeSource: 'COACH',
+      weeks: V1.weeks.map((w) => (w.weekIndex === 1 ? { ...w, targetVolumeKm: 30.6, longRunKm: 10.2 } : w)),
+    }
+    let corpo: unknown = null
+    await page.route(SEASON_CURRENT_API, (route) => route.fulfill({ json: V1 }))
+    await page.route('**/api/v1/atletas/ana/season-plans/season-1/recalculate', (route) => {
+      corpo = route.request().postDataJSON()
+      return route.fulfill({ json: RECALCULADA })
+    })
+
+    await page.goto(INBOX_URL)
+    await page.getByRole('tab', { name: /Temporada/i }).click()
+
+    await expect(page.getByTestId('season-start-volume')).toContainText('20,8 km · mediana das últimas 8 semanas')
+    await expect(page.getByTestId('season-start-long-run')).toContainText('7,4 km')
+    await expect(page.getByRole('list', { name: 'Semanas usadas na partida' }).getByRole('listitem')).toHaveCount(8)
+
+    await page.getByRole('button', { name: 'Ajustar volume e fases' }).click()
+    const dialogo = page.getByRole('dialog', { name: 'Ajustar volume e fases' })
+    await dialogo.getByLabel('Volume de partida (km)').fill('30')
+    await dialogo.getByLabel('Longão de partida (km)').fill('10')
+    await dialogo.getByRole('button', { name: 'Recalcular' }).click()
+    await page.getByRole('dialog', { name: 'Recalcular o ajuste?' }).getByRole('button', { name: 'Recalcular' }).click()
+
+    await expect(dialogo).toHaveCount(0)
+    expect(corpo).toEqual({ phaseWeeks: { BASE: 0, BUILD: 0, PEAK: 0, TAPER: 1 }, startVolumeKm: 30, startLongRunKm: 10 })
+    await expect(page.getByTestId('season-start-volume')).toContainText('30,0 km · definido pelo treinador')
+    await expect(page.getByText('O motor propôs 20,8 km.')).toBeVisible()
+    const linhas = page.getByRole('table', { name: 'Semanas da temporada' }).getByRole('row')
+    await expect(linhas.nth(1)).toContainText('30,6 km')
+    await expect(linhas.nth(1)).toContainText('10,2 km')
+    await expect(page.getByRole('button', { name: 'Aprovar temporada' })).toBeEnabled()
+  })
+
   test('ajusta a temporada ativa: edita uma semana futura, aprova com motivo e vê a versão 2 na aba', async ({ page }) => {
     await mockarApi(page)
     const semanas = [

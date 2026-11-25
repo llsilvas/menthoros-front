@@ -9,7 +9,7 @@ vi.mock('../../../api/services/SeasonPlanService');
 
 const PLAN: SeasonPlan = {
     id: 's1', seasonStatus: 'PROPOSED', provaId: 'p1', provaNome: 'Maratona SP', provaData: '2027-04-04',
-    shortPreparation: false, totalWeeks: 1, initialCtl: 40, peakVolumeKm: 50,
+    shortPreparation: false, firstProposal: true, totalWeeks: 1, initialCtl: 40, peakVolumeKm: 50,
     weeks: [{ weekIndex: 1, weekStart: '2027-03-29', phase: 'RACE_WEEK', targetVolumeKm: 20, targetTss: 164, deload: false, valueSource: 'ENGINE', locked: false }],
     milestones: [], validations: [],
 };
@@ -185,6 +185,64 @@ describe('useSeasonPlan', () => {
 
             expect(id).toBeNull();
             expect(SeasonPlanService.criarAjuste).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('recalculate', () => {
+        const INPUT = { phaseWeeks: { BASE: 0, BUILD: 0, PEAK: 0, TAPER: 0 }, startVolumeKm: 30, startLongRunKm: 10 };
+
+        it('troca a proposta pela recalculada e devolve true', async () => {
+            vi.mocked(SeasonPlanService.buscarAtual).mockResolvedValue(PLAN);
+            const recalculada = { ...PLAN, initialVolumeKm: 30, initialLongRunKm: 10, initialVolumeSource: 'COACH' as const };
+            vi.mocked(SeasonPlanService.recalcular).mockResolvedValue(recalculada);
+            const { result } = renderHook(() => useSeasonPlan('a1'));
+            await waitFor(() => expect(result.current.plan).toEqual(PLAN));
+
+            let ok = false;
+            await act(async () => { ok = await result.current.recalculate(INPUT); });
+
+            expect(ok).toBe(true);
+            expect(SeasonPlanService.recalcular).toHaveBeenCalledWith('a1', 's1', INPUT);
+            expect(result.current.plan).toEqual(recalculada);
+            expect(result.current.recalculating).toBe(false);
+        });
+
+        it('superado por A → B → A relê a temporada de A, porque o recálculo já gravou', async () => {
+            let resolver: (p: SeasonPlan) => void = () => {};
+            vi.mocked(SeasonPlanService.recalcular).mockImplementationOnce(
+                () => new Promise<SeasonPlan>((r) => { resolver = r; }) as never);
+            vi.mocked(SeasonPlanService.buscarAtual).mockResolvedValue(PLAN);
+            const { result, rerender } = renderHook(({ id }) => useSeasonPlan(id), { initialProps: { id: 'a1' } });
+            await waitFor(() => expect(result.current.plan).toEqual(PLAN));
+
+            let recalculando: Promise<boolean> = Promise.resolve(true);
+            act(() => { recalculando = result.current.recalculate(INPUT); });
+            rerender({ id: 'b1' });
+            rerender({ id: 'a1' });
+            await waitFor(() => expect(result.current.loading).toBe(false));
+            const recalculada = { ...PLAN, initialVolumeKm: 30 };
+            vi.mocked(SeasonPlanService.buscarAtual).mockResolvedValue(recalculada);
+            let ok = true;
+            await act(async () => { resolver(recalculada); ok = await recalculando; });
+
+            expect(ok).toBe(false);
+            await waitFor(() => expect(result.current.plan).toEqual(recalculada));
+        });
+
+        it('422 expõe recalcError, mantém a proposta e devolve false; clearRecalcError limpa', async () => {
+            vi.mocked(SeasonPlanService.buscarAtual).mockResolvedValue(PLAN);
+            vi.mocked(SeasonPlanService.recalcular).mockRejectedValue(apiError(422, { message: 'Longão de partida inválido' }));
+            const { result } = renderHook(() => useSeasonPlan('a1'));
+            await waitFor(() => expect(result.current.plan).toEqual(PLAN));
+
+            let ok = true;
+            await act(async () => { ok = await result.current.recalculate(INPUT); });
+
+            expect(ok).toBe(false);
+            expect(result.current.recalcError?.message).toBe('Longão de partida inválido');
+            expect(result.current.plan).toEqual(PLAN);
+            act(() => result.current.clearRecalcError());
+            expect(result.current.recalcError).toBeNull();
         });
     });
 });
