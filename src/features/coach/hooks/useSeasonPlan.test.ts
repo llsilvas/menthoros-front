@@ -187,4 +187,40 @@ describe('useSeasonPlan', () => {
             expect(SeasonPlanService.criarAjuste).not.toHaveBeenCalled();
         });
     });
+
+    describe('recalculate', () => {
+        const INPUT = { phaseWeeks: { BASE: 0, BUILD: 0, PEAK: 0, TAPER: 0 }, startVolumeKm: 30, startLongRunKm: 10 };
+
+        it('troca a proposta pela recalculada e devolve true', async () => {
+            vi.mocked(SeasonPlanService.buscarAtual).mockResolvedValue(PLAN);
+            const recalculada = { ...PLAN, initialVolumeKm: 30, initialLongRunKm: 10, initialVolumeSource: 'COACH' as const };
+            vi.mocked(SeasonPlanService.recalcular).mockResolvedValue(recalculada);
+            const { result } = renderHook(() => useSeasonPlan('a1'));
+            await waitFor(() => expect(result.current.plan).toEqual(PLAN));
+
+            let ok = false;
+            await act(async () => { ok = await result.current.recalculate(INPUT); });
+
+            expect(ok).toBe(true);
+            expect(SeasonPlanService.recalcular).toHaveBeenCalledWith('a1', 's1', INPUT);
+            expect(result.current.plan).toEqual(recalculada);
+            expect(result.current.recalculating).toBe(false);
+        });
+
+        it('422 expõe recalcError, mantém a proposta e devolve false; clearRecalcError limpa', async () => {
+            vi.mocked(SeasonPlanService.buscarAtual).mockResolvedValue(PLAN);
+            vi.mocked(SeasonPlanService.recalcular).mockRejectedValue(apiError(422, { message: 'Longão de partida inválido' }));
+            const { result } = renderHook(() => useSeasonPlan('a1'));
+            await waitFor(() => expect(result.current.plan).toEqual(PLAN));
+
+            let ok = true;
+            await act(async () => { ok = await result.current.recalculate(INPUT); });
+
+            expect(ok).toBe(false);
+            expect(result.current.recalcError?.message).toBe('Longão de partida inválido');
+            expect(result.current.plan).toEqual(PLAN);
+            act(() => result.current.clearRecalcError());
+            expect(result.current.recalcError).toBeNull();
+        });
+    });
 });

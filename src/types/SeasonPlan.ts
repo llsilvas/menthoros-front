@@ -61,6 +61,24 @@ export type EditablePhase = 'BASE' | 'BUILD' | 'PEAK' | 'TAPER';
 export interface SeasonPlanRecalculate {
     phaseWeeks: Record<EditablePhase, number>;
     startVolumeKm: number;
+    /** Longão de partida (km); ausente mantém o gravado. Só a proposta v1 o recebe da tela. */
+    startLongRunKm?: number;
+}
+
+/** De onde veio o volume de partida (`StartVolumeSource` no backend). */
+export type StartVolumeSource = 'MEDIAN' | 'ONBOARDING' | 'COACH';
+
+export const START_VOLUME_SOURCE_LABEL: Record<StartVolumeSource, string> = {
+    MEDIAN: 'mediana das últimas 8 semanas',
+    ONBOARDING: 'volume semanal do onboarding',
+    COACH: 'definido pelo treinador',
+};
+
+/** Semana do histórico usado na partida (`SeasonPlanResponseDto.VolumeWeek`). */
+export interface SeasonVolumeWeek {
+    /** Segunda-feira da semana (yyyy-MM-dd). */
+    weekStart: string;
+    km: number;
 }
 
 /** Campo comparado no diff do ajuste (`SeasonPlanDiff.CAMPOS` no backend). */
@@ -113,6 +131,13 @@ export interface SeasonPlan {
     initialCtl: number;
     /** Volume de partida (km) da geração ou do último recálculo; ausente em temporadas anteriores à V121. */
     initialVolumeKm?: number;
+    /** Maior treino das últimas 6 semanas (sem prova), base do longão; ausente sem histórico ou em temporada legada. */
+    initialLongRunKm?: number;
+    /** Volume de partida que o motor propôs na geração; não muda no recálculo. */
+    proposedVolumeKm?: number;
+    initialVolumeSource?: StartVolumeSource;
+    /** As 8 semanas completas antes da geração, da mais antiga à mais recente. */
+    volumeHistory?: SeasonVolumeWeek[];
     peakVolumeKm: number;
     weeks: SeasonWeek[];
     milestones: SeasonMilestone[];
