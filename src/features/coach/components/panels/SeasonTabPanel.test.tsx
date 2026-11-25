@@ -6,7 +6,7 @@ import type { SeasonPlan } from '../../../../types/SeasonPlan';
 
 const PLAN: SeasonPlan = {
   id: 's1', seasonStatus: 'PROPOSED', provaId: 'p1', provaNome: 'Maratona SP', provaData: '2027-04-04',
-  shortPreparation: false, totalWeeks: 3, initialCtl: 40, peakVolumeKm: 52,
+  shortPreparation: false, firstProposal: false, totalWeeks: 3, initialCtl: 40, peakVolumeKm: 52,
   weeks: [
     { weekIndex: 1, weekStart: '2026-11-16', phase: 'BASE', targetVolumeKm: 40.7, targetTss: 285, deload: false, longRunKm: 11.4, valueSource: 'ENGINE', locked: false },
     { weekIndex: 2, weekStart: '2026-11-23', phase: 'PEAK', targetVolumeKm: 52, targetTss: 364, deload: false, longRunKm: 14.6, valueSource: 'ENGINE', locked: false },
@@ -181,7 +181,7 @@ describe('SeasonTabPanel', () => {
 
   describe('partida da proposta v1 (critério 11)', () => {
     const V1: SeasonPlan = {
-      ...PLAN, version: 1, initialVolumeKm: 20.8, proposedVolumeKm: 20.8, initialLongRunKm: 7.4, initialVolumeSource: 'MEDIAN',
+      ...PLAN, version: 1, firstProposal: true, initialVolumeKm: 20.8, proposedVolumeKm: 20.8, initialLongRunKm: 7.4, initialVolumeSource: 'MEDIAN',
       volumeHistory: [
         ['2026-09-21', 29.2], ['2026-09-28', 30], ['2026-10-05', 25.3], ['2026-10-12', 18.2],
         ['2026-10-19', 3.7], ['2026-10-26', 23.4], ['2026-11-02', 16.2], ['2026-11-09', 6.8],
@@ -212,8 +212,8 @@ describe('SeasonTabPanel', () => {
     });
 
     it.each([
-      ['ativa', { seasonStatus: 'ACTIVE' as const }],
-      ['ajuste (v2)', { version: 2, baseSeasonPlanId: 'v1' }],
+      ['ativa', { seasonStatus: 'ACTIVE' as const, firstProposal: false }],
+      ['ajuste (v2)', { version: 2, baseSeasonPlanId: 'v1', firstProposal: false }],
       ['legada, sem origem', { initialVolumeSource: undefined }],
     ])('%s não mostra a partida', (_, extra) => {
       render(<SeasonTabPanel {...base} plan={{ ...V1, ...extra }} onRecalculate={vi.fn()} />);
@@ -258,6 +258,18 @@ describe('SeasonTabPanel', () => {
 
       expect(within(screen.getByRole('dialog', { name: 'Recalcular o ajuste?' })).getByText('Longão de partida inválido')).toBeInTheDocument();
     });
+  });
+
+  it('Fechar fecha o diálogo de ajuste sem recalcular', async () => {
+    const onRecalculate = vi.fn();
+    render(<SeasonTabPanel {...base} plan={{ ...PLAN, firstProposal: true, initialVolumeKm: 20.8, initialVolumeSource: 'MEDIAN' }}
+      onRecalculate={onRecalculate} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Ajustar volume e fases' }));
+    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Fechar' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(onRecalculate).not.toHaveBeenCalled();
   });
 
   it('alerta de longão explica que ele segue o maior treino recente', () => {

@@ -67,10 +67,6 @@ interface SeasonTabPanelProps {
   hoje?: Date;
 }
 
-/** Proposta original (v1): nunca aprovada e sem temporada base; a do ajuste de uma ACTIVE não conta. */
-const isFirstProposal = (plan: SeasonPlan) =>
-  plan.seasonStatus === 'PROPOSED' && (plan.version ?? 1) === 1 && !plan.baseSeasonPlanId;
-
 export function SeasonTabPanel({ plan, loading, generating, loadError, generateError, approving, approveError, hasTargetRace, calibration = null, adjusting = false, adjustError = null, recalculating = false, recalcError = null, onGenerate, onApprove, onAdjust, onRecalculate, onClearRecalcError, onRetry, hoje = new Date() }: SeasonTabPanelProps) {
   if (loading) {
     return (
@@ -148,7 +144,7 @@ export function SeasonTabPanel({ plan, loading, generating, loadError, generateE
           </Button>
         </Box>
       ) : null}
-      {isFirstProposal(plan) && plan.initialVolumeSource ? (
+      {plan.firstProposal && plan.initialVolumeSource ? (
         <SeasonStartCard
           plan={plan}
           recalculating={recalculating}

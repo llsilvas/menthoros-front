@@ -118,7 +118,9 @@ export function SeasonParametersForm({
           value={longao}
           onChange={(e) => setLongao(e.target.value)}
           error={!longaoValido}
-          helperText={`Até ${String(START_LONG_RUN_MAX).replace('.', ',')} km. Vazio mantém o atual.`}
+          helperText={longaoValido
+            ? `Até ${String(START_LONG_RUN_MAX).replace('.', ',')} km. Vazio mantém o atual.`
+            : `Use até ${String(START_LONG_RUN_MAX).replace('.', ',')} km, com uma casa decimal.`}
           size="small"
           sx={{ maxWidth: 240 }}
           slotProps={{ htmlInput: { inputMode: 'decimal' } }}

@@ -122,9 +122,10 @@ export const useSeasonPlan = (atletaId: string | undefined) => {
         setRecalcError(null);
         try {
             const result = await SeasonPlanService.recalcular(atletaId, plan.id, input);
-            if (request !== requestRef.current) return false;
-            setPlan(result);
-            return true;
+            if (request === requestRef.current) setPlan(result);
+            // Superada por troca de atleta (A → B → A): o recálculo já gravou, então relê a temporada de A.
+            else if (atletaRef.current === atletaId) void fetchPlanRef.current();
+            return request === requestRef.current;
         } catch (err) {
             if (request !== requestRef.current) return false;
             if (isDisabled(err)) setDisabled(true);

@@ -9,7 +9,7 @@ vi.mock('../../../api/services/SeasonPlanService');
 
 const PLAN: SeasonPlan = {
     id: 's1', seasonStatus: 'PROPOSED', provaId: 'p1', provaNome: 'Maratona SP', provaData: '2027-04-04',
-    shortPreparation: false, totalWeeks: 1, initialCtl: 40, peakVolumeKm: 50,
+    shortPreparation: false, firstProposal: true, totalWeeks: 1, initialCtl: 40, peakVolumeKm: 50,
     weeks: [{ weekIndex: 1, weekStart: '2027-03-29', phase: 'RACE_WEEK', targetVolumeKm: 20, targetTss: 164, deload: false, valueSource: 'ENGINE', locked: false }],
     milestones: [], validations: [],
 };
@@ -205,6 +205,28 @@ describe('useSeasonPlan', () => {
             expect(SeasonPlanService.recalcular).toHaveBeenCalledWith('a1', 's1', INPUT);
             expect(result.current.plan).toEqual(recalculada);
             expect(result.current.recalculating).toBe(false);
+        });
+
+        it('superado por A → B → A relê a temporada de A, porque o recálculo já gravou', async () => {
+            let resolver: (p: SeasonPlan) => void = () => {};
+            vi.mocked(SeasonPlanService.recalcular).mockImplementationOnce(
+                () => new Promise<SeasonPlan>((r) => { resolver = r; }) as never);
+            vi.mocked(SeasonPlanService.buscarAtual).mockResolvedValue(PLAN);
+            const { result, rerender } = renderHook(({ id }) => useSeasonPlan(id), { initialProps: { id: 'a1' } });
+            await waitFor(() => expect(result.current.plan).toEqual(PLAN));
+
+            let recalculando: Promise<boolean> = Promise.resolve(true);
+            act(() => { recalculando = result.current.recalculate(INPUT); });
+            rerender({ id: 'b1' });
+            rerender({ id: 'a1' });
+            await waitFor(() => expect(result.current.loading).toBe(false));
+            const recalculada = { ...PLAN, initialVolumeKm: 30 };
+            vi.mocked(SeasonPlanService.buscarAtual).mockResolvedValue(recalculada);
+            let ok = true;
+            await act(async () => { resolver(recalculada); ok = await recalculando; });
+
+            expect(ok).toBe(false);
+            await waitFor(() => expect(result.current.plan).toEqual(recalculada));
         });
 
         it('422 expõe recalcError, mantém a proposta e devolve false; clearRecalcError limpa', async () => {

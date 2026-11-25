@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Box, Button, Dialog, DialogContent, DialogTitle, Typography, useMediaQuery, useTheme } from '@mui/material';
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { format, parseISO } from 'date-fns';
 import { surface } from '../../../../theme/tokens';
 import { SectionCard } from '../SectionCard';
@@ -30,7 +30,11 @@ export function SeasonStartCard({ plan, recalculating, recalcError, onRecalculat
   const fullScreen = useMediaQuery(useTheme().breakpoints.down('sm'));
   const fonte = plan.initialVolumeSource;
 
-  const fechar = () => { setAberto(false); onClearRecalcError?.(); };
+  const fechar = () => {
+    if (recalculating) return;
+    setAberto(false);
+    onClearRecalcError?.();
+  };
   const recalcular = async (input: SeasonPlanRecalculate) => {
     const ok = (await onRecalculate?.(input)) ?? false;
     if (ok) setAberto(false);
@@ -88,6 +92,9 @@ export function SeasonStartCard({ plan, recalculating, recalcError, onRecalculat
             onCloseConfirm={onClearRecalcError}
           />
         </DialogContent>
+        <DialogActions>
+          <Button onClick={fechar} disabled={recalculating} sx={ACTION_BTN_SX}>Fechar</Button>
+        </DialogActions>
       </Dialog>
     </SectionCard>
   );

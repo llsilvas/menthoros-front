@@ -175,6 +175,7 @@ test.describe('Coach — aba Temporada do inbox', () => {
     const V1 = {
       ...TEMPORADA,
       version: 1,
+      firstProposal: true,
       weeks: TEMPORADA.weeks.map((w) => ({ ...w, locked: false, lockReason: undefined })),
       initialVolumeKm: 20.8,
       proposedVolumeKm: 20.8,

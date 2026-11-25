@@ -138,6 +138,8 @@ export interface SeasonPlan {
     initialVolumeSource?: StartVolumeSource;
     /** As 8 semanas completas antes da geração, da mais antiga à mais recente. */
     volumeHistory?: SeasonVolumeWeek[];
+    /** Proposta original (v1, nunca aprovada): o recálculo aceita volume e longão de partida. */
+    firstProposal: boolean;
     peakVolumeKm: number;
     weeks: SeasonWeek[];
     milestones: SeasonMilestone[];
