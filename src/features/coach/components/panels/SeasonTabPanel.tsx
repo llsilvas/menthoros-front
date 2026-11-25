@@ -4,9 +4,11 @@ import { content, surface } from '../../../../theme/tokens';
 import { KpiStrip } from '../KpiStrip';
 import { SeasonMapChart } from '../SeasonMapChart';
 import { SectionCard } from '../SectionCard';
+import { SeasonStartCard } from './SeasonStartCard';
 import { formatKmPt, plural } from '../../adapters/format';
+import { formatValidation } from '../../adapters/seasonAdjust';
 import { TRAINING_PHASE_LABEL } from '../../../../types/SeasonPlan';
-import type { SeasonPlan, SeasonWeek } from '../../../../types/SeasonPlan';
+import type { SeasonPlan, SeasonPlanRecalculate, SeasonWeek } from '../../../../types/SeasonPlan';
 import type { CalibrationStatus } from '../../../../types/Calibracao';
 import type { KpiView } from '../../types/Kpi';
 
@@ -55,11 +57,21 @@ interface SeasonTabPanelProps {
   onApprove: () => void;
   /** Ajustar a temporada ativa (cria ou reabre o rascunho da próxima versão). */
   onAdjust?: () => void;
+  /** Recalculando a proposta v1 (volume, longão e fases). */
+  recalculating?: boolean;
+  recalcError?: Error | null;
+  /** Recalcula a proposta v1; `true` quando deu certo. */
+  onRecalculate?: (input: SeasonPlanRecalculate) => Promise<boolean>;
+  onClearRecalcError?: () => void;
   onRetry: () => void;
   hoje?: Date;
 }
 
-export function SeasonTabPanel({ plan, loading, generating, loadError, generateError, approving, approveError, hasTargetRace, calibration = null, adjusting = false, adjustError = null, onGenerate, onApprove, onAdjust, onRetry, hoje = new Date() }: SeasonTabPanelProps) {
+/** Proposta original (v1): nunca aprovada e sem temporada base; a do ajuste de uma ACTIVE não conta. */
+const isFirstProposal = (plan: SeasonPlan) =>
+  plan.seasonStatus === 'PROPOSED' && (plan.version ?? 1) === 1 && !plan.baseSeasonPlanId;
+
+export function SeasonTabPanel({ plan, loading, generating, loadError, generateError, approving, approveError, hasTargetRace, calibration = null, adjusting = false, adjustError = null, recalculating = false, recalcError = null, onGenerate, onApprove, onAdjust, onRecalculate, onClearRecalcError, onRetry, hoje = new Date() }: SeasonTabPanelProps) {
   if (loading) {
     return (
       <Box data-testid="season-loading" role="status" aria-label="Carregando temporada">
@@ -136,6 +148,15 @@ export function SeasonTabPanel({ plan, loading, generating, loadError, generateE
           </Button>
         </Box>
       ) : null}
+      {isFirstProposal(plan) && plan.initialVolumeSource ? (
+        <SeasonStartCard
+          plan={plan}
+          recalculating={recalculating}
+          recalcError={recalcError}
+          onRecalculate={onRecalculate}
+          onClearRecalcError={onClearRecalcError}
+        />
+      ) : null}
       <KpiStrip items={buildKpis(plan, hoje)} testIdPrefix="season-kpi" />
       <SectionCard title="Mapa da temporada">
         <SeasonMapChart
@@ -164,7 +185,7 @@ export function SeasonTabPanel({ plan, loading, generating, loadError, generateE
             <Box component="ul" aria-label="Validações" sx={LIST_SX}>
               {plan.validations.map((v) => (
                 <Box component="li" key={`${v.rule}-${v.weekIndex}`} sx={ITEM_SX}>
-                  {`Semana ${v.weekIndex}: ${v.message}`}
+                  {formatValidation(v)}
                 </Box>
               ))}
             </Box>

@@ -78,9 +78,57 @@ describe('SeasonParametersForm', () => {
 
     expect(dialogo).toHaveTextContent('O motor regenera as semanas 2, 4 e 5.');
     expect(dialogo).toHaveTextContent('A semana editada por você (3) fica como está.');
+    expect(dialogo).toHaveTextContent('As semanas 1 e 6 não mudam.');
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Recalcular' }));
 
     expect(onRecalculate).toHaveBeenCalledWith({ phaseWeeks: { BASE: 2, BUILD: 1, PEAK: 1, TAPER: 1 }, startVolumeKm: 40 });
+  });
+
+  it('sem semana travada (proposta v1) a confirmação não promete preservar nenhuma', async () => {
+    montar({ weeks: WEEKS.map((w) => ({ ...w, locked: false, lockReason: undefined })) });
+
+    await userEvent.click(recalcular());
+
+    expect(screen.getByRole('dialog')).not.toHaveTextContent('não muda');
+    expect(screen.getByRole('dialog')).toHaveTextContent('O motor regenera as semanas 1, 2, 4, 5 e 6.');
+  });
+
+  it('sem withLongRun não há campo de longão', () => {
+    montar();
+
+    expect(screen.queryByLabelText('Longão de partida (km)')).not.toBeInTheDocument();
+  });
+
+  it('com withLongRun pré-preenche o longão e manda no recálculo', async () => {
+    const onRecalculate = montar({ withLongRun: true, initialLongRunKm: 7.4 });
+
+    expect(campo('Longão de partida (km)')).toHaveValue('7,4');
+    await userEvent.clear(campo('Longão de partida (km)'));
+    await userEvent.type(campo('Longão de partida (km)'), '10');
+    await userEvent.click(recalcular());
+    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Recalcular' }));
+
+    expect(onRecalculate).toHaveBeenCalledWith({
+      phaseWeeks: { BASE: 2, BUILD: 1, PEAK: 1, TAPER: 1 }, startVolumeKm: 38.5, startLongRunKm: 10,
+    });
+  });
+
+  it('longão acima de 42,2 desabilita o recálculo', async () => {
+    montar({ withLongRun: true, initialLongRunKm: 7.4 });
+
+    await userEvent.clear(campo('Longão de partida (km)'));
+    await userEvent.type(campo('Longão de partida (km)'), '42,3');
+
+    expect(recalcular()).toBeDisabled();
+  });
+
+  it('longão vazio não vai no recálculo (o backend mantém o gravado)', async () => {
+    const onRecalculate = montar({ withLongRun: true });
+
+    expect(campo('Longão de partida (km)')).toHaveValue('');
+    await userEvent.click(recalcular());
+    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Recalcular' }));
+    expect(onRecalculate).toHaveBeenCalledWith({ phaseWeeks: { BASE: 2, BUILD: 1, PEAK: 1, TAPER: 1 }, startVolumeKm: 38.5 });
   });
 
   it('422 do recálculo aparece na confirmação, que continua aberta', async () => {

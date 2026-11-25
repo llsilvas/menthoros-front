@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-    coachEditedWeeks, countPhaseWeeks, formatDiffValue, indexDiff, joinWeeks, parseStartVolume, weeksToRegenerate,
+    coachEditedWeeks, countPhaseWeeks, formatDiffValue, formatValidation, indexDiff, joinWeeks, lockedWeeksNote,
+    parseStartLongRun, parseStartVolume, weeksToRegenerate,
 } from './seasonAdjust';
 import type { SeasonWeek } from '../../../types/SeasonPlan';
 
@@ -41,6 +42,27 @@ describe('seasonAdjust', () => {
         ['', null], ['0', null], ['-1', null], ['500,1', null], ['40,55', null], ['abc', null],
     ])('volume "%s" vira %s', (texto, esperado) => {
         expect(parseStartVolume(texto)).toBe(esperado);
+    });
+
+    it.each([
+        ['7,4', 7.4], ['42.2', 42.2], ['', null], ['0', null], ['42,3', null], ['7,45', null],
+    ])('longão de partida "%s" vira %s', (texto, esperado) => {
+        expect(parseStartLongRun(texto)).toBe(esperado);
+    });
+
+    it('nota das semanas que o recálculo não muda sai das travadas', () => {
+        expect(lockedWeeksNote([semana(1), semana(2)])).toBe('');
+        expect(lockedWeeksNote([semana(1, { locked: true, lockReason: 'COMPLETED' }), semana(2)])).toBe('A semana 1 não muda.');
+        expect(lockedWeeksNote([semana(1, { locked: true }), semana(2), semana(3, { locked: true })]))
+            .toBe('As semanas 1 e 3 não mudam.');
+    });
+
+    it('alerta de longão explica que ele segue o maior treino recente', () => {
+        const alerta = { severity: 'WARN' as const, weekIndex: 1, measured: 35, limit: 30, message: 'Longão concentra 35% do volume da semana (teto 30%)' };
+
+        expect(formatValidation({ ...alerta, rule: 'LONG_RUN_SHARE' }))
+            .toBe('Semana 1: Longão concentra 35% do volume da semana (teto 30%). O longão parte do maior treino recente do atleta.');
+        expect(formatValidation({ ...alerta, rule: 'RAMP', message: 'Volume sobe 12%' })).toBe('Semana 1: Volume sobe 12%');
     });
 
     it('formata cada campo do diff', () => {

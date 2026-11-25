@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { SeasonTabPanel } from './SeasonTabPanel';
 import type { SeasonPlan } from '../../../../types/SeasonPlan';
@@ -177,5 +177,92 @@ describe('SeasonTabPanel', () => {
     render(<SeasonTabPanel {...base} calibration={null} />);
     expect(screen.getByRole('button', { name: 'Gerar temporada' })).toBeEnabled();
     expect(screen.queryByText(/em calibração/)).not.toBeInTheDocument();
+  });
+
+  describe('partida da proposta v1 (critério 11)', () => {
+    const V1: SeasonPlan = {
+      ...PLAN, version: 1, initialVolumeKm: 20.8, proposedVolumeKm: 20.8, initialLongRunKm: 7.4, initialVolumeSource: 'MEDIAN',
+      volumeHistory: [
+        ['2026-09-21', 29.2], ['2026-09-28', 30], ['2026-10-05', 25.3], ['2026-10-12', 18.2],
+        ['2026-10-19', 3.7], ['2026-10-26', 23.4], ['2026-11-02', 16.2], ['2026-11-09', 6.8],
+      ].map(([weekStart, km]) => ({ weekStart: weekStart as string, km: km as number })),
+    };
+
+    it('mostra partida, origem, longão de partida e as 8 semanas', () => {
+      render(<SeasonTabPanel {...base} plan={V1} onRecalculate={vi.fn()} />);
+
+      expect(screen.getByTestId('season-start-volume')).toHaveTextContent('Volume de partida: 20,8 km · mediana das últimas 8 semanas');
+      expect(screen.getByTestId('season-start-long-run')).toHaveTextContent('Longão de partida: 7,4 km');
+      const semanas = within(screen.getByRole('list', { name: 'Semanas usadas na partida' })).getAllByRole('listitem');
+      expect(semanas).toHaveLength(8);
+      expect(semanas[0]).toHaveTextContent('21/09 · 29,2 km');
+    });
+
+    it('origem COACH mostra o volume que o motor propôs', () => {
+      render(<SeasonTabPanel {...base} plan={{ ...V1, initialVolumeKm: 30, initialVolumeSource: 'COACH' }} />);
+
+      expect(screen.getByTestId('season-start-volume')).toHaveTextContent('30,0 km · definido pelo treinador');
+      expect(screen.getByText('O motor propôs 20,8 km.')).toBeInTheDocument();
+    });
+
+    it('sem longão de partida explica os 28%', () => {
+      render(<SeasonTabPanel {...base} plan={{ ...V1, initialLongRunKm: undefined }} />);
+
+      expect(screen.getByTestId('season-start-long-run')).toHaveTextContent(/sem treino nas últimas 6 semanas/);
+    });
+
+    it.each([
+      ['ativa', { seasonStatus: 'ACTIVE' as const }],
+      ['ajuste (v2)', { version: 2, baseSeasonPlanId: 'v1' }],
+      ['legada, sem origem', { initialVolumeSource: undefined }],
+    ])('%s não mostra a partida', (_, extra) => {
+      render(<SeasonTabPanel {...base} plan={{ ...V1, ...extra }} onRecalculate={vi.fn()} />);
+
+      expect(screen.queryByText('Partida da temporada')).not.toBeInTheDocument();
+    });
+
+    it('"Ajustar volume e fases" recalcula com o longão, fecha o diálogo e a tabela reflete a proposta nova', async () => {
+      const onRecalculate = vi.fn().mockResolvedValue(true);
+      const { rerender } = render(<SeasonTabPanel {...base} plan={V1} onRecalculate={onRecalculate} />);
+
+      await userEvent.click(screen.getByRole('button', { name: 'Ajustar volume e fases' }));
+      const dialogo = screen.getByRole('dialog', { name: 'Ajustar volume e fases' });
+      await userEvent.clear(within(dialogo).getByLabelText('Volume de partida (km)'));
+      await userEvent.type(within(dialogo).getByLabelText('Volume de partida (km)'), '30');
+      await userEvent.clear(within(dialogo).getByLabelText('Longão de partida (km)'));
+      await userEvent.type(within(dialogo).getByLabelText('Longão de partida (km)'), '10');
+      await userEvent.click(within(dialogo).getByRole('button', { name: 'Recalcular' }));
+      await userEvent.click(within(screen.getByRole('dialog', { name: 'Recalcular o ajuste?' })).getByRole('button', { name: 'Recalcular' }));
+
+      expect(onRecalculate).toHaveBeenCalledWith({
+        phaseWeeks: { BASE: 1, BUILD: 0, PEAK: 1, TAPER: 0 }, startVolumeKm: 30, startLongRunKm: 10,
+      });
+      await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Ajustar volume e fases' })).not.toBeInTheDocument());
+
+      const recalculada = {
+        ...V1, initialVolumeKm: 30, initialLongRunKm: 10, initialVolumeSource: 'COACH' as const,
+        weeks: V1.weeks.map((w) => (w.weekIndex === 1 ? { ...w, targetVolumeKm: 30.6, longRunKm: 10.2 } : w)),
+      };
+      rerender(<SeasonTabPanel {...base} plan={recalculada} onRecalculate={onRecalculate} />);
+      // A confirmação ainda some em transição; a tabela volta a ser acessível quando o modal sai do DOM.
+      const rows = within(await screen.findByRole('table', { name: 'Semanas da temporada' })).getAllByRole('row');
+      expect(rows[1]).toHaveTextContent(/30,6 km.*10,2 km/);
+    });
+
+    it('erro do recálculo aparece na confirmação', async () => {
+      render(<SeasonTabPanel {...base} plan={V1} onRecalculate={vi.fn().mockResolvedValue(false)}
+        recalcError={new Error('Longão de partida inválido')} />);
+
+      await userEvent.click(screen.getByRole('button', { name: 'Ajustar volume e fases' }));
+      await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Recalcular' }));
+
+      expect(within(screen.getByRole('dialog', { name: 'Recalcular o ajuste?' })).getByText('Longão de partida inválido')).toBeInTheDocument();
+    });
+  });
+
+  it('alerta de longão explica que ele segue o maior treino recente', () => {
+    render(<SeasonTabPanel {...base} plan={{ ...PLAN, validations: [{ rule: 'LONG_RUN_SHARE', severity: 'WARN', weekIndex: 1, measured: 35, limit: 30, message: 'Longão concentra 35% do volume da semana (teto 30%)' }] }} />);
+
+    expect(within(screen.getByRole('list', { name: 'Validações' })).getByText(/maior treino recente do atleta/)).toBeInTheDocument();
   });
 });

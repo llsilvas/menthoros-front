@@ -1038,6 +1038,10 @@ function CoachInboxPage() {
                     calibration={calibration}
                     adjusting={season.adjusting}
                     adjustError={season.adjustError}
+                    recalculating={season.recalculating}
+                    recalcError={season.recalcError}
+                    onRecalculate={season.recalculate}
+                    onClearRecalcError={season.clearRecalcError}
                     onGenerate={() => void season.generate()}
                     onApprove={() => void season.approve()}
                     onAdjust={() => void abrirAjusteDaTemporada()}
