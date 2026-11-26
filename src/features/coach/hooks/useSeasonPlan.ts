@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { SeasonPlanService } from '../../../api/services/SeasonPlanService';
-import type { SeasonPlan } from '../../../types/SeasonPlan';
+import type { SeasonPlan, SeasonPlanRecalculate } from '../../../types/SeasonPlan';
 import { isSeasonPlanDisabled as isDisabled, seasonPlanError as toError } from '../adapters/seasonPlanError';
 
 /**
  * Temporada aberta do atleta para a aba Temporada do inbox. `plan === null` sem erro = atleta sem
  * temporada (204). `disabled` = flag `season-plan.enabled` desligada no backend: a aba some (é global,
  * por isso não volta a false ao trocar de atleta). `loadError` = a leitura falhou, então não se sabe
- * se há temporada; `generateError` = a geração falhou; `approveError` = a aprovação falhou.
+ * se há temporada; `generateError` = a geração falhou; `approveError` = a aprovação falhou;
+ * `recalcError` = o recálculo da proposta v1 falhou.
  */
 export const useSeasonPlan = (atletaId: string | undefined) => {
     const [plan, setPlan] = useState<SeasonPlan | null>(null);
@@ -20,6 +21,8 @@ export const useSeasonPlan = (atletaId: string | undefined) => {
     const [approveError, setApproveError] = useState<Error | null>(null);
     const [adjusting, setAdjusting] = useState(false);
     const [adjustError, setAdjustError] = useState<Error | null>(null);
+    const [recalculating, setRecalculating] = useState(false);
+    const [recalcError, setRecalcError] = useState<Error | null>(null);
     // Cada requisição recebe um número; resposta de requisição superada (ex.: atleta anterior) é descartada.
     const requestRef = useRef(0);
     const atletaRef = useRef(atletaId);
@@ -35,6 +38,8 @@ export const useSeasonPlan = (atletaId: string | undefined) => {
         setApproving(false);
         setAdjustError(null);
         setAdjusting(false);
+        setRecalcError(null);
+        setRecalculating(false);
         if (!atletaId) {
             setLoading(false);
             return;
@@ -109,6 +114,30 @@ export const useSeasonPlan = (atletaId: string | undefined) => {
         }
     }, [atletaId, plan]);
 
+    /** Recalcula a proposta v1 com fases, volume e longão de partida; `true` quando deu certo. */
+    const recalculate = useCallback(async (input: SeasonPlanRecalculate): Promise<boolean> => {
+        if (!atletaId || !plan) return false;
+        const request = ++requestRef.current;
+        setRecalculating(true);
+        setRecalcError(null);
+        try {
+            const result = await SeasonPlanService.recalcular(atletaId, plan.id, input);
+            if (request === requestRef.current) setPlan(result);
+            // Superada por troca de atleta (A → B → A): o recálculo já gravou, então relê a temporada de A.
+            else if (atletaRef.current === atletaId) void fetchPlanRef.current();
+            return request === requestRef.current;
+        } catch (err) {
+            if (request !== requestRef.current) return false;
+            if (isDisabled(err)) setDisabled(true);
+            else setRecalcError(toError(err, 'Erro ao recalcular a temporada'));
+            return false;
+        } finally {
+            if (request === requestRef.current) setRecalculating(false);
+        }
+    }, [atletaId, plan]);
+
+    const clearRecalcError = useCallback(() => setRecalcError(null), []);
+
     useEffect(() => {
         atletaRef.current = atletaId;
         fetchPlanRef.current = fetchPlan;
@@ -116,7 +145,7 @@ export const useSeasonPlan = (atletaId: string | undefined) => {
     }, [atletaId, fetchPlan]);
 
     return {
-        plan, loading, generating, approving, adjusting, disabled, loadError, generateError, approveError, adjustError,
-        fetchPlan, generate, approve, adjust,
+        plan, loading, generating, approving, adjusting, recalculating, disabled, loadError, generateError, approveError,
+        adjustError, recalcError, fetchPlan, generate, approve, adjust, recalculate, clearRecalcError,
     };
 };

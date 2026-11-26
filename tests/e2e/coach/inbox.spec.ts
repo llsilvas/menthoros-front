@@ -806,3 +806,90 @@ test.describe('Coach — KPIs do atleta em uma linha (inbox-kpis-atleta-sem-dado
     await expect(page.getByTestId('queue-row-aderencia').first()).toHaveText(/^Ader\. (\d+%|—)$/)
   })
 })
+
+/**
+ * coach-ciente-prova-na-inbox — o coach resolve o aviso de prova do atleta sem sair da inbox. O
+ * fluxo grava no backend (ciência) e reorganiza a fila; por isso a cobertura é E2E, não só de
+ * componente: aqui o dashboard volta de verdade sem o atleta, e a seleção precisa ficar nele.
+ */
+test.describe('Coach — Ciente da prova do atleta na inbox (coach-ciente-prova-na-inbox)', () => {
+  const BRUNO_PROVA = {
+    atletaId: 'bruno-prova',
+    athleteName: 'Bruno Cadastrou Prova',
+    severity: 'ALTA',
+    priorityScore: 95,
+    primaryReason: 'PROVA_ATLETA',
+    suggestedAction: 'Revisar a prova cadastrada pelo atleta',
+    generatedAt: '2026-08-15T12:00:00Z',
+    evidence: [],
+  }
+  const dataFutura = new Date(Date.now() + 90 * 86_400_000).toISOString().slice(0, 10)
+  const prova = (revisada: boolean) => ({
+    id: 'prova-1',
+    nomeProva: 'Maratona de Porto Alegre',
+    dataProva: dataFutura,
+    tipoProva: 'MARATONA',
+    distancia: 'KM_42',
+    provaAlvo: true,
+    revisadaPeloCoach: revisada,
+    motivoRevisao: revisada ? undefined : 'NOVA',
+  })
+
+  async function mockarProvas(page: Page, ciente: { status: number }) {
+    const fila: unknown[] = [BRUNO_PROVA]
+    let revisada = false
+    await mockarDashboard(page, { attentionQueue: fila })
+    await page.route('**/api/v1/coach/atletas/*/perfil', (route) =>
+      route.fulfill({ json: perfilDe('bruno-prova', 'Bruno Cadastrou Prova', null) }),
+    )
+    await page.route('**/api/v1/atletas/bruno-prova/provas', (route) =>
+      route.fulfill({ json: [prova(revisada)] }),
+    )
+    await page.route('**/api/v1/atletas/bruno-prova/provas/pendentes-revisao', (route) =>
+      route.fulfill({ json: revisada ? [] : [prova(false)] }),
+    )
+    await page.route('**/api/v1/atletas/bruno-prova/provas/prova-1/ciente', (route) => {
+      if (ciente.status !== 200) return route.fulfill({ status: ciente.status, json: { message: 'erro' } })
+      revisada = true
+      fila.length = 0
+      return route.fulfill({ json: prova(true) })
+    })
+  }
+
+  test.beforeEach(async ({ page }) => {
+    await autenticarComPkce(page, { roles: ['PROPRIETARIO', 'TECNICO'] })
+  })
+
+  test('abre na aba de provas, Ciente recarrega a fila e o atleta continua selecionado', async ({ page }) => {
+    await mockarProvas(page, { status: 200 })
+    await page.goto(INBOX_URL)
+
+    await page.getByRole('button', { name: /bruno cadastrou prova/i }).click()
+    await expect(page.getByTestId('inbox-nome-atleta')).toHaveText('Bruno Cadastrou Prova')
+    await expect(page.getByRole('tab', { name: /provas & sugestões/i })).toHaveAttribute('aria-selected', 'true')
+    await expect(page.getByText('Maratona de Porto Alegre')).toBeVisible()
+
+    const ciente = page.waitForRequest((r) => r.url().endsWith('/provas/prova-1/ciente') && r.method() === 'PATCH')
+    const filaRecarregada = page.waitForResponse(DASHBOARD_API)
+    await page.getByRole('button', { name: /^ciente$/i }).click()
+    await ciente
+    await filaRecarregada
+
+    await expect(page.getByRole('button', { name: /bruno cadastrou prova/i })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /^ciente$/i })).toHaveCount(0)
+    await expect(page.getByTestId('inbox-nome-atleta')).toHaveText('Bruno Cadastrou Prova')
+    await expect(page.getByRole('tab', { name: /provas & sugestões/i })).toHaveAttribute('aria-selected', 'true')
+  })
+
+  test('falha no Ciente mostra erro com "Tentar novamente" sem derrubar a inbox', async ({ page }) => {
+    await mockarProvas(page, { status: 500 })
+    await page.goto(INBOX_URL)
+
+    await page.getByRole('button', { name: /bruno cadastrou prova/i }).click()
+    await page.getByRole('button', { name: /^ciente$/i }).click()
+
+    await expect(page.getByRole('button', { name: /tentar novamente/i })).toBeVisible()
+    await expect(page.getByText('Sugestões recentes')).toBeVisible()
+    await expect(page.getByRole('button', { name: /bruno cadastrou prova/i })).toBeVisible()
+  })
+})

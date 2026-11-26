@@ -7,7 +7,7 @@ import { SeasonAdjustTable } from '../components/SeasonAdjustTable';
 import { SeasonDiffList } from '../components/SeasonDiffList';
 import { SeasonParametersForm } from '../components/SeasonParametersForm';
 import { useSeasonAdjustment } from '../hooks/useSeasonAdjustment';
-import { countPhaseWeeks } from '../adapters/seasonAdjust';
+import { countPhaseWeeks, formatValidation } from '../adapters/seasonAdjust';
 import { surface } from '../../../theme/tokens';
 import type { InboxReturnState } from '../types/InboxReturnState';
 
@@ -125,7 +125,7 @@ export default function CoachSeasonAdjustPage() {
         {plan.validations.length ? (
           <Box component="ul" aria-label="Validações" sx={LIST_SX}>
             {plan.validations.map((v, i) => (
-              <Box component="li" key={`${v.rule}-${v.weekIndex}-${i}`} sx={ITEM_SX}>{`Semana ${v.weekIndex}: ${v.message}`}</Box>
+              <Box component="li" key={`${v.rule}-${v.weekIndex}-${i}`} sx={ITEM_SX}>{formatValidation(v)}</Box>
             ))}
           </Box>
         ) : (

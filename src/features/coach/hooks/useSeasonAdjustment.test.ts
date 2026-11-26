@@ -9,7 +9,7 @@ vi.mock('../../../api/services/SeasonPlanService');
 
 const DRAFT: SeasonPlan = {
     id: 'v2', seasonStatus: 'PROPOSED', provaId: 'p1', provaNome: 'Maratona SP', provaData: '2027-04-04',
-    shortPreparation: false, totalWeeks: 2, initialCtl: 40, peakVolumeKm: 50, version: 2, baseSeasonPlanId: 'v1',
+    shortPreparation: false, firstProposal: false, totalWeeks: 2, initialCtl: 40, peakVolumeKm: 50, version: 2, baseSeasonPlanId: 'v1',
     weeks: [
         { weekIndex: 1, weekStart: '2026-11-16', phase: 'BASE', targetVolumeKm: 40, targetTss: 300, deload: false, valueSource: 'ENGINE', locked: true, lockReason: 'IN_PROGRESS' },
         { weekIndex: 2, weekStart: '2026-11-23', phase: 'BASE', targetVolumeKm: 42, targetTss: 310, deload: false, valueSource: 'ENGINE', locked: false },

@@ -1,9 +1,14 @@
 import { EDITABLE_PHASES, TRAINING_PHASE_LABEL } from '../../../types/SeasonPlan';
-import type { EditablePhase, SeasonDiffField, SeasonPlanDiffEntry, SeasonWeek, TrainingPhase } from '../../../types/SeasonPlan';
+import type {
+    EditablePhase, SeasonDiffField, SeasonPlanDiffEntry, SeasonValidation, SeasonWeek, TrainingPhase,
+} from '../../../types/SeasonPlan';
 import { formatKmPt } from './format';
 
 /** Volume de partida máximo aceito pelo recálculo (`SeasonPlanAdjustmentServiceImpl`). */
 export const START_VOLUME_MAX = 500;
+
+/** Longão de partida máximo aceito pelo recálculo (`LONGAO_PARTIDA_MAX_KM`, uma maratona). */
+export const START_LONG_RUN_MAX = 42.2;
 
 export const VALUE_SOURCE_LABEL: Record<SeasonWeek['valueSource'], string> = {
     ENGINE: 'motor',
@@ -41,16 +46,34 @@ export const coachEditedWeeks = (weeks: SeasonWeek[]): number[] =>
 export const joinWeeks = (nums: number[]): string =>
     nums.length <= 1 ? nums.join('') : `${nums.slice(0, -1).join(', ')} e ${nums[nums.length - 1]}`;
 
-/**
- * Volume digitado pelo treinador ("40,5" ou "40.5") como número válido para o recálculo, ou `null`:
- * positivo, até {@link START_VOLUME_MAX} e com no máximo uma casa decimal (a coluna é `NUMERIC(6,1)`).
- */
-export const parseStartVolume = (texto: string): number | null => {
+/** Km digitado ("40,5" ou "40.5"): positivo, até `max` e com no máximo uma casa decimal; senão `null`. */
+const parseKm = (texto: string, max: number): number | null => {
     const normalizado = texto.trim().replace(',', '.');
     if (!/^\d+(\.\d)?$/.test(normalizado)) return null;
     const valor = Number(normalizado);
-    return valor > 0 && valor <= START_VOLUME_MAX ? valor : null;
+    return valor > 0 && valor <= max ? valor : null;
 };
+
+/** Volume de partida para o recálculo, até {@link START_VOLUME_MAX} (a coluna é `NUMERIC(6,1)`). */
+export const parseStartVolume = (texto: string): number | null => parseKm(texto, START_VOLUME_MAX);
+
+/** Longão de partida para o recálculo da proposta v1, até {@link START_LONG_RUN_MAX}. */
+export const parseStartLongRun = (texto: string): number | null => parseKm(texto, START_LONG_RUN_MAX);
+
+/** "As semanas 1 e 3 não mudam." a partir das semanas travadas da resposta; vazio quando nenhuma trava. */
+export const lockedWeeksNote = (weeks: SeasonWeek[]): string => {
+    const travadas = weeks.filter((w) => w.locked).map((w) => w.weekIndex);
+    if (!travadas.length) return '';
+    return travadas.length === 1
+        ? `A semana ${travadas[0]} não muda.`
+        : `As semanas ${joinWeeks(travadas)} não mudam.`;
+};
+
+/** Linha do alerta para a tela; o de longão explica a origem para não ser lido como erro do motor. */
+export const formatValidation = (v: SeasonValidation): string =>
+    v.rule === 'LONG_RUN_SHARE'
+        ? `Semana ${v.weekIndex}: ${v.message}. O longão parte do maior treino recente do atleta.`
+        : `Semana ${v.weekIndex}: ${v.message}`;
 
 /** Valor de um campo do diff para a tela; `null` vira "—". */
 export const formatDiffValue = (field: SeasonDiffField, value: SeasonPlanDiffEntry['before']): string => {
