@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Box, Button, Chip, Table, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
+import { Alert, Box, Button, Chip, Table, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
 import { format, parseISO } from 'date-fns';
 import { content, surface } from '../../../theme/tokens';
 import { formatKmPt } from '../adapters/format';
 import { VALUE_SOURCE_LABEL, diffKey, formatDiffValue, indexDiff } from '../adapters/seasonAdjust';
+import { avisoPicoNaoAlcancado } from '../adapters/seasonWeekForm';
 import { SeasonWeekEditDialog } from './SeasonWeekEditDialog';
 import { SEASON_WEEK_LOCK_LABEL, TRAINING_PHASE_LABEL } from '../../../types/SeasonPlan';
 import type { SeasonDiffField, SeasonPlanDiffEntry, SeasonWeek, SeasonWeekUpdate, TrainingPhase } from '../../../types/SeasonPlan';
@@ -56,11 +57,29 @@ export function SeasonAdjustTable({
   weeks, savingWeek, saveError = null, readOnly = false, onSaveWeek, onCloseEdit, diff = [],
 }: SeasonAdjustTableProps) {
   const [editing, setEditing] = useState<SeasonWeek | null>(null);
+  /** Pico pedido no último recálculo salvo; o alcançado sai das semanas da resposta. */
+  const [pedido, setPedido] = useState<{ anchor: number; km: number } | null>(null);
   const porCelula = useMemo(() => indexDiff(diff), [diff]);
   const semanasAlteradas = useMemo(() => new Set(diff.map((d) => d.weekIndex)), [diff]);
+  const alcancado = pedido ? avisoPicoNaoAlcancado(pedido.km, weeks, pedido.anchor) : null;
+
+  const salvar = async (week: SeasonWeek, update: SeasonWeekUpdate) => {
+    const ok = await onSaveWeek(week.weekIndex, update);
+    if (ok) {
+      const km = update.followingPeakVolumeKm;
+      setPedido(km == null ? null : { anchor: week.weekIndex, km });
+    }
+    return ok;
+  };
 
   return (
     <Box sx={{ overflowX: 'auto' }}>
+      {pedido && alcancado != null ? (
+        <Alert severity="warning" onClose={() => setPedido(null)} sx={{ mb: 1 }}>
+          {`Pico pedido ${formatKmPt(pedido.km)} km, alcançado ${formatKmPt(alcancado)} km. `
+            + 'O limite de rampa semanal ou uma semana editada por você segurou a curva.'}
+        </Alert>
+      ) : null}
       <Table size="small" aria-label="Semanas do ajuste">
         <TableHead>
           <TableRow>
@@ -121,10 +140,11 @@ export function SeasonAdjustTable({
       {editing ? (
         <SeasonWeekEditDialog
           week={editing}
+          weeks={weeks}
           saving={savingWeek === editing.weekIndex}
           error={saveError}
           onClose={() => { setEditing(null); onCloseEdit?.(); }}
-          onSave={(update) => onSaveWeek(editing.weekIndex, update)}
+          onSave={(update) => salvar(editing, update)}
         />
       ) : null}
     </Box>
