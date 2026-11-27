@@ -95,11 +95,21 @@ describe('SeasonWeekEditDialog', () => {
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ targetVolumeKm: 20, followingPeakVolumeKm: 30 }));
   });
 
-  it('descarga marcada no formulário esconde a opção de recalcular', async () => {
+  it('descarga marcada no formulário esconde a opção e volta ao padrão ao desmarcar', async () => {
     abrir();
+    await userEvent.click(recalcular()!);
 
     await userEvent.click(screen.getByRole('checkbox', { name: 'Semana de descarga' }));
-
     expect(recalcular()).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Semana de descarga' }));
+
+    expect(screen.getByRole('radio', { name: /Só esta semana/ })).toBeChecked();
+  });
+
+  it('cada opção é descrita pela sua consequência', () => {
+    abrir();
+
+    expect(recalcular()).toHaveAccessibleDescription(/Reescreve 11 semanas/);
+    expect(screen.getByRole('radio', { name: /Só esta semana/ })).toHaveAccessibleDescription('A semana 3 continua em 13,4 km');
   });
 });

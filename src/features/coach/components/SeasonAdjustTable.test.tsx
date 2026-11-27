@@ -91,6 +91,10 @@ describe('SeasonAdjustTable', () => {
     rerender(<SeasonAdjustTable weeks={WEEKS.map((w) => (w.weekIndex === 3 ? { ...w, targetVolumeKm: 46.4 } : w))} savingWeek={null} onSaveWeek={onSaveWeek} />);
 
     expect(await screen.findByText(/Pico pedido 50,0 km, alcançado 46,4 km/)).toBeInTheDocument();
+
+    // Semanas trocadas por outro caminho (recálculo por fases, outro rascunho): o aviso não vale mais.
+    rerender(<SeasonAdjustTable weeks={WEEKS.map((w) => ({ ...w }))} savingWeek={null} onSaveWeek={onSaveWeek} />);
+    expect(screen.queryByText(/Pico pedido/)).not.toBeInTheDocument();
   });
 
   it('célula alterada mostra o valor da ativa riscado e a semana mostra a origem', () => {

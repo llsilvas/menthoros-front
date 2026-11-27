@@ -40,7 +40,11 @@ export function SeasonWeekEditDialog({ week, weeks, saving, error = null, onClos
   const [picoEditado, setPicoEditado] = useState(false);
   const erros = validateSeasonWeekForm(form);
   const invalido = Object.keys(erros).length > 0;
-  const set = <K extends keyof SeasonWeekForm>(campo: K, valor: SeasonWeekForm[K]) => setForm({ ...form, [campo]: valor });
+  const set = <K extends keyof SeasonWeekForm>(campo: K, valor: SeasonWeekForm[K]) => {
+    const proximo = { ...form, [campo]: valor };
+    // Fase ou descarga que escondem a opção voltam ao padrão "Só esta semana".
+    setForm(podeRecalcular(proximo) ? proximo : { ...proximo, recalcular: false });
+  };
 
   const mudar = (campo: 'targetVolumeKm' | 'longRunKm' | 'targetTss' | 'followingPeakVolumeKm', valor: string) => {
     if (campo === 'targetTss') setTssEditado(true);
@@ -115,14 +119,22 @@ export function SeasonWeekEditDialog({ week, weeks, saving, error = null, onClos
               value={form.recalcular ? 'recalcular' : 'so-esta'}
               onChange={(e) => set('recalcular', e.target.value === 'recalcular')}
             >
-              <FormControlLabel value="so-esta" control={<Radio />} label="Só esta semana" />
+              <FormControlLabel
+                value="so-esta"
+                control={<Radio slotProps={{ input: { 'aria-describedby': seguinte ? 'consequencia-so-esta' : undefined } }} />}
+                label="Só esta semana"
+              />
               {seguinte ? (
-                <Typography component="span" sx={CONSEQUENCIA_SX}>
+                <Typography id="consequencia-so-esta" component="span" sx={CONSEQUENCIA_SX}>
                   {`A semana ${seguinte.weekIndex} continua em ${formatKmPt(seguinte.targetVolumeKm)} km`}
                 </Typography>
               ) : null}
-              <FormControlLabel value="recalcular" control={<Radio />} label="Recalcular as semanas seguintes até a prova" />
-              <Typography component="span" sx={CONSEQUENCIA_SX}>
+              <FormControlLabel
+                value="recalcular"
+                control={<Radio slotProps={{ input: { 'aria-describedby': 'consequencia-recalcular' } }} />}
+                label="Recalcular as semanas seguintes até a prova"
+              />
+              <Typography id="consequencia-recalcular" component="span" sx={CONSEQUENCIA_SX}>
                 {`Reescreve ${plural(reescritas, 'semana', 'semanas')}; ${mantidas} ${mantidas === 1 ? 'fica como está' : 'ficam como estão'} `
                   + '(editadas por você ou travadas). Fase e descarga não mudam.'}
               </Typography>

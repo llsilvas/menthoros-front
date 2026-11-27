@@ -57,26 +57,40 @@ export function SeasonAdjustTable({
   weeks, savingWeek, saveError = null, readOnly = false, onSaveWeek, onCloseEdit, diff = [],
 }: SeasonAdjustTableProps) {
   const [editing, setEditing] = useState<SeasonWeek | null>(null);
-  /** Pico pedido no último recálculo salvo; o alcançado sai das semanas da resposta. */
-  const [pedido, setPedido] = useState<{ anchor: number; km: number } | null>(null);
+  /** Pico pedido no recálculo salvo, à espera das semanas da resposta (`antes` são as de quando salvou). */
+  const [pedido, setPedido] = useState<{ anchor: number; km: number; antes: SeasonWeek[] } | null>(null);
+  /** Aviso congelado sobre as semanas da resposta; some quando elas mudam por outro caminho. */
+  const [aviso, setAviso] = useState<{ km: number; alcancado: number; weeks: SeasonWeek[] } | null>(null);
   const porCelula = useMemo(() => indexDiff(diff), [diff]);
   const semanasAlteradas = useMemo(() => new Set(diff.map((d) => d.weekIndex)), [diff]);
-  const alcancado = pedido ? avisoPicoNaoAlcancado(pedido.km, weeks, pedido.anchor) : null;
+
+  // Ajuste de estado no render (padrão do React para estado derivado de prop): as primeiras semanas
+  // novas depois do salvar são a resposta; qualquer troca seguinte (recálculo por fases, outro rascunho)
+  // invalida o aviso.
+  if (pedido && weeks !== pedido.antes) {
+    const alcancado = avisoPicoNaoAlcancado(pedido.km, weeks, pedido.anchor);
+    setPedido(null);
+    setAviso(alcancado == null ? null : { km: pedido.km, alcancado, weeks });
+  } else if (aviso && weeks !== aviso.weeks) {
+    setAviso(null);
+  }
 
   const salvar = async (week: SeasonWeek, update: SeasonWeekUpdate) => {
+    const antes = weeks;
     const ok = await onSaveWeek(week.weekIndex, update);
     if (ok) {
       const km = update.followingPeakVolumeKm;
-      setPedido(km == null ? null : { anchor: week.weekIndex, km });
+      setAviso(null);
+      setPedido(km == null ? null : { anchor: week.weekIndex, km, antes });
     }
     return ok;
   };
 
   return (
     <Box sx={{ overflowX: 'auto' }}>
-      {pedido && alcancado != null ? (
-        <Alert severity="warning" onClose={() => setPedido(null)} sx={{ mb: 1 }}>
-          {`Pico pedido ${formatKmPt(pedido.km)} km, alcançado ${formatKmPt(alcancado)} km. `
+      {aviso ? (
+        <Alert severity="warning" onClose={() => setAviso(null)} sx={{ mb: 1 }}>
+          {`Pico pedido ${formatKmPt(aviso.km)} km, alcançado ${formatKmPt(aviso.alcancado)} km. `
             + 'O limite de rampa semanal ou uma semana editada por você segurou a curva.'}
         </Alert>
       ) : null}
