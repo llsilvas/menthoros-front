@@ -47,7 +47,8 @@ describe('SeasonAdjustTable', () => {
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Salvar' }));
 
     expect(onSaveWeek).toHaveBeenCalledWith(3, {
-      phase: 'BUILD', targetVolumeKm: 45.5, longRunKm: 12, targetTss: 310, deload: true, keySessions: '6x1km',
+      // TSS na proporção do volume: 310 × 45,5 / 42.
+      phase: 'BUILD', targetVolumeKm: 45.5, longRunKm: 12, targetTss: 336, deload: true, keySessions: '6x1km',
     });
     await vi.waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
@@ -75,6 +76,25 @@ describe('SeasonAdjustTable', () => {
     expect(within(screen.getByRole('dialog')).getByText('A semana 3 é a da prova-alvo')).toBeInTheDocument();
     await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancelar' }));
     expect(onCloseEdit).toHaveBeenCalled();
+  });
+
+  it('pico pedido 0,5 km ou mais acima do alcançado mostra o aviso depois de salvar', async () => {
+    const onSaveWeek = vi.fn().mockResolvedValue(true);
+    const { rerender } = render(<SeasonAdjustTable weeks={WEEKS} savingWeek={null} onSaveWeek={onSaveWeek} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Editar semana 3' }));
+    await userEvent.click(screen.getByRole('radio', { name: /Recalcular as semanas seguintes/ }));
+    const pico = screen.getByLabelText(/Volume de pico \(km\)/);
+    await userEvent.clear(pico);
+    await userEvent.type(pico, '50');
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+    rerender(<SeasonAdjustTable weeks={WEEKS.map((w) => (w.weekIndex === 3 ? { ...w, targetVolumeKm: 46.4 } : w))} savingWeek={null} onSaveWeek={onSaveWeek} />);
+
+    expect(await screen.findByText(/Pico pedido 50,0 km, alcançado 46,4 km/)).toBeInTheDocument();
+
+    // Semanas trocadas por outro caminho (recálculo por fases, outro rascunho): o aviso não vale mais.
+    rerender(<SeasonAdjustTable weeks={WEEKS.map((w) => ({ ...w }))} savingWeek={null} onSaveWeek={onSaveWeek} />);
+    expect(screen.queryByText(/Pico pedido/)).not.toBeInTheDocument();
   });
 
   it('célula alterada mostra o valor da ativa riscado e a semana mostra a origem', () => {

@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Box, Button, Chip, Table, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
+import { Alert, Box, Button, Chip, Table, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
 import { format, parseISO } from 'date-fns';
 import { content, surface } from '../../../theme/tokens';
 import { formatKmPt } from '../adapters/format';
 import { VALUE_SOURCE_LABEL, diffKey, formatDiffValue, indexDiff } from '../adapters/seasonAdjust';
+import { avisoPicoNaoAlcancado } from '../adapters/seasonWeekForm';
 import { SeasonWeekEditDialog } from './SeasonWeekEditDialog';
 import { SEASON_WEEK_LOCK_LABEL, TRAINING_PHASE_LABEL } from '../../../types/SeasonPlan';
 import type { SeasonDiffField, SeasonPlanDiffEntry, SeasonWeek, SeasonWeekUpdate, TrainingPhase } from '../../../types/SeasonPlan';
@@ -56,11 +57,43 @@ export function SeasonAdjustTable({
   weeks, savingWeek, saveError = null, readOnly = false, onSaveWeek, onCloseEdit, diff = [],
 }: SeasonAdjustTableProps) {
   const [editing, setEditing] = useState<SeasonWeek | null>(null);
+  /** Pico pedido no recálculo salvo, à espera das semanas da resposta (`antes` são as de quando salvou). */
+  const [pedido, setPedido] = useState<{ anchor: number; km: number; antes: SeasonWeek[] } | null>(null);
+  /** Aviso congelado sobre as semanas da resposta; some quando elas mudam por outro caminho. */
+  const [aviso, setAviso] = useState<{ km: number; alcancado: number; weeks: SeasonWeek[] } | null>(null);
   const porCelula = useMemo(() => indexDiff(diff), [diff]);
   const semanasAlteradas = useMemo(() => new Set(diff.map((d) => d.weekIndex)), [diff]);
 
+  // Ajuste de estado no render (padrão do React para estado derivado de prop): as primeiras semanas
+  // novas depois do salvar são a resposta; qualquer troca seguinte (recálculo por fases, outro rascunho)
+  // invalida o aviso.
+  if (pedido && weeks !== pedido.antes) {
+    const alcancado = avisoPicoNaoAlcancado(pedido.km, weeks, pedido.anchor);
+    setPedido(null);
+    setAviso(alcancado == null ? null : { km: pedido.km, alcancado, weeks });
+  } else if (aviso && weeks !== aviso.weeks) {
+    setAviso(null);
+  }
+
+  const salvar = async (week: SeasonWeek, update: SeasonWeekUpdate) => {
+    const antes = weeks;
+    const ok = await onSaveWeek(week.weekIndex, update);
+    if (ok) {
+      const km = update.followingPeakVolumeKm;
+      setAviso(null);
+      setPedido(km == null ? null : { anchor: week.weekIndex, km, antes });
+    }
+    return ok;
+  };
+
   return (
     <Box sx={{ overflowX: 'auto' }}>
+      {aviso ? (
+        <Alert severity="warning" onClose={() => setAviso(null)} sx={{ mb: 1 }}>
+          {`Pico pedido ${formatKmPt(aviso.km)} km, alcançado ${formatKmPt(aviso.alcancado)} km. `
+            + 'O limite de rampa semanal ou uma semana editada por você segurou a curva.'}
+        </Alert>
+      ) : null}
       <Table size="small" aria-label="Semanas do ajuste">
         <TableHead>
           <TableRow>
@@ -121,10 +154,11 @@ export function SeasonAdjustTable({
       {editing ? (
         <SeasonWeekEditDialog
           week={editing}
+          weeks={weeks}
           saving={savingWeek === editing.weekIndex}
           error={saveError}
           onClose={() => { setEditing(null); onCloseEdit?.(); }}
-          onSave={(update) => onSaveWeek(editing.weekIndex, update)}
+          onSave={(update) => salvar(editing, update)}
         />
       ) : null}
     </Box>

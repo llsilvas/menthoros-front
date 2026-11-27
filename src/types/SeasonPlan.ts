@@ -52,6 +52,8 @@ export interface SeasonWeekUpdate {
     longRunKm?: number;
     deload?: boolean;
     keySessions?: string;
+    /** Pico (km) para recalcular as semanas seguintes até a prova a partir desta; ausente, só esta muda. */
+    followingPeakVolumeKm?: number;
 }
 
 /** Fases que o recálculo distribui; a semana da prova é sempre 1. */
